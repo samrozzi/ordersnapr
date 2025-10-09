@@ -214,7 +214,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
               <FormItem>
                 <FormLabel>BPC</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -228,7 +228,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
               <FormItem>
                 <FormLabel>BAN</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -242,7 +242,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
               <FormItem>
                 <FormLabel>PACKAGE</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -284,7 +284,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
               <FormItem>
                 <FormLabel>Contact Info</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

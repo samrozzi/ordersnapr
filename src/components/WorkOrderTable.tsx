@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye, Phone, MessageSquare } from "lucide-react";
 import { WorkOrderForm } from "./WorkOrderForm";
 import { WorkOrderDetails } from "./WorkOrderDetails";
 
@@ -209,11 +209,45 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 <TableCell className="font-medium">{order.customer_name}</TableCell>
                 <TableCell>{order.ban || "-"}</TableCell>
                 <TableCell>
-                  {order.scheduled_date
-                    ? format(new Date(order.scheduled_date), "MMM dd, yyyy")
-                    : "Not yet scheduled"}
+                  {order.scheduled_date ? (() => {
+                    let dateStr = format(new Date(order.scheduled_date), "MMM dd, yyyy");
+                    if (order.scheduled_time) {
+                      const [hours, minutes] = order.scheduled_time.split(':');
+                      const hour = parseInt(hours);
+                      const period = hour >= 12 ? 'PM' : 'AM';
+                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                      dateStr += ` ${displayHour}:${minutes} ${period}`;
+                    }
+                    return dateStr;
+                  })() : "Not yet scheduled"}
                 </TableCell>
-                <TableCell>{order.contact_info || "-"}</TableCell>
+                <TableCell>
+                  {order.contact_info ? (
+                    <div className="flex items-center gap-1">
+                      <span className="mr-1">{order.contact_info}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        asChild
+                      >
+                        <a href={`tel:${order.contact_info}`}>
+                          <Phone className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        asChild
+                      >
+                        <a href={`sms:${order.contact_info}`}>
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  ) : "-"}
+                </TableCell>
                 <TableCell>{order.bpc || "-"}</TableCell>
                 <TableCell>{order.package || "-"}</TableCell>
                 <TableCell>{order.job_id || "-"}</TableCell>

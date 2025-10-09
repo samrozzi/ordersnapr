@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -107,14 +107,33 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                 {workOrder.contact_info && (
                   <div className="flex items-start gap-3">
                     <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Contact</p>
-                      <a 
-                        href={`tel:${workOrder.contact_info}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {workOrder.contact_info}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{workOrder.contact_info}</p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2"
+                            asChild
+                          >
+                            <a href={`tel:${workOrder.contact_info}`}>
+                              <Phone className="h-4 w-4" />
+                            </a>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2"
+                            asChild
+                          >
+                            <a href={`sms:${workOrder.contact_info}`}>
+                              <MessageSquare className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -183,7 +202,13 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                       <p className="text-sm text-muted-foreground">Scheduled Date</p>
                       <p className="font-medium">
                         {format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}
-                        {workOrder.scheduled_time && ` at ${workOrder.scheduled_time}`}
+                        {workOrder.scheduled_time && (() => {
+                          const [hours, minutes] = workOrder.scheduled_time.split(':');
+                          const hour = parseInt(hours);
+                          const period = hour >= 12 ? 'PM' : 'AM';
+                          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          return ` at ${displayHour}:${minutes} ${period}`;
+                        })()}
                       </p>
                     </div>
                   </div>

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
   id: string;
@@ -29,7 +31,12 @@ interface WorkOrderDetailsProps {
 }
 
 export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDetailsProps) {
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  
   if (!workOrder) return null;
+
+  const validPhotos = workOrder.photos?.filter(Boolean) || [];
+  const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -187,12 +194,16 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
             )}
 
             {/* Photos */}
-            {workOrder.photos && workOrder.photos.filter(Boolean).length > 0 && (
+            {validPhotos.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg border-b pb-2">Photos</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  {workOrder.photos.filter(Boolean).map((photoUrl, index) => (
-                    <div key={index} className="rounded-lg overflow-hidden border">
+                  {validPhotos.map((photoUrl, index) => (
+                    <div 
+                      key={index} 
+                      className="rounded-lg overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setSelectedPhotoIndex(index)}
+                    >
                       <AspectRatio ratio={16/9}>
                         <img
                           src={photoUrl}
@@ -200,7 +211,6 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                           className="w-full h-full object-cover"
                           loading="lazy"
                           onError={(e) => {
-                            // Hide broken images gracefully
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -213,6 +223,27 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Photo Viewer Dialog */}
+      <Dialog open={selectedPhotoIndex !== null} onOpenChange={() => setSelectedPhotoIndex(null)}>
+        <DialogContent className="max-w-4xl p-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 z-50 rounded-full bg-background/80 backdrop-blur-sm"
+            onClick={() => setSelectedPhotoIndex(null)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          {selectedPhoto && (
+            <img
+              src={selectedPhoto}
+              alt={`Work order photo ${(selectedPhotoIndex || 0) + 1}`}
+              className="w-full h-auto max-h-[85vh] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

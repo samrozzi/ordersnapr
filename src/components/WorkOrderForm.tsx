@@ -256,7 +256,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
               <FormItem>
                 <FormLabel>JOB ID</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} inputMode="numeric" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

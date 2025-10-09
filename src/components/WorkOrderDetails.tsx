@@ -1,0 +1,210 @@
+import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle } from "lucide-react";
+
+interface WorkOrder {
+  id: string;
+  bpc: string | null;
+  ban: string | null;
+  package: string | null;
+  job_id: string | null;
+  customer_name: string;
+  contact_info: string | null;
+  address: string | null;
+  notes: string | null;
+  scheduled_date: string | null;
+  status: string;
+  completion_notes: string | null;
+  created_at: string;
+  photos: string[] | null;
+}
+
+interface WorkOrderDetailsProps {
+  workOrder: WorkOrder | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDetailsProps) {
+  if (!workOrder) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Work Order Details</DialogTitle>
+        </DialogHeader>
+        
+        <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
+          <div className="space-y-6">
+            {/* Status Badge */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Status:</span>
+              <Badge
+                className={
+                  workOrder.status === "completed"
+                    ? "bg-green-100 text-green-800"
+                    : workOrder.status === "scheduled"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }
+              >
+                {workOrder.status}
+              </Badge>
+            </div>
+
+            {/* Customer Information */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg border-b pb-2">Customer Information</h3>
+              
+              <div className="grid gap-3">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Customer Name</p>
+                    <p className="font-medium">{workOrder.customer_name}</p>
+                  </div>
+                </div>
+
+                {workOrder.contact_info && (
+                  <div className="flex items-start gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Contact</p>
+                      <p className="font-medium">{workOrder.contact_info}</p>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Address</p>
+                      <p className="font-medium">{workOrder.address}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Job Details */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg border-b pb-2">Job Details</h3>
+              
+              <div className="grid gap-3">
+                {workOrder.bpc && (
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">BPC</p>
+                      <p className="font-medium">{workOrder.bpc}</p>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.ban && (
+                  <div className="flex items-start gap-3">
+                    <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">BAN</p>
+                      <p className="font-medium">{workOrder.ban}</p>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.package && (
+                  <div className="flex items-start gap-3">
+                    <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Package</p>
+                      <p className="font-medium">{workOrder.package}</p>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.job_id && (
+                  <div className="flex items-start gap-3">
+                    <Hash className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Job ID</p>
+                      <p className="font-medium">{workOrder.job_id}</p>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.scheduled_date && (
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Scheduled Date</p>
+                      <p className="font-medium">
+                        {format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="font-medium">
+                      {format(new Date(workOrder.created_at), "MMM dd, yyyy")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {workOrder.notes && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Notes</h3>
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <p className="whitespace-pre-wrap">{workOrder.notes}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Completion Notes */}
+            {workOrder.completion_notes && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Completion Notes</h3>
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <p className="whitespace-pre-wrap">{workOrder.completion_notes}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Photos */}
+            {workOrder.photos && workOrder.photos.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Photos</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {workOrder.photos.map((photoUrl, index) => (
+                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden border">
+                      <img
+                        src={photoUrl}
+                        alt={`Work order photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}

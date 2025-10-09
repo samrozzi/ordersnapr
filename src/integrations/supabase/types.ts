@@ -76,6 +76,7 @@ export type Database = {
           job_id: string | null
           notes: string | null
           package: string | null
+          photos: string[] | null
           scheduled_date: string | null
           status: string | null
           updated_at: string | null
@@ -94,6 +95,7 @@ export type Database = {
           job_id?: string | null
           notes?: string | null
           package?: string | null
+          photos?: string[] | null
           scheduled_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           job_id?: string | null
           notes?: string | null
           package?: string | null
+          photos?: string[] | null
           scheduled_date?: string | null
           status?: string | null
           updated_at?: string | null

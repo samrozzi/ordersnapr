@@ -24,6 +24,7 @@ interface WorkOrder {
   status: string;
   completion_notes: string | null;
   created_at: string;
+  photos: string[] | null;
 }
 
 const Dashboard = () => {

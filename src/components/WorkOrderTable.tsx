@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
 import { WorkOrderForm } from "./WorkOrderForm";
+import { WorkOrderDetails } from "./WorkOrderDetails";
 
 interface WorkOrder {
   id: string;
@@ -24,6 +25,7 @@ interface WorkOrder {
   status: string;
   completion_notes: string | null;
   created_at: string;
+  photos: string[] | null;
 }
 
 interface WorkOrderTableProps {
@@ -38,6 +40,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
+  const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
   const [sortField, setSortField] = useState<SortField | null>(null);
@@ -220,6 +223,14 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewingOrder(order)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
                     {order.status !== "completed" && (
                       <>
                         <Dialog open={editingOrder?.id === order.id} onOpenChange={(open) => !open && setEditingOrder(null)}>
@@ -291,6 +302,12 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <WorkOrderDetails
+        workOrder={viewingOrder}
+        open={!!viewingOrder}
+        onOpenChange={(open) => !open && setViewingOrder(null)}
+      />
     </>
   );
 }

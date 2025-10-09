@@ -5,12 +5,13 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -41,12 +42,15 @@ interface WorkOrderFormProps {
     address: string | null;
     notes: string | null;
     scheduled_date: string | null;
+    photos: string[] | null;
   };
 }
 
 export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>(workOrder?.photos || []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -63,6 +67,65 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
     },
   });
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + photoFiles.length + photoPreviewUrls.length > 5) {
+      toast({
+        title: "Too many photos",
+        description: "Maximum 5 photos allowed per work order",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPhotoFiles([...photoFiles, ...files]);
+    
+    // Create preview URLs for new files
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setPhotoPreviewUrls([...photoPreviewUrls, ...newPreviews]);
+  };
+
+  const removePhoto = (index: number) => {
+    if (index < (workOrder?.photos?.length || 0)) {
+      // Removing an existing photo
+      setPhotoPreviewUrls(photoPreviewUrls.filter((_, i) => i !== index));
+    } else {
+      // Removing a new photo
+      const newPhotoIndex = index - (workOrder?.photos?.length || 0);
+      setPhotoFiles(photoFiles.filter((_, i) => i !== newPhotoIndex));
+      setPhotoPreviewUrls(photoPreviewUrls.filter((_, i) => i !== index));
+    }
+  };
+
+  const uploadPhotos = async (userId: string): Promise<string[]> => {
+    if (photoFiles.length === 0) {
+      return workOrder?.photos || [];
+    }
+
+    const uploadedUrls: string[] = [...(workOrder?.photos || [])];
+
+    for (const file of photoFiles) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('work-order-photos')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('work-order-photos')
+        .getPublicUrl(fileName);
+
+      uploadedUrls.push(publicUrl);
+    }
+
+    return uploadedUrls;
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -77,6 +140,9 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         return;
       }
 
+      // Upload photos first
+      const photoUrls = await uploadPhotos(user.id);
+
       const orderData = {
         bpc: data.bpc || null,
         ban: data.ban || null,
@@ -88,6 +154,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         notes: data.notes || null,
         scheduled_date: data.scheduled_date ? data.scheduled_date.toISOString().split('T')[0] : null,
         status: data.scheduled_date ? "scheduled" : "pending",
+        photos: photoUrls,
       };
 
       if (workOrder) {
@@ -290,6 +357,56 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
             </FormItem>
           )}
         />
+
+        {/* Photo Upload */}
+        <div className="space-y-2">
+          <Label>Photos (Optional, max 5)</Label>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById('photo-upload')?.click()}
+              disabled={photoPreviewUrls.length >= 5}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Photos
+            </Button>
+            <Input
+              id="photo-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+            <span className="text-sm text-muted-foreground">
+              {photoPreviewUrls.length} / 5 photos
+            </span>
+          </div>
+
+          {photoPreviewUrls.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+              {photoPreviewUrls.map((url, index) => (
+                <div key={index} className="relative aspect-video rounded-lg overflow-hidden border">
+                  <img
+                    src={url}
+                    alt={`Photo ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6"
+                    onClick={() => removePhoto(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting 

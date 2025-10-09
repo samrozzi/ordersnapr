@@ -1,30 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, Camera } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChecklistSection } from "@/components/ChecklistSection";
+import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
+import { FileText, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import jsPDF from "jspdf";
+
+const ADMIN_TESTING_ITEMS = [
+  "Conducted all proper required testing (Including Fiber / Copper TRUE Test)",
+  "Detailed, accurate close out narrative provided, in addition to correct disposition / cause codes",
+  "Bad Plant Condition (BPC) filled out properly and submitted",
+  "Damage claim properly submitted (Non-Drop Related)",
+  "Wi-Fi / Consultation",
+  "Wi-Fi / Assessment for RG placement",
+  "Wi-Fi / Assessment results and extender discussion",
+  "Wi-Fi / SHM customer login and touchpoints (Do not handle customer's device)",
+  "Other",
+];
+
+const CUSTOMER_EXPERIENCE_ITEMS = [
+  "Time Management",
+  "No trouble after visit",
+  "Tech visited prem first and closed job with customer",
+  "Initiated proper customer contact (pre and post work); reviewed work request with customer; covered Service Promise with customer",
+  "Introduced self; showed ATT ID; greeted customer by name",
+  "Proper apparel and booties worn",
+  "Confirmed all existing customer equipment working prior to job start",
+  "Recommended additional products & services, as appropriate (you Refer)",
+  "Verfied all services were working properly (upon job completion); provided customer education",
+  "General housekeeping (inside & outside the home); respect the customer's premises",
+  "Other",
+];
+
+const DROP_AUDIT_ITEMS = [
+  "Buried drop properly placed in aerial plant",
+  "BDR Submitted with Accurate Information (Bore/Held/Estimated Length/Terminal Address/etc.)",
+  "BDR photos provided (Sidekick)",
+  "Closure/Handhole/Terminal closed and secured, including hardware",
+  "Drop properly dug in at Closure/Handhole/Terminal and/or Conduit at pole",
+  "Drop properly tagged at Terminal (House/Unit Number)",
+  "Copper drop bonded correctly (Terminal/Pedestal/NID)",
+  "Proper drop type in buried plant (Tracer, 2Pair)",
+  "Shortest fiber drop utilized for chosen route (Length Label or Observed)",
+  "Drop properly flagged for safety and proposed route marked",
+  "Proper drop route taken; accounting for obstacles, property lines and easements",
+  "Drop properly temped over hard surface (Driveway, Sidewalk)",
+  "Drop has sufficient slack",
+  "Cutover avoided",
+  "Appropriate drop guard placed, secured and dug in at premise",
+  "No Tools / Material / Hardware / Debris left at job site (Terminal to Premise)",
+  "CTC/NID properly placed and secured",
+  "CTC/NID cleaned, appropriate grommet(s) placed, sealed with approved sealant",
+  "Proper routing and termination of wiring inside of CTC/NID",
+  "CTC/NID properly tagged with CALL 811 sticker",
+  "Order/Circuit information clearly marked inside CTC/NID",
+  "Fiber Tracer/Tone wire is isolated and capped, no exposed metal (NID/Handhole/Terminal)",
+  "CTC/NID properly grounded to approved ground source; ground tag placed",
+  "Appropriate IW, properly attached to customers premise between NID and entry point; sealed with approved sealant",
+  "Damage claim properly submitted (Drop Related)",
+  "No unused drops left at the Terminal/FST/Pole",
+  "Aerial drop properly attached including proper hardware",
+  "Drop enters aerial terminal correctly",
+  "Correct Cable ID tag; writing legible; locate decal / stencil; graffiti addressed (at terminal)",
+  "Drop channel plugged (sealing foam not acceptable)",
+  "Sufficient gravel level",
+  "Pole numbers correct and legible",
+  "Defective pole / guy wire / strand, lashing reported and marked",
+  "Terminal / Cable / Drops bonded, grounded and tagged correctly",
+  "General Housekeeping; Insects and / or rodents treated; closure brushed out; no loose lugs",
+  "No bare copper or exposed ends on spare pair; protector tight, not missing and correct type",
+  "Splice tray has cover and has been placed back into the FST securely",
+  "Verify the BP / Port at the terminal / FST matches facility assignments",
+  "Closure / terminal secured and / or closed properly",
+];
 
 const JobAudit = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
-  const [formData, setFormData] = useState({
-    technicianName: "",
-    ban: "",
-    serviceDate: "",
-    address: "",
-    observations: "",
-    reportBy: "",
-  });
+  const [photos, setPhotos] = useState<PhotoWithCaption[]>([]);
+  const [observations, setObservations] = useState("");
+  const [technicianName, setTechnicianName] = useState("");
+  const [ban, setBan] = useState("");
+  const [serviceDate, setServiceDate] = useState("");
+  const [address, setAddress] = useState("");
+  const [reportedBy, setReportedBy] = useState("");
+  const [adminChecklist, setAdminChecklist] = useState<Record<number, string>>({});
+  const [customerChecklist, setCustomerChecklist] = useState<Record<number, string>>({});
+  const [dropChecklist, setDropChecklist] = useState<Record<number, string>>({});
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -44,15 +115,204 @@ const JobAudit = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const generatePDF = async () => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    const lineHeight = 7;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Quality Inspection Report", 20, yPos);
+    yPos += 15;
+
+    // Job details
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Details", 20, yPos);
+    yPos += 7;
+    doc.setFont("helvetica", "normal");
+    if (technicianName) {
+      doc.text(`Technician: ${technicianName}`, 20, yPos);
+      yPos += 5;
+    }
+    if (ban) {
+      doc.text(`BAN: ${ban}`, 20, yPos);
+      yPos += 5;
+    }
+    if (serviceDate) {
+      doc.text(`Service Date: ${serviceDate}`, 20, yPos);
+      yPos += 5;
+    }
+    if (address) {
+      doc.text(`Address: ${address}`, 20, yPos);
+      yPos += 5;
+    }
+    doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 20, yPos);
+    yPos += 5;
+    if (reportedBy) {
+      doc.text(`Report by ${reportedBy}`, 20, yPos);
+      yPos += 5;
+    }
+    yPos += 5;
+
+    // Observations
+    if (observations) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Observations:", 20, yPos);
+      yPos += 7;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const obsLines = doc.splitTextToSize(observations, 170);
+      doc.text(obsLines, 20, yPos);
+      yPos += obsLines.length * lineHeight + 5;
+    }
+
+    // Helper function to add section
+    const addSection = (title: string, items: string[], checklist: Record<number, string>) => {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(title, 20, yPos);
+      yPos += 8;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+
+      items.forEach((item, index) => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        const status = checklist[index] || "N/A";
+        const itemText = `${index + 1}. ${item}`;
+        const lines = doc.splitTextToSize(itemText, 140);
+        
+        doc.text(lines, 20, yPos);
+        doc.setFont("helvetica", "bold");
+        
+        if (status === "OK") {
+          doc.setTextColor(34, 197, 94);
+        } else if (status === "DEV") {
+          doc.setTextColor(239, 68, 68);
+        } else {
+          doc.setTextColor(156, 163, 175);
+        }
+        
+        doc.text(status, 165, yPos);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "normal");
+        
+        yPos += lines.length * lineHeight;
+      });
+
+      yPos += 5;
+    };
+
+    addSection("Administrative/Testing", ADMIN_TESTING_ITEMS, adminChecklist);
+    addSection("Customer Experience", CUSTOMER_EXPERIENCE_ITEMS, customerChecklist);
+    addSection("MAIN FOCUS/BSW AUDIT - Drop", DROP_AUDIT_ITEMS, dropChecklist);
+
+    // Photos
+    if (photos.length > 0) {
+      doc.addPage();
+      yPos = 20;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Inspection Photos", 20, yPos);
+      yPos += 10;
+
+      const imgSize = 85;
+      const margin = 10;
+      const captionHeight = 10;
+      let photoCount = 0;
+
+      for (const photo of photos) {
+        const reader = new FileReader();
+        await new Promise((resolve) => {
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const col = photoCount % 2;
+              const row = Math.floor((photoCount % 4) / 2);
+              
+              if (photoCount > 0 && photoCount % 4 === 0) {
+                doc.addPage();
+                yPos = 20;
+              }
+              
+              const xPos = 20 + col * (imgSize + margin);
+              const yPosition = yPos + row * (imgSize + margin);
+              
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              
+              canvas.width = img.width;
+              canvas.height = img.height;
+              
+              ctx?.drawImage(img, 0, 0);
+              
+              const correctedImageData = canvas.toDataURL('image/jpeg', 0.9);
+              
+              const aspectRatio = img.width / img.height;
+              let drawWidth = imgSize;
+              let drawHeight = imgSize;
+              
+              if (aspectRatio > 1) {
+                drawHeight = imgSize / aspectRatio;
+              } else {
+                drawWidth = imgSize * aspectRatio;
+              }
+              
+              doc.addImage(
+                correctedImageData, 
+                "JPEG", 
+                xPos, 
+                yPosition, 
+                drawWidth, 
+                drawHeight
+              );
+              
+              if (photo.caption) {
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(100, 100, 100);
+                const captionLines = doc.splitTextToSize(photo.caption, imgSize);
+                doc.text(captionLines, xPos, yPosition + drawHeight + 3);
+                doc.setTextColor(0, 0, 0);
+              }
+              
+              photoCount++;
+              
+              if (photoCount % 4 === 0) {
+                yPos += (imgSize * 2) + (margin * 2) + captionHeight;
+              }
+              
+              resolve(null);
+            };
+            img.src = e.target?.result as string;
+          };
+          reader.readAsDataURL(photo.file);
+        });
+      }
+    }
+
+    return doc;
   };
 
-  const handleGenerateReport = () => {
-    toast({
-      title: "Report Generation",
-      description: "PDF report generation feature coming soon!",
-    });
+  const handleGenerateReport = async () => {
+    const doc = await generatePDF();
+    const filename = `inspection-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+    toast.success("Inspection report generated successfully!");
   };
 
   if (!session) {
@@ -61,12 +321,7 @@ const JobAudit = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Quality Inspection</h1>
-          <p className="text-muted-foreground">Complete the inspection form and generate your report</p>
-        </div>
-
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -75,35 +330,36 @@ const JobAudit = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="technicianName">Technician Name</Label>
                 <Input
                   id="technicianName"
                   placeholder="Enter technician name"
-                  value={formData.technicianName}
-                  onChange={(e) => handleInputChange("technicianName", e.target.value)}
+                  value={technicianName}
+                  onChange={(e) => setTechnicianName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ban">BAN</Label>
                 <Input
                   id="ban"
+                  type="tel"
                   placeholder="Enter BAN"
-                  value={formData.ban}
-                  onChange={(e) => handleInputChange("ban", e.target.value)}
+                  value={ban}
+                  onChange={(e) => setBan(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="serviceDate">Service Date</Label>
                 <Input
                   id="serviceDate"
                   type="date"
-                  value={formData.serviceDate}
-                  onChange={(e) => handleInputChange("serviceDate", e.target.value)}
+                  value={serviceDate}
+                  onChange={(e) => setServiceDate(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -111,8 +367,8 @@ const JobAudit = () => {
                 <Input
                   id="address"
                   placeholder="Enter service address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
             </div>
@@ -122,67 +378,94 @@ const JobAudit = () => {
               <Textarea
                 id="observations"
                 placeholder="Enter your observations about the job..."
-                value={formData.observations}
-                onChange={(e) => handleInputChange("observations", e.target.value)}
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
                 rows={4}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reportBy">Report by</Label>
-              <Select value={formData.reportBy} onValueChange={(value) => handleInputChange("reportBy", value)}>
-                <SelectTrigger>
+              <Label htmlFor="reportedBy">Report by</Label>
+              <Select value={reportedBy} onValueChange={setReportedBy}>
+                <SelectTrigger id="reportedBy">
                   <SelectValue placeholder="Select inspector" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="inspector1">Inspector 1</SelectItem>
-                  <SelectItem value="inspector2">Inspector 2</SelectItem>
-                  <SelectItem value="inspector3">Inspector 3</SelectItem>
+                  <SelectItem value="Sam Rozzi - sr3333">Sam Rozzi - sr3333</SelectItem>
+                  <SelectItem value="Josh Ghebremichael - jg008d">Josh Ghebremichael - jg008d</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Photos</Label>
-              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <Camera className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Add Photos</p>
-              </div>
-            </div>
+            <PhotoUpload photos={photos} onPhotosChange={setPhotos} />
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible className="space-y-4 mb-6">
-          <AccordionItem value="administrative" className="border rounded-lg px-4">
-            <AccordionTrigger className="hover:no-underline">
-              <span className="font-semibold">Administrative/Testing</span>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4">
-              <p className="text-muted-foreground">Administrative and testing checklist items will go here.</p>
-            </AccordionContent>
-          </AccordionItem>
+        <Collapsible defaultOpen={false}>
+          <Card>
+            <CardHeader className="pb-3">
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover:opacity-70 transition-opacity">
+                <CardTitle className="text-lg">Administrative/Testing</CardTitle>
+                <ChevronDown className="h-5 w-5 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <ChecklistSection
+                  title=""
+                  items={ADMIN_TESTING_ITEMS}
+                  checklist={adminChecklist}
+                  onChecklistChange={setAdminChecklist}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
-          <AccordionItem value="customer" className="border rounded-lg px-4">
-            <AccordionTrigger className="hover:no-underline">
-              <span className="font-semibold">Customer Experience</span>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4">
-              <p className="text-muted-foreground">Customer experience checklist items will go here.</p>
-            </AccordionContent>
-          </AccordionItem>
+        <Collapsible defaultOpen={false} className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover:opacity-70 transition-opacity">
+                <CardTitle className="text-lg">Customer Experience</CardTitle>
+                <ChevronDown className="h-5 w-5 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <ChecklistSection
+                  title=""
+                  items={CUSTOMER_EXPERIENCE_ITEMS}
+                  checklist={customerChecklist}
+                  onChecklistChange={setCustomerChecklist}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
-          <AccordionItem value="main-focus" className="border rounded-lg px-4">
-            <AccordionTrigger className="hover:no-underline">
-              <span className="font-semibold">MAIN FOCUS/BSW AUDIT - Drop</span>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4">
-              <p className="text-muted-foreground">Main focus and BSW audit checklist items will go here.</p>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <Collapsible defaultOpen={false} className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover:opacity-70 transition-opacity">
+                <CardTitle className="text-lg">MAIN FOCUS/BSW AUDIT - Drop</CardTitle>
+                <ChevronDown className="h-5 w-5 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <ChecklistSection
+                  title=""
+                  items={DROP_AUDIT_ITEMS}
+                  checklist={dropChecklist}
+                  onChecklistChange={setDropChecklist}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
-        <div className="flex justify-center">
-          <Button onClick={handleGenerateReport} size="lg" className="w-full md:w-auto">
+        <div className="sticky bottom-4 flex justify-center mt-6">
+          <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
             Generate PDF Report
           </Button>
         </div>

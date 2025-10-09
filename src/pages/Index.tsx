@@ -76,8 +76,23 @@ const Index = () => {
   }, [session]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    try {
+      // Clear local state first
+      setSession(null);
+      setIsAdmin(false);
+      setApprovalStatus(null);
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Force navigation to auth page
+      // Use window.location for Safari compatibility
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Still navigate to auth even if signOut fails
+      window.location.href = '/auth';
+    }
   };
 
   if (loading) {

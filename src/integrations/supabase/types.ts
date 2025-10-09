@@ -21,6 +21,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          updated_at: string | null
         }
         Insert: {
           approval_status?: Database["public"]["Enums"]["approval_status"]
@@ -28,6 +29,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          updated_at?: string | null
         }
         Update: {
           approval_status?: Database["public"]["Enums"]["approval_status"]
@@ -35,6 +37,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

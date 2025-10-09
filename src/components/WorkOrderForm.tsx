@@ -30,23 +30,36 @@ type FormData = z.infer<typeof formSchema>;
 
 interface WorkOrderFormProps {
   onSuccess: () => void;
+  workOrder?: {
+    id: string;
+    bpc: string | null;
+    ban: string | null;
+    package: string | null;
+    job_id: string | null;
+    customer_name: string;
+    contact_info: string | null;
+    address: string | null;
+    notes: string | null;
+    scheduled_date: string | null;
+  };
 }
 
-export function WorkOrderForm({ onSuccess }: WorkOrderFormProps) {
+export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      bpc: "",
-      ban: "",
-      package: "",
-      job_id: "",
-      customer_name: "",
-      contact_info: "",
-      address: "",
-      notes: "",
+      bpc: workOrder?.bpc || "",
+      ban: workOrder?.ban || "",
+      package: workOrder?.package || "",
+      job_id: workOrder?.job_id || "",
+      customer_name: workOrder?.customer_name || "",
+      contact_info: workOrder?.contact_info || "",
+      address: workOrder?.address || "",
+      notes: workOrder?.notes || "",
+      scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : undefined,
     },
   });
 
@@ -58,14 +71,13 @@ export function WorkOrderForm({ onSuccess }: WorkOrderFormProps) {
       if (!user) {
         toast({
           title: "Error",
-          description: "You must be logged in to create work orders",
+          description: "You must be logged in to manage work orders",
           variant: "destructive",
         });
         return;
       }
 
-      const { error } = await supabase.from("work_orders").insert([{
-        user_id: user.id,
+      const orderData = {
         bpc: data.bpc || null,
         ban: data.ban || null,
         package: data.package || null,
@@ -76,22 +88,43 @@ export function WorkOrderForm({ onSuccess }: WorkOrderFormProps) {
         notes: data.notes || null,
         scheduled_date: data.scheduled_date ? data.scheduled_date.toISOString().split('T')[0] : null,
         status: data.scheduled_date ? "scheduled" : "pending",
-      }]);
+      };
 
-      if (error) throw error;
+      if (workOrder) {
+        // Update existing work order
+        const { error } = await supabase
+          .from("work_orders")
+          .update(orderData)
+          .eq("id", workOrder.id);
 
-      toast({
-        title: "Success",
-        description: "Work order created successfully",
-      });
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Work order updated successfully",
+        });
+      } else {
+        // Create new work order
+        const { error } = await supabase.from("work_orders").insert([{
+          ...orderData,
+          user_id: user.id,
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Work order created successfully",
+        });
+      }
 
       form.reset();
       onSuccess();
     } catch (error) {
-      console.error("Error creating work order:", error);
+      console.error("Error saving work order:", error);
       toast({
         title: "Error",
-        description: "Failed to create work order",
+        description: `Failed to ${workOrder ? "update" : "create"} work order`,
         variant: "destructive",
       });
     } finally {
@@ -259,7 +292,10 @@ export function WorkOrderForm({ onSuccess }: WorkOrderFormProps) {
         />
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Creating..." : "Create Work Order"}
+          {isSubmitting 
+            ? (workOrder ? "Updating..." : "Creating...") 
+            : (workOrder ? "Update Work Order" : "Create Work Order")
+          }
         </Button>
       </form>
     </Form>

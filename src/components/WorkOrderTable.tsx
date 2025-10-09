@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { WorkOrderForm } from "./WorkOrderForm";
 
 interface WorkOrder {
   id: string;
@@ -30,11 +31,60 @@ interface WorkOrderTableProps {
   onUpdate: () => void;
 }
 
+type SortField = "customer_name" | "ban" | "scheduled_date" | "created_at";
+type SortDirection = "asc" | "desc";
+
 export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    return sortDirection === "asc" ? (
+      <ArrowUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1" />
+    );
+  };
+
+  const sortedOrders = [...workOrders].sort((a, b) => {
+    if (!sortField) return 0;
+
+    let aValue: string | number | null = a[sortField];
+    let bValue: string | number | null = b[sortField];
+
+    // Handle null values
+    if (aValue === null && bValue === null) return 0;
+    if (aValue === null) return sortDirection === "asc" ? 1 : -1;
+    if (bValue === null) return sortDirection === "asc" ? -1 : 1;
+
+    // Convert to comparable values
+    if (sortField === "scheduled_date" || sortField === "created_at") {
+      aValue = new Date(aValue as string).getTime();
+      bValue = new Date(bValue as string).getTime();
+    } else {
+      aValue = (aValue as string).toLowerCase();
+      bValue = (bValue as string).toLowerCase();
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+    return 0;
+  });
 
   const handleComplete = async () => {
     if (!selectedOrder) return;
@@ -86,19 +136,60 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSort("customer_name")}
+                  className="h-auto p-0 hover:bg-transparent font-semibold"
+                >
+                  Customer
+                  {getSortIcon("customer_name")}
+                </Button>
+              </TableHead>
               <TableHead>BPC</TableHead>
-              <TableHead>BAN</TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSort("ban")}
+                  className="h-auto p-0 hover:bg-transparent font-semibold"
+                >
+                  BAN
+                  {getSortIcon("ban")}
+                </Button>
+              </TableHead>
               <TableHead>Package</TableHead>
               <TableHead>Job ID</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Scheduled</TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSort("scheduled_date")}
+                  className="h-auto p-0 hover:bg-transparent font-semibold"
+                >
+                  Scheduled
+                  {getSortIcon("scheduled_date")}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSort("created_at")}
+                  className="h-auto p-0 hover:bg-transparent font-semibold"
+                >
+                  Date Inputted
+                  {getSortIcon("created_at")}
+                </Button>
+              </TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {workOrders.map((order) => (
+            {sortedOrders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.customer_name}</TableCell>
                 <TableCell>{order.bpc || "-"}</TableCell>
@@ -110,6 +201,9 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {order.scheduled_date
                     ? format(new Date(order.scheduled_date), "MMM dd, yyyy")
                     : "Not yet scheduled"}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>
                 <TableCell>
                   <span
@@ -125,44 +219,72 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  {order.status !== "completed" && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Complete
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Complete Work Order</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 pt-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="completion-notes">What did you do at the job?</Label>
-                            <Textarea
-                              id="completion-notes"
-                              value={completionNotes}
-                              onChange={(e) => setCompletionNotes(e.target.value)}
-                              rows={4}
-                              placeholder="Enter completion notes..."
+                  <div className="flex gap-2">
+                    {order.status !== "completed" && (
+                      <>
+                        <Dialog open={editingOrder?.id === order.id} onOpenChange={(open) => !open && setEditingOrder(null)}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingOrder(order)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Edit Work Order</DialogTitle>
+                            </DialogHeader>
+                            <WorkOrderForm
+                              workOrder={order}
+                              onSuccess={() => {
+                                setEditingOrder(null);
+                                onUpdate();
+                              }}
                             />
-                          </div>
-                          <Button
-                            onClick={handleComplete}
-                            disabled={isCompleting}
-                            className="w-full"
-                          >
-                            {isCompleting ? "Completing..." : "Mark as Complete"}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Complete
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Complete Work Order</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="completion-notes">What did you do at the job?</Label>
+                                <Textarea
+                                  id="completion-notes"
+                                  value={completionNotes}
+                                  onChange={(e) => setCompletionNotes(e.target.value)}
+                                  rows={4}
+                                  placeholder="Enter completion notes..."
+                                />
+                              </div>
+                              <Button
+                                onClick={handleComplete}
+                                disabled={isCompleting}
+                                className="w-full"
+                              >
+                                {isCompleting ? "Completing..." : "Mark as Complete"}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

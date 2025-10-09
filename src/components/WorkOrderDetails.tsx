@@ -143,7 +143,19 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Address</p>
-                      <p className="font-medium">{workOrder.address}</p>
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 font-medium text-left"
+                        asChild
+                      >
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(workOrder.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {workOrder.address}
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 )}

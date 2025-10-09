@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye, Phone, MessageSquare } from "lucide-react";
+import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye, Phone, MessageSquare, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { WorkOrderForm } from "./WorkOrderForm";
 import { WorkOrderDetails } from "./WorkOrderDetails";
 
@@ -46,6 +47,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [deletingOrder, setDeletingOrder] = useState<WorkOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -123,6 +126,37 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
       });
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingOrder) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("work_orders")
+        .delete()
+        .eq("id", deletingOrder.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Work order deleted successfully",
+      });
+
+      setDeletingOrder(null);
+      onUpdate();
+    } catch (error) {
+      console.error("Error deleting work order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete work order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -333,6 +367,37 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                         </Dialog>
                       </>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeletingOrder(order)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this work order. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setDeletingOrder(null)}>
+                            No
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? "Deleting..." : "Yes"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </TableCell>
               </TableRow>

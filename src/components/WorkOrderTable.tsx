@@ -139,6 +139,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12"></TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -194,6 +195,16 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
           <TableBody>
             {sortedOrders.map((order) => (
               <TableRow key={order.id}>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewingOrder(order)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
                 <TableCell className="font-medium">{order.customer_name}</TableCell>
                 <TableCell>{order.bpc || "-"}</TableCell>
                 <TableCell>{order.ban || "-"}</TableCell>
@@ -223,14 +234,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setViewingOrder(order)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
                     {order.status !== "completed" && (
                       <>
                         <Dialog open={editingOrder?.id === order.id} onOpenChange={(open) => !open && setEditingOrder(null)}>

@@ -139,7 +139,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-8 px-2"></TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -195,14 +195,14 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
           <TableBody>
             {sortedOrders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>
+                <TableCell className="px-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewingOrder(order)}
-                    className="h-8 w-8 p-0"
+                    className="h-7 w-7 p-0"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
                 </TableCell>
                 <TableCell className="font-medium">{order.customer_name}</TableCell>

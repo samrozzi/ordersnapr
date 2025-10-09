@@ -25,6 +25,7 @@ const formSchema = z.object({
   address: z.string().optional(),
   notes: z.string().optional(),
   scheduled_date: z.date().optional(),
+  scheduled_time: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -42,6 +43,7 @@ interface WorkOrderFormProps {
     address: string | null;
     notes: string | null;
     scheduled_date: string | null;
+    scheduled_time: string | null;
     photos: string[] | null;
   };
 }
@@ -64,6 +66,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       address: workOrder?.address || "",
       notes: workOrder?.notes || "",
       scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : undefined,
+      scheduled_time: workOrder?.scheduled_time || "",
     },
   });
 
@@ -153,6 +156,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         address: data.address || null,
         notes: data.notes || null,
         scheduled_date: data.scheduled_date ? data.scheduled_date.toISOString().split('T')[0] : null,
+        scheduled_time: data.scheduled_time || null,
         status: data.scheduled_date ? "scheduled" : "pending",
         photos: photoUrls,
       };
@@ -302,47 +306,63 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="scheduled_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Scheduled Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Not yet scheduled</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="scheduled_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Scheduled Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Not yet scheduled</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="scheduled_time"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Scheduled Time</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

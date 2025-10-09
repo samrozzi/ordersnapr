@@ -98,6 +98,9 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Work Management System</h1>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/profile")}>
+              Profile
+            </Button>
             {isAdmin && (
               <Button variant="outline" onClick={() => navigate("/admin")}>
                 <Shield className="h-4 w-4 mr-2" />

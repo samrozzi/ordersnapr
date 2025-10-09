@@ -78,6 +78,7 @@ export type Database = {
           package: string | null
           photos: string[] | null
           scheduled_date: string | null
+          scheduled_time: string | null
           status: string | null
           updated_at: string | null
           user_id: string
@@ -97,6 +98,7 @@ export type Database = {
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null
+          scheduled_time?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
@@ -116,6 +118,7 @@ export type Database = {
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null
+          scheduled_time?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string

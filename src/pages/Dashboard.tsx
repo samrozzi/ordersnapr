@@ -21,6 +21,7 @@ interface WorkOrder {
   address: string | null;
   notes: string | null;
   scheduled_date: string | null;
+  scheduled_time: string | null;
   status: string;
   completion_notes: string | null;
   created_at: string;

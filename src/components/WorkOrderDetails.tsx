@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -18,6 +18,7 @@ interface WorkOrder {
   address: string | null;
   notes: string | null;
   scheduled_date: string | null;
+  scheduled_time: string | null;
   status: string;
   completion_notes: string | null;
   created_at: string;
@@ -37,6 +38,33 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
 
   const validPhotos = workOrder.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
+
+  const navigatePhoto = (direction: 'prev' | 'next') => {
+    if (selectedPhotoIndex === null) return;
+    
+    if (direction === 'prev') {
+      setSelectedPhotoIndex(selectedPhotoIndex > 0 ? selectedPhotoIndex - 1 : validPhotos.length - 1);
+    } else {
+      setSelectedPhotoIndex(selectedPhotoIndex < validPhotos.length - 1 ? selectedPhotoIndex + 1 : 0);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedPhotoIndex === null) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigatePhoto('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigatePhoto('next');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPhotoIndex, validPhotos.length]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,7 +109,12 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                     <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Contact</p>
-                      <p className="font-medium">{workOrder.contact_info}</p>
+                      <a 
+                        href={`tel:${workOrder.contact_info}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {workOrder.contact_info}
+                      </a>
                     </div>
                   </div>
                 )}
@@ -150,6 +183,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
                       <p className="text-sm text-muted-foreground">Scheduled Date</p>
                       <p className="font-medium">
                         {format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}
+                        {workOrder.scheduled_time && ` at ${workOrder.scheduled_time}`}
                       </p>
                     </div>
                   </div>
@@ -226,7 +260,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
 
       {/* Photo Viewer Dialog */}
       <Dialog open={selectedPhotoIndex !== null} onOpenChange={() => setSelectedPhotoIndex(null)}>
-        <DialogContent className="max-w-4xl p-0">
+        <DialogContent className="max-w-4xl p-0 relative">
           <Button
             variant="ghost"
             size="icon"
@@ -235,12 +269,39 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
           >
             <X className="h-4 w-4" />
           </Button>
+          
+          {validPhotos.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-background/80 backdrop-blur-sm"
+                onClick={() => navigatePhoto('prev')}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-background/80 backdrop-blur-sm"
+                onClick={() => navigatePhoto('next')}
+              >
+                <ChevronRight className="h-6 w-6" />
+              </Button>
+            </>
+          )}
+          
           {selectedPhoto && (
-            <img
-              src={selectedPhoto}
-              alt={`Work order photo ${(selectedPhotoIndex || 0) + 1}`}
-              className="w-full h-auto max-h-[85vh] object-contain"
-            />
+            <div className="relative">
+              <img
+                src={selectedPhoto}
+                alt={`Work order photo ${(selectedPhotoIndex || 0) + 1}`}
+                className="w-full h-auto max-h-[85vh] object-contain"
+              />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
+                {(selectedPhotoIndex || 0) + 1} / {validPhotos.length}
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

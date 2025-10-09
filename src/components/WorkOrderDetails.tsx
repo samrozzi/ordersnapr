@@ -34,9 +34,7 @@ interface WorkOrderDetailsProps {
 export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDetailsProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   
-  if (!workOrder) return null;
-
-  const validPhotos = workOrder.photos?.filter(Boolean) || [];
+  const validPhotos = workOrder?.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
 
   const navigatePhoto = (direction: 'prev' | 'next') => {
@@ -65,6 +63,8 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedPhotoIndex, validPhotos.length]);
+
+  if (!workOrder) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

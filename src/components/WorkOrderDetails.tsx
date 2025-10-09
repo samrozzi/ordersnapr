@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle } from "lucide-react";
 
 interface WorkOrder {
@@ -186,17 +187,24 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
             )}
 
             {/* Photos */}
-            {workOrder.photos && workOrder.photos.length > 0 && (
+            {workOrder.photos && workOrder.photos.filter(Boolean).length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg border-b pb-2">Photos</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  {workOrder.photos.map((photoUrl, index) => (
-                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden border">
-                      <img
-                        src={photoUrl}
-                        alt={`Work order photo ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                  {workOrder.photos.filter(Boolean).map((photoUrl, index) => (
+                    <div key={index} className="rounded-lg overflow-hidden border">
+                      <AspectRatio ratio={16/9}>
+                        <img
+                          src={photoUrl}
+                          alt={`Work order photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Hide broken images gracefully
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </AspectRatio>
                     </div>
                   ))}
                 </div>

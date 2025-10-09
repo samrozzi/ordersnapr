@@ -152,7 +152,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("customer_name")}
                 </Button>
               </TableHead>
-              <TableHead>BPC</TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -164,9 +163,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("ban")}
                 </Button>
               </TableHead>
-              <TableHead>Package</TableHead>
-              <TableHead>Job ID</TableHead>
-              <TableHead>Contact</TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -178,6 +174,10 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("scheduled_date")}
                 </Button>
               </TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>BPC</TableHead>
+              <TableHead>Package</TableHead>
+              <TableHead>Job ID</TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -207,16 +207,16 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   </Button>
                 </TableCell>
                 <TableCell className="font-medium">{order.customer_name}</TableCell>
-                <TableCell>{order.bpc || "-"}</TableCell>
                 <TableCell>{order.ban || "-"}</TableCell>
-                <TableCell>{order.package || "-"}</TableCell>
-                <TableCell>{order.job_id || "-"}</TableCell>
-                <TableCell>{order.contact_info || "-"}</TableCell>
                 <TableCell>
                   {order.scheduled_date
                     ? format(new Date(order.scheduled_date), "MMM dd, yyyy")
                     : "Not yet scheduled"}
                 </TableCell>
+                <TableCell>{order.contact_info || "-"}</TableCell>
+                <TableCell>{order.bpc || "-"}</TableCell>
+                <TableCell>{order.package || "-"}</TableCell>
+                <TableCell>{order.job_id || "-"}</TableCell>
                 <TableCell>
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>

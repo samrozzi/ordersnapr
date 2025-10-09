@@ -35,6 +35,9 @@ const Dashboard = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullStartY, setPullStartY] = useState(0);
+  const [pullDistance, setPullDistance] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -86,6 +89,41 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchWorkOrders();
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }, 500);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setPullStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY === 0 || window.scrollY > 0) return;
+    
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - pullStartY;
+    
+    if (distance > 0 && distance < 150) {
+      setPullDistance(distance);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 80 && !isRefreshing) {
+      handleRefresh();
+    } else {
+      setPullDistance(0);
+    }
+    setPullStartY(0);
+  };
+
   const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
   const completedOrders = workOrders.filter((order) => order.status === "completed");
 
@@ -98,7 +136,27 @@ const Dashboard = () => {
   }
 
   return (
-    <div>
+    <div 
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="relative"
+    >
+      {/* Pull to refresh indicator */}
+      <div 
+        className="absolute top-0 left-0 right-0 flex justify-center items-center transition-all duration-200 ease-out pointer-events-none"
+        style={{ 
+          transform: `translateY(${pullDistance > 0 ? pullDistance - 50 : -50}px)`,
+          opacity: pullDistance / 80
+        }}
+      >
+        <div className={`text-primary ${isRefreshing ? 'animate-spin' : ''}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+      </div>
+
       <main className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Your Work Orders</h2>

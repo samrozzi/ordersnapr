@@ -297,7 +297,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
 
       {/* Photo Viewer Dialog */}
       <Dialog open={selectedPhotoIndex !== null} onOpenChange={() => setSelectedPhotoIndex(null)}>
-        <DialogContent className="max-w-4xl p-0 relative">
+        <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -329,11 +329,11 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
           )}
           
           {selectedPhoto && (
-            <div className="relative">
+            <div className="relative flex items-center justify-center bg-black/5">
               <img
                 src={selectedPhoto}
                 alt={`Work order photo ${(selectedPhotoIndex || 0) + 1}`}
-                className="w-full h-auto max-h-[85vh] object-contain"
+                className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
                 {(selectedPhotoIndex || 0) + 1} / {validPhotos.length}

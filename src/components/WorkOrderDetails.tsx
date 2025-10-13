@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -64,13 +64,56 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedPhotoIndex, validPhotos.length]);
 
+  const exportToText = () => {
+    const dateTime = workOrder.scheduled_date 
+      ? `${format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}${workOrder.scheduled_time ? (() => {
+          const [hours, minutes] = workOrder.scheduled_time.split(':');
+          const hour = parseInt(hours);
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+          return ` at ${displayHour}:${minutes} ${period}`;
+        })() : ''}`
+      : 'Not scheduled';
+
+    const message = `APPOINTMENT DETAILS
+
+DATE & TIME
+${dateTime}
+
+CUSTOMER
+${workOrder.customer_name}
+
+CONTACT
+${workOrder.contact_info || 'N/A'}
+
+ADDRESS
+${workOrder.address || 'N/A'}${workOrder.notes ? `
+
+NOTES
+${workOrder.notes}` : ''}`;
+
+    const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
+    window.location.href = smsUrl;
+  };
+
   if (!workOrder) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl">Work Order Details</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl">Work Order Details</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToText}
+              className="gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              Text Details
+            </Button>
+          </div>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">

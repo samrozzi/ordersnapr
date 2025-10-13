@@ -102,21 +102,20 @@ ${workOrder.notes}` : ''}`;
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl">Work Order Details</DialogTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportToText}
-              className="gap-2"
-            >
-              <Share2 className="h-4 w-4" />
-              Text Details
-            </Button>
-          </div>
+          <DialogTitle className="text-xl">Work Order Details</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
+        <Button
+          variant="default"
+          size="default"
+          onClick={exportToText}
+          className="gap-2 w-full"
+        >
+          <Share2 className="h-4 w-4" />
+          Text Details
+        </Button>
+        
+        <ScrollArea className="max-h-[calc(90vh-10rem)] pr-4">
           <div className="space-y-6">
             {/* Status Badge */}
             <div className="flex items-center gap-2">

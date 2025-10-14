@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -83,8 +83,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
     // Convert to comparable values
     if (sortField === "scheduled_date" || sortField === "created_at") {
-      aValue = new Date(aValue as string).getTime();
-      bValue = new Date(bValue as string).getTime();
+      aValue = parseISO(aValue as string).getTime();
+      bValue = parseISO(bValue as string).getTime();
     } else {
       aValue = (aValue as string).toLowerCase();
       bValue = (bValue as string).toLowerCase();
@@ -246,7 +246,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 <TableCell>{order.ban || "-"}</TableCell>
                 <TableCell>
                   {order.scheduled_date ? (() => {
-                    let dateStr = format(new Date(order.scheduled_date), "MMM dd, yyyy");
+                    let dateStr = format(parseISO(order.scheduled_date), "MMM dd, yyyy");
                     if (order.scheduled_time) {
                       const [hours, minutes] = order.scheduled_time.split(':');
                       const hour = parseInt(hours);

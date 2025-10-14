@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Upload, X } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -70,7 +70,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       contact_info: workOrder?.contact_info || "",
       address: workOrder?.address || "",
       notes: workOrder?.notes || "",
-      scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : undefined,
+      scheduled_date: workOrder?.scheduled_date ? parseISO(workOrder.scheduled_date) : undefined,
       scheduled_time: workOrder?.scheduled_time || "",
       access_required: workOrder?.access_required || false,
       access_notes: workOrder?.access_notes || "",
@@ -162,7 +162,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         contact_info: data.contact_info || null,
         address: data.address || null,
         notes: data.notes || null,
-        scheduled_date: data.scheduled_date ? data.scheduled_date.toISOString().split('T')[0] : null,
+        scheduled_date: data.scheduled_date ? format(data.scheduled_date, 'yyyy-MM-dd') : null,
         scheduled_time: data.scheduled_time || null,
         status: data.scheduled_date ? "scheduled" : "pending",
         photos: photoUrls,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -69,7 +69,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit }: Work
 
   const exportToText = () => {
     const dateTime = workOrder.scheduled_date 
-      ? `${format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}${workOrder.scheduled_time ? (() => {
+      ? `${format(parseISO(workOrder.scheduled_date), "MMM dd, yyyy")}${workOrder.scheduled_time ? (() => {
           const [hours, minutes] = workOrder.scheduled_time.split(':');
           const hour = parseInt(hours);
           const period = hour >= 12 ? 'PM' : 'AM';
@@ -281,7 +281,7 @@ ${workOrder.notes}` : ''}`;
                     <div>
                       <p className="text-sm text-muted-foreground">Scheduled Date</p>
                       <p className="font-medium">
-                        {format(new Date(workOrder.scheduled_date), "MMM dd, yyyy")}
+                        {format(parseISO(workOrder.scheduled_date), "MMM dd, yyyy")}
                         {workOrder.scheduled_time && (() => {
                           const [hours, minutes] = workOrder.scheduled_time.split(':');
                           const hour = parseInt(hours);

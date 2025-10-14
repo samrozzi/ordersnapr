@@ -90,6 +90,9 @@ ${dateTime}
 CUSTOMER
 ${workOrder.customer_name}
 
+BAN
+${workOrder.ban || 'N/A'}
+
 CONTACT
 ${workOrder.contact_info || 'N/A'}
 

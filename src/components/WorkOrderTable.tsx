@@ -28,6 +28,8 @@ interface WorkOrder {
   completion_notes: string | null;
   created_at: string;
   photos: string[] | null;
+  access_required: boolean | null;
+  access_notes: string | null;
 }
 
 interface WorkOrderTableProps {

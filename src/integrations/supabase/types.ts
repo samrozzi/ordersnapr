@@ -64,6 +64,8 @@ export type Database = {
       }
       work_orders: {
         Row: {
+          access_notes: string | null
+          access_required: boolean
           address: string | null
           ban: string | null
           bpc: string | null
@@ -84,6 +86,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_notes?: string | null
+          access_required?: boolean
           address?: string | null
           ban?: string | null
           bpc?: string | null
@@ -104,6 +108,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_notes?: string | null
+          access_required?: boolean
           address?: string | null
           ban?: string | null
           bpc?: string | null

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
@@ -26,6 +27,8 @@ const formSchema = z.object({
   notes: z.string().optional(),
   scheduled_date: z.date().optional(),
   scheduled_time: z.string().optional(),
+  access_required: z.boolean().default(false),
+  access_notes: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -45,6 +48,8 @@ interface WorkOrderFormProps {
     scheduled_date: string | null;
     scheduled_time: string | null;
     photos: string[] | null;
+    access_required: boolean | null;
+    access_notes: string | null;
   };
 }
 
@@ -67,6 +72,8 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       notes: workOrder?.notes || "",
       scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : undefined,
       scheduled_time: workOrder?.scheduled_time || "",
+      access_required: workOrder?.access_required || false,
+      access_notes: workOrder?.access_notes || "",
     },
   });
 
@@ -159,6 +166,8 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         scheduled_time: data.scheduled_time || null,
         status: data.scheduled_date ? "scheduled" : "pending",
         photos: photoUrls,
+        access_required: data.access_required,
+        access_notes: data.access_required ? (data.access_notes || null) : null,
       };
 
       if (workOrder) {
@@ -363,6 +372,49 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="access_required"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Access Requirements?</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={(value) => field.onChange(value === "yes")}
+                  value={field.value ? "yes" : "no"}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="access-no" />
+                    <Label htmlFor="access-no">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="access-yes" />
+                    <Label htmlFor="access-yes">Yes</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {form.watch("access_required") && (
+          <FormField
+            control={form.control}
+            name="access_notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Access Information</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={3} placeholder="Enter any necessary access information..." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

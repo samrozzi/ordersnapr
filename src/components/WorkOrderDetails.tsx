@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2 } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -23,15 +23,18 @@ interface WorkOrder {
   completion_notes: string | null;
   created_at: string;
   photos: string[] | null;
+  access_required: boolean | null;
+  access_notes: string | null;
 }
 
 interface WorkOrderDetailsProps {
   workOrder: WorkOrder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (workOrder: WorkOrder) => void;
 }
 
-export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDetailsProps) {
+export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit }: WorkOrderDetailsProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
@@ -75,6 +78,10 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange }: WorkOrderDet
         })() : ''}`
       : 'Not scheduled';
 
+    const accessInfo = workOrder.access_required 
+      ? `Yes - ${workOrder.access_notes || 'Details not provided'}`
+      : 'No';
+
     const message = `APPOINTMENT DETAILS
 
 DATE & TIME
@@ -87,7 +94,10 @@ CONTACT
 ${workOrder.contact_info || 'N/A'}
 
 ADDRESS
-${workOrder.address || 'N/A'}${workOrder.notes ? `
+${workOrder.address || 'N/A'}
+
+ACCESS REQUIREMENTS
+${accessInfo}${workOrder.notes ? `
 
 NOTES
 ${workOrder.notes}` : ''}`;
@@ -105,15 +115,31 @@ ${workOrder.notes}` : ''}`;
           <DialogTitle className="text-xl">Work Order Details</DialogTitle>
         </DialogHeader>
         
-        <Button
-          variant="default"
-          size="default"
-          onClick={exportToText}
-          className="gap-2 w-full"
-        >
-          <Share2 className="h-4 w-4" />
-          Text Details
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            size="default"
+            onClick={exportToText}
+            className="gap-2 flex-1"
+          >
+            <Share2 className="h-4 w-4" />
+            Text Details
+          </Button>
+          {onEdit && (
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => {
+                onEdit(workOrder);
+                onOpenChange(false);
+              }}
+              className="gap-2 flex-1"
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
+        </div>
         
         <ScrollArea className="max-h-[calc(90vh-10rem)] pr-4">
           <div className="space-y-6">
@@ -276,6 +302,20 @@ ${workOrder.notes}` : ''}`;
                       {format(new Date(workOrder.created_at), "MMM dd, yyyy")}
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Access Requirements */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg border-b pb-2">Access Requirements</h3>
+              <div className="flex items-start gap-3">
+                <KeyRound className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">{workOrder.access_required ? 'Yes' : 'No'}</p>
+                  {workOrder.access_required && workOrder.access_notes && (
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{workOrder.access_notes}</p>
+                  )}
                 </div>
               </div>
             </div>

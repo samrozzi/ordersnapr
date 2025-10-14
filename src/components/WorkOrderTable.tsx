@@ -412,6 +412,10 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
         workOrder={viewingOrder}
         open={!!viewingOrder}
         onOpenChange={(open) => !open && setViewingOrder(null)}
+        onEdit={(order) => {
+          setEditingOrder(order);
+          setViewingOrder(null);
+        }}
       />
     </>
   );

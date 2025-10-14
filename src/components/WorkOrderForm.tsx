@@ -183,6 +183,9 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           title: "Success",
           description: "Work order updated successfully",
         });
+        
+        // Call onSuccess first to trigger data refresh
+        onSuccess();
       } else {
         // Create new work order
         const { error } = await supabase.from("work_orders").insert([{
@@ -196,10 +199,11 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           title: "Success",
           description: "Work order created successfully",
         });
+        
+        // Only reset form when creating new work orders
+        form.reset();
+        onSuccess();
       }
-
-      form.reset();
-      onSuccess();
     } catch (error) {
       console.error("Error saving work order:", error);
       toast({

@@ -45,7 +45,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
-  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortField, setSortField] = useState<SortField | null>("scheduled_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [deletingOrder, setDeletingOrder] = useState<WorkOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

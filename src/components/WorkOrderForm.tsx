@@ -172,19 +172,28 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
 
       if (workOrder) {
         // Update existing work order
-        const { error } = await supabase
+        const { data: updatedData, error } = await supabase
           .from("work_orders")
           .update(orderData)
-          .eq("id", workOrder.id);
+          .eq("id", workOrder.id)
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Update error:", error);
+          throw error;
+        }
+
+        console.log("Updated work order:", updatedData);
+        console.log("New scheduled_date:", updatedData?.scheduled_date);
 
         toast({
           title: "Success",
           description: "Work order updated successfully",
         });
         
-        // Call onSuccess first to trigger data refresh
+        // Wait a moment for the database to commit, then refresh
+        await new Promise(resolve => setTimeout(resolve, 100));
         onSuccess();
       } else {
         // Create new work order
@@ -200,7 +209,6 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           description: "Work order created successfully",
         });
         
-        // Only reset form when creating new work orders
         form.reset();
         onSuccess();
       }

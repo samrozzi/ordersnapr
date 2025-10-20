@@ -385,6 +385,21 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           />
         </div>
 
+        {(form.watch("scheduled_date") || form.watch("scheduled_time")) && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              form.setValue("scheduled_date", undefined);
+              form.setValue("scheduled_time", "");
+            }}
+            className="w-full"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Unschedule
+          </Button>
+        )}
+
         <FormField
           control={form.control}
           name="access_required"

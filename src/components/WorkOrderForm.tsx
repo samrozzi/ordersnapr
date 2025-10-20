@@ -390,8 +390,8 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
             type="button"
             variant="outline"
             onClick={() => {
-              form.setValue("scheduled_date", undefined);
-              form.setValue("scheduled_time", "");
+              form.resetField("scheduled_date");
+              form.resetField("scheduled_time");
             }}
             className="w-full"
           >

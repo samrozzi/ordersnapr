@@ -82,7 +82,13 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
     if (bValue === null) return sortDirection === "asc" ? -1 : 1;
 
     // Convert to comparable values
-    if (sortField === "scheduled_date" || sortField === "created_at") {
+    if (sortField === "scheduled_date") {
+      // Combine date and time for proper chronological sorting
+      const aDateTime = `${aValue}T${a.scheduled_time || '00:00:00'}`;
+      const bDateTime = `${bValue}T${b.scheduled_time || '00:00:00'}`;
+      aValue = parseISO(aDateTime).getTime();
+      bValue = parseISO(bDateTime).getTime();
+    } else if (sortField === "created_at") {
       aValue = parseISO(aValue as string).getTime();
       bValue = parseISO(bValue as string).getTime();
     } else {

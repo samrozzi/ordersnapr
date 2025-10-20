@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Shield } from "lucide-react";
 import Dashboard from "./Dashboard";
 import JobAudit from "./JobAudit";
+import PropertyInfo from "./PropertyInfo";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -132,9 +133,10 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="work-orders" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
             <TabsTrigger value="job-audit">Job Audit</TabsTrigger>
+            <TabsTrigger value="property-info">Property Info</TabsTrigger>
           </TabsList>
 
           <TabsContent value="work-orders">
@@ -143,6 +145,10 @@ const Index = () => {
 
           <TabsContent value="job-audit">
             <JobAudit />
+          </TabsContent>
+
+          <TabsContent value="property-info">
+            <PropertyInfo />
           </TabsContent>
         </Tabs>
       </main>

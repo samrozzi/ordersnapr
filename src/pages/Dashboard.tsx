@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
-import { LogOut, Plus } from "lucide-react";
+import { CalendarView } from "@/components/CalendarView";
+import { LogOut, Plus, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkOrder {
@@ -37,6 +38,7 @@ const Dashboard = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullStartY, setPullStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -162,25 +164,42 @@ const Dashboard = () => {
       <main className="space-y-6">
         <h2 className="text-2xl font-semibold">Your Work Orders</h2>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Work Order
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Work Order</DialogTitle>
-            </DialogHeader>
-            <WorkOrderForm
-              onSuccess={() => {
-                setIsDialogOpen(false);
-                fetchWorkOrders();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Work Order
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Work Order</DialogTitle>
+              </DialogHeader>
+              <WorkOrderForm
+                onSuccess={() => {
+                  setIsDialogOpen(false);
+                  fetchWorkOrders();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Calendar className="h-4 w-4 mr-2" />
+                Calendar View
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Work Order Calendar</DialogTitle>
+              </DialogHeader>
+              <CalendarView workOrders={workOrders} />
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">

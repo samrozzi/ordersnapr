@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -106,20 +105,8 @@ ${accessInfo}${workOrder.notes ? `
 NOTES
 ${workOrder.notes}` : ''}`;
 
-    return message;
-  };
-
-  const shareViaSMS = () => {
-    const message = exportToText();
     const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
-  };
-
-  const shareViaEmail = () => {
-    const message = exportToText();
-    const subject = `Work Order Details - ${workOrder.customer_name}`;
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-    window.location.href = mailtoUrl;
   };
 
   if (!workOrder) return null;
@@ -132,28 +119,15 @@ ${workOrder.notes}` : ''}`;
         </DialogHeader>
         
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="default"
-                size="default"
-                className="gap-2 flex-1"
-              >
-                <Share2 className="h-4 w-4" />
-                Share Details
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={shareViaSMS}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Share via Text
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={shareViaEmail}>
-                <Mail className="h-4 w-4 mr-2" />
-                Share via Email
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            variant="default"
+            size="default"
+            onClick={exportToText}
+            className="gap-2 flex-1"
+          >
+            <Share2 className="h-4 w-4" />
+            Text Details
+          </Button>
           {onEdit && (
             <Button
               variant="outline"

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Share2 } from "lucide-react";
+import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Share2, Mail } from "lucide-react";
 
 interface Property {
   id: string;
@@ -150,8 +151,20 @@ ${property.latitude.toFixed(6)}, ${property.longitude.toFixed(6)}` : ''}${userLo
 DISTANCE
 ${getDistance(property)} km from your location` : ''}`;
 
+    return message;
+  };
+
+  const sharePropertyViaSMS = (property: Property) => {
+    const message = exportPropertyToText(property);
     const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
+  };
+
+  const sharePropertyViaEmail = (property: Property) => {
+    const message = exportPropertyToText(property);
+    const subject = `Property Details - ${property.property_name}`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href = mailtoUrl;
   };
 
   return (
@@ -284,15 +297,28 @@ ${getDistance(property)} km from your location` : ''}`;
           {viewingProperty && (
             <div className="space-y-4">
               <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={() => exportPropertyToText(viewingProperty)}
-                  className="gap-2 flex-1"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Text Details
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="default"
+                      className="gap-2 flex-1"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share Details
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem onClick={() => sharePropertyViaSMS(viewingProperty)}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Share via Text
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => sharePropertyViaEmail(viewingProperty)}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Share via Email
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="outline"
                   size="default"

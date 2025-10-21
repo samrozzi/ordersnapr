@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WorkOrder {
@@ -67,7 +67,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit }: Work
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedPhotoIndex, validPhotos.length]);
 
-  const exportToText = () => {
+  const shareViaSMS = () => {
     const dateTime = workOrder.scheduled_date 
       ? `${format(parseISO(workOrder.scheduled_date), "MMM dd, yyyy")}${workOrder.scheduled_time ? (() => {
           const [hours, minutes] = workOrder.scheduled_time.split(':');
@@ -109,6 +109,49 @@ ${workOrder.notes}` : ''}`;
     window.location.href = smsUrl;
   };
 
+  const shareViaEmail = () => {
+    const dateTime = workOrder.scheduled_date 
+      ? `${format(parseISO(workOrder.scheduled_date), "MMM dd, yyyy")}${workOrder.scheduled_time ? (() => {
+          const [hours, minutes] = workOrder.scheduled_time.split(':');
+          const hour = parseInt(hours);
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+          return ` at ${displayHour}:${minutes} ${period}`;
+        })() : ''}`
+      : 'Not scheduled';
+
+    const accessInfo = workOrder.access_required 
+      ? `Yes - ${workOrder.access_notes || 'Details not provided'}`
+      : 'No';
+
+    const message = `APPOINTMENT DETAILS
+
+DATE & TIME
+${dateTime}
+
+CUSTOMER
+${workOrder.customer_name}
+
+BAN
+${workOrder.ban || 'N/A'}
+
+CONTACT
+${workOrder.contact_info || 'N/A'}
+
+ADDRESS
+${workOrder.address || 'N/A'}
+
+ACCESS REQUIREMENTS
+${accessInfo}${workOrder.notes ? `
+
+NOTES
+${workOrder.notes}` : ''}`;
+
+    const subject = `Work Order Details - ${workOrder.customer_name}`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href = mailtoUrl;
+  };
+
   if (!workOrder) return null;
 
   return (
@@ -118,16 +161,27 @@ ${workOrder.notes}` : ''}`;
           <DialogTitle className="text-xl">Work Order Details</DialogTitle>
         </DialogHeader>
         
-        <div className="flex gap-2">
-          <Button
-            variant="default"
-            size="default"
-            onClick={exportToText}
-            className="gap-2 flex-1"
-          >
-            <Share2 className="h-4 w-4" />
-            Text Details
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant="default"
+              size="default"
+              onClick={shareViaSMS}
+              className="gap-2 flex-1"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Share via Text
+            </Button>
+            <Button
+              variant="default"
+              size="default"
+              onClick={shareViaEmail}
+              className="gap-2 flex-1"
+            >
+              <Mail className="h-4 w-4" />
+              Share via Email
+            </Button>
+          </div>
           {onEdit && (
             <Button
               variant="outline"
@@ -136,7 +190,7 @@ ${workOrder.notes}` : ''}`;
                 onEdit(workOrder);
                 onOpenChange(false);
               }}
-              className="gap-2 flex-1"
+              className="gap-2 w-full"
             >
               <Edit className="h-4 w-4" />
               Edit

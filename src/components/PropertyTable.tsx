@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PropertyForm } from "@/components/PropertyForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Share2 } from "lucide-react";
+import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Mail } from "lucide-react";
 
 interface Property {
   id: string;
@@ -129,7 +129,7 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
     return distance.toFixed(2);
   };
 
-  const exportPropertyToText = (property: Property) => {
+  const sharePropertyViaSMS = (property: Property) => {
     const message = `PROPERTY DETAILS
 
 PROPERTY NAME
@@ -152,6 +152,32 @@ ${getDistance(property)} km from your location` : ''}`;
 
     const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
+  };
+
+  const sharePropertyViaEmail = (property: Property) => {
+    const message = `PROPERTY DETAILS
+
+PROPERTY NAME
+${property.property_name}
+
+ADDRESS
+${property.address || 'N/A'}
+
+CONTACT
+${property.contact || 'N/A'}
+
+ACCESS INFORMATION
+${property.access_information || 'N/A'}${property.latitude && property.longitude ? `
+
+LOCATION
+${property.latitude.toFixed(6)}, ${property.longitude.toFixed(6)}` : ''}${userLocation && property.latitude && property.longitude ? `
+
+DISTANCE
+${getDistance(property)} km from your location` : ''}`;
+
+    const subject = `Property Details - ${property.property_name}`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    window.location.href = mailtoUrl;
   };
 
   return (
@@ -283,16 +309,27 @@ ${getDistance(property)} km from your location` : ''}`;
           </DialogHeader>
           {viewingProperty && (
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={() => exportPropertyToText(viewingProperty)}
-                  className="gap-2 flex-1"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Text Details
-                </Button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="default"
+                    onClick={() => sharePropertyViaSMS(viewingProperty)}
+                    className="gap-2 flex-1"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Share via Text
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="default"
+                    onClick={() => sharePropertyViaEmail(viewingProperty)}
+                    className="gap-2 flex-1"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Share via Email
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
                   size="default"
@@ -300,7 +337,7 @@ ${getDistance(property)} km from your location` : ''}`;
                     setEditingProperty(viewingProperty);
                     setViewingProperty(null);
                   }}
-                  className="gap-2 flex-1"
+                  className="gap-2 w-full"
                 >
                   <Pencil className="h-4 w-4" />
                   Edit

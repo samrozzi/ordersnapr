@@ -15,6 +15,8 @@ const formSchema = z.object({
   address: z.string().optional(),
   contact: z.string().optional(),
   access_information: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -49,6 +51,8 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
       address: property?.address || "",
       contact: property?.contact || "",
       access_information: property?.access_information || "",
+      latitude: property?.latitude?.toString() || "",
+      longitude: property?.longitude?.toString() || "",
     },
   });
 
@@ -65,10 +69,11 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setLocation({ lat, lng });
+        form.setValue("latitude", lat.toString());
+        form.setValue("longitude", lng.toString());
         setIsGettingLocation(false);
         toast({
           title: "Success",
@@ -100,13 +105,16 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         return;
       }
 
+      const latitude = data.latitude ? parseFloat(data.latitude) : null;
+      const longitude = data.longitude ? parseFloat(data.longitude) : null;
+
       const propertyData = {
         property_name: data.property_name,
         address: data.address || null,
         contact: data.contact || null,
         access_information: data.access_information || null,
-        latitude: location?.lat || null,
-        longitude: location?.lng || null,
+        latitude: latitude,
+        longitude: longitude,
         user_id: user.id,
       };
 
@@ -216,13 +224,38 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
             className="w-full"
           >
             <MapPin className="h-4 w-4 mr-2" />
-            {isGettingLocation ? "Getting Location..." : location ? "Update Location" : "Capture Location"}
+            {isGettingLocation ? "Getting Location..." : "Capture Current Location"}
           </Button>
-          {location && (
-            <p className="text-sm text-muted-foreground">
-              Location: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-            </p>
-          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="latitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Latitude</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter latitude" type="number" step="any" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="longitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Longitude</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter longitude" type="number" step="any" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>

@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PropertyForm } from "@/components/PropertyForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Pencil, Trash2, ArrowUpDown, MapPin } from "lucide-react";
+import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare } from "lucide-react";
 
 interface Property {
   id: string;
@@ -183,7 +183,33 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
                   </TableCell>
                   <TableCell className="font-medium">{property.property_name}</TableCell>
                   <TableCell>{property.address || "-"}</TableCell>
-                  <TableCell>{property.contact || "-"}</TableCell>
+                  <TableCell>
+                    {property.contact ? (
+                      <div className="flex items-center gap-1">
+                        <span className="mr-1">{property.contact}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          asChild
+                        >
+                          <a href={`tel:${property.contact}`}>
+                            <Phone className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          asChild
+                        >
+                          <a href={`sms:${property.contact}`}>
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      </div>
+                    ) : "-"}
+                  </TableCell>
                   {userLocation && (
                     <TableCell>
                       {getDistance(property) ? `${getDistance(property)} km` : "-"}

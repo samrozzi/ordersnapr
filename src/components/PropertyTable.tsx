@@ -283,15 +283,29 @@ ${getDistance(property)} km from your location` : ''}`;
           </DialogHeader>
           {viewingProperty && (
             <div className="space-y-4">
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => exportPropertyToText(viewingProperty)}
-                className="w-full gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Text Details
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="default"
+                  onClick={() => exportPropertyToText(viewingProperty)}
+                  className="gap-2 flex-1"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Text Details
+                </Button>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => {
+                    setEditingProperty(viewingProperty);
+                    setViewingProperty(null);
+                  }}
+                  className="gap-2 flex-1"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </Button>
+              </div>
 
               <div>
                 <h3 className="font-semibold">Property Name</h3>

@@ -160,28 +160,27 @@ const Dashboard = () => {
       </div>
 
       <main className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold">Your Work Orders</h2>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Work Order
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Work Order</DialogTitle>
-              </DialogHeader>
-              <WorkOrderForm
-                onSuccess={() => {
-                  setIsDialogOpen(false);
-                  fetchWorkOrders();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <h2 className="text-2xl font-semibold">Your Work Orders</h2>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Work Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Work Order</DialogTitle>
+            </DialogHeader>
+            <WorkOrderForm
+              onSuccess={() => {
+                setIsDialogOpen(false);
+                fetchWorkOrders();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">

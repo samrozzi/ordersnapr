@@ -119,46 +119,45 @@ const PropertyInfo = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Property Information</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => userLocation ? setUserLocation(null) : handleGetUserLocation()}
-            disabled={isGettingLocation}
-          >
-            {userLocation ? (
-              <>
-                <MapPinOff className="h-4 w-4 mr-2" />
-                Clear Location
-              </>
-            ) : (
-              <>
-                <MapPin className="h-4 w-4 mr-2" />
-                {isGettingLocation ? "Getting Location..." : "Sort by Distance"}
-              </>
-            )}
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Property
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Property</DialogTitle>
-              </DialogHeader>
-              <PropertyForm
-                onSuccess={() => {
-                  setIsDialogOpen(false);
-                  fetchProperties();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+      <h2 className="text-2xl font-semibold">Property Information</h2>
+      
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={() => userLocation ? setUserLocation(null) : handleGetUserLocation()}
+          disabled={isGettingLocation}
+        >
+          {userLocation ? (
+            <>
+              <MapPinOff className="h-4 w-4 mr-2" />
+              Clear Location
+            </>
+          ) : (
+            <>
+              <MapPin className="h-4 w-4 mr-2" />
+              {isGettingLocation ? "Getting Location..." : "Sort by Distance"}
+            </>
+          )}
+        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Property
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Property</DialogTitle>
+            </DialogHeader>
+            <PropertyForm
+              onSuccess={() => {
+                setIsDialogOpen(false);
+                fetchProperties();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {userLocation && (

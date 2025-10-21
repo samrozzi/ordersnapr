@@ -127,6 +127,7 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12"></TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -164,13 +165,22 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
           <TableBody>
             {sortedProperties.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={userLocation ? 5 : 4} className="text-center text-muted-foreground">
+                <TableCell colSpan={userLocation ? 6 : 5} className="text-center text-muted-foreground">
                   No properties found
                 </TableCell>
               </TableRow>
             ) : (
               sortedProperties.map((property) => (
                 <TableRow key={property.id}>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewingProperty(property)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                   <TableCell className="font-medium">{property.property_name}</TableCell>
                   <TableCell>{property.address || "-"}</TableCell>
                   <TableCell>{property.contact || "-"}</TableCell>
@@ -181,13 +191,6 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
                   )}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setViewingProperty(property)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

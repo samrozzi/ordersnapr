@@ -3,7 +3,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInte
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+
 
 interface WorkOrder {
   id: string;
@@ -16,12 +16,12 @@ interface WorkOrder {
 
 interface CalendarViewProps {
   workOrders: WorkOrder[];
+  onWorkOrderClick: (workOrderId: string) => void;
 }
 
 type ViewMode = "month" | "week" | "day";
 
-export function CalendarView({ workOrders }: CalendarViewProps) {
-  const navigate = useNavigate();
+export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
@@ -63,9 +63,9 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     return (
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
+          <div key={day} className="text-center text-xs sm:text-sm font-medium text-muted-foreground p-1 sm:p-2">
             {day}
           </div>
         ))}
@@ -77,13 +77,13 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
             <div
               key={day.toString()}
               className={cn(
-                "min-h-20 p-2 border rounded-lg",
+                "min-h-16 sm:min-h-20 p-1 sm:p-2 border rounded-lg",
                 !isCurrentMonth && "opacity-40 bg-muted/30",
                 isToday(day) && "border-primary border-2"
               )}
             >
               <div className={cn(
-                "text-sm mb-1",
+                "text-xs sm:text-sm mb-1",
                 isToday(day) ? "font-bold text-primary" : "text-foreground"
               )}>
                 {format(day, "d")}
@@ -92,7 +92,7 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
                 {orders.slice(0, 3).map((order) => (
                   <div
                     key={order.id}
-                    onClick={() => navigate("/job-audit", { state: { workOrderId: order.id } })}
+                    onClick={() => onWorkOrderClick(order.id)}
                     className="text-xs p-1 bg-primary/10 rounded cursor-pointer hover:bg-primary/20 truncate"
                   >
                     {order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")} {order.customer_name}
@@ -116,7 +116,7 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
 
     return (
       <div className="space-y-2">
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const orders = getOrdersForDate(day);
             
@@ -124,14 +124,14 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
               <div
                 key={day.toString()}
                 className={cn(
-                  "border rounded-lg p-3",
+                  "border rounded-lg p-2 sm:p-3",
                   isToday(day) && "border-primary border-2"
                 )}
               >
                 <div className="text-center mb-2">
-                  <div className="text-sm font-medium">{format(day, "EEE")}</div>
+                  <div className="text-xs sm:text-sm font-medium">{format(day, "EEE")}</div>
                   <div className={cn(
-                    "text-2xl",
+                    "text-xl sm:text-2xl",
                     isToday(day) ? "font-bold text-primary" : "text-foreground"
                   )}>
                     {format(day, "d")}
@@ -141,7 +141,7 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
                   {orders.map((order) => (
                     <div
                       key={order.id}
-                      onClick={() => navigate("/job-audit", { state: { workOrderId: order.id } })}
+                      onClick={() => onWorkOrderClick(order.id)}
                       className="text-xs p-2 bg-primary/10 rounded cursor-pointer hover:bg-primary/20"
                     >
                       <div className="font-medium">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
@@ -165,7 +165,7 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
       <div className="space-y-2">
         <div className="text-center py-4 border-b">
           <div className="text-sm font-medium">{format(currentDate, "EEEE")}</div>
-          <div className="text-3xl font-bold">{format(currentDate, "MMMM d, yyyy")}</div>
+          <div className="text-2xl sm:text-3xl font-bold">{format(currentDate, "MMMM d, yyyy")}</div>
         </div>
         <div className="space-y-1 max-h-96 overflow-y-auto">
           {hours.map((hour) => {
@@ -177,18 +177,18 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
 
             return (
               <div key={hour} className="flex gap-2 min-h-12 border-b">
-                <div className="w-20 text-sm text-muted-foreground py-2">
+                <div className="w-16 sm:w-20 text-xs sm:text-sm text-muted-foreground py-2">
                   {format(new Date(2000, 0, 1, hour), "h:mm a")}
                 </div>
                 <div className="flex-1 space-y-1 py-1">
                   {hourOrders.map((order) => (
                     <div
                       key={order.id}
-                      onClick={() => navigate("/job-audit", { state: { workOrderId: order.id } })}
+                      onClick={() => onWorkOrderClick(order.id)}
                       className="p-2 bg-primary/10 rounded cursor-pointer hover:bg-primary/20"
                     >
-                      <div className="font-medium">{order.customer_name}</div>
-                      <div className="text-sm text-muted-foreground">{order.address}</div>
+                      <div className="font-medium text-sm">{order.customer_name}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{order.address}</div>
                       <div className="text-xs">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
                     </div>
                   ))}
@@ -202,13 +202,13 @@ export function CalendarView({ workOrders }: CalendarViewProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={navigatePrevious}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-lg font-semibold min-w-48 text-center">
+          <div className="text-sm sm:text-lg font-semibold min-w-40 sm:min-w-48 text-center">
             {viewMode === "month" && format(currentDate, "MMMM yyyy")}
             {viewMode === "week" && `${format(startOfWeek(currentDate), "MMM d")} - ${format(endOfWeek(currentDate), "MMM d, yyyy")}`}
             {viewMode === "day" && format(currentDate, "MMMM d, yyyy")}

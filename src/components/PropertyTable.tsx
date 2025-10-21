@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PropertyForm } from "@/components/PropertyForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare } from "lucide-react";
+import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Share2 } from "lucide-react";
 
 interface Property {
   id: string;
@@ -47,6 +47,14 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   };
+
+  // Auto-sort by distance when location is set
+  useEffect(() => {
+    if (userLocation && sortField !== "distance") {
+      setSortField("distance");
+      setSortDirection("asc");
+    }
+  }, [userLocation]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -119,6 +127,31 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
       property.longitude
     );
     return distance.toFixed(2);
+  };
+
+  const exportPropertyToText = (property: Property) => {
+    const message = `PROPERTY DETAILS
+
+PROPERTY NAME
+${property.property_name}
+
+ADDRESS
+${property.address || 'N/A'}
+
+CONTACT
+${property.contact || 'N/A'}
+
+ACCESS INFORMATION
+${property.access_information || 'N/A'}${property.latitude && property.longitude ? `
+
+LOCATION
+${property.latitude.toFixed(6)}, ${property.longitude.toFixed(6)}` : ''}${userLocation && property.latitude && property.longitude ? `
+
+DISTANCE
+${getDistance(property)} km from your location` : ''}`;
+
+    const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
+    window.location.href = smsUrl;
   };
 
   return (
@@ -248,6 +281,16 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
           </DialogHeader>
           {viewingProperty && (
             <div className="space-y-4">
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => exportPropertyToText(viewingProperty)}
+                className="w-full gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Text Details
+              </Button>
+
               <div>
                 <h3 className="font-semibold">Property Name</h3>
                 <p>{viewingProperty.property_name}</p>
@@ -255,13 +298,49 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
               {viewingProperty.address && (
                 <div>
                   <h3 className="font-semibold">Address</h3>
-                  <p>{viewingProperty.address}</p>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 font-normal text-left"
+                    asChild
+                  >
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewingProperty.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {viewingProperty.address}
+                    </a>
+                  </Button>
                 </div>
               )}
               {viewingProperty.contact && (
                 <div>
                   <h3 className="font-semibold">Contact</h3>
-                  <p>{viewingProperty.contact}</p>
+                  <div className="flex items-center gap-2">
+                    <p>{viewingProperty.contact}</p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2"
+                        asChild
+                      >
+                        <a href={`tel:${viewingProperty.contact}`}>
+                          <Phone className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2"
+                        asChild
+                      >
+                        <a href={`sms:${viewingProperty.contact}`}>
+                          <MessageSquare className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
               {viewingProperty.access_information && (

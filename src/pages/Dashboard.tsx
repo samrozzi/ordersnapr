@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
+import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarView } from "@/components/CalendarView";
 import { LogOut, Plus, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullStartY, setPullStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -192,11 +194,22 @@ const Dashboard = () => {
                 Calendar View
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
               <DialogHeader>
                 <DialogTitle>Work Order Calendar</DialogTitle>
               </DialogHeader>
-              <CalendarView workOrders={workOrders} />
+              <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+                <CalendarView 
+                  workOrders={workOrders} 
+                  onWorkOrderClick={(id) => {
+                    const order = workOrders.find(wo => wo.id === id);
+                    if (order) {
+                      setViewingOrder(order);
+                      setIsCalendarOpen(false);
+                    }
+                  }}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -219,6 +232,12 @@ const Dashboard = () => {
             <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
           </TabsContent>
         </Tabs>
+
+        <WorkOrderDetails
+          workOrder={viewingOrder}
+          open={!!viewingOrder}
+          onOpenChange={(open) => !open && setViewingOrder(null)}
+        />
       </main>
     </div>
   );

@@ -17,18 +17,18 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  bpc: z.string().optional(),
-  ban: z.string().optional(),
-  package: z.string().optional(),
-  job_id: z.string().optional(),
-  customer_name: z.string().min(1, "Customer name is required"),
-  contact_info: z.string().optional(),
-  address: z.string().optional(),
-  notes: z.string().optional(),
+  bpc: z.string().max(50, "BPC must be less than 50 characters").optional(),
+  ban: z.string().max(50, "BAN must be less than 50 characters").optional(),
+  package: z.string().max(100, "Package must be less than 100 characters").optional(),
+  job_id: z.string().max(100, "Job ID must be less than 100 characters").optional(),
+  customer_name: z.string().min(1, "Customer name is required").max(100, "Customer name must be less than 100 characters"),
+  contact_info: z.string().max(100, "Contact info must be less than 100 characters").optional(),
+  address: z.string().max(500, "Address must be less than 500 characters").optional(),
+  notes: z.string().max(2000, "Notes must be less than 2000 characters").optional(),
   scheduled_date: z.date().optional(),
   scheduled_time: z.string().optional(),
   access_required: z.boolean().default(false),
-  access_notes: z.string().optional(),
+  access_notes: z.string().max(1000, "Access notes must be less than 1000 characters").optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -126,11 +126,16 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      // Create a signed URL that expires in 1 year (31536000 seconds)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('work-order-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 31536000);
 
-      uploadedUrls.push(publicUrl);
+      if (signedUrlError) {
+        throw signedUrlError;
+      }
+
+      uploadedUrls.push(signedUrlData.signedUrl);
     }
 
     return uploadedUrls;

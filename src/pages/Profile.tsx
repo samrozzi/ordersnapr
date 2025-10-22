@@ -71,10 +71,37 @@ const Profile = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one uppercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one lowercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one number",
         variant: "destructive",
       });
       return;
@@ -150,7 +177,7 @@ const Profile = () => {
           <CardHeader>
             <CardTitle>Update Password</CardTitle>
             <CardDescription>
-              Change your account password. Must be at least 6 characters.
+              Change your account password. Must be at least 8 characters with uppercase, lowercase, and numbers.
             </CardDescription>
           </CardHeader>
           <CardContent>

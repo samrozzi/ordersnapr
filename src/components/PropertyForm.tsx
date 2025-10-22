@@ -11,10 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { MapPin } from "lucide-react";
 
 const formSchema = z.object({
-  property_name: z.string().min(1, "Property name is required"),
-  address: z.string().optional(),
-  contact: z.string().optional(),
-  access_information: z.string().optional(),
+  property_name: z.string().min(1, "Property name is required").max(100, "Property name must be less than 100 characters"),
+  address: z.string().max(500, "Address must be less than 500 characters").optional(),
+  contact: z.string().max(100, "Contact must be less than 100 characters").optional(),
+  access_information: z.string().max(1000, "Access information must be less than 1000 characters").optional(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
 });

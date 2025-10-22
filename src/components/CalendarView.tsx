@@ -30,9 +30,12 @@ export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps
   );
 
   const getOrdersForDate = (date: Date) => {
-    return scheduledOrders.filter((order) =>
-      isSameDay(new Date(order.scheduled_date!), date)
-    );
+    return scheduledOrders.filter((order) => {
+      // Parse date string as local date to avoid timezone issues
+      const [year, month, day] = order.scheduled_date!.split('-').map(Number);
+      const orderDate = new Date(year, month - 1, day);
+      return isSameDay(orderDate, date);
+    });
   };
 
   const navigatePrevious = () => {

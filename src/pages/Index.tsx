@@ -135,20 +135,20 @@ const Index = () => {
         <Tabs defaultValue="work-orders" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-            <TabsTrigger value="job-audit">Job Audit</TabsTrigger>
             <TabsTrigger value="property-info">Property Info</TabsTrigger>
+            <TabsTrigger value="job-audit">Job Audit</TabsTrigger>
           </TabsList>
 
           <TabsContent value="work-orders">
             <Dashboard />
           </TabsContent>
 
-          <TabsContent value="job-audit">
-            <JobAudit />
-          </TabsContent>
-
           <TabsContent value="property-info">
             <PropertyInfo />
+          </TabsContent>
+
+          <TabsContent value="job-audit">
+            <JobAudit />
           </TabsContent>
         </Tabs>
       </main>

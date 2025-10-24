@@ -37,7 +37,7 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
+    const R = 3959; // Earth's radius in miles
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = 
@@ -148,7 +148,7 @@ LOCATION
 ${property.latitude.toFixed(6)}, ${property.longitude.toFixed(6)}` : ''}${userLocation && property.latitude && property.longitude ? `
 
 DISTANCE
-${getDistance(property)} km from your location` : ''}`;
+${getDistance(property)} miles from your location` : ''}`;
 
     const smsUrl = `sms:?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
@@ -173,7 +173,7 @@ LOCATION
 ${property.latitude.toFixed(6)}, ${property.longitude.toFixed(6)}` : ''}${userLocation && property.latitude && property.longitude ? `
 
 DISTANCE
-${getDistance(property)} km from your location` : ''}`;
+${getDistance(property)} miles from your location` : ''}`;
 
     const subject = `Property Details - ${property.property_name}`;
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
@@ -271,7 +271,7 @@ ${getDistance(property)} km from your location` : ''}`;
                   </TableCell>
                   {userLocation && (
                     <TableCell>
-                      {getDistance(property) ? `${getDistance(property)} km` : "-"}
+                      {getDistance(property) ? `${getDistance(property)} mi` : "-"}
                     </TableCell>
                   )}
                   <TableCell className="text-right">
@@ -410,7 +410,7 @@ ${getDistance(property)} km from your location` : ''}`;
                   </p>
                   {userLocation && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      Distance: {getDistance(viewingProperty)} km from your location
+                      Distance: {getDistance(viewingProperty)} miles from your location
                     </p>
                   )}
                 </div>

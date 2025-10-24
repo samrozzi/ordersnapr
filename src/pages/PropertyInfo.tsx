@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { PropertyTable } from "@/components/PropertyTable";
-import { PropertyMap } from "@/components/PropertyMap";
 import { Plus, MapPin, MapPinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -166,11 +165,6 @@ const PropertyInfo = () => {
           Sorting by distance from: {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
         </div>
       )}
-
-      <PropertyMap 
-        properties={properties}
-        userLocation={userLocation}
-      />
 
       <PropertyTable 
         properties={properties} 

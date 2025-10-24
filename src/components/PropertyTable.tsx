@@ -404,8 +404,24 @@ ${getDistance(property)} miles from your location` : ''}`;
               )}
               {viewingProperty.latitude && viewingProperty.longitude && (
                 <div>
-                  <h3 className="font-semibold">Location</h3>
-                  <p>
+                  <h3 className="font-semibold mb-2">Location</h3>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${viewingProperty.latitude},${viewingProperty.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mb-2 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity cursor-pointer"
+                  >
+                    <img
+                      src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ef4444(${viewingProperty.longitude},${viewingProperty.latitude})/${viewingProperty.longitude},${viewingProperty.latitude},14,0/600x300@2x?access_token=${localStorage.getItem("mapbox_token") || "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"}`}
+                      alt="Property location map"
+                      className="w-full h-auto"
+                      onError={(e) => {
+                        // Fallback to Google Maps static image if Mapbox fails
+                        e.currentTarget.src = `https://maps.googleapis.com/maps/api/staticmap?center=${viewingProperty.latitude},${viewingProperty.longitude}&zoom=14&size=600x300&markers=color:red%7C${viewingProperty.latitude},${viewingProperty.longitude}&style=feature:poi|visibility:off`;
+                      }}
+                    />
+                  </a>
+                  <p className="text-sm text-muted-foreground">
                     {viewingProperty.latitude.toFixed(6)}, {viewingProperty.longitude.toFixed(6)}
                   </p>
                   {userLocation && (
@@ -413,6 +429,9 @@ ${getDistance(property)} miles from your location` : ''}`;
                       Distance: {getDistance(viewingProperty)} miles from your location
                     </p>
                   )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Click map to open in your default map app
+                  </p>
                 </div>
               )}
             </div>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Shield } from "lucide-react";
 import Dashboard from "./Dashboard";
-import JobAudit from "./JobAudit";
+import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 
 const Index = () => {
@@ -136,7 +136,7 @@ const Index = () => {
           <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
             <TabsTrigger value="property-info">Property Info</TabsTrigger>
-            <TabsTrigger value="job-audit">Job Audit</TabsTrigger>
+            <TabsTrigger value="forms">Forms</TabsTrigger>
           </TabsList>
 
           <TabsContent value="work-orders">
@@ -147,8 +147,8 @@ const Index = () => {
             <PropertyInfo />
           </TabsContent>
 
-          <TabsContent value="job-audit">
-            <JobAudit />
+          <TabsContent value="forms">
+            <Forms />
           </TabsContent>
         </Tabs>
       </main>

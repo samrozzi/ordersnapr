@@ -35,6 +35,7 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null);
   const [sortField, setSortField] = useState<SortField>("property_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [mapError, setMapError] = useState(false);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 3959; // Earth's radius in miles
@@ -302,7 +303,10 @@ ${getDistance(property)} miles from your location` : ''}`;
       </div>
 
       {/* View Dialog */}
-      <Dialog open={!!viewingProperty} onOpenChange={() => setViewingProperty(null)}>
+      <Dialog open={!!viewingProperty} onOpenChange={() => {
+        setViewingProperty(null);
+        setMapError(false);
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Property Details</DialogTitle>
@@ -405,18 +409,37 @@ ${getDistance(property)} miles from your location` : ''}`;
               {viewingProperty.latitude && viewingProperty.longitude && (
                 <div>
                   <h3 className="font-semibold mb-2">Location</h3>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${viewingProperty.latitude},${viewingProperty.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block mb-2 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity cursor-pointer"
-                  >
-                    <img
-                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${viewingProperty.latitude},${viewingProperty.longitude}&zoom=14&size=600x300&markers=color:red%7C${viewingProperty.latitude},${viewingProperty.longitude}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`}
-                      alt="Property location map"
-                      className="w-full h-auto"
-                    />
-                  </a>
+                  {!mapError ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${viewingProperty.latitude},${viewingProperty.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block mb-2 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      <img
+                        src={`https://maps.googleapis.com/maps/api/staticmap?center=${viewingProperty.latitude},${viewingProperty.longitude}&zoom=14&size=600x300&markers=color:red%7C${viewingProperty.latitude},${viewingProperty.longitude}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`}
+                        alt="Property location map"
+                        className="w-full h-auto"
+                        onError={() => setMapError(true)}
+                      />
+                    </a>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full mb-2"
+                      asChild
+                    >
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${viewingProperty.latitude},${viewingProperty.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        Open in Maps
+                      </a>
+                    </Button>
+                  )}
                   <p className="text-sm text-muted-foreground">
                     {viewingProperty.latitude.toFixed(6)}, {viewingProperty.longitude.toFixed(6)}
                   </p>
@@ -425,9 +448,11 @@ ${getDistance(property)} miles from your location` : ''}`;
                       Distance: {getDistance(viewingProperty)} miles from your location
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Click map to open in your default map app
-                  </p>
+                  {!mapError && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Click map to open in your default map app
+                    </p>
+                  )}
                 </div>
               )}
             </div>

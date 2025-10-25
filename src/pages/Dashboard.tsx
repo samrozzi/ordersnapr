@@ -237,6 +237,7 @@ const Dashboard = () => {
           workOrder={viewingOrder}
           open={!!viewingOrder}
           onOpenChange={(open) => !open && setViewingOrder(null)}
+          onUpdate={fetchWorkOrders}
         />
       </main>
     </div>

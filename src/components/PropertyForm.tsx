@@ -38,6 +38,7 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     property?.latitude && property?.longitude
       ? { lat: property.latitude, lng: property.longitude }
@@ -89,6 +90,65 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         });
       }
     );
+  };
+
+  const handleGeocodeAddress = async () => {
+    const address = form.getValues("address");
+    if (!address) {
+      toast({
+        title: "Error",
+        description: "Please enter an address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      // Using Nominatim (OpenStreetMap) for free geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'WorkOrderApp/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) throw new Error("Failed to geocode address");
+      
+      const data = await response.json();
+      
+      if (data.length === 0) {
+        toast({
+          title: "No Results",
+          description: "Could not find coordinates for this address",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+      
+      setLocation({ lat, lng });
+      form.setValue("latitude", lat.toString());
+      form.setValue("longitude", lng.toString());
+      
+      toast({
+        title: "Success",
+        description: "Coordinates retrieved from address",
+      });
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get coordinates. Please try entering them manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -183,6 +243,17 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
                 <Textarea {...field} placeholder="Enter address" rows={2} />
               </FormControl>
               <FormMessage />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGeocodeAddress}
+                disabled={isGeocoding}
+                className="mt-2 w-full"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                {isGeocoding ? "Getting Coordinates..." : "Get Coordinates from Address"}
+              </Button>
             </FormItem>
           )}
         />

@@ -422,6 +422,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
           setEditingOrder(order);
           setViewingOrder(null);
         }}
+        onUpdate={onUpdate}
       />
     </>
   );

@@ -4,8 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorkOrder {
   id: string;
@@ -32,10 +37,15 @@ interface WorkOrderDetailsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (workOrder: WorkOrder) => void;
+  onUpdate?: () => void;
 }
 
-export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit }: WorkOrderDetailsProps) {
+export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpdate }: WorkOrderDetailsProps) {
+  const { toast } = useToast();
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
   
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
@@ -152,6 +162,43 @@ ${workOrder.notes}` : ''}`;
     window.location.href = mailtoUrl;
   };
 
+  const handleComplete = async () => {
+    if (!workOrder) return;
+    
+    setIsCompleting(true);
+    try {
+      const { error } = await supabase
+        .from("work_orders")
+        .update({
+          status: "completed",
+          completion_notes: completionNotes,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", workOrder.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Work order marked as completed",
+      });
+
+      setShowCompleteDialog(false);
+      setCompletionNotes("");
+      onOpenChange(false);
+      onUpdate?.();
+    } catch (error: any) {
+      console.error("Error completing work order:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete work order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   if (!workOrder) return null;
 
   return (
@@ -182,20 +229,33 @@ ${workOrder.notes}` : ''}`;
               Share via Email
             </Button>
           </div>
-          {onEdit && (
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => {
-                onEdit(workOrder);
-                onOpenChange(false);
-              }}
-              className="gap-2 w-full"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => {
+                  onEdit(workOrder);
+                  onOpenChange(false);
+                }}
+                className="gap-2 flex-1"
+              >
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            )}
+            {workOrder.status !== "completed" && (
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setShowCompleteDialog(true)}
+                className="gap-2 flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Mark Complete
+              </Button>
+            )}
+          </div>
         </div>
         
         <ScrollArea className="max-h-[calc(90vh-10rem)] pr-4">
@@ -481,6 +541,35 @@ ${workOrder.notes}` : ''}`;
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Complete Dialog */}
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Work Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Add any completion notes for this work order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="completion-notes">Completion Notes (Optional)</Label>
+            <Textarea
+              id="completion-notes"
+              value={completionNotes}
+              onChange={(e) => setCompletionNotes(e.target.value)}
+              placeholder="Enter completion notes..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCompleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleComplete} disabled={isCompleting}>
+              {isCompleting ? "Completing..." : "Complete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

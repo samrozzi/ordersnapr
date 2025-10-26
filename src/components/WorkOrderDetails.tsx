@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail, CheckCircle } from "lucide-react";
+import { Calendar, FileText, MapPin, Package, Phone, User, Hash, AlertCircle, X, ChevronLeft, ChevronRight, Clock, MessageSquare, Share2, Edit, KeyRound, Mail, CheckCircle, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,9 +27,19 @@ interface WorkOrder {
   status: string;
   completion_notes: string | null;
   created_at: string;
+  updated_at?: string;
   photos: string[] | null;
   access_required: boolean | null;
   access_notes: string | null;
+  user_id?: string;
+}
+
+interface AuditLog {
+  id: string;
+  action: string;
+  created_at: string;
+  changes: any;
+  user_email?: string;
 }
 
 interface WorkOrderDetailsProps {
@@ -46,9 +56,56 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
+  const [creatorEmail, setCreatorEmail] = useState<string>("");
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
+
+  useEffect(() => {
+    if (workOrder?.user_id) {
+      fetchCreatorInfo(workOrder.user_id);
+      fetchAuditLogs(workOrder.id);
+    }
+  }, [workOrder?.id, workOrder?.user_id]);
+
+  const fetchCreatorInfo = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+    if (data) setCreatorEmail(data.email || "Unknown");
+  };
+
+  const fetchAuditLogs = async (entityId: string) => {
+    const { data } = await supabase
+      .from("audit_logs" as any)
+      .select("id, action, created_at, changes, user_id")
+      .eq("entity_id", entityId)
+      .eq("entity_type", "work_orders")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    
+    if (data) {
+      // Fetch user emails separately
+      const userIds = [...new Set((data as any[]).map((log: any) => log.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.id, p.email]) || []);
+      
+      setAuditLogs((data as any[]).map((log: any) => ({
+        id: log.id,
+        action: log.action,
+        created_at: log.created_at,
+        changes: log.changes,
+        user_email: profileMap.get(log.user_id) || "Unknown"
+      })));
+    }
+  };
 
   const navigatePhoto = (direction: 'prev' | 'next') => {
     if (selectedPhotoIndex === null) return;
@@ -259,7 +316,7 @@ ${workOrder.notes}` : ''}`;
         </div>
         
         <ScrollArea className="max-h-[calc(90vh-10rem)] pr-4">
-          <div className="space-y-6">
+          <div className="space-y-6 pb-6">
             {/* Status Badge */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Status:</span>
@@ -459,6 +516,53 @@ ${workOrder.notes}` : ''}`;
                   <div className="flex-1">
                     <p className="whitespace-pre-wrap">{workOrder.completion_notes}</p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Metadata Section */}
+            <div className="space-y-3 border-t pt-4">
+              <h3 className="font-semibold text-lg border-b pb-2">Information</h3>
+              <div className="grid gap-3 text-sm">
+                {creatorEmail && (
+                  <div className="flex items-start gap-3">
+                    <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-muted-foreground">Created by</p>
+                      <p className="font-medium">{creatorEmail}</p>
+                    </div>
+                  </div>
+                )}
+                {workOrder.updated_at && workOrder.updated_at !== workOrder.created_at && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-muted-foreground">Last edited</p>
+                      <p className="font-medium">
+                        {format(new Date(workOrder.updated_at), "MMM dd, yyyy 'at' h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Changelog Section */}
+            {auditLogs.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Recent Changes</h3>
+                <div className="space-y-3">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-3 text-sm">
+                      <History className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium">{log.action.charAt(0).toUpperCase() + log.action.slice(1)}</p>
+                        <p className="text-muted-foreground">
+                          by {log.user_email} on {format(new Date(log.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

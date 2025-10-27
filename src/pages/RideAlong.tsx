@@ -178,6 +178,8 @@ const RideAlong = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [photos, setPhotos] = useState<PhotoWithCaption[]>([]);
+  const [accountNumber, setAccountNumber] = useState("");
+  const [address, setAddress] = useState("");
   const [technicianName, setTechnicianName] = useState("");
   const [observerName, setObserverName] = useState("");
   const [date, setDate] = useState("");
@@ -262,6 +264,14 @@ const RideAlong = () => {
     doc.text("Form Details", 20, yPos);
     yPos += 7;
     doc.setFont("helvetica", "normal");
+    if (accountNumber) {
+      doc.text(`Account Number: ${accountNumber}`, 20, yPos);
+      yPos += 5;
+    }
+    if (address) {
+      doc.text(`Address: ${address}`, 20, yPos);
+      yPos += 5;
+    }
     if (technicianName) {
       doc.text(`Technician: ${technicianName}`, 20, yPos);
       yPos += 5;
@@ -471,6 +481,27 @@ const RideAlong = () => {
                 <span className="text-muted-foreground">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="accountNumber">Account Number</Label>
+                <Input
+                  id="accountNumber"
+                  placeholder="Enter account number"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  placeholder="Enter service address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

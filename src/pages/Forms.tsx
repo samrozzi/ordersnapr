@@ -1,6 +1,8 @@
+import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JobAudit from "./JobAudit";
-import RideAlong from "./RideAlong";
+
+const RideAlong = lazy(() => import("./RideAlong"));
 
 const Forms = () => {
   return (
@@ -18,7 +20,9 @@ const Forms = () => {
         </TabsContent>
 
         <TabsContent value="ride-along">
-          <RideAlong />
+          <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+            <RideAlong />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

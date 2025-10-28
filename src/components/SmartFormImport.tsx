@@ -229,7 +229,7 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
           {isProcessing && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Analyzing image with AI...</p>
+              <p className="text-sm text-muted-foreground">analyzing to make your life easier</p>
             </div>
           )}
 

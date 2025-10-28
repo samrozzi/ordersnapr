@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, RefreshCw } from "lucide-react";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
 import Dashboard from "./Dashboard";
 import Forms from "./Forms";
@@ -117,7 +117,7 @@ const Index = () => {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold mb-4">Work Management System</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate("/profile")}>
               Profile
             </Button>
@@ -127,6 +127,10 @@ const Index = () => {
                 Admin
               </Button>
             )}
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
             <Button variant="outline" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out

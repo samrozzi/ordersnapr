@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Camera, Upload, Sparkles, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -254,31 +255,33 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
                 </Button>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Extracted Data (Review & Edit)</h4>
-                <div className="grid gap-3">
-                  {Object.entries(extractedData).map(([key, value]) => (
-                    <div key={key} className="space-y-1">
-                      <Label htmlFor={`extracted-${key}`} className="text-xs">
-                        {getFieldLabel(key)}
-                      </Label>
-                      <Input
-                        id={`extracted-${key}`}
-                        value={value as string}
-                        onChange={(e) => {
-                          setExtractedData({
-                            ...extractedData,
-                            [key]: e.target.value
-                          });
-                        }}
-                        className="h-9"
-                      />
-                    </div>
-                  ))}
+              <ScrollArea className="max-h-[400px] pr-4">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Extracted Data (Review & Edit)</h4>
+                  <div className="grid gap-3">
+                    {Object.entries(extractedData).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <Label htmlFor={`extracted-${key}`} className="text-xs">
+                          {getFieldLabel(key)}
+                        </Label>
+                        <Input
+                          id={`extracted-${key}`}
+                          value={value as string}
+                          onChange={(e) => {
+                            setExtractedData({
+                              ...extractedData,
+                              [key]: e.target.value
+                            });
+                          }}
+                          className="h-9"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
 
-              <div className="flex gap-2 justify-end pt-4">
+              <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>

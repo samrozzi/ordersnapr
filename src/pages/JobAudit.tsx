@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
@@ -15,6 +15,11 @@ import { SmartFormImport } from "@/components/SmartFormImport";
 import { FileText, ChevronDown, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+
+interface JobAuditProps {
+  draftToLoad?: any;
+  onDraftLoaded?: () => void;
+}
 
 const ADMIN_TESTING_ITEMS = [
   "Conducted all proper required testing (Including Fiber / Copper TRUE Test)",
@@ -84,7 +89,7 @@ const DROP_AUDIT_ITEMS = [
   "Closure / terminal secured and / or closed properly",
 ];
 
-const JobAudit = () => {
+const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [photos, setPhotos] = useState<PhotoWithCaption[]>([]);
@@ -117,6 +122,13 @@ const JobAudit = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (draftToLoad) {
+      handleLoadDraft(draftToLoad);
+      onDraftLoaded?.();
+    }
+  }, [draftToLoad]);
 
   const generatePDF = async () => {
     const doc = new jsPDF();
@@ -370,6 +382,25 @@ const JobAudit = () => {
     }
   };
 
+  const handleLoadDraft = (draftData: any) => {
+    if (!draftData) return;
+    
+    if (draftData.photos) setPhotos(draftData.photos);
+    if (draftData.observations) setObservations(draftData.observations);
+    if (draftData.technicianName) setTechnicianName(draftData.technicianName);
+    if (draftData.ban) setBan(draftData.ban);
+    if (draftData.serviceDate) setServiceDate(draftData.serviceDate);
+    if (draftData.address) setAddress(draftData.address);
+    if (draftData.reportedBy) setReportedBy(draftData.reportedBy);
+    if (draftData.customerName) setCustomerName(draftData.customerName);
+    if (draftData.canBeReached) setCanBeReached(draftData.canBeReached);
+    if (draftData.adminChecklist) setAdminChecklist(draftData.adminChecklist);
+    if (draftData.customerChecklist) setCustomerChecklist(draftData.customerChecklist);
+    if (draftData.dropChecklist) setDropChecklist(draftData.dropChecklist);
+    
+    toast.success("Draft loaded successfully!");
+  };
+
   const handleDataExtracted = (data: any) => {
     if (data.technicianName) setTechnicianName(data.technicianName);
     if (data.accountNumber) setBan(data.accountNumber);
@@ -388,26 +419,29 @@ const JobAudit = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Job Quality Inspection
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleSaveDraft}
-                  disabled={!technicianName && !ban && !address && !customerName}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Draft
-                </Button>
-                <SmartFormImport 
-                  formType="job-audit"
-                  onDataExtracted={handleDataExtracted}
-                />
-              </div>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5" />
+              Job Quality Inspection
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={!technicianName && !ban && !address && !customerName}
+                className="w-full sm:w-auto"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+              <SmartFormImport 
+                formType="job-audit"
+                onDataExtracted={handleDataExtracted}
+              />
             </div>
+            <CardDescription>
+              Document job quality issues and observations
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

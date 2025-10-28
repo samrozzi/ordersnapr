@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
@@ -176,7 +176,12 @@ const RideAlongChecklistSection = ({ items, checklist, onChecklistChange }: Chec
   );
 };
 
-const RideAlong = () => {
+interface RideAlongProps {
+  draftToLoad?: any;
+  onDraftLoaded?: () => void;
+}
+
+const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [photos, setPhotos] = useState<PhotoWithCaption[]>([]);
@@ -218,6 +223,13 @@ const RideAlong = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (draftToLoad) {
+      handleLoadDraft(draftToLoad);
+      onDraftLoaded?.();
+    }
+  }, [draftToLoad]);
 
   const calculateProgress = () => {
     const allChecklists = [
@@ -522,6 +534,33 @@ const RideAlong = () => {
     }
   };
 
+  const handleLoadDraft = (draftData: any) => {
+    if (!draftData) return;
+    
+    if (draftData.accountNumber) setAccountNumber(draftData.accountNumber);
+    if (draftData.address) setAddress(draftData.address);
+    if (draftData.customerName) setCustomerName(draftData.customerName);
+    if (draftData.technicianName) setTechnicianName(draftData.technicianName);
+    if (draftData.observerName) setObserverName(draftData.observerName);
+    if (draftData.canBeReached) setCanBeReached(draftData.canBeReached);
+    if (draftData.date) setDate(draftData.date);
+    if (draftData.startTime) setStartTime(draftData.startTime);
+    if (draftData.endTime) setEndTime(draftData.endTime);
+    if (draftData.photos) setPhotos(draftData.photos);
+    if (draftData.overallNotes) setOverallNotes(draftData.overallNotes);
+    if (draftData.preCallChecklist) setPreCallChecklist(draftData.preCallChecklist);
+    if (draftData.driveChecklist) setDriveChecklist(draftData.driveChecklist);
+    if (draftData.meetGreetChecklist) setMeetGreetChecklist(draftData.meetGreetChecklist);
+    if (draftData.trueTestChecklist) setTrueTestChecklist(draftData.trueTestChecklist);
+    if (draftData.wifiChecklist) setWifiChecklist(draftData.wifiChecklist);
+    if (draftData.extendHomeChecklist) setExtendHomeChecklist(draftData.extendHomeChecklist);
+    if (draftData.gatewayChecklist) setGatewayChecklist(draftData.gatewayChecklist);
+    if (draftData.speedTestChecklist) setSpeedTestChecklist(draftData.speedTestChecklist);
+    if (draftData.closeOutChecklist) setCloseOutChecklist(draftData.closeOutChecklist);
+    
+    toast.success("Draft loaded successfully!");
+  };
+
   const handleDataExtracted = (data: any) => {
     if (data.accountNumber) setAccountNumber(data.accountNumber);
     if (data.address) setAddress(data.address);
@@ -545,26 +584,29 @@ const RideAlong = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Ride-Along Observation Form
-              </CardTitle>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5" />
+              Ride-Along Observation Form
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
               <Button 
-                variant="outline" 
+                variant="outline"
+                size="sm"
                 onClick={handleSaveDraft}
                 disabled={!technicianName && !accountNumber && !address && !customerName}
+                className="w-full sm:w-auto"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Draft
               </Button>
-            </div>
-            <div className="mt-4">
               <SmartFormImport 
                 formType="ride-along"
                 onDataExtracted={handleDataExtracted}
               />
             </div>
+            <CardDescription>
+              Document technician performance and adherence to procedures
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

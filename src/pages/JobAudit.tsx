@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
+import { SmartFormImport } from "@/components/SmartFormImport";
 import { FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -315,6 +316,13 @@ const JobAudit = () => {
     toast.success("Inspection report generated successfully!");
   };
 
+  const handleDataExtracted = (data: any) => {
+    if (data.technicianName) setTechnicianName(data.technicianName);
+    if (data.accountNumber) setBan(data.accountNumber);
+    if (data.serviceDate) setServiceDate(data.serviceDate);
+    if (data.address) setAddress(data.address);
+  };
+
   if (!session) {
     return null;
   }
@@ -324,10 +332,16 @@ const JobAudit = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Job Quality Inspection
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Job Quality Inspection
+              </CardTitle>
+              <SmartFormImport 
+                formType="job-audit"
+                onDataExtracted={handleDataExtracted}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

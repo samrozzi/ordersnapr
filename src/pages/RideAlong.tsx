@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
+import { SmartFormImport } from "@/components/SmartFormImport";
 import { FileText, ChevronDown, Check, X, Minus } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -458,6 +459,16 @@ const RideAlong = () => {
     toast.success("Ride-along report generated successfully!");
   };
 
+  const handleDataExtracted = (data: any) => {
+    if (data.accountNumber) setAccountNumber(data.accountNumber);
+    if (data.address) setAddress(data.address);
+    if (data.technicianName) setTechnicianName(data.technicianName);
+    if (data.observerName) setObserverName(data.observerName);
+    if (data.date) setDate(data.date);
+    if (data.startTime) setStartTime(data.startTime);
+    if (data.endTime) setEndTime(data.endTime);
+  };
+
   if (!session) {
     return null;
   }
@@ -469,10 +480,16 @@ const RideAlong = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Ride-Along Observation Form
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Ride-Along Observation Form
+              </CardTitle>
+              <SmartFormImport 
+                formType="ride-along"
+                onDataExtracted={handleDataExtracted}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

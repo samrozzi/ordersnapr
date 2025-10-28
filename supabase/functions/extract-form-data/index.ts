@@ -53,20 +53,7 @@ serve(async (req) => {
           required: ["accountNumber", "address", "technicianName", "observerName", "date", "startTime", "endTime"]
         };
 
-    const systemPrompt = `You are an intelligent form data extraction assistant. Analyze the provided image of a work order or form and extract the requested information.
-
-Rules:
-1. Return null for any field not found or not clearly visible in the image
-2. Format dates as YYYY-MM-DD (convert from any format you see)
-3. Format times as HH:MM in 24-hour format (convert AM/PM if needed)
-4. Clean up any OCR artifacts or extra characters
-5. For addresses, include full street, city, state, zip if available
-6. Account numbers should contain only digits (remove any dashes or spaces)
-7. If multiple similar values exist, prioritize the most prominent one
-8. For names, extract full names (first and last)
-9. Be careful to distinguish between different types of numbers (account numbers vs phone numbers vs other IDs)
-
-Return your response using the provided tool, setting fields to null if they cannot be found.`;
+    const systemPrompt = `Extract form data from work order image. Return null for missing fields. Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only, full addresses, and full names.`;
 
     // Call Lovable AI with vision capabilities
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -77,6 +64,7 @@ Return your response using the provided tool, setting fields to null if they can
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
+        max_tokens: 150,
         messages: [
           { 
             role: 'system', 
@@ -87,7 +75,7 @@ Return your response using the provided tool, setting fields to null if they can
             content: [
               {
                 type: 'text',
-                text: `Extract form data from this ${formType === 'job-audit' ? 'job audit' : 'ride along'} work order image. Look for the following fields and extract them carefully.`
+                text: `Extract ${formType === 'job-audit' ? 'job audit' : 'ride along'} form data.`
               },
               {
                 type: 'image_url',
@@ -103,7 +91,7 @@ Return your response using the provided tool, setting fields to null if they can
             type: "function",
             function: {
               name: "extract_form_data",
-              description: `Extract ${formType} form data from the work order image`,
+              description: `Extract form data`,
               parameters: schema
             }
           }

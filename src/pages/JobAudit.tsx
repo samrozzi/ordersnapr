@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown } from "lucide-react";
+import { FileText, ChevronDown, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 
@@ -326,6 +326,50 @@ const JobAudit = () => {
     toast.success("Inspection report generated successfully!");
   };
 
+  const handleSaveDraft = async () => {
+    if (!session?.user) return;
+    
+    if (!technicianName && !ban && !address && !customerName) {
+      toast.error("Please fill out at least some form data before saving a draft");
+      return;
+    }
+
+    try {
+      const formData = {
+        photos,
+        observations,
+        technicianName,
+        ban,
+        serviceDate,
+        address,
+        reportedBy,
+        customerName,
+        canBeReached,
+        adminChecklist,
+        customerChecklist,
+        dropChecklist
+      };
+
+      const draftName = `Job Audit - ${technicianName || 'Unnamed'} - ${new Date().toLocaleDateString()}`;
+
+      const { error } = await supabase
+        .from('form_drafts')
+        .insert({
+          user_id: session.user.id,
+          form_type: 'job-audit',
+          draft_name: draftName,
+          form_data: formData
+        } as any);
+
+      if (error) throw error;
+
+      toast.success("Draft saved successfully!");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast.error("Failed to save draft");
+    }
+  };
+
   const handleDataExtracted = (data: any) => {
     if (data.technicianName) setTechnicianName(data.technicianName);
     if (data.accountNumber) setBan(data.accountNumber);
@@ -349,10 +393,20 @@ const JobAudit = () => {
                 <FileText className="h-5 w-5" />
                 Job Quality Inspection
               </CardTitle>
-              <SmartFormImport 
-                formType="job-audit"
-                onDataExtracted={handleDataExtracted}
-              />
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleSaveDraft}
+                  disabled={!technicianName && !ban && !address && !customerName}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Draft
+                </Button>
+                <SmartFormImport 
+                  formType="job-audit"
+                  onDataExtracted={handleDataExtracted}
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">

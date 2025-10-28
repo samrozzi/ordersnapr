@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Progress } from "@/components/ui/progress";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown, Check, X, Minus } from "lucide-react";
+import { FileText, ChevronDown, Check, X, Minus, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
@@ -470,6 +470,58 @@ const RideAlong = () => {
     toast.success("Ride-along report generated successfully!");
   };
 
+  const handleSaveDraft = async () => {
+    if (!session?.user) return;
+    
+    if (!technicianName && !accountNumber && !address && !customerName) {
+      toast.error("Please fill out at least some form data before saving a draft");
+      return;
+    }
+
+    try {
+      const formData = {
+        accountNumber,
+        address,
+        customerName,
+        technicianName,
+        observerName,
+        canBeReached,
+        date,
+        startTime,
+        endTime,
+        photos,
+        overallNotes,
+        preCallChecklist,
+        driveChecklist,
+        meetGreetChecklist,
+        trueTestChecklist,
+        wifiChecklist,
+        extendHomeChecklist,
+        gatewayChecklist,
+        speedTestChecklist,
+        closeOutChecklist
+      };
+
+      const draftName = `Ride Along - ${technicianName || 'Unnamed'} - ${new Date().toLocaleDateString()}`;
+
+      const { error } = await supabase
+        .from('form_drafts')
+        .insert({
+          user_id: session.user.id,
+          form_type: 'ride-along',
+          draft_name: draftName,
+          form_data: formData
+        } as any);
+
+      if (error) throw error;
+
+      toast.success("Draft saved successfully!");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast.error("Failed to save draft");
+    }
+  };
+
   const handleDataExtracted = (data: any) => {
     if (data.accountNumber) setAccountNumber(data.accountNumber);
     if (data.address) setAddress(data.address);
@@ -498,6 +550,16 @@ const RideAlong = () => {
                 <FileText className="h-5 w-5" />
                 Ride-Along Observation Form
               </CardTitle>
+              <Button 
+                variant="outline" 
+                onClick={handleSaveDraft}
+                disabled={!technicianName && !accountNumber && !address && !customerName}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+            </div>
+            <div className="mt-4">
               <SmartFormImport 
                 formType="ride-along"
                 onDataExtracted={handleDataExtracted}

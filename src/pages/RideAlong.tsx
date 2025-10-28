@@ -767,9 +767,8 @@ const RideAlong = () => {
           </Card>
         </Collapsible>
 
-        <div className="mt-6 flex justify-end">
-          <Button onClick={handleGenerateReport} size="lg">
-            <FileText className="h-5 w-5 mr-2" />
+        <div className="sticky bottom-4 flex justify-center mt-6">
+          <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
             Generate PDF Report
           </Button>
         </div>

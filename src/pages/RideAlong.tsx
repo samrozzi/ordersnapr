@@ -189,7 +189,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
   const [address, setAddress] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [technicianName, setTechnicianName] = useState("");
-  const [observerName, setObserverName] = useState("");
+  const [observerName, setObserverName] = useState("Sam Rozzi");
   const [canBeReached, setCanBeReached] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -541,7 +541,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     if (draftData.address) setAddress(draftData.address);
     if (draftData.customerName) setCustomerName(draftData.customerName);
     if (draftData.technicianName) setTechnicianName(draftData.technicianName);
-    if (draftData.observerName) setObserverName(draftData.observerName);
+    // Observer name is always "Sam Rozzi" - don't load from draft
     if (draftData.canBeReached) setCanBeReached(draftData.canBeReached);
     if (draftData.date) setDate(draftData.date);
     if (draftData.startTime) setStartTime(draftData.startTime);
@@ -566,11 +566,11 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     if (data.address) setAddress(data.address);
     if (data.customerName) setCustomerName(data.customerName);
     if (data.technicianName) setTechnicianName(data.technicianName);
-    if (data.observerName) setObserverName(data.observerName);
     if (data.canBeReached) setCanBeReached(data.canBeReached);
     if (data.date) setDate(data.date);
     if (data.startTime) setStartTime(data.startTime);
     if (data.endTime) setEndTime(data.endTime);
+    // Observer name is always "Sam Rozzi" and not imported
   };
 
   if (!session) {
@@ -660,16 +660,12 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="observerName">Observer Name</Label>
-                <Select value={observerName} onValueChange={setObserverName}>
-                  <SelectTrigger id="observerName">
-                    <SelectValue placeholder="Select observer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sam Rozzi">Sam Rozzi</SelectItem>
-                    <SelectItem value="Josh Ghebremichael">Josh Ghebremichael</SelectItem>
-                    <SelectItem value="Christopher Badger">Christopher Badger</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="observerName"
+                  value="Sam Rozzi"
+                  disabled
+                  className="bg-muted"
+                />
               </div>
             </div>
 

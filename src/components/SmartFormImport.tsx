@@ -12,6 +12,8 @@ interface ExtractedFormData {
   accountNumber?: string;
   serviceDate?: string;
   address?: string;
+  customerName?: string;
+  canBeReached?: string;
   observerName?: string;
   date?: string;
   startTime?: string;
@@ -152,6 +154,8 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
       accountNumber: 'Account Number',
       serviceDate: 'Service Date',
       address: 'Address',
+      customerName: 'Customer Name',
+      canBeReached: 'Can Be Reached',
       observerName: 'Observer Name',
       date: 'Date',
       startTime: 'Start Time',

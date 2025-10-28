@@ -94,6 +94,8 @@ const JobAudit = () => {
   const [serviceDate, setServiceDate] = useState("");
   const [address, setAddress] = useState("");
   const [reportedBy, setReportedBy] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [canBeReached, setCanBeReached] = useState("");
   const [adminChecklist, setAdminChecklist] = useState<Record<number, string>>({});
   const [customerChecklist, setCustomerChecklist] = useState<Record<number, string>>({});
   const [dropChecklist, setDropChecklist] = useState<Record<number, string>>({});
@@ -148,6 +150,14 @@ const JobAudit = () => {
     }
     if (address) {
       doc.text(`Address: ${address}`, 20, yPos);
+      yPos += 5;
+    }
+    if (customerName) {
+      doc.text(`Customer: ${customerName}`, 20, yPos);
+      yPos += 5;
+    }
+    if (canBeReached) {
+      doc.text(`Can Be Reached: ${canBeReached}`, 20, yPos);
       yPos += 5;
     }
     doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 20, yPos);
@@ -321,6 +331,8 @@ const JobAudit = () => {
     if (data.accountNumber) setBan(data.accountNumber);
     if (data.serviceDate) setServiceDate(data.serviceDate);
     if (data.address) setAddress(data.address);
+    if (data.customerName) setCustomerName(data.customerName);
+    if (data.canBeReached) setCanBeReached(data.canBeReached);
   };
 
   if (!session) {
@@ -383,6 +395,27 @@ const JobAudit = () => {
                   placeholder="Enter service address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerName">Customer Name</Label>
+                <Input
+                  id="customerName"
+                  placeholder="Enter customer name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="canBeReached">Can Be Reached</Label>
+                <Input
+                  id="canBeReached"
+                  placeholder="Phone, email, or contact method"
+                  value={canBeReached}
+                  onChange={(e) => setCanBeReached(e.target.value)}
                 />
               </div>
             </div>

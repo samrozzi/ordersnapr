@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
@@ -181,8 +182,10 @@ const RideAlong = () => {
   const [photos, setPhotos] = useState<PhotoWithCaption[]>([]);
   const [accountNumber, setAccountNumber] = useState("");
   const [address, setAddress] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [technicianName, setTechnicianName] = useState("");
   const [observerName, setObserverName] = useState("");
+  const [canBeReached, setCanBeReached] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -273,12 +276,20 @@ const RideAlong = () => {
       doc.text(`Address: ${address}`, 20, yPos);
       yPos += 5;
     }
+    if (customerName) {
+      doc.text(`Customer: ${customerName}`, 20, yPos);
+      yPos += 5;
+    }
     if (technicianName) {
       doc.text(`Technician: ${technicianName}`, 20, yPos);
       yPos += 5;
     }
     if (observerName) {
       doc.text(`Observer: ${observerName}`, 20, yPos);
+      yPos += 5;
+    }
+    if (canBeReached) {
+      doc.text(`Can Be Reached: ${canBeReached}`, 20, yPos);
       yPos += 5;
     }
     if (date) {
@@ -462,8 +473,10 @@ const RideAlong = () => {
   const handleDataExtracted = (data: any) => {
     if (data.accountNumber) setAccountNumber(data.accountNumber);
     if (data.address) setAddress(data.address);
+    if (data.customerName) setCustomerName(data.customerName);
     if (data.technicianName) setTechnicianName(data.technicianName);
     if (data.observerName) setObserverName(data.observerName);
+    if (data.canBeReached) setCanBeReached(data.canBeReached);
     if (data.date) setDate(data.date);
     if (data.startTime) setStartTime(data.startTime);
     if (data.endTime) setEndTime(data.endTime);
@@ -511,14 +524,24 @@ const RideAlong = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="customerName">Customer Name</Label>
                 <Input
-                  id="address"
-                  placeholder="Enter service address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  id="customerName"
+                  placeholder="Enter customer name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                placeholder="Enter service address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -533,16 +556,29 @@ const RideAlong = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="observerName">Observer Name</Label>
-                <Input
-                  id="observerName"
-                  placeholder="Enter observer name"
-                  value={observerName}
-                  onChange={(e) => setObserverName(e.target.value)}
-                />
+                <Select value={observerName} onValueChange={setObserverName}>
+                  <SelectTrigger id="observerName">
+                    <SelectValue placeholder="Select observer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sam Rozzi">Sam Rozzi</SelectItem>
+                    <SelectItem value="Josh Ghebremichael">Josh Ghebremichael</SelectItem>
+                    <SelectItem value="Christopher Badger">Christopher Badger</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="canBeReached">Can Be Reached</Label>
+                <Input
+                  id="canBeReached"
+                  placeholder="Phone, email, or contact method"
+                  value={canBeReached}
+                  onChange={(e) => setCanBeReached(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -552,6 +588,9 @@ const RideAlong = () => {
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startTime">Start Time</Label>
                 <Input

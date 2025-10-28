@@ -32,28 +32,44 @@ serve(async (req) => {
       ? {
           type: "object",
           properties: {
-            technicianName: { type: "string", description: "Full name of the technician" },
+            technicianName: { type: "string", description: "AT&T field technician's full name (person who performed the work)" },
             accountNumber: { type: "string", description: "Account number or BAN (typically 9-10 digits)" },
-            serviceDate: { type: "string", description: "Service date in YYYY-MM-DD format" },
-            address: { type: "string", description: "Full service address including street, city, state, zip" }
+            serviceDate: { type: "string", description: "Date of service in YYYY-MM-DD format" },
+            address: { type: "string", description: "Full service address including street, city, state, zip" },
+            customerName: { type: "string", description: "Customer's full name (homeowner/business receiving AT&T service, e.g., McKinzey Sayers)" },
+            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" }
           },
-          required: ["technicianName", "accountNumber", "serviceDate", "address"]
+          required: ["technicianName", "accountNumber", "serviceDate", "address", "customerName", "canBeReached"]
         }
       : {
           type: "object",
           properties: {
-            accountNumber: { type: "string", description: "Account number (typically 9-10 digits)" },
-            address: { type: "string", description: "Full service address" },
-            technicianName: { type: "string", description: "Full name of the technician" },
-            observerName: { type: "string", description: "Full name of the observer" },
+            accountNumber: { type: "string", description: "Account number or BAN (typically 9-10 digits)" },
+            address: { type: "string", description: "Full service address including street, city, state, zip" },
+            customerName: { type: "string", description: "Customer's full name (homeowner/business receiving AT&T service, e.g., McKinzey Sayers)" },
+            technicianName: { type: "string", description: "AT&T field technician's full name (person being observed during installation)" },
+            observerName: { type: "string", description: "Field manager conducting ride-along observation (Sam Rozzi, Josh Ghebremichael, or Christopher Badger)" },
+            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" },
             date: { type: "string", description: "Date in YYYY-MM-DD format" },
             startTime: { type: "string", description: "Start time in HH:MM format (24-hour)" },
             endTime: { type: "string", description: "End time in HH:MM format (24-hour)" }
           },
-          required: ["accountNumber", "address", "technicianName", "observerName", "date", "startTime", "endTime"]
+          required: ["accountNumber", "address", "customerName", "technicianName", "observerName", "canBeReached", "date", "startTime", "endTime"]
         };
 
-    const systemPrompt = `Extract form data from work order image. Return null for missing fields. Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only, full addresses, and full names.`;
+    const systemPrompt = formType === 'job-audit' 
+      ? `Extract data from AT&T job audit inspection form. 
+CUSTOMER = homeowner/business receiving service (e.g., McKinzey Sayers).
+TECHNICIAN = AT&T field tech who performed the work.
+CAN BE REACHED = phone, email, or contact method for customer.
+Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only.`
+      : `Extract data from AT&T ride-along observation form. 
+THREE DISTINCT PEOPLE:
+1. CUSTOMER = homeowner/business receiving service (e.g., McKinzey Sayers)
+2. TECHNICIAN = AT&T field tech being observed during installation 
+3. OBSERVER = field manager conducting ride-along (Sam Rozzi, Josh Ghebremichael, or Christopher Badger)
+CAN BE REACHED = phone, email, or contact method for customer.
+Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only.`;
 
     // Call Lovable AI with vision capabilities
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

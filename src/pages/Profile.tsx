@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, History, FileText, Home } from "lucide-react";
+import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor } from "lucide-react";
 import { format } from "date-fns";
+import { useTheme } from "next-themes";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AuditLog {
   id: string;
@@ -37,6 +39,7 @@ interface Property {
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -303,6 +306,49 @@ const Profile = () => {
                     {loading ? "Updating..." : "Update Password"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme</CardTitle>
+                <CardDescription>
+                  Select your preferred theme for the application
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup value={theme} onValueChange={setTheme} className="space-y-3">
+                  <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent transition-colors">
+                    <RadioGroupItem value="light" id="light" />
+                    <Label htmlFor="light" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Sun className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Light</p>
+                        <p className="text-sm text-muted-foreground">Always use light theme</p>
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent transition-colors">
+                    <RadioGroupItem value="dark" id="dark" />
+                    <Label htmlFor="dark" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Moon className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Dark</p>
+                        <p className="text-sm text-muted-foreground">Always use dark theme</p>
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent transition-colors">
+                    <RadioGroupItem value="system" id="system" />
+                    <Label htmlFor="system" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Monitor className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">System</p>
+                        <p className="text-sm text-muted-foreground">Use system theme preference</p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </CardContent>
             </Card>
           </TabsContent>

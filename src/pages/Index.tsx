@@ -10,7 +10,6 @@ import Dashboard from "./Dashboard";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
-import { ThemedLightningBolt } from "@/components/ThemedLightningBolt";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -161,7 +160,6 @@ const Index = () => {
               aria-label="Go to home page"
             >
               <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
-              {!loading && <ThemedLightningBolt />}
             </button>
             {orgLogoUrl && (
               <button

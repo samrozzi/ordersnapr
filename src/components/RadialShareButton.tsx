@@ -35,9 +35,9 @@ export const RadialShareButton = ({
   }, [isOpen]);
 
   const menuItems = [
-    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -150 },
-    { icon: Send, label: "Email", onClick: onSendEmail, position: -110 },
-    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: -70 },
+    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -120 },
+    { icon: Send, label: "Email", onClick: onSendEmail, position: -90 },
+    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: -60 },
     { icon: Download, label: "Save", onClick: onSaveFiles, position: -30 },
   ];
 
@@ -67,12 +67,12 @@ export const RadialShareButton = ({
       {/* Radial menu items */}
       {menuItems.map((item, index) => {
         const angle = (item.position * Math.PI) / 180;
-        const radius = 64;
+        const radius = 56;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
 
         const transform = isOpen
-          ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
+          ? `translate(-50%, -50%) translate3d(${x}px, ${y}px, 0) scale(1)`
           : `translate(-50%, -50%) scale(0)`;
 
         return (
@@ -97,7 +97,7 @@ export const RadialShareButton = ({
             
             {/* Label - always visible */}
             <span className={cn(
-              "absolute bottom-full mb-1 whitespace-nowrap bg-background/95 backdrop-blur-sm text-foreground text-[10px] font-medium",
+              "absolute left-1/2 -translate-x-1/2 bottom-full mb-1 whitespace-nowrap bg-background/95 backdrop-blur-sm text-foreground text-[10px] font-medium",
               "px-1.5 py-0.5 rounded border border-border shadow-sm",
               "pointer-events-none z-50 transition-opacity duration-300",
               isOpen ? "opacity-100" : "opacity-0"

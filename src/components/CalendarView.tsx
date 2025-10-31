@@ -27,11 +27,17 @@ interface CalendarViewProps {
   workOrders: WorkOrder[];
   calendarEvents: CalendarEvent[];
   onWorkOrderClick: (workOrderId: string) => void;
+  onEventClick?: (eventId: string) => void;
 }
 
 type ViewMode = "month" | "week" | "day";
 
-export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: CalendarViewProps) {
+export function CalendarView({ 
+  workOrders, 
+  calendarEvents, 
+  onWorkOrderClick,
+  onEventClick
+}: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
@@ -124,7 +130,11 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
                 {events.slice(0, 2).map((event) => (
                   <div
                     key={event.id}
-                    className="text-xs p-1 bg-green-500/10 border border-green-500/20 rounded truncate"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick?.(event.id);
+                    }}
+                    className="text-xs p-1 bg-green-500/10 border border-green-500/20 rounded truncate cursor-pointer hover:bg-green-500/20"
                   >
                     {!event.all_day && event.event_time && format(new Date(`2000-01-01T${event.event_time}`), "h:mm a")} {event.title}
                   </div>
@@ -150,6 +160,7 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const orders = getOrdersForDate(day);
+            const events = getEventsForDate(day);
             
             return (
               <div
@@ -173,10 +184,20 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
                     <div
                       key={order.id}
                       onClick={() => onWorkOrderClick(order.id)}
-                      className="text-xs p-2 bg-primary/10 rounded cursor-pointer hover:bg-primary/20"
+                      className="text-xs p-2 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20"
                     >
                       <div className="font-medium">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
                       <div className="truncate">{order.customer_name}</div>
+                    </div>
+                  ))}
+                  {events.map((event) => (
+                    <div
+                      key={event.id}
+                      onClick={() => onEventClick?.(event.id)}
+                      className="text-xs p-2 bg-green-500/10 border border-green-500/20 rounded cursor-pointer hover:bg-green-500/20"
+                    >
+                      <div className="font-medium">{!event.all_day && event.event_time ? format(new Date(`2000-01-01T${event.event_time}`), "h:mm a") : "All day"}</div>
+                      <div className="truncate">{event.title}</div>
                     </div>
                   ))}
                 </div>
@@ -190,6 +211,7 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
 
   const renderDayView = () => {
     const orders = getOrdersForDate(currentDate);
+    const events = getEventsForDate(currentDate);
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
     return (
@@ -206,6 +228,13 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
               return orderHour === hour;
             });
 
+            const hourEvents = events.filter((event) => {
+              if (event.all_day) return hour === 0;
+              if (!event.event_time) return false;
+              const eventHour = parseInt(event.event_time.split(":")[0]);
+              return eventHour === hour;
+            });
+
             return (
               <div key={hour} className="flex gap-2 min-h-12 border-b">
                 <div className="w-16 sm:w-20 text-xs sm:text-sm text-muted-foreground py-2">
@@ -216,11 +245,22 @@ export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: C
                     <div
                       key={order.id}
                       onClick={() => onWorkOrderClick(order.id)}
-                      className="p-2 bg-primary/10 rounded cursor-pointer hover:bg-primary/20"
+                      className="p-2 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20"
                     >
                       <div className="font-medium text-sm">{order.customer_name}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{order.address}</div>
                       <div className="text-xs">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
+                    </div>
+                  ))}
+                  {hourEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      onClick={() => onEventClick?.(event.id)}
+                      className="p-2 bg-green-500/10 border border-green-500/20 rounded cursor-pointer hover:bg-green-500/20"
+                    >
+                      <div className="font-medium text-sm">{event.title}</div>
+                      {event.description && <div className="text-xs sm:text-sm text-muted-foreground">{event.description}</div>}
+                      <div className="text-xs">{event.all_day ? "All day" : event.event_time && format(new Date(`2000-01-01T${event.event_time}`), "h:mm a")}</div>
                     </div>
                   ))}
                 </div>

@@ -58,6 +58,21 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check content length before parsing to prevent memory issues
+    const contentLength = req.headers.get("content-length");
+    const maxSize = 25 * 1024 * 1024; // 25MB limit
+    
+    if (contentLength && parseInt(contentLength) > maxSize) {
+      console.error("Request payload too large:", contentLength);
+      return new Response(
+        JSON.stringify({ 
+          error: "Request payload too large. Maximum size is 25MB. Try reducing photo quality or count." 
+        }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log("Parsing request body...");
     const { recipientEmail, reportType, pdfBase64, fileName, photos, formData }: EmailReportRequest = await req.json();
 
     console.log("Sending email to:", recipientEmail);
@@ -150,14 +165,28 @@ const handler = async (req: Request): Promise<Response> => {
       },
     ];
 
-    // Add individual photos as attachments
+    // Add individual photos as attachments with size management
     if (photos && photos.length > 0) {
-      photos.forEach((photo) => {
+      console.log(`Processing ${photos.length} photos...`);
+      let totalPhotoSize = 0;
+      const maxPhotoSize = 20 * 1024 * 1024; // 20MB for photos total
+      
+      for (const photo of photos) {
+        // Estimate size (base64 is roughly 1.37x the binary size)
+        const estimatedSize = (photo.content.length * 0.75);
+        totalPhotoSize += estimatedSize;
+        
+        if (totalPhotoSize > maxPhotoSize) {
+          console.warn(`Skipping remaining photos - size limit reached (${totalPhotoSize} bytes)`);
+          break;
+        }
+        
         attachments.push({
           filename: photo.filename,
           content: photo.content,
         });
-      });
+      }
+      console.log(`Added ${attachments.length - 1} photos (${totalPhotoSize} bytes)`);
     }
 
     // Call Resend API directly using fetch

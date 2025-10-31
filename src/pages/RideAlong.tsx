@@ -769,8 +769,34 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     }
   };
 
-  const handleLoadDraft = (draftData: any) => {
+  const handleLoadDraft = async (draftData: any) => {
     if (!draftData) return;
+    
+    // Handle photos restoration
+    if (draftData.photos && Array.isArray(draftData.photos)) {
+      const restoredPhotos = await Promise.all(
+        draftData.photos.map(async (photo: any) => {
+          // If photo has preview URL, fetch and recreate File object
+          if (photo.preview) {
+            try {
+              const response = await fetch(photo.preview);
+              const blob = await response.blob();
+              const file = new File([blob], photo.file?.name || 'image.jpg', { type: 'image/jpeg' });
+              return {
+                file,
+                caption: photo.caption || "",
+                preview: photo.preview
+              };
+            } catch (err) {
+              console.error("Error restoring photo:", err);
+              return null;
+            }
+          }
+          return null;
+        })
+      );
+      setPhotos(restoredPhotos.filter(p => p !== null) as PhotoWithCaption[]);
+    }
     
     if (draftData.accountNumber) setAccountNumber(draftData.accountNumber);
     if (draftData.address) setAddress(draftData.address);
@@ -1141,8 +1167,8 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="sticky bottom-4 left-0 right-0 z-50 flex justify-center px-4 mt-6">
-          <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
+        <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+          <div className="pointer-events-auto">
             <RadialShareButton
               onGeneratePDF={handleGenerateReport}
               onSendEmail={() => setEmailDialogOpen(true)}

@@ -16,21 +16,51 @@ export const WeatherWidget = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getLocation = () => {
-      if ("geolocation" in navigator) {
+    const fetchWeather = async () => {
+      if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            // Simulate weather data - replace with actual API call
-            setWeather({
-              temp: 72,
-              condition: "Partly Cloudy",
-              high: 78,
-              low: 65,
-              location: "Current Location",
-            });
-            setLoading(false);
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            try {
+              // Use Open-Meteo API (free, no API key needed)
+              const weatherResponse = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`
+              );
+              
+              const weatherData = await weatherResponse.json();
+              
+              // Get location name from reverse geocoding
+              const locationResponse = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+              );
+              const locationData = await locationResponse.json();
+              
+              // Map weather codes to conditions
+              const weatherCode = weatherData.current.weather_code;
+              const conditionMap: Record<number, string> = {
+                0: "Clear", 1: "Mostly Clear", 2: "Partly Cloudy", 3: "Overcast",
+                45: "Foggy", 48: "Foggy", 51: "Light Drizzle", 53: "Drizzle",
+                55: "Heavy Drizzle", 61: "Light Rain", 63: "Rain", 65: "Heavy Rain",
+                71: "Light Snow", 73: "Snow", 75: "Heavy Snow", 95: "Thunderstorm"
+              };
+              
+              setWeather({
+                temp: Math.round(weatherData.current.temperature_2m),
+                condition: conditionMap[weatherCode] || "Unknown",
+                high: Math.round(weatherData.daily.temperature_2m_max[0]),
+                low: Math.round(weatherData.daily.temperature_2m_min[0]),
+                location: locationData.address.city || locationData.address.town || "Current Location"
+              });
+              setLoading(false);
+            } catch (error) {
+              console.error("Error fetching weather:", error);
+              setError("Unable to load weather");
+              setLoading(false);
+            }
           },
           (error) => {
+            console.error("Error getting location:", error);
             setError("Location access denied");
             setLoading(false);
           }
@@ -41,7 +71,7 @@ export const WeatherWidget = () => {
       }
     };
 
-    getLocation();
+    fetchWeather();
   }, []);
 
   if (loading) {
@@ -70,7 +100,7 @@ export const WeatherWidget = () => {
   }
 
   return (
-    <div className="h-full flex flex-col pb-4">
+    <div className="h-full flex flex-col pb-6">
       {/* Location */}
       <div className="flex items-center gap-2 mb-4">
         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -86,7 +116,7 @@ export const WeatherWidget = () => {
       </div>
 
       {/* High/Low */}
-      <div className="flex justify-center gap-6 text-sm mt-4">
+      <div className="flex justify-center gap-6 text-sm mt-6 pb-2">
         <div className="text-center">
           <div className="text-muted-foreground">High</div>
           <div className="font-semibold">{weather.high}°</div>

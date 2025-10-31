@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarView } from "@/components/CalendarView";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
+import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -49,6 +50,7 @@ const CalendarPage = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -111,6 +113,13 @@ const CalendarPage = () => {
     }
   };
 
+  const handleEventClick = (eventId: string) => {
+    const event = calendarEvents.find(e => e.id === eventId);
+    if (event) {
+      setSelectedEvent(event);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -140,7 +149,8 @@ const CalendarPage = () => {
         <CalendarView 
           workOrders={workOrders} 
           calendarEvents={calendarEvents}
-          onWorkOrderClick={handleWorkOrderClick} 
+          onWorkOrderClick={handleWorkOrderClick}
+          onEventClick={handleEventClick}
         />
       </div>
 
@@ -149,6 +159,14 @@ const CalendarPage = () => {
         workOrder={selectedOrder}
         open={!!selectedOrder}
         onOpenChange={(open) => !open && setSelectedOrder(null)}
+        onUpdate={fetchWorkOrders}
+      />
+
+      {/* Calendar Event Details Dialog */}
+      <CalendarEventDetails
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(open) => !open && setSelectedEvent(null)}
         onUpdate={fetchWorkOrders}
       />
     </div>

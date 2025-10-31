@@ -10,6 +10,11 @@ interface EmailReportRequest {
   reportType: "job-audit" | "ride-along";
   pdfBase64: string;
   fileName: string;
+  photos?: Array<{
+    filename: string;
+    content: string;
+    caption?: string;
+  }>;
   formData: {
     technicianName?: string;
     customerName?: string;
@@ -17,6 +22,10 @@ interface EmailReportRequest {
     date?: string;
     ban?: string;
     accountNumber?: string;
+    reportedBy?: string;
+    observations?: string;
+    observerName?: string;
+    overallNotes?: string;
   };
 }
 
@@ -27,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientEmail, reportType, pdfBase64, fileName, formData }: EmailReportRequest = await req.json();
+    const { recipientEmail, reportType, pdfBase64, fileName, photos, formData }: EmailReportRequest = await req.json();
 
     console.log("Sending email to:", recipientEmail);
     console.log("Report type:", reportType);
@@ -58,28 +67,58 @@ const handler = async (req: Request): Promise<Response> => {
         <h2>Job Quality Inspection Report</h2>
         <p>Please find attached the job quality inspection report with the following details:</p>
         <ul>
+          ${formData.reportedBy ? `<li><strong>Report Created By:</strong> ${formData.reportedBy}</li>` : ''}
           ${formData.technicianName ? `<li><strong>Technician:</strong> ${formData.technicianName}</li>` : ''}
           ${formData.customerName ? `<li><strong>Customer:</strong> ${formData.customerName}</li>` : ''}
           ${formData.address ? `<li><strong>Address:</strong> ${formData.address}</li>` : ''}
           ${formData.ban ? `<li><strong>BAN:</strong> ${formData.ban}</li>` : ''}
           ${formData.date ? `<li><strong>Service Date:</strong> ${formData.date}</li>` : ''}
         </ul>
-        <p>This report was generated from OrderSnapr.</p>
+        ${formData.observations ? `
+          <h3 style="margin-top: 20px;">Observations:</h3>
+          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${formData.observations}</p>
+        ` : ''}
+        ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
+        <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>
         <p style="color: #666; margin-top: 30px;">Best regards,<br>OrderSnapr Team</p>
       `
       : `
         <h2>Ride-Along Observation Report</h2>
         <p>Please find attached the ride-along observation report with the following details:</p>
         <ul>
+          ${formData.observerName ? `<li><strong>Observer:</strong> ${formData.observerName}</li>` : ''}
           ${formData.technicianName ? `<li><strong>Technician:</strong> ${formData.technicianName}</li>` : ''}
           ${formData.customerName ? `<li><strong>Customer:</strong> ${formData.customerName}</li>` : ''}
           ${formData.address ? `<li><strong>Address:</strong> ${formData.address}</li>` : ''}
           ${formData.accountNumber ? `<li><strong>Account Number:</strong> ${formData.accountNumber}</li>` : ''}
           ${formData.date ? `<li><strong>Date:</strong> ${formData.date}</li>` : ''}
         </ul>
-        <p>This report was generated from OrderSnapr.</p>
+        ${formData.overallNotes ? `
+          <h3 style="margin-top: 20px;">Overall Notes:</h3>
+          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${formData.overallNotes}</p>
+        ` : ''}
+        ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
+        <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>
         <p style="color: #666; margin-top: 30px;">Best regards,<br>OrderSnapr Team</p>
       `;
+
+    // Build attachments array - PDF + photos
+    const attachments: any[] = [
+      {
+        filename: fileName,
+        content: pdfBase64,
+      },
+    ];
+
+    // Add individual photos as attachments
+    if (photos && photos.length > 0) {
+      photos.forEach((photo) => {
+        attachments.push({
+          filename: photo.filename,
+          content: photo.content,
+        });
+      });
+    }
 
     // Call Resend API directly using fetch
     const resendResponse = await fetch("https://api.resend.com/emails", {
@@ -93,12 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
         to: [recipientEmail],
         subject: subject,
         html: htmlBody,
-        attachments: [
-          {
-            filename: fileName,
-            content: pdfBase64,
-          },
-        ],
+        attachments: attachments,
       }),
     });
 

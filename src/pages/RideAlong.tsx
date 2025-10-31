@@ -507,6 +507,34 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
       const pdfBase64 = doc.output('datauristring').split(',')[1];
       const filename = `ride-along-${date || new Date().toISOString().split('T')[0]}.pdf`;
 
+      // Convert photos to base64
+      const photosBase64 = await Promise.all(
+        photos.map(async (photo, index) => {
+          try {
+            const response = await fetch(photo.preview);
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const result = reader.result as string;
+                resolve(result.split(',')[1]);
+              };
+              reader.readAsDataURL(blob);
+            });
+            return {
+              filename: `photo-${index + 1}.jpg`,
+              content: base64,
+              caption: photo.caption
+            };
+          } catch (err) {
+            console.error(`Error converting photo ${index + 1}:`, err);
+            return null;
+          }
+        })
+      );
+
+      const validPhotos = photosBase64.filter(photo => photo !== null);
+
       // Call edge function to send email
       const { data, error } = await supabase.functions.invoke('send-report-email', {
         body: {
@@ -514,12 +542,15 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
           reportType: 'ride-along',
           pdfBase64,
           fileName: filename,
+          photos: validPhotos,
           formData: {
             technicianName,
             customerName,
             address,
             accountNumber,
             date,
+            observerName,
+            overallNotes,
           }
         }
       });
@@ -961,21 +992,22 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="sticky bottom-4 flex justify-center gap-3 mt-6">
-          <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
-            Generate PDF Report
-          </Button>
-          <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline"
-                size="lg"
-                className="shadow-lg"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email Report
-              </Button>
-            </DialogTrigger>
+        <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4">
+          <div className="flex gap-3 bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
+            <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
+              Generate PDF Report
+            </Button>
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  className="shadow-lg border-2 border-primary hover:bg-primary/10"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Report
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Email Report</DialogTitle>
@@ -1017,6 +1049,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </main>
     </div>

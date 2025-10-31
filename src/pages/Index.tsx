@@ -9,6 +9,7 @@ import { useSessionTimeout } from "@/hooks/use-session-timeout";
 import Dashboard from "./Dashboard";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
+import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -116,7 +117,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold mb-4">Work Management System</h1>
+          <img src={ordersnaprLogo} alt="ordersnapr" className="h-8 mb-4" />
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate("/profile")}>
               Profile

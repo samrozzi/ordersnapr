@@ -147,7 +147,7 @@ const Admin = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-8">
         <Shield className="h-8 w-8" />
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold">ordersnapr Admin</h1>
       </div>
 
       <div className="grid gap-6">

@@ -12,7 +12,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown, Save, Mail } from "lucide-react";
+import { FileText, ChevronDown, Save, Mail, Share2, FileDown, Save as SaveIcon, MailOpen } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -134,7 +141,7 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
     }
   }, [draftToLoad]);
 
-  const generatePDF = async () => {
+  const generatePDF = async (returnInstance = false) => {
     const doc = new jsPDF();
     let yPos = 20;
     const lineHeight = 7;
@@ -332,14 +339,91 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
       }
     }
 
+    if (returnInstance) {
+      return doc;
+    }
+    
     return doc;
   };
 
   const handleGenerateReport = async () => {
-    const doc = await generatePDF();
-    const filename = `inspection-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    const doc = await generatePDF(false);
+    const filename = `JobAudit_${technicianName || 'Report'}_${serviceDate || new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
     toast.success("Inspection report generated successfully!");
+  };
+
+  const handleSaveFiles = async () => {
+    try {
+      toast.info("Preparing files for download...");
+      
+      // Generate PDF as blob
+      const doc = await generatePDF(true);
+      const pdfBlob = doc.output('blob');
+      const pdfFileName = `JobAudit_${technicianName || 'Report'}_${serviceDate || new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Create download link for PDF
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const pdfLink = document.createElement('a');
+      pdfLink.href = pdfUrl;
+      pdfLink.download = pdfFileName;
+      pdfLink.click();
+      
+      // Download each photo with a small delay to prevent browser blocking
+      for (let index = 0; index < photos.length; index++) {
+        const photo = photos[index];
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between downloads
+        
+        const photoLink = document.createElement('a');
+        photoLink.href = photo.preview;
+        const sanitizedCaption = photo.caption ? photo.caption.replace(/[^a-z0-9]/gi, '_').substring(0, 30) : 'unnamed';
+        photoLink.download = `Photo_${index + 1}_${sanitizedCaption}.jpg`;
+        photoLink.click();
+      }
+      
+      toast.success(`Files downloaded: 1 PDF and ${photos.length} photo(s)`);
+      
+      // Clean up blob URLs
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl);
+      }, 100);
+    } catch (error) {
+      console.error("Error saving files:", error);
+      toast.error("Failed to save files");
+    }
+  };
+
+  const handleEmailDraft = async () => {
+    try {
+      // First, download the files
+      await handleSaveFiles();
+      
+      // Prepare email content
+      const subject = `Job Quality Inspection Report - ${technicianName || 'Technician'}`;
+      
+      const bodyText = `Job Quality Inspection Report\n\n` +
+        `Report Created By: ${reportedBy}\n` +
+        `Technician: ${technicianName}\n` +
+        `Customer: ${customerName}\n` +
+        `Address: ${address}\n` +
+        `BAN: ${ban}\n` +
+        `Service Date: ${serviceDate}\n\n` +
+        `Observations:\n${observations}\n\n` +
+        `Please see the downloaded PDF report and ${photos.length} photo(s) in your Downloads folder.\n` +
+        `Attach these files to your email.\n\n` +
+        `This report was generated from OrderSnapr.`;
+      
+      // Open email client with pre-filled content
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+      window.location.href = mailtoLink;
+      
+      toast.info("Email draft opened. Please attach the downloaded files.", {
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error("Error opening email draft:", error);
+      toast.error("Failed to open email draft");
+    }
   };
 
   const handleEmailReport = async () => {
@@ -696,62 +780,77 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
         </Collapsible>
 
         <div className="sticky bottom-4 left-0 right-0 z-50 flex justify-center px-4 mt-6">
-          <div className="flex gap-3 bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
-            <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
-              Generate PDF Report
-            </Button>
-            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline"
-                  size="lg"
-                  className="shadow-lg border-2 border-primary hover:bg-primary/10"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email Report
+          <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="lg" className="shadow-lg">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Report
                 </Button>
-              </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Email Report</DialogTitle>
-                <DialogDescription>
-                  Send this inspection report as a PDF attachment via email.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Recipient Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="recipient@example.com"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && recipientEmail) {
-                        handleEmailReport();
-                      }
-                    }}
-                  />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56">
+                <DropdownMenuItem onClick={handleGenerateReport}>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Generate PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSaveFiles}>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save to Files
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleEmailDraft}>
+                  <MailOpen className="h-4 w-4 mr-2" />
+                  Open Email Draft
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Email Report</DialogTitle>
+                  <DialogDescription>
+                    Send this inspection report as a PDF attachment via email.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Recipient Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="recipient@example.com"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && recipientEmail) {
+                          handleEmailReport();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEmailDialogOpen(false)}
+                      disabled={isSendingEmail}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleEmailReport}
+                      disabled={isSendingEmail || !recipientEmail}
+                    >
+                      {isSendingEmail ? "Sending..." : "Send Email"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setEmailDialogOpen(false)}
-                    disabled={isSendingEmail}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleEmailReport}
-                    disabled={isSendingEmail || !recipientEmail}
-                  >
-                    {isSendingEmail ? "Sending..." : "Send Email"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </main>

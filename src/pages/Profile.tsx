@@ -36,11 +36,17 @@ interface Property {
   created_at: string;
 }
 
+interface Organization {
+  id: string;
+  name: string;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
+  const [currentEmail, setCurrentEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,6 +54,7 @@ const Profile = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [organization, setOrganization] = useState<Organization | null>(null);
 
   useEffect(() => {
     fetchUserData();
@@ -57,9 +64,29 @@ const Profile = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
+      setCurrentEmail(user.email || "");
+      fetchProfile(user.id);
       fetchAuditLogs(user.id);
-      fetchWorkOrders(user.id);
-      fetchProperties(user.id);
+      fetchWorkOrders();
+      fetchProperties();
+    }
+  };
+
+  const fetchProfile = async (uid: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select(`
+        organization_id,
+        organizations (
+          id,
+          name
+        )
+      `)
+      .eq("id", uid)
+      .single();
+    
+    if (data?.organizations) {
+      setOrganization(data.organizations as Organization);
     }
   };
 
@@ -74,22 +101,22 @@ const Profile = () => {
     if (data) setAuditLogs(data as unknown as AuditLog[]);
   };
 
-  const fetchWorkOrders = async (uid: string) => {
+  const fetchWorkOrders = async () => {
+    // RLS policies will automatically filter to show user's own + organization work orders
     const { data } = await supabase
       .from("work_orders")
       .select("id, customer_name, status, created_at, scheduled_date")
-      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(10);
     
     if (data) setWorkOrders(data);
   };
 
-  const fetchProperties = async (uid: string) => {
+  const fetchProperties = async () => {
+    // RLS policies will automatically filter to show user's own + organization properties
     const { data } = await supabase
       .from("properties")
       .select("id, property_name, address, created_at")
-      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(10);
     
@@ -244,6 +271,32 @@ const Profile = () => {
           </TabsList>
 
           <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Information</CardTitle>
+                <CardDescription>
+                  Your current account details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <Input value={currentEmail} disabled className="bg-muted" />
+                </div>
+                {organization && (
+                  <div className="space-y-2">
+                    <Label>Organization</Label>
+                    <Input value={organization.name} disabled className="bg-muted" />
+                  </div>
+                )}
+                {!organization && (
+                  <p className="text-sm text-muted-foreground">
+                    You are not assigned to any organization. Contact an admin to be added to an organization.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Update Email</CardTitle>

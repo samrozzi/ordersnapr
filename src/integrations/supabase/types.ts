@@ -320,6 +320,7 @@ export type Database = {
       user_favorites: {
         Row: {
           created_at: string
+          display_order: number | null
           entity_id: string
           entity_type: string
           id: string
@@ -327,6 +328,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_order?: number | null
           entity_id: string
           entity_type: string
           id?: string
@@ -334,6 +336,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_order?: number | null
           entity_id?: string
           entity_type?: string
           id?: string

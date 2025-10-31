@@ -78,20 +78,22 @@ const CalendarPage = () => {
       
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
         {/* Navigation Tabs */}
-        <div className="mb-6">
-          <Tabs value="calendar" onValueChange={(value) => {
-            if (value === "work-orders") navigate("/menu");
-            if (value === "property-info") navigate("/menu");
-            if (value === "forms") navigate("/menu");
-          }}>
-            <TabsList>
-              <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-              <TabsTrigger value="property-info">Property Info</TabsTrigger>
-              <TabsTrigger value="forms">Forms</TabsTrigger>
-              <TabsTrigger value="calendar">Calendar</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <Tabs value="calendar" className="mb-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="work-orders" onClick={() => navigate("/work-orders")}>
+              Work Orders
+            </TabsTrigger>
+            <TabsTrigger value="property-info" onClick={() => navigate("/property-info")}>
+              Property Info
+            </TabsTrigger>
+            <TabsTrigger value="forms" onClick={() => navigate("/forms")}>
+              Forms
+            </TabsTrigger>
+            <TabsTrigger value="calendar">
+              Calendar
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">

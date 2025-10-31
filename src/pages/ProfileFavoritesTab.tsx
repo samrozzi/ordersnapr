@@ -1,13 +1,142 @@
 import { useFavorites } from "@/hooks/use-favorites";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Star } from "lucide-react";
+import { Trash2, Star, GripVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+interface SortableFavoriteItemProps {
+  fav: any;
+  isTopSix: boolean;
+  onRemove: (id: string) => void;
+}
+
+const SortableFavoriteItem = ({ fav, isTopSix, onRemove }: SortableFavoriteItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: fav.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative",
+        isDragging && "opacity-50 z-50",
+        isTopSix && "bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-primary/20"
+      )}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <button
+            className="cursor-grab active:cursor-grabbing mt-1 text-muted-foreground hover:text-foreground"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5" />
+          </button>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold truncate">{fav.title}</h3>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {fav.entity_type.replace("_", " ")}
+                </p>
+                {fav.subtitle && (
+                  <p className="text-xs text-muted-foreground mt-1">{fav.subtitle}</p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onRemove(fav.id)}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const ProfileFavoritesTab = () => {
-  const { favorites, removeFavorite, loading } = useFavorites();
+  const { favorites, removeFavorite, loading, refetch } = useFavorites();
   const [enrichedFavorites, setEnrichedFavorites] = useState<any[]>([]);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = enrichedFavorites.findIndex((fav) => fav.id === active.id);
+    const newIndex = enrichedFavorites.findIndex((fav) => fav.id === over.id);
+
+    const newOrder = arrayMove(enrichedFavorites, oldIndex, newIndex);
+    setEnrichedFavorites(newOrder);
+
+    // Update display_order in database
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update each favorite's display_order based on new position
+      const updates = newOrder.map((fav, index) => 
+        supabase
+          .from("user_favorites")
+          .update({ display_order: newOrder.length - index })
+          .eq("id", fav.id)
+          .eq("user_id", user.id)
+      );
+
+      await Promise.all(updates);
+      toast.success("Favorites reordered");
+      refetch();
+    } catch (error) {
+      console.error("Error updating favorite order:", error);
+      toast.error("Failed to reorder favorites");
+    }
+  };
 
   useEffect(() => {
     const enrichFavorites = async () => {
@@ -73,31 +202,34 @@ export const ProfileFavoritesTab = () => {
   }
 
   return (
-    <div className="grid gap-4">
-      {enrichedFavorites.map((fav) => (
-        <Card key={fav.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-semibold">{fav.title}</h3>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {fav.entity_type.replace("_", " ")}
-                </p>
-                {fav.subtitle && (
-                  <p className="text-xs text-muted-foreground mt-1">{fav.subtitle}</p>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeFavorite(fav.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-4">
+      {enrichedFavorites.length > 6 && (
+        <p className="text-sm text-muted-foreground">
+          Top 6 favorites are shown in your dashboard widget. Drag to reorder.
+        </p>
+      )}
+      
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={enrichedFavorites.map(f => f.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="grid gap-3">
+            {enrichedFavorites.map((fav, index) => (
+              <SortableFavoriteItem
+                key={fav.id}
+                fav={fav}
+                isTopSix={index < 6}
+                onRemove={removeFavorite}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

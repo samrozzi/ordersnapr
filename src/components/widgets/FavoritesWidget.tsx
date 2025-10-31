@@ -18,9 +18,19 @@ export const FavoritesWidget = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const enrichFavorites = async () => {
+    const fetchFavorites = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: favorites } = await supabase
+        .from("user_favorites")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("display_order", { ascending: false })
+        .limit(6);
+
       const enriched = await Promise.all(
-        favorites.slice(0, 5).map(async (fav) => {
+        (favorites || []).map(async (fav) => {
           let title = "Unknown";
           let date = "";
 
@@ -81,10 +91,8 @@ export const FavoritesWidget = () => {
       setEnrichedFavorites(enriched);
     };
 
-    if (favorites.length > 0) {
-      enrichFavorites();
-    }
-  }, [favorites]);
+    fetchFavorites();
+  }, []);
 
   const handleClick = (item: FavoriteItem) => {
     // Navigate to profile favorites tab
@@ -93,50 +101,49 @@ export const FavoritesWidget = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-        <h3 className="font-semibold">Favorites</h3>
-      </div>
-
-      <div className="flex-1 space-y-2 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <p className="text-xs">Loading...</p>
-          </div>
-        ) : enrichedFavorites.length > 0 ? (
-          enrichedFavorites.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleClick(item)}
-              className="flex items-center gap-2 text-xs bg-card/50 rounded p-2 hover:bg-accent/20 transition-colors cursor-pointer"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{item.title}</div>
-                <div className="text-muted-foreground capitalize">
-                  {item.entity_type.replace("_", " ")}
-                  {item.date && ` • ${new Date(item.date).toLocaleDateString()}`}
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <p className="text-xs">Loading...</p>
+        </div>
+      ) : enrichedFavorites.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+          <Star className="h-12 w-12 text-muted-foreground opacity-50 mb-3" />
+          <p className="text-sm text-muted-foreground">No favorites yet</p>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 grid grid-cols-2 gap-2 min-h-0 overflow-y-auto">
+            {enrichedFavorites.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleClick(item)}
+                className="text-left p-2.5 rounded-lg bg-card hover:bg-accent/50 transition-colors border border-border h-fit"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-1">
+                    <p className="font-medium text-xs truncate flex-1">{item.title}</p>
+                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground capitalize truncate">
+                    {item.entity_type.replace("_", " ")}
+                  </p>
+                  {item.date && (
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {new Date(item.date).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <Star className="h-8 w-8 mb-2 opacity-50" />
-            <p className="text-xs text-center">No favorites yet</p>
-            <p className="text-xs text-center mt-1">Star items to see them here</p>
+              </button>
+            ))}
           </div>
-        )}
-      </div>
-
-      {enrichedFavorites.length > 0 && (
-        <div className="mt-2 pt-2 border-t">
+          
           <button
             onClick={() => navigate("/profile?tab=favorites")}
-            className="text-xs text-primary hover:underline w-full text-center"
+            className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors text-center w-full"
           >
-            View all favorites
+            View all favorites →
           </button>
-        </div>
+        </>
       )}
     </div>
   );

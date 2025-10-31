@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { FileText, ChevronDown, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -709,10 +710,13 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5" />
-              Job Quality Inspection
-            </CardTitle>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Job Quality Inspection
+              </CardTitle>
+              {draftToLoad && <FavoriteButton entityType="form_draft" entityId={draftToLoad.id} />}
+            </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
               <Button 
                 variant="outline"
@@ -889,7 +893,7 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
           <div className="pointer-events-auto">
             <RadialShareButton
               onGeneratePDF={handleGenerateReport}

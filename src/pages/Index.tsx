@@ -117,7 +117,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <img src={ordersnaprLogo} alt="ordersnapr" className="h-12 mb-4" />
+          <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 mb-4" />
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate("/profile")}>
               Profile

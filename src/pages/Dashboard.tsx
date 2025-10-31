@@ -5,10 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardGrid } from "@/components/DashboardGrid";
 import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Edit, Save, Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import WorkOrders from "./WorkOrders";
+import PropertyInfo from "./PropertyInfo";
+import Forms from "./Forms";
 
 interface Widget {
   id: string;
@@ -25,6 +28,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -262,9 +266,9 @@ const Dashboard = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant="default" 
+                      variant={activeTab === "dashboard" ? "default" : "ghost"}
                       size="icon"
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => setActiveTab("dashboard")}
                       aria-label="Dashboard"
                       className="h-8 w-8 sm:h-10 sm:w-10"
                     >
@@ -274,11 +278,11 @@ const Dashboard = () => {
                   <TooltipContent>Dashboard</TooltipContent>
                 </Tooltip>
                 
-                <Tabs value="dashboard" className="h-8 sm:h-10">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-8 sm:h-10">
                   <TabsList className="h-8 sm:h-10">
-                    <TabsTrigger value="work-orders" onClick={() => navigate("/work-orders")} className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
-                    <TabsTrigger value="property-info" onClick={() => navigate("/properties")} className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
-                    <TabsTrigger value="forms" onClick={() => navigate("/forms")} className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
+                    <TabsTrigger value="work-orders" className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
+                    <TabsTrigger value="property-info" className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
+                    <TabsTrigger value="forms" className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -335,45 +339,61 @@ const Dashboard = () => {
       </header>
 
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl overflow-x-hidden">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Customize your workspace</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <AddWidgetDialog onAddWidget={handleAddWidget} />
-            {!isEditMode ? (
-              <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Edit Layout</span>
-                <span className="sm:hidden">Edit</span>
-              </Button>
-            ) : (
-              <Button size="sm" onClick={handleSaveLayout}>
-                <Save className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Save Layout</span>
-                <span className="sm:hidden">Save</span>
-              </Button>
-            )}
-          </div>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsContent value="dashboard">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">Customize your workspace</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <AddWidgetDialog onAddWidget={handleAddWidget} />
+                {!isEditMode ? (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Edit Layout</span>
+                    <span className="sm:hidden">Edit</span>
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={handleSaveLayout}>
+                    <Save className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Save Layout</span>
+                    <span className="sm:hidden">Save</span>
+                  </Button>
+                )}
+              </div>
+            </div>
 
-        {/* Dashboard Grid */}
-        {widgets.length > 0 ? (
-          <DashboardGrid
-            widgets={widgets}
-            workOrders={workOrders}
-            isEditMode={isEditMode}
-            onWidgetsChange={handleWidgetsChange}
-            onRemoveWidget={handleRemoveWidget}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
-            <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>
-            <AddWidgetDialog onAddWidget={handleAddWidget} />
-          </div>
-        )}
+            {/* Dashboard Grid */}
+            {widgets.length > 0 ? (
+              <DashboardGrid
+                widgets={widgets}
+                workOrders={workOrders}
+                isEditMode={isEditMode}
+                onWidgetsChange={handleWidgetsChange}
+                onRemoveWidget={handleRemoveWidget}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>
+                <AddWidgetDialog onAddWidget={handleAddWidget} />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="work-orders">
+            <WorkOrders />
+          </TabsContent>
+
+          <TabsContent value="property-info">
+            <PropertyInfo />
+          </TabsContent>
+
+          <TabsContent value="forms">
+            <Forms />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ import Forms from "./Forms";
 
 interface Widget {
   id: string;
-  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather";
+  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders";
   position: number;
   settings: any;
 }

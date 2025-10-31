@@ -21,12 +21,15 @@ import { CalendarWidgetSmall } from "./widgets/CalendarWidgetSmall";
 import { CalendarWidgetMedium } from "./widgets/CalendarWidgetMedium";
 import { CalendarWidgetLarge } from "./widgets/CalendarWidgetLarge";
 import { WeatherWidget } from "./widgets/WeatherWidget";
+import { FavoritesWidget } from "./widgets/FavoritesWidget";
+import { UpcomingWorkOrdersWidget } from "./widgets/UpcomingWorkOrdersWidget";
 import { cn } from "@/lib/utils";
 
 interface Widget {
   id: string;
-  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather";
+  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders";
   position: number;
+  settings: any;
 }
 
 interface DashboardGridProps {
@@ -56,11 +59,13 @@ const SortableWidget = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const getWidgetSize = (type: string) => {
+  const getWidgetSize = (type: Widget["type"]) => {
     if (type === "calendar-small") return "small";
     if (type === "calendar-medium") return "medium";
     if (type === "calendar-large") return "large";
     if (type === "weather") return "small";
+    if (type === "favorites") return "small";
+    if (type === "upcoming-work-orders") return "medium";
     return "small";
   };
 
@@ -74,6 +79,10 @@ const SortableWidget = ({
         return <CalendarWidgetLarge />;
       case "weather":
         return <WeatherWidget />;
+      case "favorites":
+        return <FavoritesWidget />;
+      case "upcoming-work-orders":
+        return <UpcomingWorkOrdersWidget />;
       default:
         return null;
     }
@@ -110,7 +119,7 @@ export const DashboardGrid = ({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {

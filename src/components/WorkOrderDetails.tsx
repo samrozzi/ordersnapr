@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface WorkOrder {
   id: string;
@@ -267,7 +268,10 @@ ${workOrder.notes}` : ''}`;
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl">Work Order Details</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl">Work Order Details</DialogTitle>
+            <FavoriteButton entityType="work_order" entityId={workOrder.id} />
+          </div>
         </DialogHeader>
         
         <div className="flex flex-col gap-2">

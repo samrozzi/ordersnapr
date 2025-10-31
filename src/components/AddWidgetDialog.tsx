@@ -1,4 +1,4 @@
-import { Plus, Calendar, Cloud } from "lucide-react";
+import { Plus, Calendar, Cloud, Star, ClipboardList } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AddWidgetDialogProps {
-  onAddWidget: (type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather") => void;
+  onAddWidget: (type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders") => void;
 }
 
 export const AddWidgetDialog = ({ onAddWidget }: AddWidgetDialogProps) => {
@@ -39,6 +39,18 @@ export const AddWidgetDialog = ({ onAddWidget }: AddWidgetDialogProps) => {
       name: "Weather",
       description: "Current weather and forecast",
       icon: Cloud,
+    },
+    {
+      type: "favorites" as const,
+      name: "Favorites",
+      description: "Quick access to your favorited items",
+      icon: Star,
+    },
+    {
+      type: "upcoming-work-orders" as const,
+      name: "Upcoming Work Orders",
+      description: "Next 5 work orders with day/week/month filter",
+      icon: ClipboardList,
     },
   ];
 

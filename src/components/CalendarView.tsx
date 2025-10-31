@@ -7,7 +7,11 @@ import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 type ViewMode = "month" | "week" | "day";
 
-export function CalendarView() {
+interface CalendarViewProps {
+  onEventClick?: (item: any) => void;
+}
+
+export function CalendarView({ onEventClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const { items, workOrders, calendarEvents, loading } = useOrgCalendarData();
@@ -79,6 +83,10 @@ export function CalendarView() {
                 {dayItems.slice(0, 2).map((item) => (
                   <div
                     key={item.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick?.(item);
+                    }}
                     className={`text-xs p-1 border rounded cursor-pointer truncate ${
                       item.type === 'work_order'
                         ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
@@ -131,6 +139,7 @@ export function CalendarView() {
                   {dayItems.map((item) => (
                     <div
                       key={item.id}
+                      onClick={() => onEventClick?.(item)}
                       className={`text-xs p-2 border rounded cursor-pointer ${
                         item.type === 'work_order'
                           ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
@@ -178,6 +187,7 @@ export function CalendarView() {
                   {hourItems.map((item) => (
                     <div
                       key={item.id}
+                      onClick={() => onEventClick?.(item)}
                       className={`p-2 border rounded cursor-pointer ${
                         item.type === 'work_order'
                           ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'

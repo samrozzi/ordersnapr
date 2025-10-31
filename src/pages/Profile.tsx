@@ -11,6 +11,7 @@ import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut } from "
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 
 interface AuditLog {
   id: string;
@@ -361,9 +362,10 @@ const Profile = () => {
         <h1 className="text-3xl font-bold">Profile Settings</h1>
 
         <Tabs defaultValue="settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="activity">My Activity</TabsTrigger>
+            <TabsTrigger value="favorites">Favorites</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
           </TabsList>
 

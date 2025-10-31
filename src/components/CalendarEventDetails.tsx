@@ -9,6 +9,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface CalendarEvent {
   id: string;
@@ -102,7 +103,10 @@ export const CalendarEventDetails = ({ event, open, onOpenChange, onUpdate }: Ca
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Event" : "Event Details"}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>{isEditing ? "Edit Event" : "Event Details"}</DialogTitle>
+            <FavoriteButton entityType="calendar_event" entityId={event.id} />
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">

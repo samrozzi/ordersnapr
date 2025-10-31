@@ -40,6 +40,7 @@ interface OrganizationSettings {
   id: string;
   organization_id: string;
   custom_theme_color: string | null;
+  logo_url: string | null;
 }
 
 const OrgAdmin = () => {
@@ -54,6 +55,9 @@ const OrgAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [customColor, setCustomColor] = useState<string>("#3b82f6");
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -194,9 +198,82 @@ const OrgAdmin = () => {
         if (data.custom_theme_color) {
           setCustomColor(data.custom_theme_color);
         }
+        if (data.logo_url) {
+          setLogoPreview(data.logo_url);
+        }
       }
     } catch (error) {
       console.error("Error fetching org settings:", error);
+    }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadLogo = async () => {
+    if (!logoFile || !organizationId) return;
+
+    setIsUploadingLogo(true);
+    try {
+      // Upload to storage
+      const fileExt = logoFile.name.split('.').pop();
+      const fileName = `${organizationId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('organization-logos')
+        .upload(filePath, logoFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('organization-logos')
+        .getPublicUrl(filePath);
+
+      // Update organization settings
+      if (orgSettings) {
+        const { error } = await supabase
+          .from("organization_settings")
+          .update({ logo_url: publicUrl })
+          .eq("id", orgSettings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("organization_settings")
+          .insert({
+            organization_id: organizationId,
+            logo_url: publicUrl
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+
+      fetchOrgSettings();
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload logo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
@@ -586,6 +663,48 @@ const OrgAdmin = () => {
         </TabsContent>
 
         <TabsContent value="theme" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Organization Logo</CardTitle>
+              <CardDescription>
+                Upload your organization's logo to display in the header
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="logo-upload">Logo Image</Label>
+                <Input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Recommended: PNG or SVG format, transparent background, max 2MB
+                </p>
+              </div>
+
+              {logoPreview && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <Label className="mb-2 block">Preview</Label>
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo preview" 
+                    className="h-16 object-contain"
+                  />
+                </div>
+              )}
+
+              <Button 
+                onClick={handleUploadLogo} 
+                disabled={!logoFile || isUploadingLogo}
+                size="lg"
+              >
+                {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Organization Theme</CardTitle>

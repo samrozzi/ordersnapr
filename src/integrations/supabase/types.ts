@@ -112,6 +112,7 @@ export type Database = {
           created_at: string
           custom_theme_color: string | null
           id: string
+          logo_url: string | null
           organization_id: string
           updated_at: string
         }
@@ -119,6 +120,7 @@ export type Database = {
           created_at?: string
           custom_theme_color?: string | null
           id?: string
+          logo_url?: string | null
           organization_id: string
           updated_at?: string
         }
@@ -126,6 +128,7 @@ export type Database = {
           created_at?: string
           custom_theme_color?: string | null
           id?: string
+          logo_url?: string | null
           organization_id?: string
           updated_at?: string
         }

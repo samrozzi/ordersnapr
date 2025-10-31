@@ -12,18 +12,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Progress } from "@/components/ui/progress";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown, Check, X, Minus, Save, Mail, Share2, FileDown, Save as SaveIcon, MailOpen } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { FileText, ChevronDown, Check, X, Minus, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import JSZip from "jszip";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadialShareButton } from "@/components/RadialShareButton";
 
 const PRE_CALL_ITEMS = [
   "Introduce yourself",
@@ -501,36 +496,68 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     try {
       toast.info("Preparing files for download...");
       
-      // Generate PDF as blob
+      // Check if Web Share API is available and supports files
+      if (navigator.share && navigator.canShare) {
+        try {
+          // Generate PDF as blob
+          const doc = await generatePDF(true);
+          const pdfBlob = doc.output('blob');
+          const pdfFileName = `RideAlong_${technicianName || 'Report'}_${date || new Date().toISOString().split('T')[0]}.pdf`;
+          const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
+          
+          // Convert photos to files
+          const photoFiles = await Promise.all(
+            photos.map(async (photo, index) => {
+              const response = await fetch(photo.preview);
+              const blob = await response.blob();
+              const sanitizedCaption = photo.caption ? photo.caption.replace(/[^a-z0-9]/gi, '_').substring(0, 30) : 'unnamed';
+              return new File([blob], `Photo_${index + 1}_${sanitizedCaption}.jpg`, { type: 'image/jpeg' });
+            })
+          );
+          
+          const allFiles = [pdfFile, ...photoFiles];
+          
+          if (navigator.canShare({ files: allFiles })) {
+            await navigator.share({
+              files: allFiles,
+              title: 'Ride-Along Observation Report',
+              text: `Report for ${technicianName || 'Technician'}`
+            });
+            toast.success("Files shared successfully!");
+            return;
+          }
+        } catch (shareError) {
+          console.log("Web Share API not available or failed, using ZIP fallback");
+        }
+      }
+      
+      // Fallback: Create ZIP file
+      const zip = new JSZip();
+      
+      // Add PDF to ZIP
       const doc = await generatePDF(true);
       const pdfBlob = doc.output('blob');
       const pdfFileName = `RideAlong_${technicianName || 'Report'}_${date || new Date().toISOString().split('T')[0]}.pdf`;
+      zip.file(pdfFileName, pdfBlob);
       
-      // Create download link for PDF
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const pdfLink = document.createElement('a');
-      pdfLink.href = pdfUrl;
-      pdfLink.download = pdfFileName;
-      pdfLink.click();
-      
-      // Download each photo with a small delay to prevent browser blocking
+      // Add photos to ZIP
       for (let index = 0; index < photos.length; index++) {
         const photo = photos[index];
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between downloads
-        
-        const photoLink = document.createElement('a');
-        photoLink.href = photo.preview;
+        const response = await fetch(photo.preview);
+        const blob = await response.blob();
         const sanitizedCaption = photo.caption ? photo.caption.replace(/[^a-z0-9]/gi, '_').substring(0, 30) : 'unnamed';
-        photoLink.download = `Photo_${index + 1}_${sanitizedCaption}.jpg`;
-        photoLink.click();
+        zip.file(`Photo_${index + 1}_${sanitizedCaption}.jpg`, blob);
       }
       
-      toast.success(`Files downloaded: 1 PDF and ${photos.length} photo(s)`);
+      // Generate ZIP and download
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const zipLink = document.createElement('a');
+      zipLink.href = zipUrl;
+      zipLink.download = `RideAlong_${technicianName || 'Report'}_${date || new Date().toISOString().split('T')[0]}.zip`;
+      zipLink.click();
       
-      // Clean up blob URLs
-      setTimeout(() => {
-        URL.revokeObjectURL(pdfUrl);
-      }, 100);
+      toast.success(`ZIP file downloaded with 1 PDF and ${photos.length} photo(s)`);
     } catch (error) {
       console.error("Error saving files:", error);
       toast.error("Failed to save files");
@@ -539,8 +566,33 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
 
   const handleEmailDraft = async () => {
     try {
-      // First, download the files
-      await handleSaveFiles();
+      toast.info("Preparing email draft...");
+      
+      // Create ZIP file with all attachments
+      const zip = new JSZip();
+      
+      // Add PDF to ZIP
+      const doc = await generatePDF(true);
+      const pdfBlob = doc.output('blob');
+      const pdfFileName = `RideAlong_${technicianName || 'Report'}_${date || new Date().toISOString().split('T')[0]}.pdf`;
+      zip.file(pdfFileName, pdfBlob);
+      
+      // Add photos to ZIP
+      for (let index = 0; index < photos.length; index++) {
+        const photo = photos[index];
+        const response = await fetch(photo.preview);
+        const blob = await response.blob();
+        const sanitizedCaption = photo.caption ? photo.caption.replace(/[^a-z0-9]/gi, '_').substring(0, 30) : 'unnamed';
+        zip.file(`Photo_${index + 1}_${sanitizedCaption}.jpg`, blob);
+      }
+      
+      // Generate ZIP and download
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const zipLink = document.createElement('a');
+      zipLink.href = zipUrl;
+      zipLink.download = `RideAlong_${technicianName || 'Report'}_${date || new Date().toISOString().split('T')[0]}.zip`;
+      zipLink.click();
       
       // Prepare email content
       const subject = `Ride-Along Observation Report - ${technicianName || 'Technician'}`;
@@ -553,15 +605,18 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
         `Account Number: ${accountNumber}\n` +
         `Date: ${date}\n\n` +
         `Overall Notes:\n${overallNotes}\n\n` +
-        `Please see the downloaded PDF report and ${photos.length} photo(s) in your Downloads folder.\n` +
-        `Attach these files to your email.\n\n` +
+        `A ZIP file containing the PDF report and ${photos.length} photo(s) has been downloaded to your Downloads folder.\n` +
+        `Please attach this ZIP file to your email.\n\n` +
         `This report was generated from OrderSnapr.`;
+      
+      // Small delay to ensure ZIP download starts
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Open email client with pre-filled content
       const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
       window.location.href = mailtoLink;
       
-      toast.info("Email draft opened. Please attach the downloaded files.", {
+      toast.success("ZIP downloaded and email draft opened!", {
         duration: 5000,
       });
     } catch (error) {
@@ -1088,33 +1143,12 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
 
         <div className="sticky bottom-4 left-0 right-0 z-50 flex justify-center px-4 mt-6">
           <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="lg" className="shadow-lg">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share Report
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-56">
-                <DropdownMenuItem onClick={handleGenerateReport}>
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Generate PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSaveFiles}>
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Save to Files
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleEmailDraft}>
-                  <MailOpen className="h-4 w-4 mr-2" />
-                  Open Email Draft
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <RadialShareButton
+              onGeneratePDF={handleGenerateReport}
+              onSendEmail={() => setEmailDialogOpen(true)}
+              onSaveFiles={handleSaveFiles}
+              onEmailDraft={handleEmailDraft}
+            />
             
             <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
               <DialogContent>

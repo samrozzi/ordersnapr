@@ -18,6 +18,7 @@ const Index = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   
   // Enforce 6-hour session timeout
   useSessionTimeout(session);
@@ -44,16 +45,29 @@ const Index = () => {
     if (!session?.user) return;
 
     try {
-      // Check approval status
+      // Check approval status and organization
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, organization_id")
         .eq("id", session.user.id)
         .single();
 
       if (profileError) throw profileError;
 
       setApprovalStatus(profileData?.approval_status || null);
+
+      // Fetch organization logo if user belongs to an org
+      if (profileData?.organization_id) {
+        const { data: orgSettings } = await supabase
+          .from("organization_settings")
+          .select("logo_url")
+          .eq("organization_id", profileData.organization_id)
+          .maybeSingle();
+
+        if (orgSettings?.logo_url) {
+          setOrgLogoUrl(orgSettings.logo_url);
+        }
+      }
 
       // Check if user is admin or org admin
       const { data: rolesData } = await supabase
@@ -139,7 +153,16 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 mb-4" />
+          <div className="flex items-center justify-between mb-4">
+            <img src={ordersnaprLogo} alt="ordersnapr" className="h-16" />
+            {orgLogoUrl && (
+              <img 
+                src={orgLogoUrl} 
+                alt="Organization logo" 
+                className="h-16 object-contain"
+              />
+            )}
+          </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate("/profile")}>
               Profile

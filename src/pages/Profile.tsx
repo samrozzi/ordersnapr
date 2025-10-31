@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor } from "lucide-react";
+import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut } from "lucide-react";
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -262,6 +262,38 @@ const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    // Prevent multiple simultaneous sign-out attempts
+    if ((window as any)._signingOut) {
+      return;
+    }
+    (window as any)._signingOut = true;
+
+    try {
+      console.log('🚪 Signing out...');
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear all local storage (critical for PWA)
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      console.log('✅ Sign out complete, redirecting...');
+      
+      // Force hard navigation to auth page (clears SPA history and PWA cache)
+      window.location.replace('/auth');
+    } catch (error) {
+      console.error('❌ Error signing out:', error);
+      // Even if signOut fails, clear everything and redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace('/auth');
+    } finally {
+      (window as any)._signingOut = false;
+    }
+  };
+
   const handleForceSessionRefresh = async () => {
     setRefreshing(true);
     try {
@@ -502,6 +534,28 @@ const Profile = () => {
                     </Label>
                   </div>
                 </RadioGroup>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Actions</CardTitle>
+                <CardDescription>
+                  Sign out of your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleSignOut} 
+                  variant="destructive"
+                  className="w-full sm:w-auto"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This will log you out and clear your local session data.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

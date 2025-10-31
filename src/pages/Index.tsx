@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, RefreshCw, Crown, Calendar as CalendarIcon, LayoutDashboard } from "lucide-react";
+import { Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
 import WorkOrders from "./WorkOrders";
 import Forms from "./Forms";
@@ -99,43 +100,6 @@ const Index = () => {
     }
   }, [session]);
 
-  const handleSignOut = async () => {
-    // Prevent multiple simultaneous sign-out attempts
-    if ((window as any)._signingOut) {
-      return;
-    }
-    (window as any)._signingOut = true;
-
-    try {
-      console.log('🚪 Signing out...');
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut();
-      
-      // Clear all local storage (critical for PWA)
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Clear local state
-      setSession(null);
-      setIsAdmin(false);
-      setIsOrgAdmin(false);
-      setApprovalStatus(null);
-      
-      console.log('✅ Sign out complete, redirecting...');
-      
-      // Force hard navigation to auth page (clears SPA history and PWA cache)
-      window.location.replace('/auth');
-    } catch (error) {
-      console.error('❌ Error signing out:', error);
-      // Even if signOut fails, clear everything and redirect
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.replace('/auth');
-    } finally {
-      (window as any)._signingOut = false;
-    }
-  };
 
   if (loading) {
     return (
@@ -151,74 +115,104 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <button 
-              onClick={() => navigate("/")}
-              className="relative cursor-pointer hover:opacity-80 transition-opacity"
-              aria-label="Go to home page"
-            >
-              <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
-            </button>
-            {orgLogoUrl && (
-              <button
+      <Tabs defaultValue="work-orders" className="w-full">
+        <header className="border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <button 
                 onClick={() => navigate("/")}
-                className="cursor-pointer hover:opacity-80 transition-opacity"
+                className="relative cursor-pointer hover:opacity-80 transition-opacity"
                 aria-label="Go to home page"
               >
-                <img 
-                  src={orgLogoUrl} 
-                  alt="Organization logo" 
-                  className="h-auto max-h-16 max-w-[200px] object-contain"
-                />
+                <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
               </button>
-            )}
+              {orgLogoUrl && (
+                <button
+                  onClick={() => navigate("/")}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  aria-label="Go to home page"
+                >
+                  <img 
+                    src={orgLogoUrl} 
+                    alt="Organization logo" 
+                    className="h-auto max-h-16 max-w-[200px] object-contain"
+                  />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-6">
+              <TooltipProvider>
+                <div className="flex items-center gap-6">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => navigate("/dashboard")}
+                        aria-label="Dashboard"
+                      >
+                        <Home className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Dashboard</TooltipContent>
+                  </Tooltip>
+                  
+                  <TabsList>
+                    <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
+                    <TabsTrigger value="property-info">Property Info</TabsTrigger>
+                    <TabsTrigger value="forms">Forms</TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  {isAdmin && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => navigate("/admin")}
+                          aria-label="Admin"
+                        >
+                          <Shield className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Admin</TooltipContent>
+                    </Tooltip>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => navigate("/calendar")}
+                        aria-label="Calendar"
+                      >
+                        <CalendarIcon className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Calendar</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => navigate("/profile")}
+                        aria-label="Profile"
+                      >
+                        <User className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Profile</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <LayoutDashboard className="h-4 w-4 mr-2" />
-              Dashboard
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/calendar")}>
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Calendar
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/profile")}>
-              Profile
-            </Button>
-            {isAdmin && (
-              <Button variant="outline" onClick={() => navigate("/admin")}>
-                <Shield className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-            )}
-            {isOrgAdmin && (
-              <Button variant="outline" onClick={() => navigate("/org-admin")}>
-                <Crown className="h-4 w-4 mr-2" />
-                Org Admin
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="work-orders" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
-            <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-            <TabsTrigger value="property-info">Property Info</TabsTrigger>
-            <TabsTrigger value="forms">Forms</TabsTrigger>
-          </TabsList>
-
+        <main className="container mx-auto px-4 py-6">
           <TabsContent value="work-orders">
             <WorkOrders />
           </TabsContent>
@@ -230,8 +224,8 @@ const Index = () => {
           <TabsContent value="forms">
             <Forms />
           </TabsContent>
-        </Tabs>
-      </main>
+        </main>
+      </Tabs>
     </div>
   );
 };

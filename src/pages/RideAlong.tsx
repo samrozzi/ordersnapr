@@ -274,6 +274,41 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     const lineHeight = 7;
     const pageHeight = doc.internal.pageSize.height;
 
+    // Helper function to compress and resize images
+    const compressImage = async (file: File, maxWidth = 800, quality = 0.5): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Calculate new dimensions
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress
+            ctx?.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressedDataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
     // Title
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -409,10 +444,12 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
       let photoCount = 0;
 
       for (const photo of photos) {
-        const reader = new FileReader();
-        await new Promise((resolve) => {
-          reader.onload = (e) => {
-            const img = new Image();
+        try {
+          // Compress image before adding to PDF
+          const compressedDataUrl = await compressImage(photo.file, 800, 0.5);
+          
+          const img = new Image();
+          await new Promise<void>((resolve, reject) => {
             img.onload = () => {
               const col = photoCount % 2;
               const row = Math.floor((photoCount % 4) / 2);
@@ -425,16 +462,6 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
               const xPos = 20 + col * (imgSize + margin);
               const yPosition = yPos + row * (imgSize + margin);
               
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              
-              canvas.width = img.width;
-              canvas.height = img.height;
-              
-              ctx?.drawImage(img, 0, 0);
-              
-              const correctedImageData = canvas.toDataURL('image/jpeg', 0.9);
-              
               const aspectRatio = img.width / img.height;
               let drawWidth = imgSize;
               let drawHeight = imgSize;
@@ -446,7 +473,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
               }
               
               doc.addImage(
-                correctedImageData, 
+                compressedDataUrl, 
                 "JPEG", 
                 xPos, 
                 yPosition, 
@@ -469,12 +496,15 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
                 yPos += (imgSize * 2) + (margin * 2) + captionHeight;
               }
               
-              resolve(null);
+              resolve();
             };
-            img.src = e.target?.result as string;
-          };
-          reader.readAsDataURL(photo.file);
-        });
+            img.onerror = reject;
+            img.src = compressedDataUrl;
+          });
+        } catch (error) {
+          console.error("Error processing photo:", error);
+          // Continue with next photo
+        }
       }
     }
 

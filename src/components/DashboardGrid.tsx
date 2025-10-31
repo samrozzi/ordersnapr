@@ -31,7 +31,6 @@ interface Widget {
 
 interface DashboardGridProps {
   widgets: Widget[];
-  workOrders: any[];
   isEditMode: boolean;
   onWidgetsChange: (widgets: Widget[]) => void;
   onRemoveWidget: (id: string) => void;
@@ -39,12 +38,10 @@ interface DashboardGridProps {
 
 const SortableWidget = ({
   widget,
-  workOrders,
   isEditMode,
   onRemove,
 }: {
   widget: Widget;
-  workOrders: any[];
   isEditMode: boolean;
   onRemove: () => void;
 }) => {
@@ -70,11 +67,11 @@ const SortableWidget = ({
   const renderWidget = () => {
     switch (widget.type) {
       case "calendar-small":
-        return <CalendarWidgetSmall workOrders={workOrders} />;
+        return <CalendarWidgetSmall />;
       case "calendar-medium":
-        return <CalendarWidgetMedium workOrders={workOrders} />;
+        return <CalendarWidgetMedium />;
       case "calendar-large":
-        return <CalendarWidgetLarge workOrders={workOrders} />;
+        return <CalendarWidgetLarge />;
       case "weather":
         return <WeatherWidget />;
       default:
@@ -106,7 +103,6 @@ const SortableWidget = ({
 
 export const DashboardGrid = ({
   widgets,
-  workOrders,
   isEditMode,
   onWidgetsChange,
   onRemoveWidget,
@@ -146,7 +142,6 @@ export const DashboardGrid = ({
             <SortableWidget
               key={widget.id}
               widget={widget}
-              workOrders={workOrders}
               isEditMode={isEditMode}
               onRemove={() => onRemoveWidget(widget.id)}
             />

@@ -4,21 +4,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
-interface WorkOrder {
-  id: string;
-  customer_name: string;
-  scheduled_date: string;
-  scheduled_time?: string;
-}
-
-interface CalendarWidgetLargeProps {
-  workOrders: WorkOrder[];
-}
-
-export const CalendarWidgetLarge = ({ workOrders }: CalendarWidgetLargeProps) => {
+export const CalendarWidgetLarge = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const { items, loading } = useOrgCalendarData();
   const today = new Date();
 
   const monthStart = startOfMonth(currentDate);
@@ -28,11 +19,10 @@ export const CalendarWidgetLarge = ({ workOrders }: CalendarWidgetLargeProps) =>
   
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  const getOrdersForDay = (day: Date) => {
-    return workOrders.filter((order) => {
-      const orderDate = new Date(order.scheduled_date);
-      return isSameDay(orderDate, day);
-    });
+  const getItemsForDay = (day: Date) => {
+    return items.filter(item => 
+      isSameDay(new Date(item.date), day)
+    );
   };
 
   return (
@@ -82,7 +72,7 @@ export const CalendarWidgetLarge = ({ workOrders }: CalendarWidgetLargeProps) =>
         {/* Calendar days */}
         <div className="grid grid-cols-7 gap-1 flex-1">
           {days.map((day, i) => {
-            const ordersForDay = getOrdersForDay(day);
+            const dayItems = getItemsForDay(day);
             const isToday = isSameDay(day, today);
             const isCurrentMonth = isSameMonth(day, currentDate);
 
@@ -104,18 +94,20 @@ export const CalendarWidgetLarge = ({ workOrders }: CalendarWidgetLargeProps) =>
                 >
                   {format(day, "d")}
                 </div>
-                {ordersForDay.length > 0 && (
+                {dayItems.length > 0 && (
                   <div className="flex gap-0.5 justify-center flex-wrap">
-                    {ordersForDay.slice(0, 3).map((order, idx) => (
+                    {dayItems.slice(0, 3).map((item, idx) => (
                       <div
                         key={idx}
-                        className="w-1 h-1 rounded-full bg-primary"
-                        title={order.customer_name}
+                        className={`w-1 h-1 rounded-full ${
+                          item.type === 'work_order' ? 'bg-primary' : 'bg-green-500'
+                        }`}
+                        title={item.title}
                       />
                     ))}
-                    {ordersForDay.length > 3 && (
+                    {dayItems.length > 3 && (
                       <div className="text-[8px] text-primary font-bold">
-                        +{ordersForDay.length - 3}
+                        +{dayItems.length - 3}
                       </div>
                     )}
                   </div>

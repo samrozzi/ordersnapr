@@ -1,132 +1,18 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CalendarView } from "@/components/CalendarView";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-interface WorkOrder {
-  id: string;
-  bpc: string | null;
-  ban: string | null;
-  package: string | null;
-  job_id: string | null;
-  customer_name: string;
-  address: string | null;
-  contact_info: string | null;
-  notes: string | null;
-  status: string;
-  scheduled_date: string | null;
-  scheduled_time: string | null;
-  user_id: string;
-  created_at: string;
-  updated_at?: string;
-  completion_notes: string | null;
-  photos: string[] | null;
-  access_required: boolean | null;
-  access_notes: string | null;
-  completed_by: string | null;
-  profiles?: {
-    full_name: string | null;
-    email: string | null;
-  };
-}
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description: string | null;
-  event_date: string;
-  event_time: string | null;
-  all_day: boolean;
-  created_by: string;
-}
+import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 const CalendarPage = () => {
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const { workOrders, calendarEvents, refetch, loading } = useOrgCalendarData();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchWorkOrders();
-  }, []);
-
-  const fetchWorkOrders = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("work_orders")
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
-        .order("scheduled_date");
-
-      if (error) throw error;
-
-      setWorkOrders(data as WorkOrder[]);
-
-      // Fetch calendar events
-      const { data: eventsData, error: eventsError } = await supabase
-        .from("calendar_events")
-        .select("*")
-        .order("event_date");
-
-      if (eventsError) throw eventsError;
-
-      setCalendarEvents(eventsData as CalendarEvent[]);
-    } catch (error: any) {
-      console.error("Error fetching work orders:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleWorkOrderClick = (workOrderId: string) => {
-    const order = workOrders.find(wo => wo.id === workOrderId);
-    if (order) {
-      setSelectedOrder(order);
-    }
-  };
-
-  const handleEventClick = (eventId: string) => {
-    const event = calendarEvents.find(e => e.id === eventId);
-    if (event) {
-      setSelectedEvent(event);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-muted-foreground">Loading calendar...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -141,17 +27,18 @@ const CalendarPage = () => {
             <p className="text-muted-foreground">View and manage scheduled work orders and events</p>
           </div>
         </div>
-        <AddEventDialog onEventAdded={fetchWorkOrders} />
+        <AddEventDialog onEventAdded={refetch} />
       </div>
 
       {/* Calendar View */}
       <div className="bg-card rounded-lg border shadow-sm p-6">
-        <CalendarView 
-          workOrders={workOrders} 
-          calendarEvents={calendarEvents}
-          onWorkOrderClick={handleWorkOrderClick}
-          onEventClick={handleEventClick}
-        />
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-pulse text-muted-foreground">Loading calendar...</div>
+          </div>
+        ) : (
+          <CalendarView />
+        )}
       </div>
 
       {/* Work Order Details Dialog */}
@@ -159,7 +46,7 @@ const CalendarPage = () => {
         workOrder={selectedOrder}
         open={!!selectedOrder}
         onOpenChange={(open) => !open && setSelectedOrder(null)}
-        onUpdate={fetchWorkOrders}
+        onUpdate={refetch}
       />
 
       {/* Calendar Event Details Dialog */}
@@ -167,7 +54,7 @@ const CalendarPage = () => {
         event={selectedEvent}
         open={!!selectedEvent}
         onOpenChange={(open) => !open && setSelectedEvent(null)}
-        onUpdate={fetchWorkOrders}
+        onUpdate={refetch}
       />
     </div>
   );

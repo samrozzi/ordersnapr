@@ -155,6 +155,22 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         return;
       }
 
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile?.organization_id) {
+        toast({
+          title: "Error",
+          description: "Unable to fetch organization information",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Upload photos first
       const photoUrls = await uploadPhotos(user.id);
 
@@ -205,6 +221,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         const { error } = await supabase.from("work_orders").insert([{
           ...orderData,
           user_id: user.id,
+          organization_id: profile.organization_id,
         }]);
 
         if (error) throw error;

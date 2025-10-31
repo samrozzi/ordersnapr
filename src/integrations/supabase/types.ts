@@ -354,6 +354,7 @@ export type Database = {
           id: string
           job_id: string | null
           notes: string | null
+          organization_id: string
           package: string | null
           photos: string[] | null
           scheduled_date: string | null
@@ -377,6 +378,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           notes?: string | null
+          organization_id: string
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null
@@ -400,6 +402,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           notes?: string | null
+          organization_id?: string
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null
@@ -409,6 +412,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_orders_user_id_fkey"
             columns: ["user_id"]

@@ -1,22 +1,18 @@
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
-interface WorkOrder {
-  id: string;
-  customer_name: string;
-  scheduled_date: string;
-  scheduled_time?: string;
-}
-
-interface CalendarWidgetSmallProps {
-  workOrders: WorkOrder[];
-}
-
-export const CalendarWidgetSmall = ({ workOrders }: CalendarWidgetSmallProps) => {
+export const CalendarWidgetSmall = () => {
   const navigate = useNavigate();
+  const { items, loading } = useOrgCalendarData();
   const today = new Date();
-  const upcomingOrders = workOrders.slice(0, 2);
+  
+  // Get upcoming items (next 2)
+  const upcomingItems = items
+    .filter(item => new Date(item.date) >= today)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 2);
 
   return (
     <div
@@ -35,17 +31,23 @@ export const CalendarWidgetSmall = ({ workOrders }: CalendarWidgetSmallProps) =>
 
       {/* Upcoming events */}
       <div className="flex-1 space-y-2 overflow-hidden">
-        {upcomingOrders.length > 0 ? (
-          upcomingOrders.map((order) => (
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p className="text-xs">Loading...</p>
+          </div>
+        ) : upcomingItems.length > 0 ? (
+          upcomingItems.map((item) => (
             <div
-              key={order.id}
+              key={item.id}
               className="flex items-center gap-2 text-xs bg-card/50 rounded p-2 group-hover:bg-accent/20 transition-colors"
             >
-              <div className="w-1 h-8 bg-primary rounded-full" />
+              <div className={`w-1 h-8 rounded-full ${
+                item.type === 'work_order' ? 'bg-primary' : 'bg-green-500'
+              }`} />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{order.customer_name}</div>
+                <div className="font-medium truncate">{item.title}</div>
                 <div className="text-muted-foreground">
-                  {order.scheduled_time || "All day"}
+                  {item.all_day ? "All day" : item.time || "All day"}
                 </div>
               </div>
             </div>

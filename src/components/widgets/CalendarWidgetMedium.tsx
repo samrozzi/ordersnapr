@@ -1,23 +1,19 @@
 import { format, startOfWeek, addDays } from "date-fns";
 import { Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
-interface WorkOrder {
-  id: string;
-  customer_name: string;
-  scheduled_date: string;
-  scheduled_time?: string;
-}
-
-interface CalendarWidgetMediumProps {
-  workOrders: WorkOrder[];
-}
-
-export const CalendarWidgetMedium = ({ workOrders }: CalendarWidgetMediumProps) => {
+export const CalendarWidgetMedium = () => {
   const navigate = useNavigate();
+  const { items, loading } = useOrgCalendarData();
   const today = new Date();
   const weekStart = startOfWeek(today);
-  const upcomingOrders = workOrders.slice(0, 5);
+  
+  // Get upcoming items (next 5)
+  const upcomingItems = items
+    .filter(item => new Date(item.date) >= today)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 5);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -56,20 +52,25 @@ export const CalendarWidgetMedium = ({ workOrders }: CalendarWidgetMediumProps) 
         })}
       </div>
 
-      {/* Events list */}
+      {/* Upcoming events list */}
       <div className="flex-1 space-y-2 overflow-y-auto">
-        {upcomingOrders.length > 0 ? (
-          upcomingOrders.map((order) => (
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p className="text-sm">Loading...</p>
+          </div>
+        ) : upcomingItems.length > 0 ? (
+          upcomingItems.map((item) => (
             <div
-              key={order.id}
+              key={item.id}
               className="flex items-center gap-2 text-sm bg-card/50 rounded-lg p-2 group-hover:bg-accent/20 transition-colors"
             >
-              <div className="w-1 h-10 bg-primary rounded-full" />
+              <div className={`w-1 h-10 rounded-full ${
+                item.type === 'work_order' ? 'bg-primary' : 'bg-green-500'
+              }`} />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{order.customer_name}</div>
+                <div className="font-medium truncate">{item.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {format(new Date(order.scheduled_date), "MMM d")} •{" "}
-                  {order.scheduled_time || "All day"}
+                  {format(new Date(item.date), "MMM d")} • {item.all_day ? "All day" : item.time || "All day"}
                 </div>
               </div>
             </div>

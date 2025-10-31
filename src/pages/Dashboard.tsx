@@ -367,13 +367,12 @@ const Dashboard = () => {
 
             {/* Dashboard Grid */}
             {widgets.length > 0 ? (
-              <DashboardGrid
-                widgets={widgets}
-                workOrders={workOrders}
-                isEditMode={isEditMode}
-                onWidgetsChange={handleWidgetsChange}
-                onRemoveWidget={handleRemoveWidget}
-              />
+        <DashboardGrid 
+          widgets={widgets}
+          isEditMode={isEditMode}
+          onWidgetsChange={handleWidgetsChange}
+          onRemoveWidget={handleRemoveWidget}
+        />
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
                 <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>

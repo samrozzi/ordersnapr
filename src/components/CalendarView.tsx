@@ -3,63 +3,23 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInte
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-
-interface WorkOrder {
-  id: string;
-  customer_name: string;
-  scheduled_date: string | null;
-  scheduled_time: string | null;
-  status: string;
-  address: string | null;
-}
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description: string | null;
-  event_date: string;
-  event_time: string | null;
-  all_day: boolean;
-}
-
-interface CalendarViewProps {
-  workOrders: WorkOrder[];
-  calendarEvents: CalendarEvent[];
-  onWorkOrderClick: (workOrderId: string) => void;
-  onEventClick?: (eventId: string) => void;
-}
+import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 type ViewMode = "month" | "week" | "day";
 
-export function CalendarView({ 
-  workOrders, 
-  calendarEvents, 
-  onWorkOrderClick,
-  onEventClick
-}: CalendarViewProps) {
+export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const { items, workOrders, calendarEvents, loading } = useOrgCalendarData();
 
   const scheduledOrders = workOrders.filter(
     (order) => order.scheduled_date && (order.status === "pending" || order.status === "scheduled")
   );
 
-  const getOrdersForDate = (date: Date) => {
-    return scheduledOrders.filter((order) => {
-      // Parse date string as local date to avoid timezone issues
-      const [year, month, day] = order.scheduled_date!.split('-').map(Number);
-      const orderDate = new Date(year, month - 1, day);
-      return isSameDay(orderDate, date);
-    });
-  };
-
-  const getEventsForDate = (date: Date) => {
-    return calendarEvents.filter((event) => {
-      const [year, month, day] = event.event_date.split('-').map(Number);
-      const eventDate = new Date(year, month - 1, day);
-      return isSameDay(eventDate, date);
-    });
+  const getItemsForDate = (date: Date) => {
+    return items.filter(item => 
+      isSameDay(new Date(item.date), date)
+    );
   };
 
   const navigatePrevious = () => {
@@ -97,10 +57,8 @@ export function CalendarView({
           </div>
         ))}
         {days.map((day) => {
-          const orders = getOrdersForDate(day);
-          const events = getEventsForDate(day);
+          const dayItems = getItemsForDate(day);
           const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-          const totalItems = orders.length + events.length;
           
           return (
             <div
@@ -118,29 +76,20 @@ export function CalendarView({
                 {format(day, "d")}
               </div>
               <div className="space-y-1">
-                {orders.slice(0, 2).map((order) => (
+                {dayItems.slice(0, 2).map((item) => (
                   <div
-                    key={order.id}
-                    onClick={() => onWorkOrderClick(order.id)}
-                    className="text-xs p-1 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20 truncate"
+                    key={item.id}
+                    className={`text-xs p-1 border rounded cursor-pointer truncate ${
+                      item.type === 'work_order'
+                        ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
+                        : 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                    }`}
                   >
-                    {order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")} {order.customer_name}
+                    {item.time && !item.all_day && format(new Date(`2000-01-01T${item.time}`), "h:mm a")} {item.title}
                   </div>
                 ))}
-                {events.slice(0, 2).map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick?.(event.id);
-                    }}
-                    className="text-xs p-1 bg-green-500/10 border border-green-500/20 rounded truncate cursor-pointer hover:bg-green-500/20"
-                  >
-                    {!event.all_day && event.event_time && format(new Date(`2000-01-01T${event.event_time}`), "h:mm a")} {event.title}
-                  </div>
-                ))}
-                {totalItems > 4 && (
-                  <div className="text-xs text-muted-foreground">+{totalItems - 4} more</div>
+                {dayItems.length > 2 && (
+                  <div className="text-xs text-muted-foreground">+{dayItems.length - 2} more</div>
                 )}
               </div>
             </div>
@@ -159,8 +108,7 @@ export function CalendarView({
       <div className="space-y-2">
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
-            const orders = getOrdersForDate(day);
-            const events = getEventsForDate(day);
+            const dayItems = getItemsForDate(day);
             
             return (
               <div
@@ -180,24 +128,17 @@ export function CalendarView({
                   </div>
                 </div>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {orders.map((order) => (
+                  {dayItems.map((item) => (
                     <div
-                      key={order.id}
-                      onClick={() => onWorkOrderClick(order.id)}
-                      className="text-xs p-2 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20"
+                      key={item.id}
+                      className={`text-xs p-2 border rounded cursor-pointer ${
+                        item.type === 'work_order'
+                          ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
+                          : 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                      }`}
                     >
-                      <div className="font-medium">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
-                      <div className="truncate">{order.customer_name}</div>
-                    </div>
-                  ))}
-                  {events.map((event) => (
-                    <div
-                      key={event.id}
-                      onClick={() => onEventClick?.(event.id)}
-                      className="text-xs p-2 bg-green-500/10 border border-green-500/20 rounded cursor-pointer hover:bg-green-500/20"
-                    >
-                      <div className="font-medium">{!event.all_day && event.event_time ? format(new Date(`2000-01-01T${event.event_time}`), "h:mm a") : "All day"}</div>
-                      <div className="truncate">{event.title}</div>
+                      <div className="font-medium">{item.all_day ? "All day" : item.time && format(new Date(`2000-01-01T${item.time}`), "h:mm a")}</div>
+                      <div className="truncate">{item.title}</div>
                     </div>
                   ))}
                 </div>
@@ -210,8 +151,7 @@ export function CalendarView({
   };
 
   const renderDayView = () => {
-    const orders = getOrdersForDate(currentDate);
-    const events = getEventsForDate(currentDate);
+    const dayItems = getItemsForDate(currentDate);
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
     return (
@@ -222,17 +162,11 @@ export function CalendarView({
         </div>
         <div className="space-y-1 max-h-96 overflow-y-auto">
           {hours.map((hour) => {
-            const hourOrders = orders.filter((order) => {
-              if (!order.scheduled_time) return false;
-              const orderHour = parseInt(order.scheduled_time.split(":")[0]);
-              return orderHour === hour;
-            });
-
-            const hourEvents = events.filter((event) => {
-              if (event.all_day) return hour === 0;
-              if (!event.event_time) return false;
-              const eventHour = parseInt(event.event_time.split(":")[0]);
-              return eventHour === hour;
+            const hourItems = dayItems.filter((item) => {
+              if (item.all_day) return hour === 0;
+              if (!item.time) return false;
+              const itemHour = parseInt(item.time.split(":")[0]);
+              return itemHour === hour;
             });
 
             return (
@@ -241,26 +175,17 @@ export function CalendarView({
                   {format(new Date(2000, 0, 1, hour), "h:mm a")}
                 </div>
                 <div className="flex-1 space-y-1 py-1">
-                  {hourOrders.map((order) => (
+                  {hourItems.map((item) => (
                     <div
-                      key={order.id}
-                      onClick={() => onWorkOrderClick(order.id)}
-                      className="p-2 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20"
+                      key={item.id}
+                      className={`p-2 border rounded cursor-pointer ${
+                        item.type === 'work_order'
+                          ? 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20'
+                          : 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                      }`}
                     >
-                      <div className="font-medium text-sm">{order.customer_name}</div>
-                      <div className="text-xs sm:text-sm text-muted-foreground">{order.address}</div>
-                      <div className="text-xs">{order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")}</div>
-                    </div>
-                  ))}
-                  {hourEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      onClick={() => onEventClick?.(event.id)}
-                      className="p-2 bg-green-500/10 border border-green-500/20 rounded cursor-pointer hover:bg-green-500/20"
-                    >
-                      <div className="font-medium text-sm">{event.title}</div>
-                      {event.description && <div className="text-xs sm:text-sm text-muted-foreground">{event.description}</div>}
-                      <div className="text-xs">{event.all_day ? "All day" : event.event_time && format(new Date(`2000-01-01T${event.event_time}`), "h:mm a")}</div>
+                      <div className="font-medium text-sm">{item.title}</div>
+                      <div className="text-xs">{item.all_day ? "All day" : item.time && format(new Date(`2000-01-01T${item.time}`), "h:mm a")}</div>
                     </div>
                   ))}
                 </div>
@@ -325,9 +250,17 @@ export function CalendarView({
         </div>
       </div>
       
-      {viewMode === "month" && renderMonthView()}
-      {viewMode === "week" && renderWeekView()}
-      {viewMode === "day" && renderDayView()}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        <>
+          {viewMode === "month" && renderMonthView()}
+          {viewMode === "week" && renderWeekView()}
+          {viewMode === "day" && renderDayView()}
+        </>
+      )}
     </div>
   );
 }

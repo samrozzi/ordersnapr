@@ -493,58 +493,6 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
                 formType="job-audit"
                 onDataExtracted={handleDataExtracted}
               />
-              <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email Report
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Email Inspection Report</DialogTitle>
-                    <DialogDescription>
-                      Enter the recipient's email address to send the PDF report
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Recipient Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="recipient@example.com"
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleEmailReport();
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setEmailDialogOpen(false)}
-                        disabled={isSendingEmail}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleEmailReport}
-                        disabled={isSendingEmail}
-                      >
-                        {isSendingEmail ? "Sending..." : "Send Email"}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
             <CardDescription>
               Document job quality issues and observations
@@ -706,10 +654,62 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="sticky bottom-4 flex justify-center mt-6">
+        <div className="sticky bottom-4 flex justify-center gap-3 mt-6">
           <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
             Generate PDF Report
           </Button>
+          <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                size="lg"
+                className="shadow-lg"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Report
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Email Report</DialogTitle>
+                <DialogDescription>
+                  Send this inspection report as a PDF attachment via email.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Recipient Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="recipient@example.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && recipientEmail) {
+                        handleEmailReport();
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEmailDialogOpen(false)}
+                    disabled={isSendingEmail}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleEmailReport}
+                    disabled={isSendingEmail || !recipientEmail}
+                  >
+                    {isSendingEmail ? "Sending..." : "Send Email"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>

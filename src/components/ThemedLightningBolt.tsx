@@ -4,7 +4,7 @@ export const ThemedLightningBolt = () => {
       width="14" 
       height="42" 
       viewBox="0 0 14 42" 
-      className="absolute pointer-events-none"
+      className="absolute z-20 pointer-events-none transition-opacity duration-300"
       style={{ 
         top: '50%', 
         left: '29%', 

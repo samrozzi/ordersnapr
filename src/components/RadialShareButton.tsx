@@ -35,10 +35,10 @@ export const RadialShareButton = ({
   }, [isOpen]);
 
   const menuItems = [
-    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -120 },
-    { icon: Send, label: "Email", onClick: onSendEmail, position: -60 },
-    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: -30 },
-    { icon: Download, label: "Save", onClick: onSaveFiles, position: 0 },
+    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -150 },
+    { icon: Send, label: "Email", onClick: onSendEmail, position: -110 },
+    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: -70 },
+    { icon: Download, label: "Save", onClick: onSaveFiles, position: -30 },
   ];
 
   const handleItemClick = (onClick: () => void) => {
@@ -67,27 +67,29 @@ export const RadialShareButton = ({
       {/* Radial menu items */}
       {menuItems.map((item, index) => {
         const angle = (item.position * Math.PI) / 180;
-        const radius = 50;
+        const radius = 64;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
+
+        const transform = isOpen
+          ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
+          : `translate(-50%, -50%) scale(0)`;
 
         return (
           <button
             key={index}
             onClick={() => handleItemClick(item.onClick)}
             className={cn(
-              "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+              "absolute top-1/2 left-1/2",
               "w-10 h-10 rounded-full bg-secondary text-secondary-foreground",
               "shadow-md hover:shadow-lg hover:scale-110",
               "flex items-center justify-center",
               "transition-all duration-300 ease-out",
-              "group",
-              !isOpen && "scale-0 opacity-0 pointer-events-none"
+              "group z-50",
+              !isOpen && "opacity-0 pointer-events-none"
             )}
             style={{
-              transform: isOpen
-                ? `translate(${x}px, ${y}px)`
-                : "translate(-50%, -50%) scale(0)",
+              transform,
               transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
             }}
           >
@@ -95,14 +97,10 @@ export const RadialShareButton = ({
             
             {/* Label - always visible */}
             <span className={cn(
-              "absolute whitespace-nowrap bg-background/95 backdrop-blur-sm text-foreground text-[10px] font-medium",
+              "absolute bottom-full mb-1 whitespace-nowrap bg-background/95 backdrop-blur-sm text-foreground text-[10px] font-medium",
               "px-1.5 py-0.5 rounded border border-border shadow-sm",
               "pointer-events-none z-50 transition-opacity duration-300",
-              isOpen ? "opacity-100" : "opacity-0",
-              item.position === -90 && "bottom-full mb-1",
-              item.position === 0 && "left-full ml-1",
-              item.position === 180 && "top-full mt-1",
-              item.position === 90 && "right-full mr-1"
+              isOpen ? "opacity-100" : "opacity-0"
             )}>
               {item.label}
             </span>

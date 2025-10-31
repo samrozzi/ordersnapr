@@ -5,6 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// HTML escaping function to prevent XSS attacks
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 interface EmailReportRequest {
   recipientEmail: string;
   reportType: "job-audit" | "ride-along";
@@ -36,6 +48,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { recipientEmail, reportType, pdfBase64, fileName, photos, formData }: EmailReportRequest = await req.json();
 
     console.log("Sending email to:", recipientEmail);
@@ -48,6 +70,18 @@ const handler = async (req: Request): Promise<Response> => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email address format" }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
@@ -67,16 +101,16 @@ const handler = async (req: Request): Promise<Response> => {
         <h2>Job Quality Inspection Report</h2>
         <p>Please find attached the job quality inspection report with the following details:</p>
         <ul>
-          ${formData.reportedBy ? `<li><strong>Report Created By:</strong> ${formData.reportedBy}</li>` : ''}
-          ${formData.technicianName ? `<li><strong>Technician:</strong> ${formData.technicianName}</li>` : ''}
-          ${formData.customerName ? `<li><strong>Customer:</strong> ${formData.customerName}</li>` : ''}
-          ${formData.address ? `<li><strong>Address:</strong> ${formData.address}</li>` : ''}
-          ${formData.ban ? `<li><strong>BAN:</strong> ${formData.ban}</li>` : ''}
-          ${formData.date ? `<li><strong>Service Date:</strong> ${formData.date}</li>` : ''}
+          ${formData.reportedBy ? `<li><strong>Report Created By:</strong> ${escapeHtml(formData.reportedBy)}</li>` : ''}
+          ${formData.technicianName ? `<li><strong>Technician:</strong> ${escapeHtml(formData.technicianName)}</li>` : ''}
+          ${formData.customerName ? `<li><strong>Customer:</strong> ${escapeHtml(formData.customerName)}</li>` : ''}
+          ${formData.address ? `<li><strong>Address:</strong> ${escapeHtml(formData.address)}</li>` : ''}
+          ${formData.ban ? `<li><strong>BAN:</strong> ${escapeHtml(formData.ban)}</li>` : ''}
+          ${formData.date ? `<li><strong>Service Date:</strong> ${escapeHtml(formData.date)}</li>` : ''}
         </ul>
         ${formData.observations ? `
           <h3 style="margin-top: 20px;">Observations:</h3>
-          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${formData.observations}</p>
+          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${escapeHtml(formData.observations)}</p>
         ` : ''}
         ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
         <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>
@@ -86,16 +120,16 @@ const handler = async (req: Request): Promise<Response> => {
         <h2>Ride-Along Observation Report</h2>
         <p>Please find attached the ride-along observation report with the following details:</p>
         <ul>
-          ${formData.observerName ? `<li><strong>Observer:</strong> ${formData.observerName}</li>` : ''}
-          ${formData.technicianName ? `<li><strong>Technician:</strong> ${formData.technicianName}</li>` : ''}
-          ${formData.customerName ? `<li><strong>Customer:</strong> ${formData.customerName}</li>` : ''}
-          ${formData.address ? `<li><strong>Address:</strong> ${formData.address}</li>` : ''}
-          ${formData.accountNumber ? `<li><strong>Account Number:</strong> ${formData.accountNumber}</li>` : ''}
-          ${formData.date ? `<li><strong>Date:</strong> ${formData.date}</li>` : ''}
+          ${formData.observerName ? `<li><strong>Observer:</strong> ${escapeHtml(formData.observerName)}</li>` : ''}
+          ${formData.technicianName ? `<li><strong>Technician:</strong> ${escapeHtml(formData.technicianName)}</li>` : ''}
+          ${formData.customerName ? `<li><strong>Customer:</strong> ${escapeHtml(formData.customerName)}</li>` : ''}
+          ${formData.address ? `<li><strong>Address:</strong> ${escapeHtml(formData.address)}</li>` : ''}
+          ${formData.accountNumber ? `<li><strong>Account Number:</strong> ${escapeHtml(formData.accountNumber)}</li>` : ''}
+          ${formData.date ? `<li><strong>Date:</strong> ${escapeHtml(formData.date)}</li>` : ''}
         </ul>
         ${formData.overallNotes ? `
           <h3 style="margin-top: 20px;">Overall Notes:</h3>
-          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${formData.overallNotes}</p>
+          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${escapeHtml(formData.overallNotes)}</p>
         ` : ''}
         ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
         <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>

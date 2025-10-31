@@ -76,15 +76,26 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
     setShowReview(false);
 
     try {
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('You must be logged in to use this feature');
+        setIsProcessing(false);
+        return;
+      }
+
       // Compress image first
       const compressed = await compressImage(file);
       setImagePreview(compressed);
 
-      // Call edge function with compressed image
+      // Call edge function with compressed image and auth header
       const { data, error } = await supabase.functions.invoke('extract-form-data', {
         body: {
           image: compressed,
           formType
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 

@@ -391,7 +391,14 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
 
       const validPhotos = photosBase64.filter(photo => photo !== null);
 
-      // Call edge function to send email
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('You must be logged in to send emails');
+        return;
+      }
+
+      // Call edge function to send email with auth header
       const { data, error } = await supabase.functions.invoke('send-report-email', {
         body: {
           recipientEmail,
@@ -408,6 +415,9 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
             reportedBy,
             observations,
           }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 

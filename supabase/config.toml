@@ -1,7 +1,7 @@
 project_id = "vqudyddedeacspujotsa"
 
 [functions.extract-form-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-report-email]
-verify_jwt = false
+verify_jwt = true

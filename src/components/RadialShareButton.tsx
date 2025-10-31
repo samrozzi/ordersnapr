@@ -52,7 +52,7 @@ export const RadialShareButton = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "relative z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground",
+          "relative z-60 w-16 h-16 rounded-full bg-primary text-primary-foreground",
           "shadow-lg hover:shadow-xl transition-all duration-300",
           "flex items-center justify-center",
           isOpen && "scale-95"
@@ -67,7 +67,7 @@ export const RadialShareButton = ({
       {/* Radial menu items */}
       {menuItems.map((item, index) => {
         const angle = (item.position * Math.PI) / 180;
-        const radius = 56;
+        const radius = 80;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
 
@@ -81,7 +81,7 @@ export const RadialShareButton = ({
             onClick={() => handleItemClick(item.onClick)}
             className={cn(
               "absolute top-1/2 left-1/2",
-              "w-10 h-10 rounded-full bg-secondary text-secondary-foreground",
+              "w-12 h-12 rounded-full bg-secondary text-secondary-foreground",
               "shadow-md hover:shadow-lg hover:scale-110",
               "flex items-center justify-center",
               "transition-all duration-300 ease-out",
@@ -93,7 +93,7 @@ export const RadialShareButton = ({
               transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
             }}
           >
-            <item.icon className="w-4 h-4" />
+            <item.icon className="w-5 h-5" />
             
             {/* Label - always visible */}
             <span className={cn(

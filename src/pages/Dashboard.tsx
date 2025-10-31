@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardGrid } from "@/components/DashboardGrid";
 import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Edit, Save, Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
@@ -255,13 +256,13 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
             <TooltipProvider>
               <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant="ghost" 
+                      variant="default" 
                       size="icon"
                       onClick={() => navigate("/dashboard")}
                       aria-label="Dashboard"
@@ -272,9 +273,14 @@ const Dashboard = () => {
                   </TooltipTrigger>
                   <TooltipContent>Dashboard</TooltipContent>
                 </Tooltip>
-                <Button variant="ghost" onClick={() => navigate("/")}>
-                  Main Menu
-                </Button>
+                
+                <Tabs value="dashboard" className="h-8 sm:h-10">
+                  <TabsList className="h-8 sm:h-10">
+                    <TabsTrigger value="work-orders" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
+                    <TabsTrigger value="property-info" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
+                    <TabsTrigger value="forms" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
               
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">

@@ -44,6 +44,53 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          organization_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          organization_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          organization_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_widgets: {
         Row: {
           created_at: string

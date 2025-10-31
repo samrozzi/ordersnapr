@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarView } from "@/components/CalendarView";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
+import { AddEventDialog } from "@/components/AddEventDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -34,8 +35,19 @@ interface WorkOrder {
   };
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  all_day: boolean;
+  created_by: string;
+}
+
 const CalendarPage = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -70,6 +82,16 @@ const CalendarPage = () => {
       if (error) throw error;
 
       setWorkOrders(data as WorkOrder[]);
+
+      // Fetch calendar events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .order("event_date");
+
+      if (eventsError) throw eventsError;
+
+      setCalendarEvents(eventsData as CalendarEvent[]);
     } catch (error: any) {
       console.error("Error fetching work orders:", error);
       toast({
@@ -100,19 +122,26 @@ const CalendarPage = () => {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Calendar</h1>
-          <p className="text-muted-foreground">View and manage your scheduled work orders</p>
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Calendar</h1>
+            <p className="text-muted-foreground">View and manage scheduled work orders and events</p>
+          </div>
         </div>
+        <AddEventDialog onEventAdded={fetchWorkOrders} />
       </div>
 
       {/* Calendar View */}
       <div className="bg-card rounded-lg border shadow-sm p-6">
-        <CalendarView workOrders={workOrders} onWorkOrderClick={handleWorkOrderClick} />
+        <CalendarView 
+          workOrders={workOrders} 
+          calendarEvents={calendarEvents}
+          onWorkOrderClick={handleWorkOrderClick} 
+        />
       </div>
 
       {/* Work Order Details Dialog */}

@@ -236,7 +236,8 @@ const Dashboard = () => {
               </DialogHeader>
               <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
                 <CalendarView 
-                  workOrders={workOrders} 
+                  workOrders={workOrders}
+                  calendarEvents={[]}
                   onWorkOrderClick={(id) => {
                     const order = workOrders.find(wo => wo.id === id);
                     if (order) {

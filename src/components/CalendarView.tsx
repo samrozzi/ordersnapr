@@ -14,14 +14,24 @@ interface WorkOrder {
   address: string | null;
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  all_day: boolean;
+}
+
 interface CalendarViewProps {
   workOrders: WorkOrder[];
+  calendarEvents: CalendarEvent[];
   onWorkOrderClick: (workOrderId: string) => void;
 }
 
 type ViewMode = "month" | "week" | "day";
 
-export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps) {
+export function CalendarView({ workOrders, calendarEvents, onWorkOrderClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
 
@@ -35,6 +45,14 @@ export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps
       const [year, month, day] = order.scheduled_date!.split('-').map(Number);
       const orderDate = new Date(year, month - 1, day);
       return isSameDay(orderDate, date);
+    });
+  };
+
+  const getEventsForDate = (date: Date) => {
+    return calendarEvents.filter((event) => {
+      const [year, month, day] = event.event_date.split('-').map(Number);
+      const eventDate = new Date(year, month - 1, day);
+      return isSameDay(eventDate, date);
     });
   };
 
@@ -74,7 +92,9 @@ export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps
         ))}
         {days.map((day) => {
           const orders = getOrdersForDate(day);
+          const events = getEventsForDate(day);
           const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+          const totalItems = orders.length + events.length;
           
           return (
             <div
@@ -92,17 +112,25 @@ export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps
                 {format(day, "d")}
               </div>
               <div className="space-y-1">
-                {orders.slice(0, 3).map((order) => (
+                {orders.slice(0, 2).map((order) => (
                   <div
                     key={order.id}
                     onClick={() => onWorkOrderClick(order.id)}
-                    className="text-xs p-1 bg-primary/10 rounded cursor-pointer hover:bg-primary/20 truncate"
+                    className="text-xs p-1 bg-blue-500/10 border border-blue-500/20 rounded cursor-pointer hover:bg-blue-500/20 truncate"
                   >
                     {order.scheduled_time && format(new Date(`2000-01-01T${order.scheduled_time}`), "h:mm a")} {order.customer_name}
                   </div>
                 ))}
-                {orders.length > 3 && (
-                  <div className="text-xs text-muted-foreground">+{orders.length - 3} more</div>
+                {events.slice(0, 2).map((event) => (
+                  <div
+                    key={event.id}
+                    className="text-xs p-1 bg-green-500/10 border border-green-500/20 rounded truncate"
+                  >
+                    {!event.all_day && event.event_time && format(new Date(`2000-01-01T${event.event_time}`), "h:mm a")} {event.title}
+                  </div>
+                ))}
+                {totalItems > 4 && (
+                  <div className="text-xs text-muted-foreground">+{totalItems - 4} more</div>
                 )}
               </div>
             </div>
@@ -206,6 +234,18 @@ export function CalendarView({ workOrders, onWorkOrderClick }: CalendarViewProps
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-hidden">
+      {/* Legend */}
+      <div className="flex gap-4 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-blue-500/20 border border-blue-500/40 rounded"></div>
+          <span>Work Orders</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-green-500/20 border border-green-500/40 rounded"></div>
+          <span>Events</span>
+        </div>
+      </div>
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={navigatePrevious}>

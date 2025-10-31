@@ -70,7 +70,7 @@ export const WeatherWidget = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col pb-4">
       {/* Location */}
       <div className="flex items-center gap-2 mb-4">
         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -80,13 +80,13 @@ export const WeatherWidget = () => {
       {/* Main temp */}
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl font-bold">{weather.temp}°</div>
-          <div className="text-lg text-muted-foreground mt-2">{weather.condition}</div>
+          <div className="text-5xl sm:text-6xl font-bold">{weather.temp}°</div>
+          <div className="text-base sm:text-lg text-muted-foreground mt-2">{weather.condition}</div>
         </div>
       </div>
 
       {/* High/Low */}
-      <div className="flex justify-center gap-6 text-sm">
+      <div className="flex justify-center gap-6 text-sm mt-4">
         <div className="text-center">
           <div className="text-muted-foreground">High</div>
           <div className="font-semibold">{weather.high}°</div>

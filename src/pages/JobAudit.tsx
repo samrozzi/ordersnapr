@@ -12,9 +12,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChecklistSection } from "@/components/ChecklistSection";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown, Save } from "lucide-react";
+import { FileText, ChevronDown, Save, Mail } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface JobAuditProps {
   draftToLoad?: any;
@@ -104,6 +105,9 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
   const [adminChecklist, setAdminChecklist] = useState<Record<number, string>>({});
   const [customerChecklist, setCustomerChecklist] = useState<Record<number, string>>({});
   const [dropChecklist, setDropChecklist] = useState<Record<number, string>>({});
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -338,6 +342,57 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
     toast.success("Inspection report generated successfully!");
   };
 
+  const handleEmailReport = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter a recipient email address");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      // Generate PDF
+      const doc = await generatePDF();
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      const filename = `inspection-report-${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Call edge function to send email
+      const { data, error } = await supabase.functions.invoke('send-report-email', {
+        body: {
+          recipientEmail,
+          reportType: 'job-audit',
+          pdfBase64,
+          fileName: filename,
+          formData: {
+            technicianName,
+            customerName,
+            address,
+            ban,
+            date: serviceDate,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Report emailed successfully to ${recipientEmail}`);
+      setEmailDialogOpen(false);
+      setRecipientEmail("");
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error(error.message || "Failed to send email");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const handleSaveDraft = async () => {
     if (!session?.user) return;
     
@@ -438,6 +493,58 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
                 formType="job-audit"
                 onDataExtracted={handleDataExtracted}
               />
+              <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Report
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Email Inspection Report</DialogTitle>
+                    <DialogDescription>
+                      Enter the recipient's email address to send the PDF report
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Recipient Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="recipient@example.com"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleEmailReport();
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setEmailDialogOpen(false)}
+                        disabled={isSendingEmail}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleEmailReport}
+                        disabled={isSendingEmail}
+                      >
+                        {isSendingEmail ? "Sending..." : "Send Email"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <CardDescription>
               Document job quality issues and observations

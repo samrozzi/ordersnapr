@@ -12,10 +12,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Progress } from "@/components/ui/progress";
 import { PhotoUpload, PhotoWithCaption } from "@/components/PhotoUpload";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FileText, ChevronDown, Check, X, Minus, Save } from "lucide-react";
+import { FileText, ChevronDown, Check, X, Minus, Save, Mail } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const PRE_CALL_ITEMS = [
   "Introduce yourself",
@@ -205,6 +206,9 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
   const [gatewayChecklist, setGatewayChecklist] = useState<Record<number, string>>({});
   const [speedTestChecklist, setSpeedTestChecklist] = useState<Record<number, string>>({});
   const [closeOutChecklist, setCloseOutChecklist] = useState<Record<number, string>>({});
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -482,6 +486,57 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
     toast.success("Ride-along report generated successfully!");
   };
 
+  const handleEmailReport = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter a recipient email address");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      // Generate PDF
+      const doc = await generatePDF();
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      const filename = `ride-along-${date || new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Call edge function to send email
+      const { data, error } = await supabase.functions.invoke('send-report-email', {
+        body: {
+          recipientEmail,
+          reportType: 'ride-along',
+          pdfBase64,
+          fileName: filename,
+          formData: {
+            technicianName,
+            customerName,
+            address,
+            accountNumber,
+            date,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Report emailed successfully to ${recipientEmail}`);
+      setEmailDialogOpen(false);
+      setRecipientEmail("");
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error(error.message || "Failed to send email");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const handleSaveDraft = async () => {
     if (!session?.user) return;
     
@@ -603,6 +658,58 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
                 formType="ride-along"
                 onDataExtracted={handleDataExtracted}
               />
+              <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Report
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Email Observation Report</DialogTitle>
+                    <DialogDescription>
+                      Enter the recipient's email address to send the PDF report
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Recipient Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="recipient@example.com"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleEmailReport();
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setEmailDialogOpen(false)}
+                        disabled={isSendingEmail}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleEmailReport}
+                        disabled={isSendingEmail}
+                      >
+                        {isSendingEmail ? "Sending..." : "Send Email"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <CardDescription>
               Document technician performance and adherence to procedures

@@ -11,6 +11,7 @@ import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import { DebugConsole } from "@/components/DebugConsole";
+import { SessionInfo } from "@/components/SessionInfo";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -90,28 +91,32 @@ const Index = () => {
     (window as any)._signingOut = true;
 
     try {
-      console.log('Signing out...');
+      console.log('🚪 Signing out...');
       
-      // Sign out from Supabase first
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Supabase signOut error:', error);
-      }
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear all local storage (critical for PWA)
+      localStorage.clear();
+      sessionStorage.clear();
       
       // Clear local state
       setSession(null);
       setIsAdmin(false);
       setApprovalStatus(null);
       
-      // Small delay to ensure cleanup completes
-      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('✅ Sign out complete, redirecting...');
       
-      // Force full page reload to auth (clears all state including PWA cache)
+      // Force hard navigation to auth page (clears SPA history and PWA cache)
       window.location.replace('/auth');
     } catch (error) {
-      console.error('Error signing out:', error);
-      // Still navigate to auth even if signOut fails
+      console.error('❌ Error signing out:', error);
+      // Even if signOut fails, clear everything and redirect
+      localStorage.clear();
+      sessionStorage.clear();
       window.location.replace('/auth');
+    } finally {
+      (window as any)._signingOut = false;
     }
   };
 
@@ -155,6 +160,11 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        {/* Session Diagnostics */}
+        <div className="mb-6">
+          <SessionInfo />
+        </div>
+
         <Tabs defaultValue="work-orders" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="work-orders">Work Orders</TabsTrigger>

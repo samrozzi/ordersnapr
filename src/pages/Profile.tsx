@@ -54,7 +54,9 @@ const Profile = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [approvalStatus, setApprovalStatus] = useState<string>("");
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -76,6 +78,7 @@ const Profile = () => {
     const { data } = await supabase
       .from("profiles")
       .select(`
+        approval_status,
         organization_id,
         organizations (
           id,
@@ -83,10 +86,13 @@ const Profile = () => {
         )
       `)
       .eq("id", uid)
-      .single();
+      .maybeSingle();
     
-    if (data?.organizations) {
-      setOrganization(data.organizations as Organization);
+    if (data) {
+      setApprovalStatus(data.approval_status || '');
+      if (data.organizations) {
+        setOrganization(data.organizations as Organization);
+      }
     }
   };
 
@@ -239,6 +245,48 @@ const Profile = () => {
     }
   };
 
+  const handleForceSessionRefresh = async () => {
+    setRefreshing(true);
+    try {
+      console.log('🔄 Force refreshing session...');
+      
+      // Try to refresh the session
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('❌ Session refresh failed:', error);
+        throw error;
+      }
+      
+      console.log('✅ Session refreshed successfully');
+      
+      // Re-fetch all data
+      await fetchUserData();
+      
+      toast({
+        title: "Success",
+        description: "Session refreshed successfully. Try viewing work orders now.",
+      });
+    } catch (error: any) {
+      console.error('❌ Force refresh error:', error);
+      toast({
+        title: "Session Refresh Failed",
+        description: "Signing out and redirecting to login...",
+        variant: "destructive",
+      });
+      
+      // If refresh fails, force sign out and reload
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('/auth');
+      }, 1500);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const getEntityName = (log: AuditLog) => {
     if (log.entity_type === "work_orders") {
       return log.changes?.new?.customer_name || log.changes?.customer_name || "Work Order";
@@ -283,11 +331,25 @@ const Profile = () => {
                   <Label>Email Address</Label>
                   <Input value={currentEmail} disabled className="bg-muted" />
                 </div>
+                <div className="space-y-2">
+                  <Label>User ID</Label>
+                  <Input value={userId.substring(0, 8) + '...'} disabled className="bg-muted font-mono text-xs" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Approval Status</Label>
+                  <Input value={approvalStatus || 'Unknown'} disabled className="bg-muted" />
+                </div>
                 {organization && (
-                  <div className="space-y-2">
-                    <Label>Organization</Label>
-                    <Input value={organization.name} disabled className="bg-muted" />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label>Organization</Label>
+                      <Input value={organization.name} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Organization ID</Label>
+                      <Input value={organization.id.substring(0, 8) + '...'} disabled className="bg-muted font-mono text-xs" />
+                    </div>
+                  </>
                 )}
                 {!organization && (
                   <p className="text-sm text-muted-foreground">
@@ -359,6 +421,27 @@ const Profile = () => {
                     {loading ? "Updating..." : "Update Password"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Session Management</CardTitle>
+                <CardDescription>
+                  Force refresh your authentication session if you're having issues accessing data
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleForceSessionRefresh} 
+                  disabled={refreshing}
+                  variant="outline"
+                >
+                  {refreshing ? "Refreshing..." : "Force Session Refresh"}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use this if you're logged in but can't see work orders or other data. This will renew your authentication token.
+                </p>
               </CardContent>
             </Card>
 

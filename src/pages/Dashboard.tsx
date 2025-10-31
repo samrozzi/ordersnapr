@@ -65,21 +65,42 @@ const Dashboard = () => {
 
   const fetchWorkOrders = async () => {
     try {
-      console.log('Fetching work orders...');
+      // Log current user before fetch
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 Fetching work orders for user:', {
+        email: user?.email,
+        id: user?.id?.substring(0, 8)
+      });
+
+      // Fetch work orders
       const { data, error } = await supabase
         .from("work_orders")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Work orders query error:', error);
+        console.error('❌ Work orders query error:', error);
         throw error;
       }
       
-      console.log('Work orders fetched:', data?.length || 0, 'records');
+      // Also get count to verify RLS
+      const { count } = await supabase
+        .from("work_orders")
+        .select("*", { count: 'exact', head: true });
+      
+      console.log('✅ Work orders fetched:', {
+        dataLength: data?.length || 0,
+        count: count || 0,
+        hasToken: !!(await supabase.auth.getSession()).data.session?.access_token
+      });
+
+      if (data?.length === 0 && user) {
+        console.warn('⚠️ Token present but 0 rows returned - possible PWA storage issue');
+      }
+      
       setWorkOrders(data || []);
     } catch (error) {
-      console.error("Error fetching work orders:", error);
+      console.error("❌ Error fetching work orders:", error);
       toast({
         title: "Error",
         description: "Failed to load work orders",

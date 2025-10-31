@@ -32,12 +32,18 @@ export const DraftsTable = ({ onLoadDraft }: DraftsTableProps) => {
 
   const fetchDrafts = async () => {
     try {
+      console.log('Fetching drafts...');
       const { data, error } = await supabase
         .from('form_drafts')
         .select('*')
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Drafts query error:', error);
+        throw error;
+      }
+      
+      console.log('Drafts fetched:', data?.length || 0, 'records');
       setDrafts(data || []);
     } catch (error) {
       console.error("Error fetching drafts:", error);

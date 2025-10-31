@@ -82,22 +82,35 @@ const Index = () => {
   }, [session]);
 
   const handleSignOut = async () => {
+    // Prevent multiple simultaneous sign-out attempts
+    if ((window as any)._signingOut) {
+      return;
+    }
+    (window as any)._signingOut = true;
+
     try {
-      // Clear local state first
+      console.log('Signing out...');
+      
+      // Sign out from Supabase first
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      }
+      
+      // Clear local state
       setSession(null);
       setIsAdmin(false);
       setApprovalStatus(null);
       
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Small delay to ensure cleanup completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Force navigation to auth page
-      // Use window.location for Safari compatibility
-      window.location.href = '/auth';
+      // Force full page reload to auth (clears all state including PWA cache)
+      window.location.replace('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
       // Still navigate to auth even if signOut fails
-      window.location.href = '/auth';
+      window.location.replace('/auth');
     }
   };
 

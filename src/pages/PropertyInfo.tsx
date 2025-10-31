@@ -50,12 +50,18 @@ const PropertyInfo = () => {
 
   const fetchProperties = async () => {
     try {
+      console.log('Fetching properties...');
       const { data, error } = await supabase
         .from("properties")
         .select("*")
         .order("property_name", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Properties query error:', error);
+        throw error;
+      }
+      
+      console.log('Properties fetched:', data?.length || 0, 'records');
       setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);

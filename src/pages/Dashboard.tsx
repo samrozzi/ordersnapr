@@ -65,12 +65,18 @@ const Dashboard = () => {
 
   const fetchWorkOrders = async () => {
     try {
+      console.log('Fetching work orders...');
       const { data, error } = await supabase
         .from("work_orders")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Work orders query error:', error);
+        throw error;
+      }
+      
+      console.log('Work orders fetched:', data?.length || 0, 'records');
       setWorkOrders(data || []);
     } catch (error) {
       console.error("Error fetching work orders:", error);

@@ -11,7 +11,6 @@ import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import { DebugConsole } from "@/components/DebugConsole";
-import { SessionInfo } from "@/components/SessionInfo";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -160,11 +159,6 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        {/* Session Diagnostics */}
-        <div className="mb-6">
-          <SessionInfo />
-        </div>
-
         <Tabs defaultValue="work-orders" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="work-orders">Work Orders</TabsTrigger>

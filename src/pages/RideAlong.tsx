@@ -1002,7 +1002,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4">
+        <div className="sticky bottom-4 left-0 right-0 z-50 flex justify-center px-4 mt-6">
           <div className="flex gap-3 bg-background/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
             <Button onClick={handleGenerateReport} size="lg" className="shadow-lg">
               Generate PDF Report

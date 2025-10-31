@@ -31,7 +31,12 @@ interface WorkOrder {
   photos: string[] | null;
   access_required: boolean | null;
   access_notes: string | null;
-  user_id?: string;
+  user_id: string;
+  completed_by: string | null;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 interface AuditLog {

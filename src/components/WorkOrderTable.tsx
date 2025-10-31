@@ -30,6 +30,12 @@ interface WorkOrder {
   photos: string[] | null;
   access_required: boolean | null;
   access_notes: string | null;
+  user_id: string;
+  completed_by: string | null;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 interface WorkOrderTableProps {
@@ -106,12 +112,15 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
     setIsCompleting(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { error } = await supabase
         .from("work_orders")
         .update({
           status: "completed",
           completion_notes: completionNotes,
           completed_at: new Date().toISOString(),
+          completed_by: user?.id || null,
         })
         .eq("id", selectedOrder.id);
 
@@ -220,6 +229,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
               <TableHead>BPC</TableHead>
               <TableHead>Package</TableHead>
               <TableHead>Job ID</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -293,6 +303,9 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 <TableCell>{order.bpc || "-"}</TableCell>
                 <TableCell>{order.package || "-"}</TableCell>
                 <TableCell>{order.job_id || "-"}</TableCell>
+                <TableCell>
+                  {order.profiles?.full_name || order.profiles?.email || "Unknown"}
+                </TableCell>
                 <TableCell>
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>

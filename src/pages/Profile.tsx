@@ -19,6 +19,11 @@ interface AuditLog {
   entity_id: string;
   created_at: string;
   changes: any;
+  user_id: string;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 interface WorkOrder {
@@ -27,6 +32,12 @@ interface WorkOrder {
   status: string;
   created_at: string;
   scheduled_date: string | null;
+  user_id: string;
+  completed_by: string | null;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 interface Property {
@@ -99,7 +110,10 @@ const Profile = () => {
   const fetchAuditLogs = async (uid: string) => {
     const { data } = await supabase
       .from("audit_logs" as any)
-      .select("id, action, entity_type, entity_id, created_at, changes")
+      .select(`
+        id, action, entity_type, entity_id, created_at, changes, user_id,
+        profiles:user_id(full_name, email)
+      `)
       .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -111,11 +125,14 @@ const Profile = () => {
     // RLS policies will automatically filter to show user's own + organization work orders
     const { data } = await supabase
       .from("work_orders")
-      .select("id, customer_name, status, created_at, scheduled_date")
+      .select(`
+        id, customer_name, status, created_at, scheduled_date, user_id, completed_by,
+        profiles:user_id(full_name, email)
+      `)
       .order("created_at", { ascending: false })
       .limit(10);
     
-    if (data) setWorkOrders(data);
+    if (data) setWorkOrders(data as any);
   };
 
   const fetchProperties = async () => {
@@ -510,8 +527,13 @@ const Profile = () => {
                         <div>
                           <p className="font-medium">{order.customer_name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Status: {order.status} • Created {format(new Date(order.created_at), "MMM dd, yyyy")}
+                            Status: {order.status} • Created by {order.profiles?.full_name || order.profiles?.email || 'Unknown'} • {format(new Date(order.created_at), "MMM dd, yyyy")}
                           </p>
+                          {order.status === 'completed' && order.completed_by && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Completed by user {order.completed_by.substring(0, 8)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -575,7 +597,7 @@ const Profile = () => {
                             {log.action.charAt(0).toUpperCase() + log.action.slice(1)} {log.entity_type.replace('_', ' ')}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {getEntityName(log)} • {format(new Date(log.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                            {getEntityName(log)} • By {log.profiles?.full_name || log.profiles?.email || 'Unknown'} • {format(new Date(log.created_at), "MMM dd, yyyy 'at' h:mm a")}
                           </p>
                         </div>
                       </div>

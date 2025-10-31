@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import OrgAdmin from "./pages/OrgAdmin";
 import PendingApproval from "./pages/PendingApproval";
 import Profile from "./pages/Profile";
 import JobAudit from "./pages/JobAudit";
@@ -27,6 +28,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/org-admin" element={<OrgAdmin />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/job-audit" element={<JobAudit />} />

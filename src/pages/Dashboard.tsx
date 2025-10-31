@@ -30,6 +30,12 @@ interface WorkOrder {
   photos: string[] | null;
   access_required: boolean | null;
   access_notes: string | null;
+  user_id: string;
+  completed_by: string | null;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 const Dashboard = () => {
@@ -72,10 +78,13 @@ const Dashboard = () => {
         id: user?.id?.substring(0, 8)
       });
 
-      // Fetch work orders
+      // Fetch work orders with user profiles
       const { data, error } = await supabase
         .from("work_orders")
-        .select("*")
+        .select(`
+          *,
+          profiles:user_id(full_name, email)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) {

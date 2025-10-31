@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_change_requests: {
+        Row: {
+          current_email: string
+          id: string
+          requested_at: string
+          requested_email: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          current_email: string
+          id?: string
+          requested_at?: string
+          requested_email: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          current_email?: string
+          id?: string
+          requested_at?: string
+          requested_email?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       form_drafts: {
         Row: {
           created_at: string | null
@@ -73,6 +106,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      organization_settings: {
+        Row: {
+          created_at: string
+          custom_theme_color: string | null
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_theme_color?: string | null
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_theme_color?: string | null
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organizations: {
         Row: {
@@ -201,6 +266,7 @@ export type Database = {
           ban: string | null
           bpc: string | null
           completed_at: string | null
+          completed_by: string | null
           completion_notes: string | null
           contact_info: string | null
           created_at: string | null
@@ -223,6 +289,7 @@ export type Database = {
           ban?: string | null
           bpc?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           completion_notes?: string | null
           contact_info?: string | null
           created_at?: string | null
@@ -245,6 +312,7 @@ export type Database = {
           ban?: string | null
           bpc?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           completion_notes?: string | null
           contact_info?: string | null
           created_at?: string | null
@@ -275,6 +343,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_org_member: {
+        Args: { _acting_user_id: string; _target_user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -283,6 +355,10 @@ export type Database = {
         Returns: boolean
       }
       in_same_org: { Args: { _u1: string; _u2: string }; Returns: boolean }
+      is_org_admin: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_user_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

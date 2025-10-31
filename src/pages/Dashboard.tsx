@@ -1,118 +1,74 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { WorkOrderForm } from "@/components/WorkOrderForm";
-import { WorkOrderTable } from "@/components/WorkOrderTable";
-import { WorkOrderDetails } from "@/components/WorkOrderDetails";
-import { CalendarView } from "@/components/CalendarView";
-import { LogOut, Plus, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardGrid } from "@/components/DashboardGrid";
+import { AddWidgetDialog } from "@/components/AddWidgetDialog";
+import { Button } from "@/components/ui/button";
+import { Edit, Save } from "lucide-react";
 
-interface WorkOrder {
+interface Widget {
   id: string;
-  bpc: string | null;
-  ban: string | null;
-  package: string | null;
-  job_id: string | null;
-  customer_name: string;
-  contact_info: string | null;
-  address: string | null;
-  notes: string | null;
-  scheduled_date: string | null;
-  scheduled_time: string | null;
-  status: string;
-  completion_notes: string | null;
-  created_at: string;
-  photos: string[] | null;
-  access_required: boolean | null;
-  access_notes: string | null;
-  user_id: string;
-  completed_by: string | null;
-  profiles?: {
-    full_name: string | null;
-    email: string | null;
-  };
+  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather";
+  position: number;
+  settings: any;
 }
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [session, setSession] = useState<Session | null>(null);
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullStartY, setPullStartY] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
+  const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
-    });
+    fetchDashboardData();
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchWorkOrders = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Log current user before fetch
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('🔍 Fetching work orders for user:', {
-        email: user?.email,
-        id: user?.id?.substring(0, 8)
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      // Fetch work orders with user profiles
-      const { data, error } = await supabase
-        .from("work_orders")
-        .select(`
-          *,
-          profiles:user_id(full_name, email)
-        `)
-        .order("created_at", { ascending: false });
+      if (!user) return;
 
-      if (error) {
-        console.error('❌ Work orders query error:', error);
-        throw error;
+      // Fetch widgets
+      const { data: widgetsData, error: widgetsError } = await supabase
+        .from("dashboard_widgets")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("position");
+
+      if (widgetsError) throw widgetsError;
+
+      // If no widgets, create defaults
+      if (!widgetsData || widgetsData.length === 0) {
+        await createDefaultWidgets(user.id);
+        return fetchDashboardData();
       }
-      
-      // Also get count to verify RLS
-      const { count } = await supabase
-        .from("work_orders")
-        .select("*", { count: 'exact', head: true });
-      
-      console.log('✅ Work orders fetched:', {
-        dataLength: data?.length || 0,
-        count: count || 0,
-        hasToken: !!(await supabase.auth.getSession()).data.session?.access_token
-      });
 
-      if (data?.length === 0 && user) {
-        console.warn('⚠️ Token present but 0 rows returned - possible PWA storage issue');
-      }
-      
-      setWorkOrders(data || []);
-    } catch (error) {
-      console.error("❌ Error fetching work orders:", error);
+      setWidgets(widgetsData.map(w => ({
+        id: w.id,
+        type: w.widget_type as Widget["type"],
+        position: w.position,
+        settings: w.settings,
+      })) as Widget[]);
+
+      // Fetch work orders for calendar widgets
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("work_orders")
+        .select("*")
+        .not("scheduled_date", "is", null)
+        .in("status", ["pending", "scheduled"])
+        .order("scheduled_date");
+
+      if (ordersError) throw ordersError;
+      setWorkOrders(ordersData || []);
+    } catch (error: any) {
+      console.error("Error fetching dashboard:", error);
       toast({
         title: "Error",
-        description: "Failed to load work orders",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -120,162 +76,164 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (session) {
-      fetchWorkOrders();
-    }
-  }, [session]);
+  const createDefaultWidgets = async (userId: string) => {
+    const defaultWidgets = [
+      { widget_type: "calendar-medium", position: 0 },
+      { widget_type: "weather", position: 1 },
+    ];
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchWorkOrders();
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setPullDistance(0);
-    }, 500);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
-      setPullStartY(e.touches[0].clientY);
+    for (const widget of defaultWidgets) {
+      await supabase.from("dashboard_widgets").insert({
+        user_id: userId,
+        widget_type: widget.widget_type,
+        position: widget.position,
+        settings: {},
+      });
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (pullStartY === 0 || window.scrollY > 0) return;
-    
-    const currentY = e.touches[0].clientY;
-    const distance = currentY - pullStartY;
-    
-    if (distance > 0 && distance < 150) {
-      setPullDistance(distance);
+  const handleAddWidget = async (type: Widget["type"]) => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const newPosition = widgets.length;
+
+      const { data, error } = await supabase
+        .from("dashboard_widgets")
+        .insert({
+          user_id: user.id,
+          widget_type: type,
+          position: newPosition,
+          settings: {},
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setWidgets([...widgets, {
+        id: data.id,
+        type: data.widget_type as Widget["type"],
+        position: data.position,
+        settings: data.settings,
+      }]);
+
+      toast({
+        title: "Widget added",
+        description: "Your new widget has been added to the dashboard",
+      });
+    } catch (error: any) {
+      console.error("Error adding widget:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const handleTouchEnd = () => {
-    if (pullDistance > 80 && !isRefreshing) {
-      handleRefresh();
-    } else {
-      setPullDistance(0);
+  const handleRemoveWidget = async (id: string) => {
+    try {
+      const { error } = await supabase.from("dashboard_widgets").delete().eq("id", id);
+
+      if (error) throw error;
+
+      setWidgets(widgets.filter((w) => w.id !== id));
+
+      toast({
+        title: "Widget removed",
+        description: "The widget has been removed from your dashboard",
+      });
+    } catch (error: any) {
+      console.error("Error removing widget:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-    setPullStartY(0);
   };
 
-  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
-  const completedOrders = workOrders.filter((order) => order.status === "completed");
+  const handleWidgetsChange = async (newWidgets: Widget[]) => {
+    setWidgets(newWidgets);
+
+    // Save positions to database
+    try {
+      for (const widget of newWidgets) {
+        await supabase
+          .from("dashboard_widgets")
+          .update({ position: widget.position })
+          .eq("id", widget.id);
+      }
+    } catch (error: any) {
+      console.error("Error updating widget positions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save widget positions",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveLayout = () => {
+    setIsEditMode(false);
+    toast({
+      title: "Layout saved",
+      description: "Your dashboard layout has been saved",
+    });
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-muted-foreground">Loading dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div 
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      className="relative"
-    >
-      {/* Pull to refresh indicator */}
-      <div 
-        className="absolute top-0 left-0 right-0 flex justify-center items-center transition-all duration-200 ease-out pointer-events-none"
-        style={{ 
-          transform: `translateY(${pullDistance > 0 ? pullDistance - 50 : -50}px)`,
-          opacity: pullDistance / 80
-        }}
-      >
-        <div className={`text-primary ${isRefreshing ? 'animate-spin' : ''}`}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+    <div className="container mx-auto p-6 max-w-7xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Customize your workspace</p>
+        </div>
+        <div className="flex gap-2">
+          <AddWidgetDialog onAddWidget={handleAddWidget} />
+          {!isEditMode ? (
+            <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Layout
+            </Button>
+          ) : (
+            <Button size="sm" onClick={handleSaveLayout}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Layout
+            </Button>
+          )}
         </div>
       </div>
 
-      <main className="space-y-6">
-        <h2 className="text-2xl font-semibold">Your Work Orders</h2>
-        
-        <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Work Order
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Work Order</DialogTitle>
-              </DialogHeader>
-              <WorkOrderForm
-                onSuccess={() => {
-                  setIsDialogOpen(false);
-                  fetchWorkOrders();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Calendar className="h-4 w-4 mr-2" />
-                Calendar View
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>Work Order Calendar</DialogTitle>
-              </DialogHeader>
-              <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
-                <CalendarView 
-                  workOrders={workOrders} 
-                  onWorkOrderClick={(id) => {
-                    const order = workOrders.find(wo => wo.id === id);
-                    if (order) {
-                      setViewingOrder(order);
-                      setIsCalendarOpen(false);
-                    }
-                  }}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="pending">
-              Pending / Scheduled ({pendingOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({completedOrders.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pending" className="mt-6">
-            <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
-          </TabsContent>
-
-          <TabsContent value="completed" className="mt-6">
-            <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
-          </TabsContent>
-        </Tabs>
-
-        <WorkOrderDetails
-          workOrder={viewingOrder}
-          open={!!viewingOrder}
-          onOpenChange={(open) => !open && setViewingOrder(null)}
-          onUpdate={fetchWorkOrders}
+      {/* Dashboard Grid */}
+      {widgets.length > 0 ? (
+        <DashboardGrid
+          widgets={widgets}
+          workOrders={workOrders}
+          isEditMode={isEditMode}
+          onWidgetsChange={handleWidgetsChange}
+          onRemoveWidget={handleRemoveWidget}
         />
-      </main>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
+          <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>
+          <AddWidgetDialog onAddWidget={handleAddWidget} />
+        </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,9 @@ import PendingApproval from "./pages/PendingApproval";
 import Profile from "./pages/Profile";
 import JobAudit from "./pages/JobAudit";
 import RideAlong from "./pages/RideAlong";
+import Dashboard from "./pages/Dashboard";
+import WorkOrders from "./pages/WorkOrders";
+import CalendarPage from "./pages/CalendarPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +37,9 @@ const AppContent = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/job-audit" element={<JobAudit />} />
           <Route path="/ride-along" element={<RideAlong />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/work-orders" element={<WorkOrders />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

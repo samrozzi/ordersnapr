@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_widgets: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          settings: Json | null
+          updated_at: string
+          user_id: string
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position: number
+          settings?: Json | null
+          updated_at?: string
+          user_id: string
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          settings?: Json | null
+          updated_at?: string
+          user_id?: string
+          widget_type?: string
+        }
+        Relationships: []
+      }
       email_change_requests: {
         Row: {
           current_email: string

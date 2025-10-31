@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, RefreshCw, Crown } from "lucide-react";
+import { LogOut, Shield, RefreshCw, Crown, Calendar as CalendarIcon, LayoutDashboard } from "lucide-react";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
-import Dashboard from "./Dashboard";
+import WorkOrders from "./WorkOrders";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
@@ -176,6 +176,14 @@ const Index = () => {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/calendar")}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Calendar
+            </Button>
             <Button variant="outline" onClick={() => navigate("/profile")}>
               Profile
             </Button>
@@ -212,7 +220,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="work-orders">
-            <Dashboard />
+            <WorkOrders />
           </TabsContent>
 
           <TabsContent value="property-info">

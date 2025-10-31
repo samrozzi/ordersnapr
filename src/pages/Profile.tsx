@@ -629,6 +629,18 @@ const Profile = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="favorites" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Favorites</CardTitle>
+                <CardDescription>Items you've starred for quick access</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfileFavoritesTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="changelog">
             <Card>
               <CardHeader>

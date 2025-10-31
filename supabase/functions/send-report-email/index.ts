@@ -91,6 +91,12 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
+    // Configure sender email address
+    // For custom domains: Verify your domain at https://resend.com/domains
+    // Then set RESEND_FROM_EMAIL secret to "OrderSnapr Reports <reports@ordersnapr.com>"
+    // Default uses Resend's test domain which works immediately
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "OrderSnapr Reports <onboarding@resend.dev>";
+
     // Generate email subject and body based on report type
     const subject = reportType === "job-audit" 
       ? `Job Quality Inspection Report - ${formData.technicianName || 'Technician'}`
@@ -162,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OrderSnapr Reports <reports@ordersnapr.com>",
+        from: fromEmail,
         to: [recipientEmail],
         subject: subject,
         html: htmlBody,

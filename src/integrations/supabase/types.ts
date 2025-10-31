@@ -74,6 +74,27 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approval_status: Database["public"]["Enums"]["approval_status"]
@@ -81,6 +102,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          organization_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -89,6 +111,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          organization_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -97,9 +120,18 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       properties: {
         Row: {

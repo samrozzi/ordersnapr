@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PropertyForm } from "@/components/PropertyForm";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, Pencil, Trash2, ArrowUpDown, MapPin, Phone, MessageSquare, Mail, User, Clock, History } from "lucide-react";
@@ -370,7 +371,10 @@ ${getDistance(property)} miles from your location` : ''}`;
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Property Details</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Property Details</DialogTitle>
+              {viewingProperty && <FavoriteButton entityType="property" entityId={viewingProperty.id} />}
+            </div>
           </DialogHeader>
           {viewingProperty && (
             <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">

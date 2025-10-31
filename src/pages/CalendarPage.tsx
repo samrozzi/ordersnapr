@@ -5,9 +5,12 @@ import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";
 import { AppHeader } from "@/components/AppHeader";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 const CalendarPage = () => {
+  const navigate = useNavigate();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -73,7 +76,23 @@ const CalendarPage = () => {
     <div className="min-h-screen bg-background">
       <AppHeader orgLogoUrl={orgLogoUrl} isAdmin={isAdmin} currentPage="calendar" />
       
-      <div className="container mx-auto p-6 max-w-7xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+        {/* Navigation Tabs */}
+        <div className="mb-6">
+          <Tabs value="calendar" onValueChange={(value) => {
+            if (value === "work-orders") navigate("/menu");
+            if (value === "property-info") navigate("/menu");
+            if (value === "forms") navigate("/menu");
+          }}>
+            <TabsList>
+              <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
+              <TabsTrigger value="property-info">Property Info</TabsTrigger>
+              <TabsTrigger value="forms">Forms</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <div>

@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FileText, Trash2, Edit, Download } from "lucide-react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -153,6 +154,8 @@ export const DraftsTable = ({ onLoadDraft }: DraftsTableProps) => {
                   {format(new Date(draft.updated_at), 'MMM d, yyyy h:mm a')}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
+                  <FavoriteButton entityType="form_draft" entityId={draft.id} />
+                  
                   <Button
                     size="sm"
                     variant="outline"

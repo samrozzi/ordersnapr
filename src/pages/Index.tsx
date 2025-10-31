@@ -10,6 +10,7 @@ import Dashboard from "./Dashboard";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { DebugConsole } from "@/components/DebugConsole";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -174,6 +175,8 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+      
+      <DebugConsole />
     </div>
   );
 };

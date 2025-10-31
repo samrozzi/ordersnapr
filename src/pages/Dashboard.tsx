@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const { toast } = useToast();
@@ -48,9 +49,10 @@ const Dashboard = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .in("role", ["admin"]);
+        .in("role", ["admin", "org_admin"]);
 
       setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
+      setIsOrgAdmin(!!rolesData?.some(r => r.role === "org_admin"));
 
       // Fetch organization logo
       const { data: profileData } = await supabase
@@ -288,20 +290,20 @@ const Dashboard = () => {
               </div>
               
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                {isAdmin && (
+                {(isAdmin || isOrgAdmin) && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={() => navigate("/admin")}
-                        aria-label="Admin"
+                        onClick={() => navigate(isAdmin ? "/admin" : "/org-admin")}
+                        aria-label={isAdmin ? "Admin" : "Org Admin"}
                         className="h-8 w-8 sm:h-10 sm:w-10"
                       >
                         <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Admin</TooltipContent>
+                    <TooltipContent>{isAdmin ? "Admin" : "Org Admin"}</TooltipContent>
                   </Tooltip>
                 )}
                 <Tooltip>

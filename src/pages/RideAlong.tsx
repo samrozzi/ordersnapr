@@ -1201,7 +1201,7 @@ const RideAlong = ({ draftToLoad, onDraftLoaded }: RideAlongProps = {}) => {
           </Card>
         </Collapsible>
 
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <div className="pointer-events-auto">
             <RadialShareButton
               onGeneratePDF={handleGenerateReport}

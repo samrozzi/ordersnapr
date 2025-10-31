@@ -11,22 +11,54 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [approved, setApproved] = useState(false);
 
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAccess = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      
       if (!session) {
         navigate("/auth");
+        setLoading(false);
+        return;
       }
+
+      // Check if user is approved or is an admin
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("approval_status")
+        .eq("id", session.user.id)
+        .single();
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      const isAdmin = !!roles;
+      const isApproved = profile?.approval_status === "approved";
+
+      if (!isApproved && !isAdmin) {
+        navigate("/pending-approval");
+        setLoading(false);
+        return;
+      }
+
+      setApproved(true);
       setLoading(false);
-    });
+    };
+
+    checkAccess();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
       if (!session) {
         navigate("/auth");
+      } else {
+        checkAccess();
       }
     });
 
@@ -41,7 +73,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!session) {
+  if (!session || !approved) {
     return null;
   }
 

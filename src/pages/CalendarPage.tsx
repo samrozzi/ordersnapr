@@ -5,7 +5,6 @@ import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";
 import { AppHeader } from "@/components/AppHeader";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
@@ -14,6 +13,7 @@ const CalendarPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   const { workOrders, calendarEvents, refetch, loading } = useOrgCalendarData();
 
@@ -26,14 +26,15 @@ const CalendarPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check admin status
+      // Check if user is admin or org admin
       const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .in("role", ["admin"]);
+        .in("role", ["admin", "org_admin"]);
 
       setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
+      setIsOrgAdmin(!!rolesData?.some(r => r.role === "org_admin"));
 
       // Fetch organization logo
       const { data: profileData } = await supabase
@@ -74,26 +75,21 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader orgLogoUrl={orgLogoUrl} isAdmin={isAdmin} currentPage="calendar" />
+      <AppHeader 
+        orgLogoUrl={orgLogoUrl} 
+        isAdmin={isAdmin} 
+        isOrgAdmin={isOrgAdmin}
+        currentPage="calendar" 
+        showNavTabs={true}
+        activeTab="calendar"
+        onTabChange={(tab) => {
+          if (tab === "work-orders") navigate("/work-orders");
+          if (tab === "property-info") navigate("/property-info");
+          if (tab === "forms") navigate("/forms");
+        }}
+      />
       
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
-        {/* Navigation Tabs */}
-        <Tabs value="calendar" className="mb-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="work-orders" onClick={() => navigate("/work-orders")}>
-              Work Orders
-            </TabsTrigger>
-            <TabsTrigger value="property-info" onClick={() => navigate("/property-info")}>
-              Property Info
-            </TabsTrigger>
-            <TabsTrigger value="forms" onClick={() => navigate("/forms")}>
-              Forms
-            </TabsTrigger>
-            <TabsTrigger value="calendar">
-              Calendar
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">

@@ -35,10 +35,10 @@ export const RadialShareButton = ({
   }, [isOpen]);
 
   const menuItems = [
-    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -90 },
-    { icon: Send, label: "Email", onClick: onSendEmail, position: 0 },
-    { icon: Download, label: "Save", onClick: onSaveFiles, position: 180 },
-    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: 90 },
+    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -120 },
+    { icon: Send, label: "Email", onClick: onSendEmail, position: -60 },
+    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: -30 },
+    { icon: Download, label: "Save", onClick: onSaveFiles, position: 0 },
   ];
 
   const handleItemClick = (onClick: () => void) => {

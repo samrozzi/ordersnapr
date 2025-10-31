@@ -161,7 +161,7 @@ const Index = () => {
               aria-label="Go to home page"
             >
               <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
-              <ThemedLightningBolt />
+              {!loading && <ThemedLightningBolt />}
             </button>
             {orgLogoUrl && (
               <button

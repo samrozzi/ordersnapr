@@ -85,10 +85,13 @@ const SortableWidget = ({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        touchAction: isEditMode ? 'none' : 'auto',
+      }}
       {...attributes}
       {...listeners}
-      className={cn("group", isEditMode && "cursor-move")}
+      className={cn("group", isEditMode && "cursor-move touch-none")}
     >
       <BaseWidget
         size={getWidgetSize(widget.type)}
@@ -109,7 +112,11 @@ export const DashboardGrid = ({
   onRemoveWidget,
 }: DashboardGridProps) => {
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

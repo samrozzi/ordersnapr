@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardGrid } from "@/components/DashboardGrid";
 import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
-import { Edit, Save } from "lucide-react";
+import { Edit, Save, Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 
 interface Widget {
   id: string;
@@ -14,10 +17,13 @@ interface Widget {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,6 +37,34 @@ const Dashboard = () => {
       } = await supabase.auth.getUser();
 
       if (!user) return;
+
+      // Check admin status and org logo
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["admin"]);
+
+      setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
+
+      // Fetch organization logo
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData?.organization_id) {
+        const { data: orgSettings } = await supabase
+          .from("organization_settings")
+          .select("logo_url")
+          .eq("organization_id", profileData.organization_id)
+          .maybeSingle();
+
+        if (orgSettings?.logo_url) {
+          setOrgLogoUrl(orgSettings.logo_url);
+        }
+      }
 
       // Fetch widgets
       const { data: widgetsData, error: widgetsError } = await supabase
@@ -196,44 +230,145 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Customize your workspace</p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b overflow-x-hidden">
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+            <button 
+              onClick={() => navigate("/")}
+              className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+              aria-label="Go to home page"
+            >
+              <img src={ordersnaprLogo} alt="ordersnapr" className="h-12 sm:h-16 relative z-10" />
+            </button>
+            {orgLogoUrl && (
+              <button
+                onClick={() => navigate("/")}
+                className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+                aria-label="Go to home page"
+              >
+                <img 
+                  src={orgLogoUrl} 
+                  alt="Organization logo" 
+                  className="h-auto max-h-12 sm:max-h-16 max-w-[120px] sm:max-w-[200px] object-contain"
+                />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <TooltipProvider>
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => navigate("/dashboard")}
+                      aria-label="Dashboard"
+                      className="h-8 w-8 sm:h-10 sm:w-10"
+                    >
+                      <Home className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Dashboard</TooltipContent>
+                </Tooltip>
+                <Button variant="ghost" onClick={() => navigate("/")}>
+                  Main Menu
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                {isAdmin && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => navigate("/admin")}
+                        aria-label="Admin"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
+                      >
+                        <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Admin</TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => navigate("/calendar")}
+                      aria-label="Calendar"
+                      className="h-8 w-8 sm:h-10 sm:w-10"
+                    >
+                      <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Calendar</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => navigate("/profile")}
+                      aria-label="Profile"
+                      className="h-8 w-8 sm:h-10 sm:w-10"
+                    >
+                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Profile</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <AddWidgetDialog onAddWidget={handleAddWidget} />
-          {!isEditMode ? (
-            <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Layout
-            </Button>
-          ) : (
-            <Button size="sm" onClick={handleSaveLayout}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Layout
-            </Button>
-          )}
-        </div>
-      </div>
+      </header>
 
-      {/* Dashboard Grid */}
-      {widgets.length > 0 ? (
-        <DashboardGrid
-          widgets={widgets}
-          workOrders={workOrders}
-          isEditMode={isEditMode}
-          onWidgetsChange={handleWidgetsChange}
-          onRemoveWidget={handleRemoveWidget}
-        />
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
-          <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>
-          <AddWidgetDialog onAddWidget={handleAddWidget} />
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl overflow-x-hidden">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Customize your workspace</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <AddWidgetDialog onAddWidget={handleAddWidget} />
+            {!isEditMode ? (
+              <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Edit Layout</span>
+                <span className="sm:hidden">Edit</span>
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handleSaveLayout}>
+                <Save className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Save Layout</span>
+                <span className="sm:hidden">Save</span>
+              </Button>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Dashboard Grid */}
+        {widgets.length > 0 ? (
+          <DashboardGrid
+            widgets={widgets}
+            workOrders={workOrders}
+            isEditMode={isEditMode}
+            onWidgetsChange={handleWidgetsChange}
+            onRemoveWidget={handleRemoveWidget}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>
+            <AddWidgetDialog onAddWidget={handleAddWidget} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

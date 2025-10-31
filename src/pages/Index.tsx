@@ -116,33 +116,33 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Tabs defaultValue="work-orders" className="w-full">
-        <header className="border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between mb-4">
+        <header className="border-b overflow-x-hidden">
+          <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
               <button 
                 onClick={() => navigate("/")}
-                className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                 aria-label="Go to home page"
               >
-                <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
+                <img src={ordersnaprLogo} alt="ordersnapr" className="h-12 sm:h-16 relative z-10" />
               </button>
               {orgLogoUrl && (
                 <button
                   onClick={() => navigate("/")}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                   aria-label="Go to home page"
                 >
                   <img 
                     src={orgLogoUrl} 
                     alt="Organization logo" 
-                    className="h-auto max-h-16 max-w-[200px] object-contain"
+                    className="h-auto max-h-12 sm:max-h-16 max-w-[120px] sm:max-w-[200px] object-contain"
                   />
                 </button>
               )}
             </div>
-            <div className="flex items-center justify-between gap-6">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
               <TooltipProvider>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
@@ -150,21 +150,22 @@ const Index = () => {
                         size="icon"
                         onClick={() => navigate("/dashboard")}
                         aria-label="Dashboard"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
                       >
-                        <Home className="h-5 w-5" />
+                        <Home className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Dashboard</TooltipContent>
                   </Tooltip>
                   
-                  <TabsList>
-                    <TabsTrigger value="work-orders">Work Orders</TabsTrigger>
-                    <TabsTrigger value="property-info">Property Info</TabsTrigger>
-                    <TabsTrigger value="forms">Forms</TabsTrigger>
+                  <TabsList className="h-8 sm:h-10">
+                    <TabsTrigger value="work-orders" className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
+                    <TabsTrigger value="property-info" className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
+                    <TabsTrigger value="forms" className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
                   </TabsList>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {isAdmin && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -173,8 +174,9 @@ const Index = () => {
                           size="icon"
                           onClick={() => navigate("/admin")}
                           aria-label="Admin"
+                          className="h-8 w-8 sm:h-10 sm:w-10"
                         >
-                          <Shield className="h-5 w-5" />
+                          <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Admin</TooltipContent>
@@ -187,8 +189,9 @@ const Index = () => {
                         size="icon"
                         onClick={() => navigate("/calendar")}
                         aria-label="Calendar"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
                       >
-                        <CalendarIcon className="h-5 w-5" />
+                        <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Calendar</TooltipContent>
@@ -200,8 +203,9 @@ const Index = () => {
                         size="icon"
                         onClick={() => navigate("/profile")}
                         aria-label="Profile"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
                       >
-                        <User className="h-5 w-5" />
+                        <User className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Profile</TooltipContent>

@@ -282,6 +282,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      in_same_org: { Args: { _u1: string; _u2: string }; Returns: boolean }
       is_user_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

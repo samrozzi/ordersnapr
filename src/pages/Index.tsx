@@ -10,6 +10,7 @@ import Dashboard from "./Dashboard";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { ThemedLightningBolt } from "@/components/ThemedLightningBolt";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -154,13 +155,26 @@ const Index = () => {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
-            <img src={ordersnaprLogo} alt="ordersnapr" className="h-16" />
+            <button 
+              onClick={() => navigate("/")}
+              className="relative cursor-pointer hover:opacity-80 transition-opacity"
+              aria-label="Go to home page"
+            >
+              <img src={ordersnaprLogo} alt="ordersnapr" className="h-16 relative z-10" />
+              <ThemedLightningBolt />
+            </button>
             {orgLogoUrl && (
-              <img 
-                src={orgLogoUrl} 
-                alt="Organization logo" 
-                className="h-16 object-contain"
-              />
+              <button
+                onClick={() => navigate("/")}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+                aria-label="Go to home page"
+              >
+                <img 
+                  src={orgLogoUrl} 
+                  alt="Organization logo" 
+                  className="h-auto max-h-16 max-w-[200px] object-contain"
+                />
+              </button>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">

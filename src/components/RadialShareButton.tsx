@@ -35,10 +35,10 @@ export const RadialShareButton = ({
   }, [isOpen]);
 
   const menuItems = [
-    { icon: FileDown, label: "Generate PDF", onClick: onGeneratePDF, position: 0 },
-    { icon: Send, label: "Send Email", onClick: onSendEmail, position: 90 },
-    { icon: Download, label: "Save Files", onClick: onSaveFiles, position: 180 },
-    { icon: Mail, label: "Email Draft", onClick: onEmailDraft, position: 270 },
+    { icon: FileDown, label: "PDF", onClick: onGeneratePDF, position: -90 },
+    { icon: Send, label: "Email", onClick: onSendEmail, position: 0 },
+    { icon: Download, label: "Save", onClick: onSaveFiles, position: 180 },
+    { icon: Mail, label: "Draft", onClick: onEmailDraft, position: 90 },
   ];
 
   const handleItemClick = (onClick: () => void) => {
@@ -67,7 +67,7 @@ export const RadialShareButton = ({
       {/* Radial menu items */}
       {menuItems.map((item, index) => {
         const angle = (item.position * Math.PI) / 180;
-        const radius = 80;
+        const radius = 50;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
 
@@ -77,7 +77,7 @@ export const RadialShareButton = ({
             onClick={() => handleItemClick(item.onClick)}
             className={cn(
               "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-              "w-12 h-12 rounded-full bg-secondary text-secondary-foreground",
+              "w-10 h-10 rounded-full bg-secondary text-secondary-foreground",
               "shadow-md hover:shadow-lg hover:scale-110",
               "flex items-center justify-center",
               "transition-all duration-300 ease-out",
@@ -91,18 +91,18 @@ export const RadialShareButton = ({
               transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
             }}
           >
-            <item.icon className="w-5 h-5" />
+            <item.icon className="w-4 h-4" />
             
-            {/* Tooltip */}
+            {/* Label - always visible */}
             <span className={cn(
-              "absolute whitespace-nowrap bg-popover text-popover-foreground text-xs",
-              "px-2 py-1 rounded shadow-lg",
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              "pointer-events-none z-50",
-              item.position === 0 && "bottom-full mb-2",
-              item.position === 90 && "left-full ml-2",
-              item.position === 180 && "top-full mt-2",
-              item.position === 270 && "right-full mr-2"
+              "absolute whitespace-nowrap bg-background/95 backdrop-blur-sm text-foreground text-[10px] font-medium",
+              "px-1.5 py-0.5 rounded border border-border shadow-sm",
+              "pointer-events-none z-50 transition-opacity duration-300",
+              isOpen ? "opacity-100" : "opacity-0",
+              item.position === -90 && "bottom-full mb-1",
+              item.position === 0 && "left-full ml-1",
+              item.position === 180 && "top-full mt-1",
+              item.position === 90 && "right-full mr-1"
             )}>
               {item.label}
             </span>

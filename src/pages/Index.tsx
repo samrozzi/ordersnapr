@@ -4,19 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, RefreshCw } from "lucide-react";
+import { LogOut, Shield, RefreshCw, Crown } from "lucide-react";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
 import Dashboard from "./Dashboard";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
-import { DebugConsole } from "@/components/DebugConsole";
 
 const Index = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   
   // Enforce 6-hour session timeout
@@ -55,18 +55,21 @@ const Index = () => {
 
       setApprovalStatus(profileData?.approval_status || null);
 
-      // Check if user is admin
-      const { data: roleData } = await supabase
+      // Check if user is admin or org admin
+      const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        .in("role", ["admin", "org_admin"]);
 
-      setIsAdmin(!!roleData);
+      const hasAdminRole = rolesData?.some(r => r.role === "admin");
+      const hasOrgAdminRole = rolesData?.some(r => r.role === "org_admin");
+
+      setIsAdmin(!!hasAdminRole);
+      setIsOrgAdmin(!!hasOrgAdminRole);
 
       // Redirect to pending approval page if not approved and not admin
-      if (profileData?.approval_status !== 'approved' && !roleData) {
+      if (profileData?.approval_status !== 'approved' && !hasAdminRole) {
         navigate("/pending-approval");
       }
     } catch (error) {
@@ -102,6 +105,7 @@ const Index = () => {
       // Clear local state
       setSession(null);
       setIsAdmin(false);
+      setIsOrgAdmin(false);
       setApprovalStatus(null);
       
       console.log('✅ Sign out complete, redirecting...');
@@ -146,6 +150,12 @@ const Index = () => {
                 Admin
               </Button>
             )}
+            {isOrgAdmin && (
+              <Button variant="outline" onClick={() => navigate("/org-admin")}>
+                <Crown className="h-4 w-4 mr-2" />
+                Org Admin
+              </Button>
+            )}
             <Button variant="outline" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -179,8 +189,6 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
-      
-      <DebugConsole />
     </div>
   );
 };

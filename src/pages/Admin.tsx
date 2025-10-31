@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Shield, ArrowLeft, Building2, Users, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ interface UserProfile {
   approval_status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   organization_id: string | null;
+  is_org_admin?: boolean;
 }
 
 interface Organization {
@@ -91,13 +92,28 @@ const Admin = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch org_admin roles for all users
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("role", "org_admin");
+
+      if (rolesError) throw rolesError;
+
+      // Map org_admin status to users
+      const usersWithRoles = (profilesData || []).map(user => ({
+        ...user,
+        is_org_admin: rolesData?.some(role => role.user_id === user.id) || false
+      }));
+
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -257,6 +273,47 @@ const Admin = () => {
     }
   };
 
+  const handleToggleOrgAdmin = async (userId: string, currentStatus: boolean) => {
+    try {
+      if (currentStatus) {
+        // Remove org_admin role
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId)
+          .eq("role", "org_admin");
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Org Admin role removed",
+        });
+      } else {
+        // Add org_admin role
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: "org_admin" });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "User designated as Org Admin",
+        });
+      }
+
+      fetchUsers();
+    } catch (error) {
+      console.error("Error toggling org admin:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update org admin status",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -394,6 +451,7 @@ const Admin = () => {
                       <TableHead>Email</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Organization</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -422,18 +480,38 @@ const Admin = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
+                          {user.is_org_admin && (
+                            <Badge className="bg-purple-100 text-purple-800 flex items-center gap-1 w-fit">
+                              <Crown className="h-3 w-3" />
+                              Org Admin
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge className="bg-green-100 text-green-800">
                             Approved
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproval(user.id, 'rejected')}
-                          >
-                            Revoke Access
-                          </Button>
+                          <div className="flex gap-2">
+                            {user.organization_id && (
+                              <Button
+                                size="sm"
+                                variant={user.is_org_admin ? "default" : "outline"}
+                                onClick={() => handleToggleOrgAdmin(user.id, user.is_org_admin || false)}
+                              >
+                                <Crown className="h-4 w-4 mr-1" />
+                                {user.is_org_admin ? "Remove Admin" : "Make Admin"}
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApproval(user.id, 'rejected')}
+                            >
+                              Revoke Access
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

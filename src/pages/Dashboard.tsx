@@ -276,9 +276,9 @@ const Dashboard = () => {
                 
                 <Tabs value="dashboard" className="h-8 sm:h-10">
                   <TabsList className="h-8 sm:h-10">
-                    <TabsTrigger value="work-orders" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
-                    <TabsTrigger value="property-info" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
-                    <TabsTrigger value="forms" onClick={() => navigate("/")} className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
+                    <TabsTrigger value="work-orders" onClick={() => navigate("/work-orders")} className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
+                    <TabsTrigger value="property-info" onClick={() => navigate("/properties")} className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
+                    <TabsTrigger value="forms" onClick={() => navigate("/forms")} className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>

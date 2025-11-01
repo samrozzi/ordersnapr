@@ -104,18 +104,23 @@ const WidgetCard = ({
           </h3>
         </div>
         {isEditMode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-7 w-7 hover:bg-destructive hover:text-destructive-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove();
-            }}
-            aria-label="Remove widget"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="widget-actions shrink-0" style={{ position: 'relative', zIndex: 20 }}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="widget-remove h-7 w-7 hover:bg-destructive hover:text-destructive-foreground"
+              data-rgl-no-drag="true"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onRemove();
+              }}
+              aria-label="Remove widget"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </header>
       <CardContent className="p-4 flex-1 overflow-auto min-h-[120px]">
@@ -220,6 +225,7 @@ export const DashboardGrid = ({
         isDraggable={isEditMode}
         isResizable={isEditMode}
         draggableHandle=".widget-drag-handle"
+        draggableCancel=".widget-actions, .widget-remove, button, [data-rgl-no-drag]"
         onLayoutChange={handleLayoutChange}
       >
         {widgets.map((widget) => (

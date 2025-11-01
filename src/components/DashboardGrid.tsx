@@ -47,15 +47,15 @@ const getDefaultSize = (type: Widget["type"]): { w: number; h: number; minW: num
     case "calendar-small":
       return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
     case "calendar-medium":
-      return { w: 2, h: 35, minW: 2, minH: hUnits(240) };
+      return { w: 2, h: 35, minW: 1, minH: hUnits(240) };
     case "calendar-large":
-      return { w: 2, h: 47, minW: 2, minH: hUnits(300) };
+      return { w: 2, h: 47, minW: 1, minH: hUnits(300) };
     case "weather":
-      return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
+      return { w: 1, h: 24, minW: 1, minH: hUnits(200) };
     case "favorites":
       return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
     case "upcoming-work-orders":
-      return { w: 2, h: 35, minW: 2, minH: hUnits(200) };
+      return { w: 2, h: 35, minW: 1, minH: hUnits(200) };
     default:
       return { w: 1, h: 22, minW: MIN_CARD_W, minH: MIN_CARD_H };
   }

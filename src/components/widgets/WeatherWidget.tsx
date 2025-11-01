@@ -166,18 +166,18 @@ export const WeatherWidget = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-[160px]">
       {/* Header with location and controls */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-sm text-muted-foreground truncate">{weather.location}</span>
         </div>
-        <div className="flex gap-1 ml-2">
+        <div className="flex gap-1 ml-2 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 flex-shrink-0"
             onClick={handleRefresh}
             disabled={loading}
           >
@@ -186,7 +186,7 @@ export const WeatherWidget = () => {
           
           <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
+              <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
                 <Settings className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -214,16 +214,16 @@ export const WeatherWidget = () => {
         </div>
       </div>
 
-      {/* Main temp */}
-      <div className="flex-1 flex items-center justify-center min-h-0">
+      {/* Main temp - centered with flexible sizing */}
+      <div className="flex-1 flex items-center justify-center py-2 min-h-0 overflow-hidden">
         <div className="text-center">
-          <div className="text-5xl sm:text-6xl font-bold leading-none">{weather.temp}°</div>
-          <div className="text-base sm:text-lg text-muted-foreground mt-2">{weather.condition}</div>
+          <div className="text-4xl md:text-5xl font-bold leading-none">{weather.temp}°</div>
+          <div className="text-sm md:text-base text-muted-foreground mt-1 line-clamp-1">{weather.condition}</div>
         </div>
       </div>
 
-      {/* High/Low */}
-      <div className="flex justify-center gap-6 text-sm mt-4">
+      {/* High/Low - wraps on small heights */}
+      <div className="flex justify-center gap-4 text-sm shrink-0 flex-wrap">
         <div className="text-center">
           <div className="text-muted-foreground text-xs">High</div>
           <div className="font-semibold">{weather.high}°</div>

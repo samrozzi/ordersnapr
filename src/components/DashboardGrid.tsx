@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Responsive, WidthProvider, Layouts, Layout } from "react-grid-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { X } from "lucide-react";
@@ -68,10 +68,16 @@ const WidgetCard = ({
   widget,
   isEditMode,
   onRemove,
+  isActive,
+  isMobile,
+  onActivate,
 }: {
   widget: Widget;
   isEditMode: boolean;
   onRemove: () => void;
+  isActive: boolean;
+  isMobile: boolean;
+  onActivate: () => void;
 }) => {
   const renderWidget = () => {
     switch (widget.type) {
@@ -93,13 +99,21 @@ const WidgetCard = ({
   };
 
   return (
-    <Card className="relative h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg group">
+    <Card className={`relative h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg group ${isActive ? 'ring-2 ring-primary shadow-xl' : ''}`}>
       <header className="widget-drag-handle sticky top-0 z-10 flex items-center justify-between px-3 py-2 bg-card/95 backdrop-blur-sm border-b shrink-0">
         <div className="flex-1 flex items-center gap-2 min-w-0">
           {isEditMode && (
-            <div className="shrink-0 cursor-move">
-              <div className="w-4 h-1 bg-muted-foreground/30 rounded-full mb-0.5" />
-              <div className="w-4 h-1 bg-muted-foreground/30 rounded-full" />
+            <div 
+              className="shrink-0 cursor-move"
+              onClick={(e) => {
+                if (isMobile && !isActive) {
+                  e.stopPropagation();
+                  onActivate();
+                }
+              }}
+            >
+              <div className={`w-4 h-1 rounded-full mb-0.5 transition-colors ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+              <div className={`w-4 h-1 rounded-full transition-colors ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
             </div>
           )}
           <h3 className="text-sm font-medium truncate">
@@ -142,6 +156,18 @@ export const DashboardGrid = ({
   onBreakpointChange,
 }: DashboardGridProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const lockBodyScroll = () => {
     document.body.classList.add("ordersnapr-lock-scroll");
@@ -149,6 +175,20 @@ export const DashboardGrid = ({
 
   const unlockBodyScroll = () => {
     document.body.classList.remove("ordersnapr-lock-scroll");
+  };
+
+  const activateWidget = (widgetId: string) => {
+    if (isMobile && isEditMode) {
+      setActiveWidgetId(widgetId);
+      lockBodyScroll();
+    }
+  };
+
+  const deactivateWidget = () => {
+    if (isMobile) {
+      setActiveWidgetId(null);
+      unlockBodyScroll();
+    }
   };
 
   const handleLayoutChange = (_: Layout[], allLayouts: Layouts) => {
@@ -197,38 +237,51 @@ export const DashboardGrid = ({
         compactType="vertical"
         preventCollision={!isEditMode}
         isBounded={true}
-        isDraggable={isEditMode}
-        isResizable={isEditMode}
+        isDraggable={isEditMode && (!isMobile || activeWidgetId !== null)}
+        isResizable={isEditMode && (!isMobile || activeWidgetId !== null)}
         draggableHandle=".widget-drag-handle"
         draggableCancel=".widget-actions, .widget-remove, button, [data-rgl-no-drag]"
         onLayoutChange={handleLayoutChange}
         onBreakpointChange={(bp) => onBreakpointChange?.(bp as 'lg' | 'md' | 'sm' | 'xs')}
         onDragStart={() => {
           setIsDragging(true);
-          lockBodyScroll();
+          if (!isMobile) lockBodyScroll();
         }}
         onDragStop={() => {
           setIsDragging(false);
-          unlockBodyScroll();
+          if (!isMobile) unlockBodyScroll();
+          if (isMobile) deactivateWidget();
         }}
         onResizeStart={() => {
           setIsDragging(true);
-          lockBodyScroll();
+          if (!isMobile) lockBodyScroll();
         }}
         onResizeStop={() => {
           setIsDragging(false);
-          unlockBodyScroll();
+          if (!isMobile) unlockBodyScroll();
+          if (isMobile) deactivateWidget();
         }}
       >
-        {widgets.map((widget) => (
-          <div key={widget.id}>
-            <WidgetCard
-              widget={widget}
-              isEditMode={isEditMode}
-              onRemove={() => onRemoveWidget(widget.id)}
-            />
-          </div>
-        ))}
+        {widgets.map((widget) => {
+          const isActive = isMobile && activeWidgetId === widget.id;
+          const canInteract = !isMobile || isActive;
+          
+          return (
+            <div 
+              key={widget.id}
+              style={isMobile && !canInteract ? { pointerEvents: 'none', opacity: 0.6 } : {}}
+            >
+              <WidgetCard
+                widget={widget}
+                isEditMode={isEditMode}
+                onRemove={() => onRemoveWidget(widget.id)}
+                isActive={isActive}
+                isMobile={isMobile}
+                onActivate={() => activateWidget(widget.id)}
+              />
+            </div>
+          );
+        })}
       </ResponsiveGridLayout>
     </div>
   );

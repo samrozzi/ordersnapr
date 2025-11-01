@@ -153,36 +153,40 @@ All colors MUST be HSL.
     @apply opacity-80 z-50;
   }
 
-  /* Lock page scrolling while dragging/resizing */
+  /* Lock page scrolling during active drag/resize */
   .ordersnapr-lock-scroll {
-    overflow: hidden;
-    touch-action: none;
-    overscroll-behavior: none;
-    position: fixed;
-    width: 100%;
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100vh !important;
   }
 
-  /* In edit mode, always show resizable handles (no hover on touch) and make them bigger */
-  .ordersnapr-dashboard.edit-mode .react-resizable-handle {
-    opacity: 1 !important;
-    width: 20px;
-    height: 20px;
-    touch-action: none;
-  }
-
-  /* Make the corner indicator more obvious on touch */
-  .ordersnapr-dashboard.edit-mode .react-resizable-handle::after {
-    border-right-width: 3px;
-    border-bottom-width: 3px;
-    border-color: hsl(var(--primary));
-  }
-
-  /* Better touch affordance for dragging */
+  /* Prevent page scroll when touching drag handles */
   .ordersnapr-dashboard.edit-mode .widget-drag-handle {
+    touch-action: none;
     cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .ordersnapr-dashboard.dragging .widget-drag-handle {
     cursor: grabbing;
+  }
+
+  /* Prevent page scroll when touching resize handles */
+  .ordersnapr-dashboard.edit-mode .react-resizable-handle {
+    touch-action: none !important;
+    opacity: 1 !important;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Make resize corner more visible */
+  .ordersnapr-dashboard.edit-mode .react-resizable-handle::after {
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-color: hsl(var(--primary));
   }
 }

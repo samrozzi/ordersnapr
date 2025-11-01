@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { DashboardGrid } from "@/components/DashboardGrid";
+import { DashboardGrid, Widget } from "@/components/DashboardGrid";
 import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,13 +12,7 @@ import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import WorkOrders from "./WorkOrders";
 import PropertyInfo from "./PropertyInfo";
 import Forms from "./Forms";
-
-interface Widget {
-  id: string;
-  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders";
-  position: number;
-  settings: any;
-}
+import { Layouts } from "react-grid-layout";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -88,12 +82,16 @@ const Dashboard = () => {
         return fetchDashboardData();
       }
 
-      setWidgets(widgetsData.map(w => ({
-        id: w.id,
-        type: w.widget_type as Widget["type"],
-        position: w.position,
-        settings: w.settings,
-      })) as Widget[]);
+      setWidgets(widgetsData.map(w => {
+        const settings = (w.settings as any) || {};
+        return {
+          id: w.id,
+          type: w.widget_type as Widget["type"],
+          position: w.position,
+          settings: settings,
+          layout: settings.layout || undefined,
+        };
+      }) as Widget[]);
 
       // Fetch work orders for calendar widgets
       const { data: ordersData, error: ordersError } = await supabase
@@ -156,11 +154,13 @@ const Dashboard = () => {
 
       if (error) throw error;
 
+      const settings = (data.settings as any) || {};
       setWidgets([...widgets, {
         id: data.id,
         type: data.widget_type as Widget["type"],
         position: data.position,
-        settings: data.settings,
+        settings: settings,
+        layout: settings.layout || undefined,
       }]);
 
       toast({
@@ -199,22 +199,28 @@ const Dashboard = () => {
     }
   };
 
-  const handleWidgetsChange = async (newWidgets: Widget[]) => {
-    setWidgets(newWidgets);
+  const handleLayoutsChange = async (layouts: Layouts, updatedWidgets: Widget[]) => {
+    setWidgets(updatedWidgets);
 
-    // Save positions to database
+    // Debounce saving to database
     try {
-      for (const widget of newWidgets) {
+      for (const widget of updatedWidgets) {
         await supabase
           .from("dashboard_widgets")
-          .update({ position: widget.position })
+          .update({
+            position: widget.position,
+            settings: {
+              ...widget.settings,
+              layout: widget.layout,
+            },
+          })
           .eq("id", widget.id);
       }
     } catch (error: any) {
-      console.error("Error updating widget positions:", error);
+      console.error("Error updating widget layout:", error);
       toast({
         title: "Error",
-        description: "Failed to save widget positions",
+        description: "Failed to save widget layout",
         variant: "destructive",
       });
     }
@@ -372,7 +378,7 @@ const Dashboard = () => {
         <DashboardGrid 
           widgets={widgets}
           isEditMode={isEditMode}
-          onWidgetsChange={handleWidgetsChange}
+          onLayoutsChange={handleLayoutsChange}
           onRemoveWidget={handleRemoveWidget}
         />
             ) : (

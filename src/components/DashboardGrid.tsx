@@ -1,45 +1,56 @@
-import { useState } from "react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { BaseWidget } from "./widgets/BaseWidget";
+import { Responsive, WidthProvider, Layouts, Layout } from "react-grid-layout";
+import { Card, CardContent } from "@/components/ui/card";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CalendarWidgetSmall } from "./widgets/CalendarWidgetSmall";
 import { CalendarWidgetMedium } from "./widgets/CalendarWidgetMedium";
 import { CalendarWidgetLarge } from "./widgets/CalendarWidgetLarge";
 import { WeatherWidget } from "./widgets/WeatherWidget";
 import { FavoritesWidget } from "./widgets/FavoritesWidget";
 import { UpcomingWorkOrdersWidget } from "./widgets/UpcomingWorkOrdersWidget";
-import { cn } from "@/lib/utils";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 
-interface Widget {
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+export interface Widget {
   id: string;
   type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders";
   position: number;
   settings: any;
+  layout?: Layout;
 }
 
 interface DashboardGridProps {
   widgets: Widget[];
   isEditMode: boolean;
-  onWidgetsChange: (widgets: Widget[]) => void;
+  onLayoutsChange: (layouts: Layouts, widgets: Widget[]) => void;
   onRemoveWidget: (id: string) => void;
 }
 
-const SortableWidget = ({
+const breakpoints = { lg: 1280, md: 1024, sm: 640, xs: 0 };
+const cols = { lg: 4, md: 3, sm: 2, xs: 1 };
+
+const getDefaultSize = (type: Widget["type"]): { w: number; h: number } => {
+  switch (type) {
+    case "calendar-small":
+      return { w: 1, h: 22 };
+    case "calendar-medium":
+      return { w: 2, h: 35 };
+    case "calendar-large":
+      return { w: 2, h: 47 };
+    case "weather":
+      return { w: 1, h: 22 };
+    case "favorites":
+      return { w: 1, h: 22 };
+    case "upcoming-work-orders":
+      return { w: 2, h: 35 };
+    default:
+      return { w: 1, h: 22 };
+  }
+};
+
+const WidgetCard = ({
   widget,
   isEditMode,
   onRemove,
@@ -48,27 +59,6 @@ const SortableWidget = ({
   isEditMode: boolean;
   onRemove: () => void;
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: widget.id,
-    disabled: !isEditMode,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const getWidgetSize = (type: Widget["type"]) => {
-    if (type === "calendar-small") return "small";
-    if (type === "calendar-medium") return "medium";
-    if (type === "calendar-large") return "large";
-    if (type === "weather") return "small";
-    if (type === "favorites") return "small";
-    if (type === "upcoming-work-orders") return "medium";
-    return "small";
-  };
-
   const renderWidget = () => {
     switch (widget.type) {
       case "calendar-small":
@@ -89,74 +79,116 @@ const SortableWidget = ({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        touchAction: isEditMode ? 'none' : 'auto',
-      }}
-      {...attributes}
-      {...listeners}
-      className={cn("group", isEditMode && "cursor-move touch-none")}
-    >
-      <BaseWidget
-        size={getWidgetSize(widget.type)}
-        isEditMode={isEditMode}
-        onRemove={onRemove}
-      >
+    <Card className="relative h-full overflow-hidden transition-all duration-200 hover:shadow-lg group">
+      {isEditMode && (
+        <div className="widget-drag-handle absolute top-0 left-0 right-0 h-8 cursor-move bg-muted/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+      )}
+      {isEditMode && (
+        <Button
+          variant="destructive"
+          size="icon"
+          className="absolute top-2 right-2 z-20 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      <CardContent className="p-4 h-full overflow-auto">
         {renderWidget()}
-      </BaseWidget>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
 export const DashboardGrid = ({
   widgets,
   isEditMode,
-  onWidgetsChange,
+  onLayoutsChange,
   onRemoveWidget,
 }: DashboardGridProps) => {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Build layouts from widgets
+  const buildLayouts = (): Layouts => {
+    const lgLayout: Layout[] = [];
+    
+    widgets.forEach((widget, index) => {
+      const defaultSize = getDefaultSize(widget.type);
+      const existingLayout = widget.layout;
+      
+      if (existingLayout) {
+        lgLayout.push({
+          i: widget.id,
+          x: existingLayout.x ?? (index % 4),
+          y: existingLayout.y ?? Math.floor(index / 4) * defaultSize.h,
+          w: existingLayout.w ?? defaultSize.w,
+          h: existingLayout.h ?? defaultSize.h,
+        });
+      } else {
+        lgLayout.push({
+          i: widget.id,
+          x: index % 4,
+          y: Math.floor(index / 4) * defaultSize.h,
+          w: defaultSize.w,
+          h: defaultSize.h,
+        });
+      }
+    });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    return { lg: lgLayout };
+  };
 
-    if (over && active.id !== over.id) {
-      const oldIndex = widgets.findIndex((w) => w.id === active.id);
-      const newIndex = widgets.findIndex((w) => w.id === over.id);
+  const layouts = buildLayouts();
 
-      const reorderedWidgets = arrayMove(widgets, oldIndex, newIndex).map((w, i) => ({
-        ...w,
-        position: i,
-      }));
+  const handleLayoutChange = (_: Layout[], allLayouts: Layouts) => {
+    if (!isEditMode) return;
 
-      onWidgetsChange(reorderedWidgets);
-    }
+    // Update widgets with new layout info
+    const updatedWidgets = widgets.map((widget) => {
+      const lgLayout = allLayouts.lg?.find((l) => l.i === widget.id);
+      if (lgLayout) {
+        return {
+          ...widget,
+          layout: lgLayout,
+        };
+      }
+      return widget;
+    });
+
+    onLayoutsChange(allLayouts, updatedWidgets);
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={widgets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
-          {widgets.map((widget) => (
-            <SortableWidget
-              key={widget.id}
+    <div className="w-full">
+      <ResponsiveGridLayout
+        className="ordersnapr-dashboard"
+        breakpoints={breakpoints}
+        cols={cols}
+        layouts={layouts}
+        rowHeight={8}
+        margin={[16, 16]}
+        containerPadding={[0, 0]}
+        compactType="vertical"
+        preventCollision={false}
+        isBounded={true}
+        isDraggable={isEditMode}
+        isResizable={isEditMode}
+        draggableHandle=".widget-drag-handle"
+        onLayoutChange={handleLayoutChange}
+      >
+        {widgets.map((widget) => (
+          <div key={widget.id}>
+            <WidgetCard
               widget={widget}
               isEditMode={isEditMode}
               onRemove={() => onRemoveWidget(widget.id)}
             />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+          </div>
+        ))}
+      </ResponsiveGridLayout>
+    </div>
   );
 };

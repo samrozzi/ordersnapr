@@ -110,3 +110,38 @@ All colors MUST be HSL.
     max-width: 100vw;
   }
 }
+
+/* React Grid Layout Styles */
+@layer components {
+  .ordersnapr-dashboard {
+    @apply w-full;
+  }
+
+  .ordersnapr-dashboard .react-grid-item {
+    @apply transition-all duration-200;
+  }
+
+  .ordersnapr-dashboard .react-grid-item.react-grid-placeholder {
+    @apply bg-primary/10 rounded-lg border-2 border-dashed border-primary/30;
+  }
+
+  .ordersnapr-dashboard .react-grid-item > .react-resizable-handle {
+    @apply opacity-0 transition-opacity duration-200;
+  }
+
+  .ordersnapr-dashboard .react-grid-item:hover > .react-resizable-handle {
+    @apply opacity-100;
+  }
+
+  .ordersnapr-dashboard .react-grid-item > .react-resizable-handle::after {
+    @apply border-r-2 border-b-2 border-primary/50;
+  }
+
+  .ordersnapr-dashboard .react-grid-item.react-dragging {
+    @apply opacity-70 z-50;
+  }
+
+  .ordersnapr-dashboard .react-grid-item.resizing {
+    @apply opacity-80 z-50;
+  }
+}

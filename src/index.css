@@ -115,6 +115,13 @@ All colors MUST be HSL.
 @layer components {
   .ordersnapr-dashboard {
     @apply w-full;
+    touch-action: pan-x pan-y;
+  }
+
+  .widget-drag-handle {
+    touch-action: none;
+    -webkit-user-drag: none;
+    user-select: none;
   }
 
   .ordersnapr-dashboard .react-grid-item {
@@ -127,6 +134,7 @@ All colors MUST be HSL.
 
   .ordersnapr-dashboard .react-grid-item > .react-resizable-handle {
     @apply opacity-0 transition-opacity duration-200;
+    touch-action: none;
   }
 
   .ordersnapr-dashboard .react-grid-item:hover > .react-resizable-handle {

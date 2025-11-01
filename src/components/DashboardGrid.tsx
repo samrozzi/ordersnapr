@@ -31,22 +31,33 @@ interface DashboardGridProps {
 const breakpoints = { lg: 1280, md: 1024, sm: 640, xs: 0 };
 const cols = { lg: 4, md: 3, sm: 2, xs: 1 };
 
-const getDefaultSize = (type: Widget["type"]): { w: number; h: number } => {
+// Grid constants
+const ROW_H = 8;
+const GUTTER_Y = 16;
+
+// Helper: convert pixel min height to grid units
+const hUnits = (px: number) => Math.ceil((px + GUTTER_Y) / (ROW_H + GUTTER_Y));
+
+// Global minimums
+const MIN_CARD_W = 1;
+const MIN_CARD_H = hUnits(160);
+
+const getDefaultSize = (type: Widget["type"]): { w: number; h: number; minW: number; minH: number } => {
   switch (type) {
     case "calendar-small":
-      return { w: 1, h: 22 };
+      return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
     case "calendar-medium":
-      return { w: 2, h: 35 };
+      return { w: 2, h: 35, minW: 2, minH: hUnits(240) };
     case "calendar-large":
-      return { w: 2, h: 47 };
+      return { w: 2, h: 47, minW: 2, minH: hUnits(300) };
     case "weather":
-      return { w: 1, h: 22 };
+      return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
     case "favorites":
-      return { w: 1, h: 22 };
+      return { w: 1, h: 22, minW: 1, minH: hUnits(180) };
     case "upcoming-work-orders":
-      return { w: 2, h: 35 };
+      return { w: 2, h: 35, minW: 2, minH: hUnits(200) };
     default:
-      return { w: 1, h: 22 };
+      return { w: 1, h: 22, minW: MIN_CARD_W, minH: MIN_CARD_H };
   }
 };
 
@@ -79,26 +90,35 @@ const WidgetCard = ({
   };
 
   return (
-    <Card className="relative h-full overflow-hidden transition-all duration-200 hover:shadow-lg group">
-      {isEditMode && (
-        <div className="widget-drag-handle absolute top-0 left-0 right-0 h-8 cursor-move bg-muted/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
+    <Card className="relative h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg group">
+      <header className="widget-drag-handle sticky top-0 z-10 flex items-center justify-between px-3 py-2 bg-card/95 backdrop-blur-sm border-b shrink-0">
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          {isEditMode && (
+            <div className="shrink-0 cursor-move">
+              <div className="w-4 h-1 bg-muted-foreground/30 rounded-full mb-0.5" />
+              <div className="w-4 h-1 bg-muted-foreground/30 rounded-full" />
+            </div>
+          )}
+          <h3 className="text-sm font-medium truncate">
+            {widget.type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          </h3>
         </div>
-      )}
-      {isEditMode && (
-        <Button
-          variant="destructive"
-          size="icon"
-          className="absolute top-2 right-2 z-20 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
-      <CardContent className="p-4 h-full overflow-auto">
+        {isEditMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-7 w-7 hover:bg-destructive hover:text-destructive-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label="Remove widget"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </header>
+      <CardContent className="p-4 flex-1 overflow-auto min-h-[120px]">
         {renderWidget()}
       </CardContent>
     </Card>
@@ -111,7 +131,7 @@ export const DashboardGrid = ({
   onLayoutsChange,
   onRemoveWidget,
 }: DashboardGridProps) => {
-  // Build layouts from widgets
+  // Build layouts from widgets with minimum size enforcement
   const buildLayouts = (): Layouts => {
     const lgLayout: Layout[] = [];
     
@@ -120,12 +140,18 @@ export const DashboardGrid = ({
       const existingLayout = widget.layout;
       
       if (existingLayout) {
+        // Enforce minimums on load (auto-bump existing tiny layouts)
+        const w = Math.max(existingLayout.w ?? defaultSize.w, defaultSize.minW);
+        const h = Math.max(existingLayout.h ?? defaultSize.h, defaultSize.minH);
+        
         lgLayout.push({
           i: widget.id,
           x: existingLayout.x ?? (index % 4),
-          y: existingLayout.y ?? Math.floor(index / 4) * defaultSize.h,
-          w: existingLayout.w ?? defaultSize.w,
-          h: existingLayout.h ?? defaultSize.h,
+          y: existingLayout.y ?? Math.floor(index / 4) * h,
+          w,
+          h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
         });
       } else {
         lgLayout.push({
@@ -134,6 +160,8 @@ export const DashboardGrid = ({
           y: Math.floor(index / 4) * defaultSize.h,
           w: defaultSize.w,
           h: defaultSize.h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
         });
       }
     });
@@ -146,7 +174,22 @@ export const DashboardGrid = ({
   const handleLayoutChange = (_: Layout[], allLayouts: Layouts) => {
     if (!isEditMode) return;
 
-    // Update widgets with new layout info
+    // Normalize: ensure no item is below its minimum size before saving
+    Object.values(allLayouts).forEach((layoutArr) => {
+      layoutArr?.forEach((item) => {
+        const widget = widgets.find(w => w.id === item.i);
+        if (widget) {
+          const defaultSize = getDefaultSize(widget.type);
+          const minW = item.minW ?? defaultSize.minW ?? MIN_CARD_W;
+          const minH = item.minH ?? defaultSize.minH ?? MIN_CARD_H;
+          
+          if (item.w < minW) item.w = minW;
+          if (item.h < minH) item.h = minH;
+        }
+      });
+    });
+
+    // Update widgets with normalized layout info
     const updatedWidgets = widgets.map((widget) => {
       const lgLayout = allLayouts.lg?.find((l) => l.i === widget.id);
       if (lgLayout) {
@@ -168,7 +211,7 @@ export const DashboardGrid = ({
         breakpoints={breakpoints}
         cols={cols}
         layouts={layouts}
-        rowHeight={8}
+        rowHeight={ROW_H}
         margin={[16, 16]}
         containerPadding={[0, 0]}
         compactType="vertical"

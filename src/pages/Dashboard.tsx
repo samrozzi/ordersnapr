@@ -200,11 +200,29 @@ const Dashboard = () => {
   };
 
   const handleLayoutsChange = async (layouts: Layouts, updatedWidgets: Widget[]) => {
-    setWidgets(updatedWidgets);
+    // Calculate visual positions from lg layout (top-to-bottom, left-to-right)
+    const lgLayout = layouts.lg || [];
+    const sortedLayout = [...lgLayout].sort((a, b) => {
+      if (a.y !== b.y) return a.y - b.y;
+      return a.x - b.x;
+    });
+    
+    const positions: Record<string, number> = {};
+    sortedLayout.forEach((item, index) => {
+      positions[item.i] = index;
+    });
+    
+    // Update widgets with new positions and layouts
+    const widgetsWithPositions = updatedWidgets.map(widget => ({
+      ...widget,
+      position: positions[widget.id] ?? widget.position,
+    }));
+    
+    setWidgets(widgetsWithPositions);
 
-    // Debounce saving to database
+    // Save to database
     try {
-      for (const widget of updatedWidgets) {
+      for (const widget of widgetsWithPositions) {
         await supabase
           .from("dashboard_widgets")
           .update({
@@ -212,6 +230,7 @@ const Dashboard = () => {
             settings: {
               ...widget.settings,
               layout: widget.layout,
+              layouts: layouts, // Save all breakpoint layouts
             },
           })
           .eq("id", widget.id);
@@ -226,12 +245,35 @@ const Dashboard = () => {
     }
   };
 
-  const handleSaveLayout = () => {
-    setIsEditMode(false);
-    toast({
-      title: "Layout saved",
-      description: "Your dashboard layout has been saved",
-    });
+  const handleSaveLayout = async () => {
+    try {
+      // Trigger final save of current widget state
+      for (const widget of widgets) {
+        await supabase
+          .from("dashboard_widgets")
+          .update({
+            position: widget.position,
+            settings: {
+              ...widget.settings,
+              layout: widget.layout,
+            },
+          })
+          .eq("id", widget.id);
+      }
+      
+      setIsEditMode(false);
+      toast({
+        title: "Layout saved",
+        description: "Your dashboard layout has been saved",
+      });
+    } catch (error: any) {
+      console.error("Error saving layout:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save layout",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {

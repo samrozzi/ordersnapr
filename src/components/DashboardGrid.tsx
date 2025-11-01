@@ -139,6 +139,9 @@ export const DashboardGrid = ({
   // Build layouts from widgets with minimum size enforcement
   const buildLayouts = (): Layouts => {
     const lgLayout: Layout[] = [];
+    const mdLayout: Layout[] = [];
+    const smLayout: Layout[] = [];
+    const xsLayout: Layout[] = [];
     
     widgets.forEach((widget, index) => {
       const defaultSize = getDefaultSize(widget.type);
@@ -149,6 +152,7 @@ export const DashboardGrid = ({
         const w = Math.max(existingLayout.w ?? defaultSize.w, defaultSize.minW);
         const h = Math.max(existingLayout.h ?? defaultSize.h, defaultSize.minH);
         
+        // lg layout (4 cols)
         lgLayout.push({
           i: widget.id,
           x: existingLayout.x ?? (index % 4),
@@ -158,7 +162,43 @@ export const DashboardGrid = ({
           minW: defaultSize.minW,
           minH: defaultSize.minH,
         });
+        
+        // md layout (3 cols) - scale width proportionally
+        const mdW = Math.min(Math.max(Math.ceil(w * 3 / 4), defaultSize.minW), 3);
+        mdLayout.push({
+          i: widget.id,
+          x: existingLayout.x ? Math.min(existingLayout.x, 2) : (index % 3),
+          y: existingLayout.y ?? Math.floor(index / 3) * h,
+          w: mdW,
+          h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
+        });
+        
+        // sm layout (2 cols) - most widgets fit in 1-2 cols
+        const smW = Math.min(Math.max(Math.ceil(w / 2), defaultSize.minW), 2);
+        smLayout.push({
+          i: widget.id,
+          x: existingLayout.x ? Math.min(existingLayout.x, 1) : (index % 2),
+          y: existingLayout.y ?? Math.floor(index / 2) * h,
+          w: smW,
+          h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
+        });
+        
+        // xs layout (1 col) - everything stacks
+        xsLayout.push({
+          i: widget.id,
+          x: 0,
+          y: index * h,
+          w: 1,
+          h,
+          minW: 1,
+          minH: defaultSize.minH,
+        });
       } else {
+        // lg layout (4 cols)
         lgLayout.push({
           i: widget.id,
           x: index % 4,
@@ -168,10 +208,45 @@ export const DashboardGrid = ({
           minW: defaultSize.minW,
           minH: defaultSize.minH,
         });
+        
+        // md layout (3 cols)
+        const mdW = Math.min(defaultSize.w, 3);
+        mdLayout.push({
+          i: widget.id,
+          x: index % 3,
+          y: Math.floor(index / 3) * defaultSize.h,
+          w: mdW,
+          h: defaultSize.h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
+        });
+        
+        // sm layout (2 cols)
+        const smW = Math.min(defaultSize.w, 2);
+        smLayout.push({
+          i: widget.id,
+          x: index % 2,
+          y: Math.floor(index / 2) * defaultSize.h,
+          w: smW,
+          h: defaultSize.h,
+          minW: defaultSize.minW,
+          minH: defaultSize.minH,
+        });
+        
+        // xs layout (1 col)
+        xsLayout.push({
+          i: widget.id,
+          x: 0,
+          y: index * defaultSize.h,
+          w: 1,
+          h: defaultSize.h,
+          minW: 1,
+          minH: defaultSize.minH,
+        });
       }
     });
 
-    return { lg: lgLayout };
+    return { lg: lgLayout, md: mdLayout, sm: smLayout, xs: xsLayout };
   };
 
   const layouts = buildLayouts();

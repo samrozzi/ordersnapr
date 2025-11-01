@@ -144,11 +144,18 @@ export const DashboardGrid = ({
   const [isDragging, setIsDragging] = useState(false);
 
   const lockBodyScroll = () => {
+    const scrollY = window.scrollY;
+    document.body.style.top = `-${scrollY}px`;
     document.body.classList.add("ordersnapr-lock-scroll");
   };
 
   const unlockBodyScroll = () => {
     document.body.classList.remove("ordersnapr-lock-scroll");
+    const scrollY = document.body.style.top;
+    document.body.style.top = '';
+    if (scrollY) {
+      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
   };
 
   const handleLayoutChange = (_: Layout[], allLayouts: Layouts) => {

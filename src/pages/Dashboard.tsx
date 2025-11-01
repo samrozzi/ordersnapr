@@ -24,6 +24,8 @@ const Dashboard = () => {
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [layouts, setLayouts] = useState<Layouts>({ lg: [], md: [], sm: [], xs: [] });
+  const [currentBp, setCurrentBp] = useState<'lg' | 'md' | 'sm' | 'xs'>('lg');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -82,7 +84,7 @@ const Dashboard = () => {
         return fetchDashboardData();
       }
 
-      setWidgets(widgetsData.map(w => {
+      const mappedWidgets = widgetsData.map(w => {
         const settings = (w.settings as any) || {};
         return {
           id: w.id,
@@ -91,7 +93,160 @@ const Dashboard = () => {
           settings: settings,
           layout: settings.layout || undefined,
         };
-      }) as Widget[]);
+      }) as Widget[];
+      
+      setWidgets(mappedWidgets);
+      
+      // Build initial layouts from saved data
+      const initialLayouts: Layouts = { lg: [], md: [], sm: [], xs: [] };
+      
+      mappedWidgets.forEach((widget, index) => {
+        const settings = widget.settings || {};
+        const savedLayouts = settings.layouts as Layouts | undefined;
+        
+        // Helper to get default size
+        const getDefaultSize = (type: Widget["type"]) => {
+          switch (type) {
+            case "calendar-small": return { w: 1, h: 22, minW: 1, minH: 23 };
+            case "calendar-medium": return { w: 2, h: 35, minW: 1, minH: 30 };
+            case "calendar-large": return { w: 2, h: 47, minW: 1, minH: 38 };
+            case "weather": return { w: 1, h: 24, minW: 1, minH: 25 };
+            case "favorites": return { w: 1, h: 22, minW: 1, minH: 23 };
+            case "upcoming-work-orders": return { w: 2, h: 35, minW: 1, minH: 25 };
+            default: return { w: 1, h: 22, minW: 1, minH: 20 };
+          }
+        };
+        
+        const defaultSize = getDefaultSize(widget.type);
+        
+        // lg layout
+        if (savedLayouts?.lg) {
+          const savedLg = savedLayouts.lg.find(l => l.i === widget.id);
+          if (savedLg) {
+            initialLayouts.lg!.push(savedLg);
+          } else if (settings.layout) {
+            initialLayouts.lg!.push({ ...settings.layout, i: widget.id });
+          } else {
+            initialLayouts.lg!.push({
+              i: widget.id,
+              x: index % 4,
+              y: Math.floor(index / 4) * defaultSize.h,
+              w: defaultSize.w,
+              h: defaultSize.h,
+              minW: defaultSize.minW,
+              minH: defaultSize.minH,
+            });
+          }
+        } else if (settings.layout) {
+          initialLayouts.lg!.push({ ...settings.layout, i: widget.id });
+        } else {
+          initialLayouts.lg!.push({
+            i: widget.id,
+            x: index % 4,
+            y: Math.floor(index / 4) * defaultSize.h,
+            w: defaultSize.w,
+            h: defaultSize.h,
+            minW: defaultSize.minW,
+            minH: defaultSize.minH,
+          });
+        }
+        
+        // md layout
+        if (savedLayouts?.md) {
+          const savedMd = savedLayouts.md.find(l => l.i === widget.id);
+          if (savedMd) {
+            initialLayouts.md!.push(savedMd);
+          } else {
+            const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+            const mdW = Math.min(Math.max(Math.ceil(lgItem.w * 3 / 4), defaultSize.minW), 3);
+            initialLayouts.md!.push({
+              i: widget.id,
+              x: Math.min(lgItem.x, 2),
+              y: lgItem.y,
+              w: mdW,
+              h: lgItem.h,
+              minW: defaultSize.minW,
+              minH: defaultSize.minH,
+            });
+          }
+        } else {
+          const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+          const mdW = Math.min(Math.max(Math.ceil(lgItem.w * 3 / 4), defaultSize.minW), 3);
+          initialLayouts.md!.push({
+            i: widget.id,
+            x: index % 3,
+            y: Math.floor(index / 3) * lgItem.h,
+            w: mdW,
+            h: lgItem.h,
+            minW: defaultSize.minW,
+            minH: defaultSize.minH,
+          });
+        }
+        
+        // sm layout
+        if (savedLayouts?.sm) {
+          const savedSm = savedLayouts.sm.find(l => l.i === widget.id);
+          if (savedSm) {
+            initialLayouts.sm!.push(savedSm);
+          } else {
+            const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+            const smW = Math.min(Math.max(Math.ceil(lgItem.w / 2), defaultSize.minW), 2);
+            initialLayouts.sm!.push({
+              i: widget.id,
+              x: Math.min(lgItem.x, 1),
+              y: lgItem.y,
+              w: smW,
+              h: lgItem.h,
+              minW: defaultSize.minW,
+              minH: defaultSize.minH,
+            });
+          }
+        } else {
+          const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+          const smW = Math.min(Math.max(Math.ceil(lgItem.w / 2), defaultSize.minW), 2);
+          initialLayouts.sm!.push({
+            i: widget.id,
+            x: index % 2,
+            y: Math.floor(index / 2) * lgItem.h,
+            w: smW,
+            h: lgItem.h,
+            minW: defaultSize.minW,
+            minH: defaultSize.minH,
+          });
+        }
+        
+        // xs layout
+        if (savedLayouts?.xs) {
+          const savedXs = savedLayouts.xs.find(l => l.i === widget.id);
+          if (savedXs) {
+            initialLayouts.xs!.push(savedXs);
+          } else {
+            const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+            initialLayouts.xs!.push({
+              i: widget.id,
+              x: 0,
+              y: index * lgItem.h,
+              w: 1,
+              h: lgItem.h,
+              minW: 1,
+              minH: defaultSize.minH,
+            });
+          }
+        } else {
+          const lgItem = initialLayouts.lg!.find(l => l.i === widget.id)!;
+          initialLayouts.xs!.push({
+            i: widget.id,
+            x: 0,
+            y: index * lgItem.h,
+            w: 1,
+            h: lgItem.h,
+            minW: 1,
+            minH: defaultSize.minH,
+          });
+        }
+      });
+      
+      setLayouts(initialLayouts);
 
       // Fetch work orders for calendar widgets
       const { data: ordersData, error: ordersError } = await supabase
@@ -199,10 +354,15 @@ const Dashboard = () => {
     }
   };
 
-  const handleLayoutsChange = async (layouts: Layouts, updatedWidgets: Widget[]) => {
-    // Calculate visual positions from lg layout (top-to-bottom, left-to-right)
-    const lgLayout = layouts.lg || [];
-    const sortedLayout = [...lgLayout].sort((a, b) => {
+  const handleLayoutsChange = async (newLayouts: Layouts, updatedWidgets: Widget[]) => {
+    setLayouts(newLayouts);
+    
+    // Calculate visual positions from active breakpoint (fallback to lg)
+    const baseLayout = (newLayouts[currentBp] && newLayouts[currentBp]!.length > 0)
+      ? newLayouts[currentBp]!
+      : (newLayouts.lg || newLayouts.md || newLayouts.sm || newLayouts.xs || []);
+    
+    const sortedLayout = [...baseLayout].sort((a, b) => {
       if (a.y !== b.y) return a.y - b.y;
       return a.x - b.x;
     });
@@ -213,10 +373,16 @@ const Dashboard = () => {
     });
     
     // Update widgets with new positions and layouts
-    const widgetsWithPositions = updatedWidgets.map(widget => ({
-      ...widget,
-      position: positions[widget.id] ?? widget.position,
-    }));
+    const widgetsWithPositions = updatedWidgets.map(widget => {
+      const lgLayoutItem = newLayouts.lg?.find(l => l.i === widget.id);
+      const baseLayoutItem = baseLayout.find(l => l.i === widget.id);
+      
+      return {
+        ...widget,
+        position: positions[widget.id] ?? widget.position,
+        layout: lgLayoutItem || baseLayoutItem,
+      };
+    });
     
     setWidgets(widgetsWithPositions);
 
@@ -230,7 +396,7 @@ const Dashboard = () => {
             settings: {
               ...widget.settings,
               layout: widget.layout,
-              layouts: layouts, // Save all breakpoint layouts
+              layouts: newLayouts,
             },
           })
           .eq("id", widget.id);
@@ -247,7 +413,7 @@ const Dashboard = () => {
 
   const handleSaveLayout = async () => {
     try {
-      // Trigger final save of current widget state
+      // Trigger final save of current widget state with full layouts
       for (const widget of widgets) {
         await supabase
           .from("dashboard_widgets")
@@ -256,6 +422,7 @@ const Dashboard = () => {
             settings: {
               ...widget.settings,
               layout: widget.layout,
+              layouts: layouts,
             },
           })
           .eq("id", widget.id);
@@ -420,8 +587,10 @@ const Dashboard = () => {
         <DashboardGrid 
           widgets={widgets}
           isEditMode={isEditMode}
+          layouts={layouts}
           onLayoutsChange={handleLayoutsChange}
           onRemoveWidget={handleRemoveWidget}
+          onBreakpointChange={setCurrentBp}
         />
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">

@@ -182,20 +182,20 @@ const CalendarPage = () => {
           </div>
         </header>
 
-        <TabsContent value="work-orders" className="mt-0">
-          <WorkOrders />
-        </TabsContent>
+        <main className="container mx-auto px-4 py-6 max-w-7xl">
+          <TabsContent value="work-orders" className="mt-0">
+            <WorkOrders />
+          </TabsContent>
 
-        <TabsContent value="property-info" className="mt-0">
-          <PropertyInfo />
-        </TabsContent>
+          <TabsContent value="property-info" className="mt-0">
+            <PropertyInfo />
+          </TabsContent>
 
-        <TabsContent value="forms" className="mt-0">
-          <Forms />
-        </TabsContent>
+          <TabsContent value="forms" className="mt-0">
+            <Forms />
+          </TabsContent>
 
-        <TabsContent value="calendar" className="mt-0">
-          <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+          <TabsContent value="calendar" className="mt-0">
             {/* Header */}
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div>
@@ -215,8 +215,8 @@ const CalendarPage = () => {
                 <CalendarView onEventClick={handleEventClick} />
               )}
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+        </main>
       </Tabs>
 
       {/* Work Order Details Dialog */}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Responsive, WidthProvider, Layouts, Layout } from "react-grid-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { X } from "lucide-react";
@@ -140,6 +141,16 @@ export const DashboardGrid = ({
   onRemoveWidget,
   onBreakpointChange,
 }: DashboardGridProps) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const lockBodyScroll = () => {
+    document.body.classList.add("ordersnapr-lock-scroll");
+  };
+
+  const unlockBodyScroll = () => {
+    document.body.classList.remove("ordersnapr-lock-scroll");
+  };
+
   const handleLayoutChange = (_: Layout[], allLayouts: Layouts) => {
     if (!isEditMode) return;
 
@@ -176,7 +187,7 @@ export const DashboardGrid = ({
   return (
     <div className="w-full">
       <ResponsiveGridLayout
-        className="ordersnapr-dashboard"
+        className={`ordersnapr-dashboard ${isEditMode ? "edit-mode" : ""} ${isDragging ? "dragging" : ""}`}
         breakpoints={breakpoints}
         cols={cols}
         layouts={layouts}
@@ -184,7 +195,7 @@ export const DashboardGrid = ({
         margin={[16, 16]}
         containerPadding={[0, 0]}
         compactType="vertical"
-        preventCollision={true}
+        preventCollision={!isEditMode}
         isBounded={true}
         isDraggable={isEditMode}
         isResizable={isEditMode}
@@ -192,6 +203,22 @@ export const DashboardGrid = ({
         draggableCancel=".widget-actions, .widget-remove, button, [data-rgl-no-drag]"
         onLayoutChange={handleLayoutChange}
         onBreakpointChange={(bp) => onBreakpointChange?.(bp as 'lg' | 'md' | 'sm' | 'xs')}
+        onDragStart={() => {
+          setIsDragging(true);
+          lockBodyScroll();
+        }}
+        onDragStop={() => {
+          setIsDragging(false);
+          unlockBodyScroll();
+        }}
+        onResizeStart={() => {
+          setIsDragging(true);
+          lockBodyScroll();
+        }}
+        onResizeStop={() => {
+          setIsDragging(false);
+          unlockBodyScroll();
+        }}
       >
         {widgets.map((widget) => (
           <div key={widget.id}>

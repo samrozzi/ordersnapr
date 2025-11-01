@@ -152,4 +152,37 @@ All colors MUST be HSL.
   .ordersnapr-dashboard .react-grid-item.resizing {
     @apply opacity-80 z-50;
   }
+
+  /* Lock page scrolling while dragging/resizing */
+  .ordersnapr-lock-scroll {
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+  }
+
+  /* In edit mode, always show resizable handles (no hover on touch) and make them bigger */
+  .ordersnapr-dashboard.edit-mode .react-resizable-handle {
+    opacity: 1 !important;
+    width: 20px;
+    height: 20px;
+    touch-action: none;
+  }
+
+  /* Make the corner indicator more obvious on touch */
+  .ordersnapr-dashboard.edit-mode .react-resizable-handle::after {
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-color: hsl(var(--primary));
+  }
+
+  /* Better touch affordance for dragging */
+  .ordersnapr-dashboard.edit-mode .widget-drag-handle {
+    cursor: grab;
+  }
+
+  .ordersnapr-dashboard.dragging .widget-drag-handle {
+    cursor: grabbing;
+  }
 }

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Settings } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { OrgFeature, FeatureModule } from "@/hooks/use-features";
+import { WorkOrdersConfigForm } from "./WorkOrdersConfigForm";
 
 const ALL_MODULES: FeatureModule[] = [
   "work_orders",
@@ -213,24 +214,33 @@ export const FeaturesManagementTab = () => {
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="mt-4">
                                   <div className="space-y-2">
-                                    <Label>Configuration (JSON)</Label>
-                                    <Textarea
-                                      value={configEdits[module] ?? currentConfig}
-                                      onChange={(e) =>
-                                        setConfigEdits((prev) => ({
-                                          ...prev,
-                                          [module]: e.target.value,
-                                        }))
-                                      }
-                                      className="font-mono text-sm"
-                                      rows={6}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleSaveConfig(module)}
-                                    >
-                                      Save Config
-                                    </Button>
+                                    {module === 'work_orders' ? (
+                                      <WorkOrdersConfigForm
+                                        config={feature?.config || {}}
+                                        onSave={(config) => updateConfigMutation.mutate({ module, config })}
+                                      />
+                                    ) : (
+                                      <>
+                                        <Label>Configuration (JSON)</Label>
+                                        <Textarea
+                                          value={configEdits[module] ?? currentConfig}
+                                          onChange={(e) =>
+                                            setConfigEdits((prev) => ({
+                                              ...prev,
+                                              [module]: e.target.value,
+                                            }))
+                                          }
+                                          className="font-mono text-sm"
+                                          rows={6}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleSaveConfig(module)}
+                                        >
+                                          Save Config
+                                        </Button>
+                                      </>
+                                    )}
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>

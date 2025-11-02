@@ -9,8 +9,11 @@ import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarView } from "@/components/CalendarView";
-import { LogOut, Plus, Calendar } from "lucide-react";
+import { JobKanbanBoard } from "@/components/JobKanbanBoard";
+import { JobDrawer } from "@/components/JobDrawer";
+import { LogOut, Plus, Calendar, List, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureContext } from "@/contexts/FeatureContext";
 
 interface WorkOrder {
   id: string;
@@ -32,15 +35,33 @@ interface WorkOrder {
   access_notes: string | null;
   user_id: string;
   completed_by: string | null;
+  type?: string | null;
+  assigned_to?: string | null;
+  custom_data?: any;
+  checklist?: any;
+  linked_invoice_id?: string | null;
   profiles?: {
     full_name: string | null;
     email: string | null;
-  };
+  } | null;
+  creator?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+  assignee?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+  assignedProfile?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
 }
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getFeatureConfig } = useFeatureContext();
   const [session, setSession] = useState<Session | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +71,11 @@ const Dashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullStartY, setPullStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+
+  const config = getFeatureConfig('work_orders');
+  const displayName = config?.display_name || 'Jobs';
+  const statuses = config?.statuses || ['New', 'Scheduled', 'In Progress', 'Complete', 'Cancelled'];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -83,7 +109,8 @@ const Dashboard = () => {
         .from("work_orders")
         .select(`
           *,
-          profiles:user_id(full_name, email)
+          creator:profiles!work_orders_user_id_fkey(full_name, email),
+          assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
         `)
         .order("created_at", { ascending: false });
 
@@ -200,21 +227,42 @@ const Dashboard = () => {
       </div>
 
       <main className="space-y-6">
-        <h2 className="text-2xl font-semibold">Your Work Orders</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">{displayName}</h2>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-2" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Kanban
+            </Button>
+          </div>
+        </div>
         
         <div className="flex gap-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                New Work Order
+                New {displayName.replace(/s$/, '')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Work Order</DialogTitle>
+                <DialogTitle>Create New {displayName.replace(/s$/, '')}</DialogTitle>
               </DialogHeader>
-              <WorkOrderForm
+              <JobDrawer
+                config={config}
                 onSuccess={() => {
                   setIsDialogOpen(false);
                   fetchWorkOrders();
@@ -232,7 +280,7 @@ const Dashboard = () => {
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
               <DialogHeader>
-                <DialogTitle>Work Order Calendar</DialogTitle>
+                <DialogTitle>{displayName} Calendar</DialogTitle>
               </DialogHeader>
               <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
                 <CalendarView />
@@ -241,31 +289,51 @@ const Dashboard = () => {
           </Dialog>
         </div>
 
-        <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="pending">
-              Pending / Scheduled ({pendingOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({completedOrders.length})
-            </TabsTrigger>
-          </TabsList>
+        {viewMode === 'kanban' ? (
+          <JobKanbanBoard
+            workOrders={workOrders}
+            statuses={statuses}
+            onUpdate={fetchWorkOrders}
+            onJobClick={(order) => setViewingOrder(order as WorkOrder)}
+          />
+        ) : (
+          <Tabs defaultValue="pending" className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="pending">
+                Pending / Scheduled ({pendingOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completed ({completedOrders.length})
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="pending" className="mt-6">
-            <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
-          </TabsContent>
+            <TabsContent value="pending" className="mt-6">
+              <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
+            </TabsContent>
 
-          <TabsContent value="completed" className="mt-6">
-            <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="completed" className="mt-6">
+              <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
+            </TabsContent>
+          </Tabs>
+        )}
 
-        <WorkOrderDetails
-          workOrder={viewingOrder}
-          open={!!viewingOrder}
-          onOpenChange={(open) => !open && setViewingOrder(null)}
-          onUpdate={fetchWorkOrders}
-        />
+        <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit {displayName.replace(/s$/, '')}</DialogTitle>
+            </DialogHeader>
+            {viewingOrder && (
+              <JobDrawer
+                workOrder={viewingOrder}
+                config={config}
+                onSuccess={() => {
+                  setViewingOrder(null);
+                  fetchWorkOrders();
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

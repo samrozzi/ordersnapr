@@ -21,12 +21,20 @@ const MODULE_NAV_MAP: NavItem[] = [
 ];
 
 export const useFeatureNavigation = () => {
-  const { hasFeature, isLoading } = useFeatureContext();
+  const { hasFeature, isLoading, getFeatureConfig } = useFeatureContext();
 
   const enabledNavItems = useMemo(() => {
     if (isLoading) return [];
-    return MODULE_NAV_MAP.filter((item) => hasFeature(item.module));
-  }, [hasFeature, isLoading]);
+    return MODULE_NAV_MAP.filter((item) => hasFeature(item.module)).map((item) => {
+      // Get custom display name from config if available
+      if (item.module === 'work_orders') {
+        const config = getFeatureConfig('work_orders');
+        const displayName = config?.display_name || item.label;
+        return { ...item, label: displayName };
+      }
+      return item;
+    });
+  }, [hasFeature, isLoading, getFeatureConfig]);
 
   const isRouteEnabled = (path: string): boolean => {
     // Dashboard and profile are always enabled

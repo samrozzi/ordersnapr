@@ -719,16 +719,20 @@ export type Database = {
           access_notes: string | null
           access_required: boolean
           address: string | null
+          assigned_to: string | null
           ban: string | null
           bpc: string | null
+          checklist: Json | null
           completed_at: string | null
           completed_by: string | null
           completion_notes: string | null
           contact_info: string | null
           created_at: string | null
+          custom_data: Json | null
           customer_name: string
           id: string
           job_id: string | null
+          linked_invoice_id: string | null
           notes: string | null
           organization_id: string
           package: string | null
@@ -736,6 +740,7 @@ export type Database = {
           scheduled_date: string | null
           scheduled_time: string | null
           status: string | null
+          type: string | null
           updated_at: string | null
           user_id: string
         }
@@ -743,16 +748,20 @@ export type Database = {
           access_notes?: string | null
           access_required?: boolean
           address?: string | null
+          assigned_to?: string | null
           ban?: string | null
           bpc?: string | null
+          checklist?: Json | null
           completed_at?: string | null
           completed_by?: string | null
           completion_notes?: string | null
           contact_info?: string | null
           created_at?: string | null
+          custom_data?: Json | null
           customer_name: string
           id?: string
           job_id?: string | null
+          linked_invoice_id?: string | null
           notes?: string | null
           organization_id: string
           package?: string | null
@@ -760,6 +769,7 @@ export type Database = {
           scheduled_date?: string | null
           scheduled_time?: string | null
           status?: string | null
+          type?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -767,16 +777,20 @@ export type Database = {
           access_notes?: string | null
           access_required?: boolean
           address?: string | null
+          assigned_to?: string | null
           ban?: string | null
           bpc?: string | null
+          checklist?: Json | null
           completed_at?: string | null
           completed_by?: string | null
           completion_notes?: string | null
           contact_info?: string | null
           created_at?: string | null
+          custom_data?: Json | null
           customer_name?: string
           id?: string
           job_id?: string | null
+          linked_invoice_id?: string | null
           notes?: string | null
           organization_id?: string
           package?: string | null
@@ -784,10 +798,25 @@ export type Database = {
           scheduled_date?: string | null
           scheduled_time?: string | null
           status?: string | null
+          type?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_orders_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_linked_invoice_id_fkey"
+            columns: ["linked_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_orders_organization_id_fkey"
             columns: ["organization_id"]

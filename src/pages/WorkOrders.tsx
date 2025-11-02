@@ -5,6 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
@@ -65,7 +66,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -226,7 +227,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <main className="space-y-6">
+      <div className="container mx-auto max-w-7xl space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">{displayName}</h2>
           <div className="flex gap-2">
@@ -250,26 +251,28 @@ const Dashboard = () => {
         </div>
         
         <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
+          <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <SheetTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 New {displayName.replace(/s$/, '')}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New {displayName.replace(/s$/, '')}</DialogTitle>
-              </DialogHeader>
-              <JobDrawer
-                config={config}
-                onSuccess={() => {
-                  setIsDialogOpen(false);
-                  fetchWorkOrders();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto sm:max-w-2xl">
+              <SheetHeader>
+                <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <JobDrawer
+                  config={config}
+                  onSuccess={() => {
+                    setIsDrawerOpen(false);
+                    fetchWorkOrders();
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
 
           <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <DialogTrigger asChild>
@@ -308,11 +311,15 @@ const Dashboard = () => {
             </TabsList>
 
             <TabsContent value="pending" className="mt-6">
-              <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
+              <div className="overflow-x-auto">
+                <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
+              </div>
             </TabsContent>
 
             <TabsContent value="completed" className="mt-6">
-              <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
+              <div className="overflow-x-auto">
+                <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
+              </div>
             </TabsContent>
           </Tabs>
         )}
@@ -334,7 +341,7 @@ const Dashboard = () => {
             )}
           </DialogContent>
         </Dialog>
-      </main>
+      </div>
     </div>
   );
 };

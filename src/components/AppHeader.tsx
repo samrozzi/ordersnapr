@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 
 interface AppHeaderProps {
   orgLogoUrl?: string | null;
@@ -26,6 +27,7 @@ export const AppHeader = ({
   activeTab
 }: AppHeaderProps) => {
   const navigate = useNavigate();
+  const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
 
   return (
     <header className="border-b overflow-x-hidden">
@@ -72,29 +74,18 @@ export const AppHeader = ({
                 </Tooltip>
               )}
               
-              {showNavTabs && (
+              {showNavTabs && !featuresLoading && enabledNavItems.length > 0 && (
                 <>
-                  <Button
-                    variant={activeTab === "work-orders" ? "default" : "ghost"}
-                    onClick={() => onTabChange?.("work-orders")}
-                    className="h-8 sm:h-10"
-                  >
-                    Work Orders
-                  </Button>
-                  <Button
-                    variant={activeTab === "property-info" ? "default" : "ghost"}
-                    onClick={() => onTabChange?.("property-info")}
-                    className="h-8 sm:h-10"
-                  >
-                    Property Info
-                  </Button>
-                  <Button
-                    variant={activeTab === "forms" ? "default" : "ghost"}
-                    onClick={() => onTabChange?.("forms")}
-                    className="h-8 sm:h-10"
-                  >
-                    Forms
-                  </Button>
+                  {enabledNavItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant={activeTab === item.path.replace('/', '') ? "default" : "ghost"}
+                      onClick={() => onTabChange?.(item.path.replace('/', ''))}
+                      className="h-8 sm:h-10"
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
                 </>
               )}
             </div>
@@ -116,20 +107,22 @@ export const AppHeader = ({
                   <TooltipContent>{isAdmin ? "Admin" : "Org Admin"}</TooltipContent>
                 </Tooltip>
               )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={currentPage === "calendar" ? "default" : "ghost"}
-                    size="icon"
-                    onClick={() => navigate("/calendar")}
-                    aria-label="Calendar"
-                    className="h-8 w-8 sm:h-10 sm:w-10"
-                  >
-                    <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Calendar</TooltipContent>
-              </Tooltip>
+              {!featuresLoading && enabledNavItems.some(item => item.path === "/calendar") && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={currentPage === "calendar" ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => navigate("/calendar")}
+                      aria-label="Calendar"
+                      className="h-8 w-8 sm:h-10 sm:w-10"
+                    >
+                      <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Calendar</TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 

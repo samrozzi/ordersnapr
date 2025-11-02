@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import type { WidgetSize } from "@/lib/widget-presets";
 import { getPreset } from "@/lib/widget-presets";
+import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 
 // Lazy load tab components
 const WorkOrders = lazy(() => import("./WorkOrders"));
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { toast } = useToast();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
 
   useEffect(() => {
     fetchDashboardData();
@@ -353,13 +355,21 @@ const Dashboard = () => {
                   <TooltipContent>Dashboard</TooltipContent>
                 </Tooltip>
                 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-8 sm:h-10">
-                  <TabsList className="h-8 sm:h-10">
-                    <TabsTrigger value="work-orders" className="text-xs sm:text-sm px-2 sm:px-3">Work Orders</TabsTrigger>
-                    <TabsTrigger value="property-info" className="text-xs sm:text-sm px-2 sm:px-3">Property Info</TabsTrigger>
-                    <TabsTrigger value="forms" className="text-xs sm:text-sm px-2 sm:px-3">Forms</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                {!featuresLoading && enabledNavItems.length > 0 && (
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-8 sm:h-10">
+                    <TabsList className="h-8 sm:h-10">
+                      {enabledNavItems.map((item) => (
+                        <TabsTrigger 
+                          key={item.path} 
+                          value={item.path.replace('/', '')} 
+                          className="text-xs sm:text-sm px-2 sm:px-3"
+                        >
+                          {item.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                )}
               </div>
               
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -379,20 +389,22 @@ const Dashboard = () => {
                     <TooltipContent>{isAdmin ? "Admin" : "Org Admin"}</TooltipContent>
                   </Tooltip>
                 )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => navigate("/calendar")}
-                      aria-label="Calendar"
-                      className="h-8 w-8 sm:h-10 sm:w-10"
-                    >
-                      <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Calendar</TooltipContent>
-                </Tooltip>
+                {!featuresLoading && enabledNavItems.some(item => item.path === "/calendar") && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => navigate("/calendar")}
+                        aria-label="Calendar"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
+                      >
+                        <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Calendar</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -456,23 +468,24 @@ const Dashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="work-orders">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <WorkOrders />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="property-info">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <PropertyInfo />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="forms">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <Forms />
-            </Suspense>
-          </TabsContent>
+          {enabledNavItems.map((item) => {
+            const tabValue = item.path.replace('/', '');
+            let Component = null;
+            
+            if (item.path === '/work-orders') Component = WorkOrders;
+            else if (item.path === '/property-info') Component = PropertyInfo;
+            else if (item.path === '/forms') Component = Forms;
+            
+            if (!Component) return null;
+            
+            return (
+              <TabsContent key={item.path} value={tabValue}>
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <Component />
+                </Suspense>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
     </div>

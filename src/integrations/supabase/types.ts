@@ -821,6 +821,10 @@ export type Database = {
         Returns: boolean
       }
       in_same_org: { Args: { _u1: string; _u2: string }; Returns: boolean }
+      is_member_of_org: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean

@@ -95,8 +95,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          layout_data: Json | null
           position: number
           settings: Json | null
+          size: string | null
           updated_at: string
           user_id: string
           widget_type: string
@@ -104,8 +106,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          layout_data?: Json | null
           position: number
           settings?: Json | null
+          size?: string | null
           updated_at?: string
           user_id: string
           widget_type: string
@@ -113,8 +117,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          layout_data?: Json | null
           position?: number
           settings?: Json | null
+          size?: string | null
           updated_at?: string
           user_id?: string
           widget_type?: string

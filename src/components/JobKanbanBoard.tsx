@@ -138,7 +138,21 @@ export function JobKanbanBoard({ workOrders, statuses, onUpdate, onJobClick }: J
     >
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statuses.map((status) => {
-          const statusOrders = workOrders.filter(o => o.status === status);
+          // Filter with case-insensitive matching and handle old status values
+          const statusOrders = workOrders.filter(o => {
+            const orderStatus = o.status?.toLowerCase() || '';
+            const configStatus = status.toLowerCase();
+            
+            // Direct match
+            if (orderStatus === configStatus) return true;
+            
+            // Handle legacy status mappings
+            if (configStatus === 'new' && orderStatus === 'pending') return true;
+            if (configStatus === 'complete' && orderStatus === 'completed') return true;
+            if (configStatus === 'cancelled' && orderStatus === 'canceled') return true;
+            
+            return false;
+          });
           
           return (
             <Card key={status} className="min-h-[200px]">

@@ -83,7 +83,7 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
     defaultValues: {
       customer_name: workOrder?.customer_name || "",
       type: workOrder?.type || "",
-      status: workOrder?.status || (config.statuses?.[0] || "pending"),
+      status: workOrder?.status || (config?.statuses?.[0] || "New"),
       assigned_to: workOrder?.assigned_to || "",
       scheduled_date: workOrder?.scheduled_date ? parseISO(workOrder.scheduled_date) : undefined,
       scheduled_time: workOrder?.scheduled_time || "",
@@ -92,6 +92,22 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
       custom_data: workOrder?.custom_data || {},
     },
   });
+
+  // Reset form when workOrder changes to handle switching between edit and create modes
+  useEffect(() => {
+    form.reset({
+      customer_name: workOrder?.customer_name || "",
+      type: workOrder?.type || "",
+      status: workOrder?.status || (config?.statuses?.[0] || "New"),
+      assigned_to: workOrder?.assigned_to || "",
+      scheduled_date: workOrder?.scheduled_date ? parseISO(workOrder.scheduled_date) : undefined,
+      scheduled_time: workOrder?.scheduled_time || "",
+      address: workOrder?.address || "",
+      notes: workOrder?.notes || "",
+      custom_data: workOrder?.custom_data || {},
+    });
+    setChecklistItems(workOrder?.checklist || []);
+  }, [workOrder, form, config]);
 
   const addChecklistItem = () => {
     if (newChecklistItem.trim()) {
@@ -193,14 +209,14 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
             )}
           />
 
-          {config.types && config.types.length > 0 && (
+          {config?.types && config.types.length > 0 && (
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type..." />
@@ -226,14 +242,14 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {(config.statuses || ['pending', 'scheduled', 'completed']).map((status) => (
+                    {(config?.statuses || ['New', 'Scheduled', 'Complete']).map((status) => (
                       <SelectItem key={status} value={status}>
                         {status}
                       </SelectItem>
@@ -251,7 +267,7 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Assign To</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select user..." />

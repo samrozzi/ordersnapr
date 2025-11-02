@@ -59,22 +59,26 @@ export const AppHeader = ({
         <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
           <TooltipProvider>
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              {showHomeButton && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant={currentPage === "dashboard" ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => navigate("/dashboard")}
-                      aria-label="Dashboard"
-                      className="h-8 w-8 sm:h-10 sm:w-10"
-                    >
-                      <Home className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Dashboard</TooltipContent>
-                </Tooltip>
-              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={currentPage === "dashboard" || activeTab === "dashboard" ? "default" : "ghost"}
+                    size="icon"
+                    onClick={() => {
+                      if (onTabChange) {
+                        onTabChange("dashboard");
+                      } else {
+                        navigate("/dashboard");
+                      }
+                    }}
+                    aria-label="Dashboard"
+                    className="h-8 w-8 sm:h-10 sm:w-10"
+                  >
+                    <Home className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Dashboard</TooltipContent>
+              </Tooltip>
               
               {showNavTabs && !featuresLoading && enabledNavItems.length > 0 && (
                 <>

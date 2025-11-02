@@ -78,7 +78,6 @@ const CalendarPage = () => {
         isAdmin={isAdmin}
         isOrgAdmin={isOrgAdmin}
         currentPage="calendar"
-        showHomeButton={true}
         showNavTabs={true}
       />
 

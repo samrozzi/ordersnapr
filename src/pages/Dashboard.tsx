@@ -5,11 +5,10 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardGrid, Widget } from "@/components/DashboardGrid";
 import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Edit, Save, Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Edit, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { AppHeader } from "@/components/AppHeader";
 import type { WidgetSize } from "@/lib/widget-presets";
 import { getPreset } from "@/lib/widget-presets";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
@@ -291,15 +290,15 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
-            <Skeleton className="h-12 sm:h-16 w-32 mb-3" />
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-md" />
-              <Skeleton className="h-8 w-64 sm:h-10 sm:w-80 rounded-md" />
-            </div>
-          </div>
-        </header>
+        <AppHeader 
+          orgLogoUrl={orgLogoUrl}
+          isAdmin={isAdmin}
+          isOrgAdmin={isOrgAdmin}
+          currentPage="dashboard"
+          showNavTabs={true}
+          onTabChange={setActiveTab}
+          activeTab={activeTab}
+        />
         <div className="container mx-auto p-4 sm:p-6">
           <div className="grid grid-cols-12 gap-2">
             <Skeleton className="col-span-6 h-40" />
@@ -313,117 +312,15 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b overflow-x-hidden">
-        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-            <button 
-              onClick={() => navigate("/")}
-              className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
-              aria-label="Go to home page"
-            >
-              <img src={ordersnaprLogo} alt="ordersnapr" className="h-12 sm:h-16 relative z-10" />
-            </button>
-            {orgLogoUrl && (
-              <button
-                onClick={() => navigate("/")}
-                className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
-                aria-label="Go to home page"
-              >
-                <img 
-                  src={orgLogoUrl} 
-                  alt="Organization logo" 
-                  className="h-auto max-h-12 sm:max-h-16 max-w-[120px] sm:max-w-[200px] object-contain"
-                />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
-            <TooltipProvider>
-              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant={activeTab === "dashboard" ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => setActiveTab("dashboard")}
-                      aria-label="Dashboard"
-                      className="h-8 w-8 sm:h-10 sm:w-10"
-                    >
-                      <Home className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Dashboard</TooltipContent>
-                </Tooltip>
-                
-                {!featuresLoading && enabledNavItems.length > 0 && (
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-8 sm:h-10">
-                    <TabsList className="h-8 sm:h-10">
-                      {enabledNavItems.map((item) => (
-                        <TabsTrigger 
-                          key={item.path} 
-                          value={item.path.replace('/', '')} 
-                          className="text-xs sm:text-sm px-2 sm:px-3"
-                        >
-                          {item.label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                {(isAdmin || isOrgAdmin) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => navigate(isAdmin ? "/admin" : "/org-admin")}
-                        aria-label={isAdmin ? "Admin" : "Org Admin"}
-                        className="h-8 w-8 sm:h-10 sm:w-10"
-                      >
-                        <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{isAdmin ? "Admin" : "Org Admin"}</TooltipContent>
-                  </Tooltip>
-                )}
-                {!featuresLoading && enabledNavItems.some(item => item.path === "/calendar") && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => navigate("/calendar")}
-                        aria-label="Calendar"
-                        className="h-8 w-8 sm:h-10 sm:w-10"
-                      >
-                        <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Calendar</TooltipContent>
-                  </Tooltip>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => navigate("/profile")}
-                      aria-label="Profile"
-                      className="h-8 w-8 sm:h-10 sm:w-10"
-                    >
-                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Profile</TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-          </div>
-        </div>
-      </header>
+      <AppHeader 
+        orgLogoUrl={orgLogoUrl}
+        isAdmin={isAdmin}
+        isOrgAdmin={isOrgAdmin}
+        currentPage="dashboard"
+        showNavTabs={true}
+        onTabChange={setActiveTab}
+        activeTab={activeTab}
+      />
 
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab}>

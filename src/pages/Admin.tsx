@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown } from "lucide-react";
+import { CheckCircle, XCircle, Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown, Settings, Layers } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
+import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 
 interface UserProfile {
   id: string;
@@ -358,6 +360,14 @@ const Admin = () => {
           <TabsTrigger value="organizations" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Organizations
+          </TabsTrigger>
+          <TabsTrigger value="features" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Features
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Templates
           </TabsTrigger>
         </TabsList>
 
@@ -721,6 +731,14 @@ const Admin = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="features">
+          <FeaturesManagementTab />
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <IndustryTemplatesTab />
         </TabsContent>
       </Tabs>
     </div>

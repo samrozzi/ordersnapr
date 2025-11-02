@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          customer_id: string | null
+          end_at: string | null
+          id: string
+          meta: Json | null
+          org_id: string
+          start_at: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          end_at?: string | null
+          id?: string
+          meta?: Json | null
+          org_id: string
+          start_at?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          end_at?: string | null
+          id?: string
+          meta?: Json | null
+          org_id?: string
+          start_at?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -91,11 +155,56 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: Json | null
+          created_at: string | null
+          email: string | null
+          id: string
+          meta: Json | null
+          name: string
+          org_id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          meta?: Json | null
+          name: string
+          org_id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          meta?: Json | null
+          name?: string
+          org_id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_widgets: {
         Row: {
           created_at: string
           id: string
           layout_data: Json | null
+          page_path: string | null
           position: number
           settings: Json | null
           size: string | null
@@ -107,6 +216,7 @@ export type Database = {
           created_at?: string
           id?: string
           layout_data?: Json | null
+          page_path?: string | null
           position: number
           settings?: Json | null
           size?: string | null
@@ -118,6 +228,7 @@ export type Database = {
           created_at?: string
           id?: string
           layout_data?: Json | null
+          page_path?: string | null
           position?: number
           settings?: Json | null
           size?: string | null
@@ -190,6 +301,226 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          due_date: string | null
+          external_ref: string | null
+          id: string
+          number: string | null
+          org_id: string
+          status: string | null
+          total_cents: number
+          updated_at: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          external_ref?: string | null
+          id?: string
+          number?: string | null
+          org_id: string
+          status?: string | null
+          total_cents?: number
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          external_ref?: string | null
+          id?: string
+          number?: string | null
+          org_id?: string
+          status?: string | null
+          total_cents?: number
+          updated_at?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_features: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          enabled: boolean
+          id: string
+          module: string
+          org_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          module: string
+          org_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          module?: string
+          org_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_features_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_memberships: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_page_widgets: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          org_page_id: string
+          position: Json
+          widget_type: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          org_page_id: string
+          position: Json
+          widget_type: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          org_page_id?: string
+          position?: Json
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_page_widgets_org_page_id_fkey"
+            columns: ["org_page_id"]
+            isOneToOne: false
+            referencedRelation: "org_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_pages: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          layout: Json | null
+          org_id: string
+          path: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          layout?: Json | null
+          org_id: string
+          path: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          layout?: Json | null
+          org_id?: string
+          path?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_pages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_settings: {
         Row: {
           created_at: string
@@ -228,20 +559,29 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          domain: string | null
           id: string
+          industry: string | null
           name: string
+          slug: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          domain?: string | null
           id?: string
+          industry?: string | null
           name: string
+          slug?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          domain?: string | null
           id?: string
+          industry?: string | null
           name?: string
+          slug?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -253,6 +593,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_super_admin: boolean | null
           organization_id: string | null
           updated_at: string | null
         }
@@ -262,6 +603,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_super_admin?: boolean | null
           organization_id?: string | null
           updated_at?: string | null
         }
@@ -271,6 +613,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean | null
           organization_id?: string | null
           updated_at?: string | null
         }
@@ -482,6 +825,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

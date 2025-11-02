@@ -73,41 +73,55 @@ export const FeaturesManagementTab = () => {
 
   const toggleFeatureMutation = useMutation({
     mutationFn: async ({ module, enabled }: { module: string; enabled: boolean }) => {
+      if (!selectedOrgId) throw new Error("No organization selected");
+
       const { error } = await supabase
         .from("org_features")
-        .upsert({
-          org_id: selectedOrgId,
-          module,
-          enabled,
-          config: {},
-        });
+        .upsert(
+          {
+            org_id: selectedOrgId,
+            module,
+            enabled,
+            config: {},
+          },
+          { onConflict: 'org_id,module' }
+        );
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-features", selectedOrgId] });
       toast.success("Feature updated successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to update feature");
+    onError: (error: Error) => {
+      toast.error(error?.message ?? "Failed to update feature");
       console.error(error);
     },
   });
 
   const updateConfigMutation = useMutation({
     mutationFn: async ({ module, config }: { module: string; config: any }) => {
+      if (!selectedOrgId) throw new Error("No organization selected");
+
       const { error } = await supabase
         .from("org_features")
-        .update({ config })
-        .eq("org_id", selectedOrgId)
-        .eq("module", module);
+        .upsert(
+          {
+            org_id: selectedOrgId,
+            module,
+            enabled: true,
+            config,
+          },
+          { onConflict: 'org_id,module' }
+        );
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["org-features", selectedOrgId] });
+      setConfigEdits({});
       toast.success("Configuration saved");
     },
-    onError: () => {
-      toast.error("Failed to save configuration");
+    onError: (error: Error) => {
+      toast.error(error?.message ?? "Failed to save configuration");
     },
   });
 

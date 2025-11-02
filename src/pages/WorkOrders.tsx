@@ -11,7 +11,6 @@ import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarView } from "@/components/CalendarView";
 import { JobKanbanBoard } from "@/components/JobKanbanBoard";
-import { JobDrawer } from "@/components/JobDrawer";
 import { LogOut, Plus, Calendar, List, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
@@ -228,9 +227,11 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">{displayName}</h2>
-          <div className="flex gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl font-semibold">{displayName}</h2>
+          </div>
+          <div className="ml-auto flex gap-2 shrink-0">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
@@ -263,8 +264,7 @@ const Dashboard = () => {
                 <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
               </SheetHeader>
               <div className="mt-6">
-                <JobDrawer
-                  config={config}
+                <WorkOrderForm
                   onSuccess={() => {
                     setIsDrawerOpen(false);
                     fetchWorkOrders();
@@ -330,9 +330,8 @@ const Dashboard = () => {
               <DialogTitle>Edit {displayName.replace(/s$/, '')}</DialogTitle>
             </DialogHeader>
             {viewingOrder && (
-              <JobDrawer
+              <WorkOrderForm
                 workOrder={viewingOrder}
-                config={config}
                 onSuccess={() => {
                   setViewingOrder(null);
                   fetchWorkOrders();

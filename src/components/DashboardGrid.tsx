@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export const DashboardGrid = ({
   );
 };
 
-const WidgetCard = ({
+const WidgetCard = memo(({
   widget,
   isEditMode,
   onSizeChange,
@@ -182,4 +182,12 @@ const WidgetCard = ({
       </CardContent>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for memo
+  return (
+    prevProps.widget.id === nextProps.widget.id &&
+    prevProps.widget.size === nextProps.widget.size &&
+    prevProps.widget.type === nextProps.widget.type &&
+    prevProps.isEditMode === nextProps.isEditMode
+  );
+});

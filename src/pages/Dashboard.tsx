@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Edit, Save, Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
-import WorkOrders from "./WorkOrders";
-import PropertyInfo from "./PropertyInfo";
-import Forms from "./Forms";
 import type { WidgetSize } from "@/lib/widget-presets";
-import type { Breakpoint } from "@/hooks/use-breakpoint";
 import { getPreset } from "@/lib/widget-presets";
+
+// Lazy load tab components
+const WorkOrders = lazy(() => import("./WorkOrders"));
+const PropertyInfo = lazy(() => import("./PropertyInfo"));
+const Forms = lazy(() => import("./Forms"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -41,28 +43,35 @@ const Dashboard = () => {
 
       if (!user) return;
 
-      // Check admin status and org logo
-      const { data: rolesData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .in("role", ["admin", "org_admin"]);
+      // Fetch all data in parallel for faster initial load
+      const [rolesResult, profileResult, widgetsResult] = await Promise.all([
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "org_admin"]),
+        supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("dashboard_widgets")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("position"),
+      ]);
 
-      setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
-      setIsOrgAdmin(!!rolesData?.some(r => r.role === "org_admin"));
+      // Set admin roles
+      setIsAdmin(!!rolesResult.data?.some(r => r.role === "admin"));
+      setIsOrgAdmin(!!rolesResult.data?.some(r => r.role === "org_admin"));
 
-      // Fetch organization logo
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profileData?.organization_id) {
+      // Fetch org logo if needed
+      if (profileResult.data?.organization_id) {
         const { data: orgSettings } = await supabase
           .from("organization_settings")
           .select("logo_url")
-          .eq("organization_id", profileData.organization_id)
+          .eq("organization_id", profileResult.data.organization_id)
           .maybeSingle();
 
         if (orgSettings?.logo_url) {
@@ -70,17 +79,11 @@ const Dashboard = () => {
         }
       }
 
-      // Fetch widgets
-      const { data: widgetsData, error: widgetsError } = await supabase
-        .from("dashboard_widgets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("position");
-
-      if (widgetsError) throw widgetsError;
+      // Handle widgets
+      if (widgetsResult.error) throw widgetsResult.error;
 
       // If no widgets, create defaults
-      if (!widgetsData || widgetsData.length === 0) {
+      if (!widgetsResult.data || widgetsResult.data.length === 0) {
         await createDefaultWidgets(user.id);
         return fetchDashboardData();
       }
@@ -103,7 +106,7 @@ const Dashboard = () => {
         return best;
       };
 
-      const mappedWidgets: Widget[] = widgetsData.map((w, index) => {
+      const mappedWidgets: Widget[] = widgetsResult.data.map((w, index) => {
         const layoutData = (w.layout_data as any) || {};
         
         // If no size field, migrate from old settings
@@ -127,17 +130,6 @@ const Dashboard = () => {
       });
       
       setWidgets(mappedWidgets);
-
-      // Fetch work orders for calendar widgets
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("work_orders")
-        .select("*")
-        .not("scheduled_date", "is", null)
-        .in("status", ["pending", "scheduled"])
-        .order("scheduled_date");
-
-      if (ordersError) throw ordersError;
-      setWorkOrders(ordersData || []);
     } catch (error: any) {
       console.error("Error fetching dashboard:", error);
       toast({
@@ -252,20 +244,23 @@ const Dashboard = () => {
 
       saveTimeoutRef.current = setTimeout(async () => {
         try {
-          for (const widget of widgetsToSave) {
-            await supabase
-              .from("dashboard_widgets")
-              .update({
-                size: widget.size,
-                layout_data: { x: widget.x, y: widget.y },
-                position: widget.position,
-              })
-              .eq("id", widget.id);
-          }
+          // Batch update all widgets in parallel
+          await Promise.all(
+            widgetsToSave.map(widget =>
+              supabase
+                .from("dashboard_widgets")
+                .update({
+                  size: widget.size,
+                  layout_data: { x: widget.x, y: widget.y },
+                  position: widget.position,
+                })
+                .eq("id", widget.id)
+            )
+          );
         } catch (error: any) {
           console.error("Error auto-saving widgets:", error);
         }
-      }, 400);
+      }, 1000); // Increased from 400ms to reduce database writes
     },
     []
   );
@@ -293,8 +288,23 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-muted-foreground">Loading dashboard...</div>
+      <div className="min-h-screen bg-background">
+        <header className="border-b">
+          <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+            <Skeleton className="h-12 sm:h-16 w-32 mb-3" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-md" />
+              <Skeleton className="h-8 w-64 sm:h-10 sm:w-80 rounded-md" />
+            </div>
+          </div>
+        </header>
+        <div className="container mx-auto p-4 sm:p-6">
+          <div className="grid grid-cols-12 gap-2">
+            <Skeleton className="col-span-6 h-40" />
+            <Skeleton className="col-span-3 h-40" />
+            <Skeleton className="col-span-3 h-40" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -447,15 +457,21 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="work-orders">
-            <WorkOrders />
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <WorkOrders />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="property-info">
-            <PropertyInfo />
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <PropertyInfo />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="forms">
-            <Forms />
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <Forms />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

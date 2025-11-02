@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 
 interface FavoriteItem {
   id: string;
@@ -12,70 +12,78 @@ interface FavoriteItem {
   date?: string;
 }
 
-export const FavoritesWidget = () => {
-  const { favorites, loading } = useFavorites();
+export const FavoritesWidget = memo(() => {
   const [enrichedFavorites, setEnrichedFavorites] = useState<FavoriteItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFavorites = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data: favorites } = await supabase
-        .from("user_favorites")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("display_order", { ascending: false })
-        .limit(6);
+        const { data: favorites } = await supabase
+          .from("user_favorites")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("display_order", { ascending: false })
+          .limit(6);
 
-      const enriched = await Promise.all(
-        (favorites || []).map(async (fav) => {
+        if (!favorites || favorites.length === 0) {
+          setEnrichedFavorites([]);
+          return;
+        }
+
+        // Batch fetch all entities by type for better performance
+        const workOrderIds = favorites.filter(f => f.entity_type === "work_order").map(f => f.entity_id);
+        const calendarEventIds = favorites.filter(f => f.entity_type === "calendar_event").map(f => f.entity_id);
+        const propertyIds = favorites.filter(f => f.entity_type === "property").map(f => f.entity_id);
+        const formDraftIds = favorites.filter(f => f.entity_type === "form_draft").map(f => f.entity_id);
+
+        const [workOrders, calendarEvents, properties, formDrafts] = await Promise.all([
+          workOrderIds.length > 0 
+            ? supabase.from("work_orders").select("id, customer_name, scheduled_date").in("id", workOrderIds)
+            : Promise.resolve({ data: [] }),
+          calendarEventIds.length > 0
+            ? supabase.from("calendar_events").select("id, title, event_date").in("id", calendarEventIds)
+            : Promise.resolve({ data: [] }),
+          propertyIds.length > 0
+            ? supabase.from("properties").select("id, property_name").in("id", propertyIds)
+            : Promise.resolve({ data: [] }),
+          formDraftIds.length > 0
+            ? supabase.from("form_drafts").select("id, draft_name, form_type").in("id", formDraftIds)
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        // Map entities to lookup
+        const woMap = new Map((workOrders.data || []).map(w => [w.id, w]));
+        const evMap = new Map((calendarEvents.data || []).map(e => [e.id, e]));
+        const propMap = new Map((properties.data || []).map(p => [p.id, p]));
+        const draftMap = new Map((formDrafts.data || []).map(d => [d.id, d]));
+
+        const enriched = favorites.map(fav => {
           let title = "Unknown";
           let date = "";
 
-          try {
-            if (fav.entity_type === "work_order") {
-              const { data } = await supabase
-                .from("work_orders")
-                .select("customer_name, scheduled_date")
-                .eq("id", fav.entity_id)
-                .single();
-              if (data) {
-                title = data.customer_name;
-                date = data.scheduled_date || "";
-              }
-            } else if (fav.entity_type === "calendar_event") {
-              const { data } = await supabase
-                .from("calendar_events")
-                .select("title, event_date")
-                .eq("id", fav.entity_id)
-                .single();
-              if (data) {
-                title = data.title;
-                date = data.event_date;
-              }
-            } else if (fav.entity_type === "property") {
-              const { data } = await supabase
-                .from("properties")
-                .select("property_name")
-                .eq("id", fav.entity_id)
-                .single();
-              if (data) {
-                title = data.property_name;
-              }
-            } else if (fav.entity_type === "form_draft") {
-              const { data } = await supabase
-                .from("form_drafts")
-                .select("draft_name, form_type")
-                .eq("id", fav.entity_id)
-                .single();
-              if (data) {
-                title = data.draft_name || data.form_type;
-              }
+          if (fav.entity_type === "work_order") {
+            const wo = woMap.get(fav.entity_id);
+            if (wo) {
+              title = wo.customer_name;
+              date = wo.scheduled_date || "";
             }
-          } catch (error) {
-            console.error("Error enriching favorite:", error);
+          } else if (fav.entity_type === "calendar_event") {
+            const ev = evMap.get(fav.entity_id);
+            if (ev) {
+              title = ev.title;
+              date = ev.event_date;
+            }
+          } else if (fav.entity_type === "property") {
+            const prop = propMap.get(fav.entity_id);
+            if (prop) title = prop.property_name;
+          } else if (fav.entity_type === "form_draft") {
+            const draft = draftMap.get(fav.entity_id);
+            if (draft) title = draft.draft_name || draft.form_type;
           }
 
           return {
@@ -85,10 +93,14 @@ export const FavoritesWidget = () => {
             title,
             date,
           };
-        })
-      );
+        });
 
-      setEnrichedFavorites(enriched);
+        setEnrichedFavorites(enriched);
+      } catch (error) {
+        console.error("Error fetching favorites:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchFavorites();
@@ -147,4 +159,4 @@ export const FavoritesWidget = () => {
       )}
     </div>
   );
-};
+});

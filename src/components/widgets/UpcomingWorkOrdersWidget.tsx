@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ interface WorkOrder {
 
 type FilterMode = "day" | "week" | "month";
 
-export const UpcomingWorkOrdersWidget = () => {
+export const UpcomingWorkOrdersWidget = memo(() => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<FilterMode>("week");
@@ -149,4 +149,4 @@ export const UpcomingWorkOrdersWidget = () => {
       />
     </>
   );
-};
+});

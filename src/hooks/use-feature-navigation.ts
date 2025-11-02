@@ -11,7 +11,6 @@ export interface NavItem {
 
 const MODULE_NAV_MAP: NavItem[] = [
   { module: "work_orders", label: "Work Orders", path: "/work-orders", icon: "clipboard" },
-  { module: "calendar", label: "Calendar", path: "/calendar", icon: "calendar" },
   { module: "properties", label: "Property Info", path: "/property-info", icon: "building" },
   { module: "forms", label: "Forms", path: "/forms", icon: "file-text" },
   { module: "invoicing", label: "Invoices", path: "/invoices", icon: "file-invoice" },
@@ -33,6 +32,11 @@ export const useFeatureNavigation = () => {
     // Dashboard and profile are always enabled
     if (path === "/dashboard" || path === "/profile" || path === "/org-admin") {
       return true;
+    }
+
+    // Calendar is checked via feature but not in nav tabs (icon only)
+    if (path === "/calendar") {
+      return hasFeature("calendar");
     }
 
     const navItem = MODULE_NAV_MAP.find((item) => item.path === path);

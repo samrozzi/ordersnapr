@@ -48,12 +48,13 @@ const iconMap: Record<string, React.ElementType> = {
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
   const { hasFeature } = useFeatureContext();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+  const [orgName, setOrgName] = useState<string>("");
 
   useEffect(() => {
     fetchUserData();
@@ -89,6 +90,16 @@ export function AppSidebar() {
         if (orgSettings?.logo_url) {
           setOrgLogoUrl(orgSettings.logo_url);
         }
+
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", profileData.organization_id)
+          .maybeSingle();
+
+        if (orgData?.name) {
+          setOrgName(orgData.name);
+        }
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -101,6 +112,12 @@ export function AppSidebar() {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -116,18 +133,29 @@ export function AppSidebar() {
             className={state === "collapsed" ? "h-8 w-8 object-contain" : "h-12 max-w-[180px] object-contain"}
           />
         </button>
-        {orgLogoUrl && state !== "collapsed" && (
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="mt-3 hover:opacity-80 transition-opacity"
-            aria-label="Organization"
-          >
-            <img
-              src={orgLogoUrl}
-              alt="Organization logo"
-              className="h-auto max-h-10 max-w-[160px] object-contain"
-            />
-          </button>
+        {state !== "collapsed" && (
+          orgLogoUrl ? (
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="mt-3 hover:opacity-80 transition-opacity"
+              aria-label="Organization"
+            >
+              <img
+                src={orgLogoUrl}
+                alt="Organization logo"
+                className="h-auto max-h-10 max-w-[160px] object-contain"
+              />
+            </button>
+          ) : orgName ? (
+            <div className="flex items-center gap-3 mt-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-semibold text-primary">
+                  {orgName.substring(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <span className="text-sm font-medium truncate">{orgName}</span>
+            </div>
+          ) : null
         )}
       </SidebarHeader>
 
@@ -138,7 +166,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
-                  <NavLink to="/dashboard" end>
+                  <NavLink to="/dashboard" end onClick={handleNavClick}>
                     <LayoutDashboard className="h-5 w-5" />
                     <span>Dashboard</span>
                   </NavLink>
@@ -150,7 +178,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                      <NavLink to={item.path} end>
+                      <NavLink to={item.path} end onClick={handleNavClick}>
                         <Icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </NavLink>
@@ -165,11 +193,16 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <Separator className="mb-2" />
+        {state !== "collapsed" && (
+          <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+            Powered by OrderSnapr
+          </div>
+        )}
         <SidebarMenu>
           {!featuresLoading && hasFeature("calendar") && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive("/calendar")}>
-                <NavLink to="/calendar" end>
+                <NavLink to="/calendar" end onClick={handleNavClick}>
                   <Calendar className="h-5 w-5" />
                   <span>Calendar</span>
                 </NavLink>
@@ -180,7 +213,7 @@ export function AppSidebar() {
           {(isAdmin || isOrgAdmin) && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive(isAdmin ? "/admin" : "/org-admin")}>
-                <NavLink to={isAdmin ? "/admin" : "/org-admin"} end>
+                <NavLink to={isAdmin ? "/admin" : "/org-admin"} end onClick={handleNavClick}>
                   <Shield className="h-5 w-5" />
                   <span>{isAdmin ? "Admin" : "Org Admin"}</span>
                 </NavLink>
@@ -190,7 +223,7 @@ export function AppSidebar() {
 
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/profile")}>
-              <NavLink to="/profile" end>
+              <NavLink to="/profile" end onClick={handleNavClick}>
                 <User className="h-5 w-5" />
                 <span>Profile</span>
               </NavLink>

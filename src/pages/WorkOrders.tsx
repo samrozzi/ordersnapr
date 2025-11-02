@@ -227,26 +227,26 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto max-w-7xl space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-semibold">{displayName}</h2>
+            <h2 className="text-2xl font-semibold mr-auto">{displayName}</h2>
           </div>
-          <div className="ml-auto flex gap-2 shrink-0">
+          <div className="flex gap-2 justify-center sm:justify-end">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
             >
-              <List className="h-4 w-4 mr-2" />
-              List
+              <List className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">List</span>
             </Button>
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('kanban')}
             >
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Kanban
+              <LayoutGrid className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Kanban</span>
             </Button>
           </div>
         </div>

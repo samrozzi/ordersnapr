@@ -8,7 +8,7 @@ import { useOrgTheme } from "@/hooks/use-org-theme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureProvider } from "@/contexts/FeatureContext";
 import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
-import Index from "./pages/Index";
+import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import OrgAdmin from "./pages/OrgAdmin";
@@ -35,60 +35,23 @@ const AppContent = () => {
       <BrowserRouter>
         <FeatureProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
-            <Route path="/menu" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/org-admin" element={<ProtectedRoute><OrgAdmin /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             
-            {/* Feature-gated routes */}
-            <Route path="/work-orders" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="work_orders">
-                  <WorkOrders />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/property-info" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="properties">
-                  <PropertyInfo />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/forms" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="forms">
-                  <Forms />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/job-audit" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="forms">
-                  <JobAudit />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/ride-along" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="forms">
-                  <RideAlong />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/calendar" element={
-              <ProtectedRoute>
-                <FeatureRouteGuard module="calendar">
-                  <CalendarPage />
-                </FeatureRouteGuard>
-              </ProtectedRoute>
-            } />
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="admin" element={<Admin />} />
+              <Route path="org-admin" element={<OrgAdmin />} />
+              <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
+              <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
+              <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
+              <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
+              <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
+              <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+            </Route>
             
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </FeatureProvider>

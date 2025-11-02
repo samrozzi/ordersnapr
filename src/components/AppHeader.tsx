@@ -4,6 +4,7 @@ import { Shield, Home, Calendar as CalendarIcon, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
+import { useFeatureContext } from "@/contexts/FeatureContext";
 
 interface AppHeaderProps {
   orgLogoUrl?: string | null;
@@ -28,6 +29,7 @@ export const AppHeader = ({
 }: AppHeaderProps) => {
   const navigate = useNavigate();
   const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
+  const { hasFeature } = useFeatureContext();
 
   return (
     <header className="border-b overflow-x-hidden">
@@ -107,7 +109,7 @@ export const AppHeader = ({
                   <TooltipContent>{isAdmin ? "Admin" : "Org Admin"}</TooltipContent>
                 </Tooltip>
               )}
-              {!featuresLoading && enabledNavItems.some(item => item.path === "/calendar") && (
+              {!featuresLoading && hasFeature("calendar") && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 

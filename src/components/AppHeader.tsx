@@ -36,7 +36,7 @@ export const AppHeader = ({
             className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             aria-label="Go to home page"
           >
-            <img src={ordersnaprLogo} alt="ordersnapr" className="h-12 sm:h-16 relative z-10" />
+            <img src={ordersnaprLogo} alt="ordersnapr" className="h-20 sm:h-24 relative z-10" />
           </button>
           {orgLogoUrl && (
             <button

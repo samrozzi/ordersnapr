@@ -231,7 +231,7 @@ const Dashboard = () => {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="relative"
+      className="flex flex-col h-full"
     >
       {/* Pull to refresh indicator */}
       <div 
@@ -248,12 +248,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="space-y-4 md:space-y-6">
-        <div className="mb-4">
+      <div className="flex flex-col flex-1 min-h-0 space-y-4 md:space-y-6">
+        <div className="flex-shrink-0">
           <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">{/* Action buttons row */}
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{/* Action buttons row */}
           <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <SheetTrigger asChild>
               <Button size="sm" className="md:h-10">
@@ -326,22 +326,26 @@ const Dashboard = () => {
         ) : (
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 sticky top-0 z-[1] bg-background">
-                <TabsTrigger value="pending" className="text-xs sm:text-sm">
+              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 bg-background">
+                <TabsTrigger value="pending" className="text-[10px] sm:text-sm px-1 sm:px-4">
                   <span className="hidden sm:inline">Pending / Scheduled</span>
                   <span className="sm:hidden">Pending</span> ({pendingOrders.length})
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="text-xs sm:text-sm">
+                <TabsTrigger value="completed" className="text-[10px] sm:text-sm px-1 sm:px-4">
                   Completed ({completedOrders.length})
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="pending" className="flex-1 overflow-y-auto">
-                <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
+              <TabsContent value="pending" className="flex-1 overflow-y-auto mt-0">
+                <div className="py-4">
+                  <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
+                </div>
               </TabsContent>
 
-              <TabsContent value="completed" className="flex-1 overflow-y-auto">
-                <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
+              <TabsContent value="completed" className="flex-1 overflow-y-auto mt-0">
+                <div className="py-4">
+                  <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
+                </div>
               </TabsContent>
             </Tabs>
           </div>

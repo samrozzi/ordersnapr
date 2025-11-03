@@ -15,10 +15,10 @@ import { SmartFormImport } from "@/components/SmartFormImport";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { FileText, ChevronDown, Save } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
 import JSZip from "jszip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadialShareButton } from "@/components/RadialShareButton";
+import { generateJobAuditPDF } from "@/lib/job-audit-pdf-generator";
 
 interface JobAuditProps {
   draftToLoad?: any;
@@ -138,238 +138,34 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
   }, [draftToLoad]);
 
   const generatePDF = async (returnInstance = false) => {
-    const doc = new jsPDF();
-    let yPos = 20;
-    const lineHeight = 7;
-    const pageHeight = doc.internal.pageSize.height;
+    const photoUrls = await Promise.all(
+      photos.map(async (photo) => ({
+        url: photo.preview,
+        name: photo.file.name,
+        caption: photo.caption
+      }))
+    );
 
-    // Helper function to compress and resize images
-    const compressImage = async (file: File, maxWidth = 800, quality = 0.5): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Calculate new dimensions
-            let width = img.width;
-            let height = img.height;
-            
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Draw and compress
-            ctx?.drawImage(img, 0, 0, width, height);
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-            resolve(compressedDataUrl);
-          };
-          img.onerror = reject;
-          img.src = e.target?.result as string;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    };
+    const pdf = await generateJobAuditPDF({
+      technicianName,
+      ban,
+      serviceDate,
+      address,
+      customerName,
+      contactPhone: canBeReached,
+      reportDate: new Date(),
+      reportBy: reportedBy || session?.user?.email || "Unknown",
+      observations,
+      adminChecklist,
+      adminChecklistItems: ADMIN_TESTING_ITEMS,
+      customerChecklist,
+      customerChecklistItems: CUSTOMER_EXPERIENCE_ITEMS,
+      dropChecklist,
+      dropChecklistItems: DROP_AUDIT_ITEMS,
+      photos: photoUrls
+    });
 
-    // Title
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Job Quality Inspection Report", 20, yPos);
-    yPos += 15;
-
-    // Job details
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Job Details", 20, yPos);
-    yPos += 7;
-    doc.setFont("helvetica", "normal");
-    if (technicianName) {
-      doc.text(`Technician: ${technicianName}`, 20, yPos);
-      yPos += 5;
-    }
-    if (ban) {
-      doc.text(`BAN: ${ban}`, 20, yPos);
-      yPos += 5;
-    }
-    if (serviceDate) {
-      doc.text(`Service Date: ${serviceDate}`, 20, yPos);
-      yPos += 5;
-    }
-    if (address) {
-      doc.text(`Address: ${address}`, 20, yPos);
-      yPos += 5;
-    }
-    if (customerName) {
-      doc.text(`Customer: ${customerName}`, 20, yPos);
-      yPos += 5;
-    }
-    if (canBeReached) {
-      doc.text(`Can Be Reached: ${canBeReached}`, 20, yPos);
-      yPos += 5;
-    }
-    doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 20, yPos);
-    yPos += 5;
-    if (reportedBy) {
-      doc.text(`Report by ${reportedBy}`, 20, yPos);
-      yPos += 5;
-    }
-    yPos += 5;
-
-    // Observations
-    if (observations) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Observations:", 20, yPos);
-      yPos += 7;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const obsLines = doc.splitTextToSize(observations, 170);
-      doc.text(obsLines, 20, yPos);
-      yPos += obsLines.length * lineHeight + 5;
-    }
-
-    // Helper function to add section
-    const addSection = (title: string, items: string[], checklist: Record<number, string>) => {
-      if (yPos > pageHeight - 40) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(title, 20, yPos);
-      yPos += 8;
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-
-      items.forEach((item, index) => {
-        if (yPos > pageHeight - 20) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        const status = checklist[index] || "N/A";
-        const itemText = `${index + 1}. ${item}`;
-        const lines = doc.splitTextToSize(itemText, 140);
-        
-        doc.text(lines, 20, yPos);
-        doc.setFont("helvetica", "bold");
-        
-        if (status === "OK") {
-          doc.setTextColor(34, 197, 94);
-        } else if (status === "DEV") {
-          doc.setTextColor(239, 68, 68);
-        } else {
-          doc.setTextColor(156, 163, 175);
-        }
-        
-        doc.text(status, 165, yPos);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "normal");
-        
-        yPos += lines.length * lineHeight;
-      });
-
-      yPos += 5;
-    };
-
-    addSection("Administrative/Testing", ADMIN_TESTING_ITEMS, adminChecklist);
-    addSection("Customer Experience", CUSTOMER_EXPERIENCE_ITEMS, customerChecklist);
-    addSection("MAIN FOCUS/BSW AUDIT - Drop", DROP_AUDIT_ITEMS, dropChecklist);
-
-    // Photos
-    if (photos.length > 0) {
-      doc.addPage();
-      yPos = 20;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text("Inspection Photos", 20, yPos);
-      yPos += 10;
-
-      const imgSize = 85;
-      const margin = 10;
-      const captionHeight = 10;
-      let photoCount = 0;
-
-      for (const photo of photos) {
-        try {
-          // Compress image before adding to PDF
-          const compressedDataUrl = await compressImage(photo.file, 800, 0.5);
-          
-          const img = new Image();
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              const col = photoCount % 2;
-              const row = Math.floor((photoCount % 4) / 2);
-              
-              if (photoCount > 0 && photoCount % 4 === 0) {
-                doc.addPage();
-                yPos = 20;
-              }
-              
-              const xPos = 20 + col * (imgSize + margin);
-              const yPosition = yPos + row * (imgSize + margin);
-              
-              const aspectRatio = img.width / img.height;
-              let drawWidth = imgSize;
-              let drawHeight = imgSize;
-              
-              if (aspectRatio > 1) {
-                drawHeight = imgSize / aspectRatio;
-              } else {
-                drawWidth = imgSize * aspectRatio;
-              }
-              
-              doc.addImage(
-                compressedDataUrl, 
-                "JPEG", 
-                xPos, 
-                yPosition, 
-                drawWidth, 
-                drawHeight
-              );
-              
-              if (photo.caption) {
-                doc.setFontSize(8);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(100, 100, 100);
-                const captionLines = doc.splitTextToSize(photo.caption, imgSize);
-                doc.text(captionLines, xPos, yPosition + drawHeight + 3);
-                doc.setTextColor(0, 0, 0);
-              }
-              
-              photoCount++;
-              
-              if (photoCount % 4 === 0) {
-                yPos += (imgSize * 2) + (margin * 2) + captionHeight;
-              }
-              
-              resolve();
-            };
-            img.onerror = reject;
-            img.src = compressedDataUrl;
-          });
-        } catch (error) {
-          console.error("Error processing photo:", error);
-          // Continue with next photo
-        }
-      }
-    }
-
-    if (returnInstance) {
-      return doc;
-    }
-    
-    return doc;
+    return pdf;
   };
 
   const handleGenerateReport = async () => {

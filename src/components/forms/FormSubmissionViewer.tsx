@@ -51,6 +51,8 @@ export function FormSubmissionViewer({
   const handleDownloadPDF = async () => {
     setIsGeneratingPDF(true);
     try {
+      // Always use the generic generator for form submissions
+      // Job Audit forms from the JobAudit page use their own specialized generator
       const pdf = await generateFormPDF(submission);
       const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
       pdf.save(fileName);

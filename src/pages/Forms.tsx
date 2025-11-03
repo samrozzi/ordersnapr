@@ -162,7 +162,7 @@ export default function Forms() {
         </SheetContent>
       </Sheet>
 
-        <div className="border rounded-lg overflow-x-auto">
+        <div className="border rounded-lg overflow-x-auto touch-pan-x">
           <Table className="min-w-max">
             <TableHeader>
               <TableRow>

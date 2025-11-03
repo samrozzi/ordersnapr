@@ -243,7 +243,7 @@ ${getDistance(property)} miles from your location` : ''}`;
 
   return (
     <>
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-md border overflow-x-auto touch-pan-x">
         <Table className="min-w-max">
           <TableHeader>
             <TableRow>

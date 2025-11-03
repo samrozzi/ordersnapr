@@ -55,7 +55,7 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto touch-pan-x">
         <Table>
           <TableHeader>
             <TableRow>

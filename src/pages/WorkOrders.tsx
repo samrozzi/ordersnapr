@@ -3,15 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Plus, List, Calendar as CalendarIcon, LayoutGrid } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarView } from "@/components/CalendarView";
 import { JobKanbanBoard } from "@/components/JobKanbanBoard";
-import { LogOut, Plus, Calendar, List, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 
@@ -58,7 +57,10 @@ interface WorkOrder {
   } | null;
 }
 
-const Dashboard = () => {
+type ViewMode = 'list' | 'calendar' | 'kanban';
+type ListTab = 'pending' | 'completed';
+
+const WorkOrders = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -67,13 +69,10 @@ const Dashboard = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [listTab, setListTab] = useState<ListTab>('pending');
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [viewingOrderDetails, setViewingOrderDetails] = useState<WorkOrder | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullStartY, setPullStartY] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
 
   const config = getFeatureConfig('work_orders');
   const displayName = config?.display_name || 'Jobs';
@@ -99,14 +98,12 @@ const Dashboard = () => {
 
   const fetchWorkOrders = async () => {
     try {
-      // Log current user before fetch
       const { data: { user } } = await supabase.auth.getUser();
       console.log('🔍 Fetching work orders for user:', {
         email: user?.email,
         id: user?.id?.substring(0, 8)
       });
 
-      // Fetch work orders with user profiles
       const { data, error } = await supabase
         .from("work_orders")
         .select(`
@@ -120,12 +117,11 @@ const Dashboard = () => {
         console.error('❌ Work orders query error:', error);
         throw error;
       }
-      
-      // Also get count to verify RLS
+
       const { count } = await supabase
         .from("work_orders")
         .select("*", { count: 'exact', head: true });
-      
+
       console.log('✅ Work orders fetched:', {
         dataLength: data?.length || 0,
         count: count || 0,
@@ -135,7 +131,7 @@ const Dashboard = () => {
       if (data?.length === 0 && user) {
         console.warn('⚠️ Token present but 0 rows returned - possible PWA storage issue');
       }
-      
+
       setWorkOrders(data || []);
     } catch (error) {
       console.error("❌ Error fetching work orders:", error);
@@ -157,66 +153,15 @@ const Dashboard = () => {
 
   // Handle opening work order from URL parameter (e.g., from favorites)
   useEffect(() => {
-    const openId = searchParams.get('open');
-    const viewId = searchParams.get('view');
-    
-    if (openId && workOrders.length > 0) {
-      const orderToOpen = workOrders.find(wo => wo.id === openId);
-      if (orderToOpen) {
-        setViewingOrder(orderToOpen);
-        setSearchParams({});
-      }
-    } else if (viewId && workOrders.length > 0) {
-      const orderToView = workOrders.find(wo => wo.id === viewId);
-      if (orderToView) {
-        setViewingOrderDetails(orderToView);
-        setSearchParams({});
-      }
+    const workOrderId = searchParams.get('workOrder');
+    if (workOrderId && workOrders.length > 0) {
+      setSearchParams({});
+      toast({
+        title: "Work Order",
+        description: "Viewing work order from favorites",
+      });
     }
-  }, [searchParams, workOrders, setSearchParams]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchWorkOrders();
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setPullDistance(0);
-    }, 500);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (window.scrollY === 0) {
-      setPullStartY(e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (pullStartY === 0 || window.scrollY > 0) return;
-    
-    const currentY = e.touches[0].clientY;
-    const distance = currentY - pullStartY;
-    
-    if (distance > 0 && distance < 150) {
-      setPullDistance(distance);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (pullDistance > 80 && !isRefreshing) {
-      handleRefresh();
-    } else {
-      setPullDistance(0);
-    }
-    setPullStartY(0);
-  };
-
-  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
-  const completedOrders = workOrders.filter((order) => order.status === "completed");
+  }, [searchParams, workOrders, setSearchParams, toast]);
 
   if (loading) {
     return (
@@ -226,148 +171,139 @@ const Dashboard = () => {
     );
   }
 
+  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
+  const completedOrders = workOrders.filter((order) => order.status === "completed");
+
   return (
-    <div className="
-      flex flex-col h-full
-      w-full max-w-screen
-      pl-[max(16px,env(safe-area-inset-left))]
-      pr-[max(16px,env(safe-area-inset-right))]
-      pb-[max(16px,env(safe-area-inset-bottom))]
-    ">
-      <div className="flex flex-col flex-1 min-h-0 space-y-4 md:space-y-6">
-        <div className="flex-shrink-0">
-          <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
-        </div>
-        
-        <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto w-full">{/* Action buttons row */}
-          <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-            <SheetTrigger asChild>
-              <Button size="sm" className="md:h-10">
-                <Plus className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-4 sm:p-6">
-              <SheetHeader>
-                <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <WorkOrderForm
-                  onSuccess={() => {
-                    setIsDrawerOpen(false);
-                    fetchWorkOrders();
-                  }}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+    <div className="space-y-4 md:space-y-6">
+      <div className="mb-4">
+        <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
+      </div>
 
-          <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="md:h-10">
-                <Calendar className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Calendar View</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>{displayName} Calendar</DialogTitle>
-              </DialogHeader>
-              <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
-                <CalendarView />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* View Toggle - now inline with action buttons */}
-          <div className="flex gap-1">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="gap-1 md:gap-2"
-            >
-              <List className="h-4 w-4" />
-              <span className="hidden sm:inline">List</span>
+      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+        <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <SheetTrigger asChild>
+            <Button size="sm" className="md:h-10">
+              <Plus className="md:mr-2 h-4 w-4" />
+              <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
             </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('kanban')}
-              className="gap-1 md:gap-2"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden sm:inline">Kanban</span>
-            </Button>
-          </div>
-        </div>
-
-        {viewMode === 'kanban' ? (
-          <JobKanbanBoard
-            workOrders={workOrders}
-            statuses={statuses}
-            onUpdate={fetchWorkOrders}
-            onJobClick={(order) => setViewingOrder(order as WorkOrder)}
-          />
-        ) : (
-          <div className="flex-1 min-h-0">
-            <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <div className="sticky top-0 z-[5] bg-background/95 backdrop-blur px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
-                <TabsList className="grid w-full grid-cols-2 gap-2 p-1">
-                  <TabsTrigger value="pending" className="w-full text-sm">
-                    Pending ({pendingOrders.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" className="w-full text-sm">
-                    Completed ({completedOrders.length})
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="pending" className="flex-1 overflow-y-auto mt-0">
-                <div className="py-4">
-                  <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="completed" className="flex-1 overflow-y-auto mt-0">
-                <div className="py-4">
-                  <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-
-        <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit {displayName.replace(/s$/, '')}</DialogTitle>
-            </DialogHeader>
-            {viewingOrder && (
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
               <WorkOrderForm
-                workOrder={viewingOrder}
                 onSuccess={() => {
-                  setViewingOrder(null);
+                  setIsDrawerOpen(false);
                   fetchWorkOrders();
                 }}
               />
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          </SheetContent>
+        </Sheet>
 
-        <WorkOrderDetails
-          workOrder={viewingOrderDetails}
-          open={!!viewingOrderDetails}
-          onOpenChange={(open) => !open && setViewingOrderDetails(null)}
-          onEdit={(order) => {
-            setViewingOrder(order);
-            setViewingOrderDetails(null);
-          }}
-          onUpdate={handleRefresh}
-        />
+        <div className="flex items-center gap-1">
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">List</span>
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarIcon className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Calendar</span>
+          </Button>
+          <Button
+            variant={viewMode === 'kanban' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('kanban')}
+          >
+            <LayoutGrid className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Kanban</span>
+          </Button>
+        </div>
       </div>
+
+      {viewMode === 'list' && (
+        <>
+          <div className="grid grid-cols-2 gap-2 w-full mb-4">
+            <Button
+              variant={listTab === 'pending' ? 'default' : 'outline'}
+              onClick={() => setListTab('pending')}
+              className="w-full"
+            >
+              Pending ({pendingOrders.length})
+            </Button>
+            <Button
+              variant={listTab === 'completed' ? 'default' : 'outline'}
+              onClick={() => setListTab('completed')}
+              className="w-full"
+            >
+              Completed ({completedOrders.length})
+            </Button>
+          </div>
+
+          <WorkOrderTable
+            workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
+            onUpdate={fetchWorkOrders}
+          />
+        </>
+      )}
+
+      {viewMode === 'calendar' && (
+        <CalendarView onEventClick={(item) => {
+          if (item.type === 'work_order') {
+            const order = workOrders.find(wo => wo.id === item.id);
+            if (order) setViewingOrderDetails(order);
+          }
+        }} />
+      )}
+
+      {viewMode === 'kanban' && (
+        <JobKanbanBoard
+          workOrders={workOrders}
+          statuses={statuses}
+          onUpdate={fetchWorkOrders}
+          onJobClick={(order) => setViewingOrderDetails(order as WorkOrder)}
+        />
+      )}
+
+      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit {displayName.replace(/s$/, '')}</DialogTitle>
+          </DialogHeader>
+          {viewingOrder && (
+            <WorkOrderForm
+              workOrder={viewingOrder}
+              onSuccess={() => {
+                setViewingOrder(null);
+                fetchWorkOrders();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <WorkOrderDetails
+        workOrder={viewingOrderDetails}
+        open={!!viewingOrderDetails}
+        onOpenChange={(open) => !open && setViewingOrderDetails(null)}
+        onEdit={(order) => {
+          setViewingOrder(order);
+          setViewingOrderDetails(null);
+        }}
+        onUpdate={fetchWorkOrders}
+      />
     </div>
   );
 };
 
-export default Dashboard;
+export default WorkOrders;

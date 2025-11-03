@@ -1,4 +1,5 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { FormSubmission } from "@/hooks/use-form-submissions";
 
 interface PDFOptions {
@@ -11,13 +12,10 @@ export const generateFormPDF = async (
   options: PDFOptions = { includePhotos: true, includeSignature: true }
 ): Promise<jsPDF> => {
   const pdf = new jsPDF();
-  const pageWidth = pdf.internal.pageSize.getWidth();
+  let yPos = 20;
   const pageHeight = pdf.internal.pageSize.getHeight();
+  const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 15;
-  const maxWidth = pageWidth - 2 * margin;
-  let yPos = margin;
-
-  const schema = submission.form_templates?.schema;
 
   // Helper to check if we need a new page
   const checkPageBreak = (neededSpace: number) => {
@@ -29,141 +27,185 @@ export const generateFormPDF = async (
     return false;
   };
 
-  // Helper to add text with word wrap
-  const addWrappedText = (text: string, fontSize: number, fontStyle: string = "normal") => {
-    pdf.setFontSize(fontSize);
-    pdf.setFont("helvetica", fontStyle);
-    const lines = pdf.splitTextToSize(text, maxWidth);
-    
-    for (const line of lines) {
-      checkPageBreak(fontSize * 0.5);
-      pdf.text(line, margin, yPos);
-      yPos += fontSize * 0.5;
-    }
-  };
-
-  // Header
-  pdf.setFillColor(59, 130, 246); // Primary blue
-  pdf.rect(0, 0, pageWidth, 35, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(20);
+  // Add professional header
+  pdf.setFillColor(240, 240, 240);
+  pdf.rect(0, 10, pageWidth, 15, "F");
+  pdf.setFontSize(18);
   pdf.setFont("helvetica", "bold");
-  pdf.text(schema?.title || "Form Submission", margin, 20);
-  
+  pdf.setTextColor(40, 40, 40);
+  pdf.text(submission.form_templates?.name || "Form Submission Report", pageWidth / 2, yPos, { align: "center" });
+  yPos += 20;
+
+  // Add Job Details section header
+  pdf.setFillColor(50, 50, 50);
+  pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("Job Details", margin + 2, yPos);
+  pdf.setTextColor(40, 40, 40);
+  yPos += 10;
+
+  // Extract key metadata fields and display them
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
-  const statusBadge = submission.status.charAt(0).toUpperCase() + submission.status.slice(1);
-  pdf.text(`Status: ${statusBadge}`, pageWidth - margin - 40, 20);
   
-  yPos = 45;
-  pdf.setTextColor(0, 0, 0);
+  const metadataFields: Array<{ label: string; value: string }> = [
+    { label: "Status", value: submission.status.toUpperCase() },
+    { label: "Service Date", value: submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "N/A" },
+    { label: "Created", value: new Date(submission.created_at).toLocaleDateString() },
+  ];
 
-  // Metadata
-  pdf.setFontSize(10);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text(`Submitted: ${submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'N/A'}`, margin, yPos);
-  yPos += 7;
-  pdf.text(`Created: ${new Date(submission.created_at).toLocaleString()}`, margin, yPos);
-  yPos += 12;
+  metadataFields.forEach(field => {
+    checkPageBreak(6);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`${field.label}:`, margin, yPos);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(field.value, margin + 35, yPos);
+    yPos += 6;
+  });
 
-  pdf.setTextColor(0, 0, 0);
+  yPos += 8;
 
-  // Form sections
-  if (schema?.sections) {
-    for (const section of schema.sections) {
-      checkPageBreak(20);
-      
-      // Section header
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(margin, yPos - 5, maxWidth, 10, "F");
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(section.title, margin + 2, yPos + 2);
-      yPos += 15;
-
-      // Section fields
+  // Extract and display Observations prominently if exists
+  let observationsText = "";
+  let observationsField: any = null;
+  
+  if (submission.form_templates?.schema?.sections) {
+    for (const section of submission.form_templates.schema.sections) {
       for (const field of section.fields) {
-        const value = submission.answers[field.key];
-        
-        checkPageBreak(15);
-
-        // Field label
-        pdf.setFontSize(11);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(field.label, margin, yPos);
-        yPos += 6;
-
-        // Field value
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-
-        if (!value && value !== 0) {
-          pdf.setTextColor(150, 150, 150);
-          pdf.text("—", margin + 5, yPos);
-          yPos += 8;
-          pdf.setTextColor(0, 0, 0);
-        } else if (field.type === "checklist") {
-          // Render checklist as table
-          Object.keys(value).forEach((itemKey) => {
-            checkPageBreak(8);
-            const itemValue = value[itemKey];
-            const status = itemValue?.status || "Not Checked";
-            const notes = itemValue?.notes || "";
-            
-            pdf.text(`• ${itemKey}: ${status}`, margin + 5, yPos);
-            yPos += 6;
-            
-            if (notes) {
-              pdf.setTextColor(100, 100, 100);
-              const notesLines = pdf.splitTextToSize(`  Notes: ${notes}`, maxWidth - 10);
-              notesLines.forEach((line: string) => {
-                checkPageBreak(5);
-                pdf.text(line, margin + 10, yPos);
-                yPos += 5;
-              });
-              pdf.setTextColor(0, 0, 0);
-            }
-          });
-          yPos += 4;
-        } else if (field.type === "file" && options.includePhotos && Array.isArray(value) && value.length > 0) {
-          // Photos will be added at the end
-          pdf.text(`${value.length} photo(s) - see attachments below`, margin + 5, yPos);
-          yPos += 8;
-        } else if (field.type === "textarea") {
-          const lines = pdf.splitTextToSize(value.toString(), maxWidth - 10);
-          lines.forEach((line: string) => {
-            checkPageBreak(6);
-            pdf.text(line, margin + 5, yPos);
-            yPos += 6;
-          });
-          yPos += 4;
-        } else {
-          const lines = pdf.splitTextToSize(value.toString(), maxWidth - 10);
-          lines.forEach((line: string) => {
-            checkPageBreak(6);
-            pdf.text(line, margin + 5, yPos);
-            yPos += 6;
-          });
-          yPos += 4;
+        if (field.key?.toLowerCase().includes("observation") || 
+            field.key?.toLowerCase().includes("notes") ||
+            field.label?.toLowerCase().includes("general observation")) {
+          const value = submission.answers?.[field.key];
+          if (value && typeof value === "string") {
+            observationsText = value;
+            observationsField = field;
+            break;
+          }
         }
       }
-
-      yPos += 8;
+      if (observationsText) break;
     }
   }
 
-  // Add photos if included
-  if (options.includePhotos) {
+  if (observationsText) {
+    checkPageBreak(20);
+    pdf.setFillColor(50, 50, 50);
+    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("Observations:", margin + 2, yPos);
+    pdf.setTextColor(40, 40, 40);
+    yPos += 10;
+
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    const lines = pdf.splitTextToSize(observationsText, pageWidth - 2 * margin - 10);
+    lines.forEach((line: string) => {
+      checkPageBreak(6);
+      pdf.text(line, margin + 5, yPos);
+      yPos += 6;
+    });
+    yPos += 10;
+  }
+
+  // Add sections and fields
+  if (submission.form_templates?.schema?.sections) {
+    for (const section of submission.form_templates.schema.sections) {
+      checkPageBreak(12);
+      
+      // Section header with background
+      pdf.setFillColor(50, 50, 50);
+      pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(section.title, margin + 2, yPos);
+      pdf.setTextColor(40, 40, 40);
+      yPos += 10;
+
+      // Field details
+      for (const field of section.fields) {
+        const answer = submission.answers?.[field.key];
+        
+        if (!answer) continue;
+
+        // Skip observations field since we already displayed it
+        if (observationsField && field.key === observationsField.key) {
+          continue;
+        }
+
+        checkPageBreak(10);
+
+        if (field.type === "checklist" && Array.isArray(answer)) {
+          // Render checklist as professional table
+          const tableData = answer.map((item: any) => [
+            item.label,
+            item.checked ? (item.status || "OK") : "N/A"
+          ]);
+
+          autoTable(pdf, {
+            startY: yPos,
+            head: [[field.label, "Status"]],
+            body: tableData,
+            theme: "striped",
+            headStyles: {
+              fillColor: [240, 240, 240],
+              textColor: [40, 40, 40],
+              fontStyle: "bold",
+              fontSize: 10,
+            },
+            bodyStyles: {
+              fontSize: 9,
+            },
+            columnStyles: {
+              0: { cellWidth: pageWidth - 2 * margin - 40 },
+              1: { cellWidth: 30, halign: "center" },
+            },
+            margin: { left: margin, right: margin },
+          });
+
+          yPos = (pdf as any).lastAutoTable.finalY + 8;
+        } else if (field.type === "file" && Array.isArray(answer)) {
+          // Photos will be added at the end
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "italic");
+          pdf.text(`(${answer.length} photo${answer.length !== 1 ? 's' : ''} attached - see end of report)`, margin + 5, yPos);
+          yPos += 8;
+        } else {
+          // Regular text field - render with label
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(`${field.label}:`, margin + 5, yPos);
+          yPos += 5;
+
+          pdf.setFont("helvetica", "normal");
+          const lines = pdf.splitTextToSize(String(answer), pageWidth - margin - 20);
+          lines.forEach((line: string) => {
+            checkPageBreak(5);
+            pdf.text(line, margin + 10, yPos);
+            yPos += 5;
+          });
+          yPos += 5;
+        }
+      }
+      
+      yPos += 5;
+    }
+  }
+
+  // Add photos section at the end
+  if (options.includePhotos && submission.form_templates?.schema?.sections) {
     const allPhotos: Array<{ url: string; name: string; caption?: string }> = [];
     
-    if (schema?.sections) {
-      for (const section of schema.sections) {
-        for (const field of section.fields) {
-          if (field.type === "file") {
-            const value = submission.answers[field.key];
-            if (Array.isArray(value) && value.length > 0) {
-              allPhotos.push(...value);
-            }
+    for (const section of submission.form_templates.schema.sections) {
+      for (const field of section.fields) {
+        if (field.type === "file") {
+          const value = submission.answers[field.key];
+          if (Array.isArray(value) && value.length > 0) {
+            allPhotos.push(...value);
           }
         }
       }
@@ -171,10 +213,16 @@ export const generateFormPDF = async (
 
     if (allPhotos.length > 0) {
       checkPageBreak(20);
-      pdf.setFontSize(14);
+      
+      // Photos section header
+      pdf.setFillColor(50, 50, 50);
+      pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+      pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Photos", margin, yPos);
-      yPos += 10;
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Photos", margin + 2, yPos);
+      pdf.setTextColor(40, 40, 40);
+      yPos += 15;
 
       for (const photo of allPhotos) {
         try {
@@ -195,9 +243,9 @@ export const generateFormPDF = async (
                   img.onload = imgResolve;
                 });
 
-                // Calculate dimensions to fit in PDF
-                const maxImgWidth = maxWidth;
-                const maxImgHeight = 80;
+                // Calculate dimensions to fit in PDF (2 per row)
+                const maxImgWidth = (pageWidth - 3 * margin) / 2;
+                const maxImgHeight = 70;
                 let imgWidth = img.width;
                 let imgHeight = img.height;
                 
@@ -212,16 +260,16 @@ export const generateFormPDF = async (
                   pdf.setFontSize(9);
                   pdf.setFont("helvetica", "italic");
                   pdf.setTextColor(100, 100, 100);
-                  const captionLines = pdf.splitTextToSize(photo.caption, maxWidth);
+                  const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
                   captionLines.forEach((line: string) => {
                     checkPageBreak(5);
                     pdf.text(line, margin, yPos);
                     yPos += 5;
                   });
-                  pdf.setTextColor(0, 0, 0);
+                  pdf.setTextColor(40, 40, 40);
                 }
 
-                yPos += 5;
+                yPos += 8;
                 resolve(null);
               } catch (error) {
                 console.error("Error processing image:", error);
@@ -229,6 +277,7 @@ export const generateFormPDF = async (
               }
             };
             reader.onerror = reject;
+            reader.readAsDataURL(blob);
           });
         } catch (error) {
           console.error("Error loading photo:", error);
@@ -240,10 +289,14 @@ export const generateFormPDF = async (
   // Add signature if present
   if (options.includeSignature && submission.signature) {
     checkPageBreak(60);
-    pdf.setFontSize(14);
+    pdf.setFillColor(50, 50, 50);
+    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+    pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Signature", margin, yPos);
-    yPos += 10;
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("Signature", margin + 2, yPos);
+    pdf.setTextColor(40, 40, 40);
+    yPos += 15;
 
     try {
       pdf.addImage(submission.signature, "PNG", margin, yPos, 80, 40);

@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { useFormTemplates } from "@/hooks/use-form-templates";
 import { useFormSubmissions, useDeleteSubmission, FormSubmission } from "@/hooks/use-form-submissions";
-import { TemplateSelector } from "@/components/forms/TemplateSelector";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { FormSubmissionViewer } from "@/components/forms/FormSubmissionViewer";
+import { TemplateForm } from "@/components/admin/TemplateForm";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Forms() {
   const [activeTab, setActiveTab] = useState("all");
-  const [sheetMode, setSheetMode] = useState<"select" | "create" | "view" | "edit" | null>(null);
+  const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -41,11 +41,6 @@ export default function Forms() {
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
   const deleteMutation = useDeleteSubmission();
 
-  const handleTemplateSelect = (template: any) => {
-    setSelectedTemplate(template);
-    setSheetMode("create");
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "draft": return "secondary";
@@ -58,24 +53,81 @@ export default function Forms() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Forms</h1>
-          <p className="text-muted-foreground">Create and manage form submissions</p>
+          <p className="text-muted-foreground mt-2">Manage and submit forms</p>
         </div>
-        <Button onClick={() => setSheetMode("select")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Submission
-        </Button>
+        <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
+          <SheetTrigger asChild>
+            <Button size="lg">
+              <Plus className="h-4 w-4 mr-2" />
+              New Submission
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-md overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>New Submission</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6 space-y-4">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex flex-col items-start"
+                onClick={() => {
+                  setSheetMode('create-template');
+                }}
+              >
+                <div className="font-semibold">Create New Template</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Design a custom form template
+                </div>
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or choose a template
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {templates?.map((template) => (
+                  <Button
+                    key={template.id}
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3"
+                    onClick={() => {
+                      setSelectedTemplate(template);
+                      setSheetMode('create-submission');
+                    }}
+                  >
+                    <div className="text-left">
+                      <div className="font-medium">{template.name}</div>
+                      {template.category && (
+                        <div className="text-sm text-muted-foreground">{template.category}</div>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="mine">Mine</TabsTrigger>
-          <TabsTrigger value="drafts">Drafts</TabsTrigger>
-          <TabsTrigger value="submitted">Submitted</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="mb-6">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="mine">Mine</TabsTrigger>
+            <TabsTrigger value="drafts">Drafts</TabsTrigger>
+            <TabsTrigger value="submitted">Submitted</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value={activeTab} className="mt-6">
           <div className="border rounded-lg">
@@ -104,7 +156,7 @@ export default function Forms() {
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
                           {submission.status === "draft" && submission.created_by === userId && (
                             <>
-                              <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit"); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => { setSubmissionToDelete(submission.id); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
                             </>
                           )}
@@ -119,24 +171,70 @@ export default function Forms() {
         </TabsContent>
       </Tabs>
 
-      <Sheet open={sheetMode === "select"} onOpenChange={(open) => !open && setSheetMode(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Select a Form Template</SheetTitle></SheetHeader>
-          <div className="mt-6"><TemplateSelector templates={templates} onSelect={handleTemplateSelect} /></div>
+      {/* Sheet for creating/editing submission */}
+      <Sheet open={sheetMode === 'create-submission' || sheetMode === 'edit-submission'} onOpenChange={(open) => {
+        if (!open) {
+          setSheetMode(null);
+          setSelectedSubmission(null);
+          setSelectedTemplate(null);
+        }
+      }}>
+        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {sheetMode === 'edit-submission' ? 'Edit Submission' : 'New Submission'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {selectedTemplate && (
+              <FormRenderer
+                template={selectedTemplate}
+                submission={selectedSubmission}
+                onSuccess={() => {
+                  setSheetMode(null);
+                  setSelectedSubmission(null);
+                  setSelectedTemplate(null);
+                }}
+                onCancel={() => {
+                  setSheetMode(null);
+                  setSelectedSubmission(null);
+                  setSelectedTemplate(null);
+                }}
+              />
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 
-      <Sheet open={sheetMode === "create" || sheetMode === "edit"} onOpenChange={(open) => !open && setSheetMode(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
-          <SheetHeader><SheetTitle>{sheetMode === "edit" ? "Edit Submission" : "New Submission"}</SheetTitle></SheetHeader>
-          <div className="mt-6">{selectedTemplate && <FormRenderer template={selectedTemplate} submission={sheetMode === "edit" ? selectedSubmission || undefined : undefined} onSuccess={() => setSheetMode(null)} onCancel={() => setSheetMode(null)} />}</div>
+      {/* Sheet for creating template */}
+      <Sheet open={sheetMode === 'create-template'} onOpenChange={(open) => {
+        if (!open) {
+          setSheetMode(null);
+        }
+      }}>
+        <SheetContent className="sm:max-w-4xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Create New Template</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <TemplateForm
+              orgId={orgId}
+              onSuccess={() => {
+                setSheetMode(null);
+              }}
+              onCancel={() => {
+                setSheetMode(null);
+              }}
+            />
+          </div>
         </SheetContent>
       </Sheet>
 
+      {/* Sheet for viewing submission */}
       <Sheet open={sheetMode === "view"} onOpenChange={(open) => !open && setSheetMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader><SheetTitle>View Submission</SheetTitle></SheetHeader>
-          <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit"); } : undefined} onDelete={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
+          <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} onDelete={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
         </SheetContent>
       </Sheet>
 

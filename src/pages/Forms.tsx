@@ -65,43 +65,43 @@ export default function Forms() {
         <h1 className="text-xl md:text-2xl font-semibold">Forms</h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => setSheetMode('select-template')}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Submission
+      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+        <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10">
+          <Plus className="md:mr-2 h-4 w-4" />
+          <span className="hidden md:inline">New Submission</span>
+        </Button>
+        
+        <div className="flex items-center gap-1">
+          <Button
+            variant={activeTab === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('all')}
+          >
+            All
           </Button>
-          
-          <div className="flex items-center gap-1">
-            <Button
-              variant={activeTab === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={activeTab === 'mine' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('mine')}
-            >
-              Mine
-            </Button>
-            <Button
-              variant={activeTab === 'drafts' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('drafts')}
-            >
-              Drafts
-            </Button>
-            <Button
-              variant={activeTab === 'submitted' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('submitted')}
-            >
-              Submitted
-            </Button>
-          </div>
+          <Button
+            variant={activeTab === 'mine' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('mine')}
+          >
+            Mine
+          </Button>
+          <Button
+            variant={activeTab === 'drafts' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('drafts')}
+          >
+            Drafts
+          </Button>
+          <Button
+            variant={activeTab === 'submitted' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('submitted')}
+          >
+            Submitted
+          </Button>
         </div>
+      </div>
 
       {/* Sheet for selecting template or creating new */}
       <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
@@ -146,12 +146,12 @@ export default function Forms() {
       </Sheet>
 
         <div className="border rounded-lg overflow-x-auto">
-          <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Form Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
+          <Table className="min-w-max">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Form Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -164,7 +164,7 @@ export default function Forms() {
                   submissions.map((submission) => (
                     <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
                       <TableCell className="font-medium">{submission.form_templates?.name || "Unknown Form"}</TableCell>
-                      <TableCell className="hidden sm:table-cell"><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
+                      <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
                       <TableCell className="hidden md:table-cell">{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>

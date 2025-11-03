@@ -244,7 +244,7 @@ ${getDistance(property)} miles from your location` : ''}`;
   return (
     <>
       <div className="rounded-md border overflow-x-auto">
-        <Table>
+        <Table className="min-w-max">
           <TableHeader>
             <TableRow>
               <TableHead className="w-8 sm:w-12"></TableHead>

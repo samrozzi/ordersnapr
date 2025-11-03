@@ -127,31 +127,12 @@ const PropertyInfo = () => {
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => userLocation ? setUserLocation(null) : handleGetUserLocation()}
-          disabled={isGettingLocation}
-          className="md:h-10"
-        >
-          {userLocation ? (
-            <>
-              <MapPinOff className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Clear Location</span>
-            </>
-          ) : (
-            <>
-              <MapPin className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">{isGettingLocation ? "Getting Location..." : "Sort by Distance"}</span>
-            </>
-          )}
-        </Button>
+      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="md:h-10">
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">New Property</span>
+              <Plus className="md:mr-2 h-4 w-4" />
+              <span className="hidden md:inline">New Property</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -166,6 +147,25 @@ const PropertyInfo = () => {
             />
           </DialogContent>
         </Dialog>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => userLocation ? setUserLocation(null) : handleGetUserLocation()}
+          disabled={isGettingLocation}
+          className="md:h-10"
+        >
+          {userLocation ? (
+            <>
+              <MapPinOff className="md:mr-2 h-4 w-4" />
+              <span className="hidden md:inline">Clear Location</span>
+            </>
+          ) : (
+            <>
+              <MapPin className="md:mr-2 h-4 w-4" />
+              <span className="hidden md:inline">{isGettingLocation ? "Getting Location..." : "Sort by Distance"}</span>
+            </>
+          )}
+        </Button>
       </div>
 
       {userLocation && (

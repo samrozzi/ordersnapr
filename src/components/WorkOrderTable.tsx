@@ -187,8 +187,17 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
-          <Table className="min-w-[1200px]">
+      <div 
+        className="
+          w-full overflow-x-auto
+          [-webkit-overflow-scrolling:touch]
+          [overscroll-behavior-x:contain]
+          rounded-md border
+        "
+        role="region"
+        aria-label="Work orders table"
+      >
+          <Table className="min-w-[720px] w-full table-auto">
             <TableHeader>
               <TableRow>
               <TableHead className="w-8 px-2"></TableHead>

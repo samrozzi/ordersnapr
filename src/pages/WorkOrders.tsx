@@ -227,8 +227,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
-
+    <div className="
+      flex flex-col h-full
+      w-full max-w-screen
+      pl-[max(16px,env(safe-area-inset-left))]
+      pr-[max(16px,env(safe-area-inset-right))]
+      pb-[max(16px,env(safe-area-inset-bottom))]
+    ">
       <div className="flex flex-col flex-1 min-h-0 space-y-4 md:space-y-6">
         <div className="flex-shrink-0">
           <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
@@ -307,17 +312,16 @@ const Dashboard = () => {
         ) : (
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 sticky top-0 z-10 bg-background">
-                <TabsTrigger value="pending" className="px-1 py-1 text-[10px] sm:text-sm">
-                  <span className="hidden sm:inline">Pending / Scheduled</span>
-                  <span className="sm:inline">Pending</span>
-                  <span className="ml-1 opacity-70 text-[8px]">({pendingOrders.length})</span>
-                </TabsTrigger>
-                <TabsTrigger value="completed" className="px-1 py-1 text-[10px] sm:text-sm">
-                  Completed
-                  <span className="ml-1 opacity-70 text-[8px]">({completedOrders.length})</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
+                <TabsList className="grid w-full grid-cols-2 gap-2 p-1">
+                  <TabsTrigger value="pending" className="w-full text-xs sm:text-sm">
+                    Pending ({pendingOrders.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="w-full text-xs sm:text-sm">
+                    Completed ({completedOrders.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="pending" className="flex-1 overflow-y-auto mt-0">
                 <div className="py-4">

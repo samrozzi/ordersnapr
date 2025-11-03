@@ -97,9 +97,46 @@ export default function Forms() {
         </div>
 
         {/* Sheet for selecting template or creating new */}
-        <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
-...
-        </Sheet>
+      <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
+        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Select a Template</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <Button 
+              onClick={() => setSheetMode('create-template')} 
+              variant="outline" 
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Template
+            </Button>
+            
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Or select an existing template:</p>
+              {templates.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">
+                  No templates available. Create one to get started.
+                </p>
+              ) : (
+                templates.map((template) => (
+                  <Button
+                    key={template.id}
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setSelectedTemplate(template);
+                      setSheetMode('create-submission');
+                    }}
+                  >
+                    {template.name}
+                  </Button>
+                ))
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
         <div className="border rounded-lg">
           <Table>

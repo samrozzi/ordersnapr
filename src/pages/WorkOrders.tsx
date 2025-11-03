@@ -234,7 +234,7 @@ const WorkOrders = () => {
 
       {/* Filter buttons row - only for list view */}
       {viewMode === 'list' && (
-        <div className="grid grid-cols-2 gap-2 w-full mb-4">
+        <div className="w-full relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
           <Button
             variant={listTab === 'pending' ? 'default' : 'outline'}
             onClick={() => setListTab('pending')}

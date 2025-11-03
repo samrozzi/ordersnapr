@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Eye, Save, Plus } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import { FieldPalette, type FieldType } from "./FieldPalette";
 import { FormCanvas, type Section, type Field } from "./FormCanvas";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
@@ -45,10 +45,12 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (schema?.requireSignature) {
       setRequireSignature(true);
     }
-  }, []);
+  }, [schema]);
 
   // Update parent schema when sections change
   useEffect(() => {
+    if (sections.length === 0 && !requireSignature) return; // Don't update on initial empty state
+    
     const newSchema = {
       sections: sections.map((s) => ({
         id: s.id,
@@ -65,7 +67,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       requireSignature,
     };
     onSchemaChange(newSchema);
-  }, [sections, requireSignature]);
+  }, [sections, requireSignature, onSchemaChange]);
 
   const handleAddSection = () => {
     const newSection: Section = {

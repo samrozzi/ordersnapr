@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,10 +42,10 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
     fetchUser();
   }, []);
 
-  const handleSchemaChange = (newSchema: any) => {
+  const handleSchemaChange = useCallback((newSchema: any) => {
     setSchema(newSchema);
     setSchemaJson(JSON.stringify(newSchema, null, 2));
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

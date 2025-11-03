@@ -36,51 +36,6 @@ export const generateFormPDF = async (
   pdf.text(submission.form_templates?.name || "Form Submission Report", pageWidth / 2, yPos, { align: "center" });
   yPos += 20;
 
-
-  // Extract and display Observations prominently if exists
-  let observationsText = "";
-  let observationsField: any = null;
-  
-  if (submission.form_templates?.schema?.sections) {
-    for (const section of submission.form_templates.schema.sections) {
-      for (const field of section.fields) {
-        if (field.key?.toLowerCase().includes("observation") || 
-            field.key?.toLowerCase().includes("notes") ||
-            field.label?.toLowerCase().includes("general observation")) {
-          const value = submission.answers?.[field.key];
-          if (value && typeof value === "string") {
-            observationsText = value;
-            observationsField = field;
-            break;
-          }
-        }
-      }
-      if (observationsText) break;
-    }
-  }
-
-  if (observationsText) {
-    checkPageBreak(20);
-    pdf.setFillColor(50, 50, 50);
-    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("Observations:", margin + 2, yPos);
-    pdf.setTextColor(40, 40, 40);
-    yPos += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    const lines = pdf.splitTextToSize(observationsText, pageWidth - 2 * margin - 10);
-    lines.forEach((line: string) => {
-      checkPageBreak(6);
-      pdf.text(line, margin + 5, yPos);
-      yPos += 6;
-    });
-    yPos += 10;
-  }
-
   // Add sections and fields
   if (submission.form_templates?.schema?.sections) {
     for (const section of submission.form_templates.schema.sections) {
@@ -101,11 +56,6 @@ export const generateFormPDF = async (
         const answer = submission.answers?.[field.key];
         
         if (!answer) continue;
-
-        // Skip observations field since we already displayed it
-        if (observationsField && field.key === observationsField.key) {
-          continue;
-        }
 
         checkPageBreak(10);
 

@@ -188,6 +188,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   return (
     <>
       <div className="rounded-md border overflow-x-auto touch-pan-x">
+        <div className="pr-4">
         <Table className="min-w-max">
             <TableHeader>
               <TableRow>
@@ -227,7 +228,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 </Button>
               </TableHead>
               <TableHead className="min-w-[100px]">Status</TableHead>
-              <TableHead className="w-[130px] pr-4">Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -300,8 +301,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     {order.status}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <div className="flex gap-1 md:gap-2">
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1 md:gap-2">
                     {order.status !== "completed" && (
                       <>
                         <Dialog open={editingOrder?.id === order.id} onOpenChange={(open) => !open && setEditingOrder(null)}>
@@ -403,6 +404,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
              ))}
            </TableBody>
         </Table>
+        </div>
       </div>
 
       <WorkOrderDetails

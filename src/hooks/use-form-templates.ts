@@ -54,3 +54,82 @@ export const useFormTemplate = (templateId: string | null) => {
     enabled: !!templateId,
   });
 };
+
+export const useCreateTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (template: {
+      org_id: string;
+      name: string;
+      slug: string;
+      category?: string | null;
+      schema: any;
+      is_global?: boolean;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from("form_templates")
+        .insert([template])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["form-templates"] });
+      toast.success("Template created");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create template");
+    },
+  });
+};
+
+export const useUpdateTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<FormTemplate> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("form_templates")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["form-templates"] });
+      toast.success("Template updated");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update template");
+    },
+  });
+};
+
+export const useDeleteTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("form_templates")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["form-templates"] });
+      toast.success("Template deleted");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete template");
+    },
+  });
+};

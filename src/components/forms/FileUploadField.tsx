@@ -61,13 +61,13 @@ export function FileUploadField({
         const filePath = `orgs/${orgId}/forms/${submissionId}/${fileName}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('org-files')
+          .from('form-attachments')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('org-files')
+          .from('form-attachments')
           .getPublicUrl(filePath);
 
         uploadedFiles.push({
@@ -91,7 +91,7 @@ export function FileUploadField({
 
   const handleRemoveFile = async (fileId: string) => {
     try {
-      await supabase.storage.from('org-files').remove([fileId]);
+      await supabase.storage.from('form-attachments').remove([fileId]);
       onChange(value.filter(f => f.id !== fileId));
       toast.success('File removed');
     } catch (error) {

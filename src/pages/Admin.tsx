@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
+import { TemplateManager } from "@/components/admin/TemplateManager";
 
 interface UserProfile {
   id: string;
@@ -43,6 +44,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [newOrgName, setNewOrgName] = useState("");
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -159,6 +161,19 @@ const Admin = () => {
       fetchOrganizations();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    const fetchCurrentUserOrg = async () => {
+      if (!session?.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", session.user.id)
+        .single();
+      if (data) setCurrentOrgId(data.organization_id);
+    };
+    fetchCurrentUserOrg();
+  }, [session]);
 
   const handleApproval = async (userId: string, status: 'approved' | 'rejected') => {
     try {
@@ -368,6 +383,10 @@ const Admin = () => {
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
             Templates
+          </TabsTrigger>
+          <TabsTrigger value="form-templates" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Form Templates
           </TabsTrigger>
         </TabsList>
 
@@ -739,6 +758,10 @@ const Admin = () => {
 
         <TabsContent value="templates">
           <IndustryTemplatesTab />
+        </TabsContent>
+
+        <TabsContent value="form-templates">
+          <TemplateManager orgId={currentOrgId} />
         </TabsContent>
       </Tabs>
     </div>

@@ -63,7 +63,7 @@ export default function Forms() {
   }, [searchParams, submissions, templates, setSearchParams]);
 
   const canDeleteSubmission = (submission: FormSubmission) => {
-    return submission.status === "draft" && (submission.created_by === userId || isOrgAdmin);
+    return submission.created_by === userId || isOrgAdmin;
   };
 
   const getStatusColor = (status: string) => {

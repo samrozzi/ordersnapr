@@ -27,7 +27,7 @@ export function FormSubmissionViewer({
   onDelete,
 }: FormSubmissionViewerProps) {
   const schema = submission.form_templates?.schema;
-  const canEdit = submission.status === "draft" && onEdit;
+  const canEdit = onEdit; // Allow editing for all submissions if callback provided
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -195,19 +195,35 @@ export function FormSubmissionViewer({
         );
 
       case "file":
+        if (!Array.isArray(value) || value.length === 0) {
+          return <p className="text-muted-foreground">No files attached</p>;
+        }
         return (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {value.map((file: any, index: number) => (
               <div key={index} className="border rounded-lg overflow-hidden bg-card">
-                {file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                  <img src={file.url} alt={file.name} className="w-full h-32 object-cover" />
-                ) : (
+                {file.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <img 
+                    src={file.url} 
+                    alt={file.name || 'Attachment'} 
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      console.error('Failed to load image:', file.url);
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.querySelector('.fallback-icon')?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className="fallback-icon hidden w-full h-32 flex items-center justify-center bg-muted">
+                  <FileText className="h-8 w-8 text-muted-foreground" />
+                </div>
+                {!file.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
                   <div className="w-full h-32 flex items-center justify-center bg-muted">
                     <FileText className="h-8 w-8 text-muted-foreground" />
                   </div>
                 )}
                 <div className="p-2">
-                  <p className="text-xs font-medium truncate">{file.name}</p>
+                  <p className="text-xs font-medium truncate">{file.name || 'Attachment'}</p>
                   {file.caption && (
                     <p className="text-xs text-muted-foreground mt-1">{file.caption}</p>
                   )}

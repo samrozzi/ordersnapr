@@ -238,8 +238,18 @@ export const generateFormPDF = async (
         try {
           checkPageBreak(80);
           
-          // Fetch and compress image
-          const response = await fetch(photo.url);
+          // Fetch and compress image with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
+          const response = await fetch(photo.url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            console.warn(`Failed to fetch photo: ${photo.url}`);
+            continue;
+          }
+          
           const blob = await response.blob();
           const reader = new FileReader();
           
@@ -289,8 +299,13 @@ export const generateFormPDF = async (
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error loading photo:", error);
+          // Add a placeholder text for failed photos
+          if (error.name === 'AbortError') {
+            console.warn(`Photo fetch timeout: ${photo.url}`);
+          }
+          // Continue with next photo instead of failing entire PDF
         }
       }
     }

@@ -215,7 +215,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 </Button>
               </TableHead>
               <TableHead className="hidden lg:table-cell min-w-[120px]">Contact</TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[120px]">Package</TableHead>
               <TableHead className="hidden lg:table-cell min-w-[140px]">
                 <Button
                   variant="ghost"
@@ -286,7 +285,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     </div>
                   ) : "-"}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">{order.package || "-"}</TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>
@@ -313,10 +311,9 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                               variant="outline"
                               size="sm"
                               onClick={() => setEditingOrder(order)}
-                              className="h-8"
+                              className="h-8 w-8 p-0"
                             >
-                              <Edit className="h-4 w-4 md:mr-1" />
-                              <span className="hidden md:inline">Edit</span>
+                              <Edit className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -338,10 +335,9 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedOrder(order)}
-                              className="h-8"
+                              className="h-8 w-8 p-0"
                             >
-                              <CheckCircle2 className="h-4 w-4 md:mr-1" />
-                              <span className="hidden md:inline">Complete</span>
+                              <CheckCircle2 className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
@@ -377,10 +373,9 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => setDeletingOrder(order)}
-                          className="h-8"
+                          className="h-8 w-8 p-0"
                         >
-                          <Trash2 className="h-4 w-4 md:mr-1" />
-                          <span className="hidden md:inline">Delete</span>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

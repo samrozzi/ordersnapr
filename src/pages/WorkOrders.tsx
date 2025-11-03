@@ -180,7 +180,8 @@ const WorkOrders = () => {
         <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+      {/* Action buttons row */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <SheetTrigger asChild>
             <Button size="sm" className="md:h-10">
@@ -231,30 +232,32 @@ const WorkOrders = () => {
         </div>
       </div>
 
+      {/* Filter buttons row - only for list view */}
       {viewMode === 'list' && (
-        <>
-          <div className="grid grid-cols-2 gap-2 w-full mb-4">
-            <Button
-              variant={listTab === 'pending' ? 'default' : 'outline'}
-              onClick={() => setListTab('pending')}
-              className="w-full"
-            >
-              Pending ({pendingOrders.length})
-            </Button>
-            <Button
-              variant={listTab === 'completed' ? 'default' : 'outline'}
-              onClick={() => setListTab('completed')}
-              className="w-full"
-            >
-              Completed ({completedOrders.length})
-            </Button>
-          </div>
+        <div className="grid grid-cols-2 gap-2 w-full mb-4">
+          <Button
+            variant={listTab === 'pending' ? 'default' : 'outline'}
+            onClick={() => setListTab('pending')}
+            className="w-full"
+          >
+            Pending ({pendingOrders.length})
+          </Button>
+          <Button
+            variant={listTab === 'completed' ? 'default' : 'outline'}
+            onClick={() => setListTab('completed')}
+            className="w-full"
+          >
+            Completed ({completedOrders.length})
+          </Button>
+        </div>
+      )}
 
-          <WorkOrderTable
-            workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
-            onUpdate={fetchWorkOrders}
-          />
-        </>
+      {/* Content views */}
+      {viewMode === 'list' && (
+        <WorkOrderTable
+          workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
+          onUpdate={fetchWorkOrders}
+        />
       )}
 
       {viewMode === 'calendar' && (

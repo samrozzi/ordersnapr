@@ -54,70 +54,76 @@ export default function Forms() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Forms</h1>
-          <p className="text-muted-foreground mt-2">Manage and submit forms</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Forms</h1>
+            <p className="text-muted-foreground mt-2">Manage and submit forms</p>
+          </div>
+          <Button 
+            size="lg"
+            onClick={() => setSheetMode('select-template')}
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Submission
+          </Button>
         </div>
-        <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
-          <SheetTrigger asChild>
-            <Button size="lg">
-              <Plus className="h-4 w-4 mr-2" />
-              New Submission
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-md overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>New Submission</SheetTitle>
-            </SheetHeader>
-            <div className="mt-6 space-y-4">
-              <Button
-                variant="outline"
-                className="w-full h-auto py-4 flex flex-col items-start"
-                onClick={() => {
-                  setSheetMode('create-template');
-                }}
-              >
-                <div className="font-semibold">Create New Template</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Design a custom form template
-                </div>
-              </Button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or choose a template
-                  </span>
-                </div>
-              </div>
+      </div>
 
-              <div className="space-y-2">
-                {templates?.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => {
-                      setSelectedTemplate(template);
-                      setSheetMode('create-submission');
-                    }}
-                  >
-                    <div className="text-left">
-                      <div className="font-medium">{template.name}</div>
-                      {template.category && (
-                        <div className="text-sm text-muted-foreground">{template.category}</div>
-                      )}
-                    </div>
-                  </Button>
-                ))}
+      {/* Sheet for selecting template or creating new */}
+      <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>New Submission</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <Button
+              variant="outline"
+              className="w-full h-auto py-4 flex flex-col items-start"
+              onClick={() => {
+                setSheetMode('create-template');
+              }}
+            >
+              <div className="font-semibold">Create New Template</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Design a custom form template
+              </div>
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or choose a template
+                </span>
               </div>
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+
+            <div className="space-y-2">
+              {templates?.map((template) => (
+                <Button
+                  key={template.id}
+                  variant="outline"
+                  className="w-full justify-start h-auto py-3"
+                  onClick={() => {
+                    setSelectedTemplate(template);
+                    setSheetMode('create-submission');
+                  }}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">{template.name}</div>
+                    {template.category && (
+                      <div className="text-sm text-muted-foreground">{template.category}</div>
+                    )}
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="mb-6">

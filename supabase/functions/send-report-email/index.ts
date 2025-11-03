@@ -19,7 +19,7 @@ function escapeHtml(text: string): string {
 
 interface EmailReportRequest {
   recipientEmail: string;
-  reportType: "job-audit" | "ride-along";
+  reportType: "job-audit" | "ride-along" | "form-submission";
   pdfBase64: string;
   fileName: string;
   photos?: Array<{
@@ -38,6 +38,10 @@ interface EmailReportRequest {
     observations?: string;
     observerName?: string;
     overallNotes?: string;
+    formTitle?: string;
+    submissionId?: string;
+    status?: string;
+    submittedAt?: string;
   };
 }
 
@@ -113,12 +117,30 @@ const handler = async (req: Request): Promise<Response> => {
     const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "OrderSnapr Reports <onboarding@resend.dev>";
 
     // Generate email subject and body based on report type
-    const subject = reportType === "job-audit" 
-      ? `Job Quality Inspection Report - ${formData.technicianName || 'Technician'}`
-      : `Ride-Along Observation Report - ${formData.technicianName || 'Technician'}`;
+    let subject: string;
+    let htmlBody: string;
 
-    const htmlBody = reportType === "job-audit" 
-      ? `
+    if (reportType === "form-submission") {
+      subject = `Form Submission: ${formData.formTitle || 'Form'}`;
+      htmlBody = `
+        <h2>${escapeHtml(formData.formTitle || 'Form Submission')}</h2>
+        <p>Please find attached the form submission with the following details:</p>
+        <ul>
+          ${formData.submissionId ? `<li><strong>Submission ID:</strong> ${escapeHtml(formData.submissionId.slice(0, 8))}</li>` : ''}
+          ${formData.status ? `<li><strong>Status:</strong> ${escapeHtml(formData.status.charAt(0).toUpperCase() + formData.status.slice(1))}</li>` : ''}
+          ${formData.submittedAt ? `<li><strong>Submitted:</strong> ${escapeHtml(new Date(formData.submittedAt).toLocaleString())}</li>` : ''}
+        </ul>
+        ${formData.observations ? `
+          <h3 style="margin-top: 20px;">General Observations:</h3>
+          <p style="white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 5px;">${escapeHtml(formData.observations)}</p>
+        ` : ''}
+        ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
+        <p style="margin-top: 20px;">This form was submitted via OrderSnapr.</p>
+        <p style="color: #666; margin-top: 30px;">Best regards,<br>OrderSnapr Team</p>
+      `;
+    } else if (reportType === "job-audit") {
+      subject = `Job Quality Inspection Report - ${formData.technicianName || 'Technician'}`;
+      htmlBody = `
         <h2>Job Quality Inspection Report</h2>
         <p>Please find attached the job quality inspection report with the following details:</p>
         <ul>
@@ -136,8 +158,10 @@ const handler = async (req: Request): Promise<Response> => {
         ${photos && photos.length > 0 ? `<p style="margin-top: 20px;"><strong>Photos:</strong> ${photos.length} photo(s) attached</p>` : ''}
         <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>
         <p style="color: #666; margin-top: 30px;">Best regards,<br>OrderSnapr Team</p>
-      `
-      : `
+      `;
+    } else {
+      subject = `Ride-Along Observation Report - ${formData.technicianName || 'Technician'}`;
+      htmlBody = `
         <h2>Ride-Along Observation Report</h2>
         <p>Please find attached the ride-along observation report with the following details:</p>
         <ul>
@@ -156,6 +180,7 @@ const handler = async (req: Request): Promise<Response> => {
         <p style="margin-top: 20px;">This report was generated from OrderSnapr.</p>
         <p style="color: #666; margin-top: 30px;">Best regards,<br>OrderSnapr Team</p>
       `;
+    }
 
     // Build attachments array - PDF + photos
     const attachments: any[] = [

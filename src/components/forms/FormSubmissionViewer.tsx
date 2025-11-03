@@ -1,12 +1,19 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ChecklistField } from "./ChecklistField";
 import { SignatureField } from "./SignatureField";
 import { FormSubmission } from "@/hooks/use-form-submissions";
-import { Calendar, User, FileText } from "lucide-react";
+import { Calendar, User, FileText, Download, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { generateFormPDF } from "@/lib/form-pdf-generator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FormSubmissionViewerProps {
   submission: FormSubmission;
@@ -21,6 +28,10 @@ export function FormSubmissionViewer({
 }: FormSubmissionViewerProps) {
   const schema = submission.form_templates?.schema;
   const canEdit = submission.status === "draft" && onEdit;
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -34,6 +45,133 @@ export function FormSubmissionViewer({
         return "destructive";
       default:
         return "outline";
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const pdf = await generateFormPDF(submission);
+      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
+      pdf.save(fileName);
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!recipientEmail) {
+      toast.error("Please enter a recipient email");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      // Generate PDF
+      const pdf = await generateFormPDF(submission);
+      const pdfBase64 = pdf.output("dataurlstring").split(",")[1];
+      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
+
+      // Collect photos
+      const photos: Array<{ filename: string; content: string; caption?: string }> = [];
+      
+      if (schema?.sections) {
+        for (const section of schema.sections) {
+          for (const field of section.fields) {
+            if (field.type === "file") {
+              const fileValue = submission.answers[field.key];
+              if (Array.isArray(fileValue) && fileValue.length > 0) {
+                for (const file of fileValue) {
+                  try {
+                    const response = await fetch(file.url);
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    
+                    await new Promise((resolve, reject) => {
+                      reader.onload = () => {
+                        const base64 = (reader.result as string).split(",")[1];
+                        photos.push({
+                          filename: file.name,
+                          content: base64,
+                          caption: file.caption,
+                        });
+                        resolve(null);
+                      };
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                    });
+                  } catch (error) {
+                    console.error("Error loading photo:", error);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Extract general observations field
+      let generalObservations = "";
+      if (schema?.sections) {
+        for (const section of schema.sections) {
+          for (const field of section.fields) {
+            if (field.key.toLowerCase().includes("observation") || 
+                field.key.toLowerCase().includes("general") ||
+                field.label.toLowerCase().includes("observation")) {
+              const value = submission.answers[field.key];
+              if (value) {
+                generalObservations = value;
+                break;
+              }
+            }
+          }
+          if (generalObservations) break;
+        }
+      }
+
+      // Call edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke("send-report-email", {
+        body: {
+          recipientEmail,
+          reportType: "form-submission",
+          pdfBase64,
+          fileName,
+          photos,
+          formData: {
+            formTitle: schema?.title,
+            submissionId: submission.id,
+            status: submission.status,
+            submittedAt: submission.submitted_at,
+            observations: generalObservations,
+          },
+        },
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      toast.success("Email sent successfully");
+      setIsEmailDialogOpen(false);
+      setRecipientEmail("");
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error(error.message || "Failed to send email");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -162,7 +300,48 @@ export function FormSubmissionViewer({
             Edit
           </Button>
         )}
+        <Button variant="outline" onClick={handleDownloadPDF} disabled={isGeneratingPDF}>
+          {isGeneratingPDF ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          <span className="ml-2">Download PDF</span>
+        </Button>
+        <Button variant="outline" onClick={() => setIsEmailDialogOpen(true)}>
+          <Mail className="h-4 w-4" />
+          <span className="ml-2">Share via Email</span>
+        </Button>
       </div>
+
+      <AlertDialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Share via Email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Send this form submission as a PDF with photos attached. The general observations will be included in the email body.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="recipient-email">Recipient Email</Label>
+            <Input
+              id="recipient-email"
+              type="email"
+              placeholder="email@example.com"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              disabled={isSendingEmail}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSendingEmail}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendEmail} disabled={isSendingEmail}>
+              {isSendingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

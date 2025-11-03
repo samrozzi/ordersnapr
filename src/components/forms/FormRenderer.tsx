@@ -83,11 +83,6 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       }
     }
 
-    if (schema.require_signature && !signature) {
-      toast.error("Signature is required");
-      return false;
-    }
-
     return true;
   };
 

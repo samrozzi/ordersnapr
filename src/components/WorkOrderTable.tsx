@@ -43,7 +43,7 @@ interface WorkOrderTableProps {
   onUpdate: () => void;
 }
 
-type SortField = "customer_name" | "ban" | "scheduled_date" | "created_at";
+type SortField = "customer_name" | "scheduled_date" | "created_at";
 type SortDirection = "asc" | "desc";
 
 export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
@@ -207,17 +207,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleSort("ban")}
-                  className="h-auto p-0 hover:bg-transparent font-semibold"
-                >
-                  BAN
-                  {getSortIcon("ban")}
-                </Button>
-              </TableHead>
-              <TableHead className="min-w-[120px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
                   onClick={() => handleSort("scheduled_date")}
                   className="h-auto p-0 hover:bg-transparent font-semibold"
                 >
@@ -226,10 +215,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 </Button>
               </TableHead>
               <TableHead className="hidden lg:table-cell min-w-[120px]">Contact</TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[100px]">BPC</TableHead>
               <TableHead className="hidden lg:table-cell min-w-[120px]">Package</TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[100px]">Job ID</TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[120px]">Created By</TableHead>
               <TableHead className="hidden lg:table-cell min-w-[140px]">
                 <Button
                   variant="ghost"
@@ -260,7 +246,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   </Button>
                 </TableCell>
                 <TableCell className="font-medium">{order.customer_name}</TableCell>
-                <TableCell>{order.ban || "-"}</TableCell>
                 <TableCell>
                   {order.scheduled_date ? (() => {
                     let dateStr = format(parseISO(order.scheduled_date), "MMM dd, yyyy");
@@ -301,12 +286,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     </div>
                   ) : "-"}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">{order.bpc || "-"}</TableCell>
                 <TableCell className="hidden lg:table-cell">{order.package || "-"}</TableCell>
-                <TableCell className="hidden lg:table-cell">{order.job_id || "-"}</TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {order.profiles?.full_name || order.profiles?.email || "Unknown"}
-                </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>

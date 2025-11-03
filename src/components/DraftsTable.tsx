@@ -126,7 +126,8 @@ export const DraftsTable = ({ onLoadDraft }: DraftsTableProps) => {
         <CardTitle>Saved Drafts ({drafts.length})</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
+        <div className="border rounded-lg overflow-x-auto touch-pan-x">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Draft Name</TableHead>
@@ -232,6 +233,7 @@ export const DraftsTable = ({ onLoadDraft }: DraftsTableProps) => {
             ))}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );

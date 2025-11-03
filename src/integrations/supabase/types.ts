@@ -301,6 +301,123 @@ export type Database = {
         }
         Relationships: []
       }
+      form_submissions: {
+        Row: {
+          answers: Json
+          attachments: Json | null
+          created_at: string | null
+          created_by: string
+          form_template_id: string
+          id: string
+          job_id: string | null
+          org_id: string
+          signature: Json | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          answers?: Json
+          attachments?: Json | null
+          created_at?: string | null
+          created_by: string
+          form_template_id: string
+          id?: string
+          job_id?: string | null
+          org_id: string
+          signature?: Json | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          answers?: Json
+          attachments?: Json | null
+          created_at?: string | null
+          created_by?: string
+          form_template_id?: string
+          id?: string
+          job_id?: string | null
+          org_id?: string
+          signature?: Json | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_global: boolean | null
+          name: string
+          org_id: string | null
+          schema: Json
+          slug: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_global?: boolean | null
+          name: string
+          org_id?: string | null
+          schema: Json
+          slug: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_global?: boolean | null
+          name?: string
+          org_id?: string | null
+          schema?: Json
+          slug?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           created_at: string | null

@@ -142,7 +142,7 @@ export function FileUploadField({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {value.map((file) => (
             <div key={file.id} className="relative border rounded-lg overflow-hidden bg-card">
-              {file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+              {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                 <img
                   src={file.url}
                   alt={file.name}

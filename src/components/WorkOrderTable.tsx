@@ -187,7 +187,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
   return (
     <>
-      <div className="rounded-md border overflow-x-auto pr-16 pb-2">
+      <div className="rounded-md border overflow-x-auto pr-24 pb-2">
         <Table className="min-w-max">
             <TableHeader>
               <TableRow>
@@ -243,7 +243,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
               </TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-32">Actions</TableHead>
-              <TableHead className="w-12 sm:w-16" />
+              <TableHead className="w-20 sm:w-24" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -425,7 +425,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     </AlertDialog>
                   </div>
                 </TableCell>
-                <TableCell className="w-12 sm:w-16"></TableCell>
+                <TableCell className="w-20 sm:w-24"></TableCell>
               </TableRow>
             ))}
           </TableBody>

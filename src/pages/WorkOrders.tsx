@@ -227,26 +227,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div 
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      className="flex flex-col h-full"
-    >
-      {/* Pull to refresh indicator */}
-      <div 
-        className="absolute top-0 left-0 right-0 flex justify-center items-center transition-all duration-200 ease-out pointer-events-none"
-        style={{ 
-          transform: `translateY(${pullDistance > 0 ? pullDistance - 50 : -50}px)`,
-          opacity: pullDistance / 80
-        }}
-      >
-        <div className={`text-primary ${isRefreshing ? 'animate-spin' : ''}`}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
 
       <div className="flex flex-col flex-1 min-h-0 space-y-4 md:space-y-6">
         <div className="flex-shrink-0">
@@ -326,13 +307,15 @@ const Dashboard = () => {
         ) : (
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 bg-background">
-                <TabsTrigger value="pending" className="text-[10px] sm:text-sm px-1 sm:px-4">
+              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 sticky top-0 z-10 bg-background">
+                <TabsTrigger value="pending" className="px-2 py-1 text-xs sm:text-sm justify-center">
                   <span className="hidden sm:inline">Pending / Scheduled</span>
-                  <span className="sm:hidden">Pending</span> ({pendingOrders.length})
+                  <span className="sm:inline">Pending</span>
+                  <span className="ml-1 opacity-70 text-[10px]">({pendingOrders.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="text-[10px] sm:text-sm px-1 sm:px-4">
-                  Completed ({completedOrders.length})
+                <TabsTrigger value="completed" className="px-2 py-1 text-xs sm:text-sm justify-center">
+                  Completed
+                  <span className="ml-1 opacity-70 text-[10px]">({completedOrders.length})</span>
                 </TabsTrigger>
               </TabsList>
 

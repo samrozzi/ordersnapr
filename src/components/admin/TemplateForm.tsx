@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateTemplate, useUpdateTemplate, FormTemplate } from "@/hooks/use-form-templates";
 import { TemplateBuilder } from "./TemplateBuilder";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TemplateFormProps {
   template?: FormTemplate;
@@ -27,9 +28,18 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
     template ? JSON.stringify(template.schema, null, 2) : ""
   );
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const createMutation = useCreateTemplate();
   const updateMutation = useUpdateTemplate();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    fetchUser();
+  }, []);
 
   const handleSchemaChange = (newSchema: any) => {
     setSchema(newSchema);
@@ -68,6 +78,7 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
       schema: finalSchema,
       is_global: isGlobal,
       is_active: isActive,
+      created_by: userId,
     };
 
     try {

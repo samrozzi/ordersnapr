@@ -23,14 +23,18 @@ export default function Forms() {
   const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", user.id).single();
-        if (profile) setOrgId(profile.organization_id);
+        const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin").eq("id", user.id).single();
+        if (profile) {
+          setOrgId(profile.organization_id);
+          setIsOrgAdmin(profile.is_org_admin || false);
+        }
       }
     };
     fetchUser();
@@ -40,6 +44,10 @@ export default function Forms() {
   const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
   const deleteMutation = useDeleteSubmission();
+
+  const canDeleteSubmission = (submission: FormSubmission) => {
+    return submission.status === "draft" && (submission.created_by === userId || isOrgAdmin);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -162,7 +170,7 @@ export default function Forms() {
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
-                          {submission.status === "draft" && submission.created_by === userId && (
+                          {canDeleteSubmission(submission) && (
                             <>
                               <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => { setSubmissionToDelete(submission.id); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
@@ -241,7 +249,7 @@ export default function Forms() {
       <Sheet open={sheetMode === "view"} onOpenChange={(open) => !open && setSheetMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader><SheetTitle>View Submission</SheetTitle></SheetHeader>
-          <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} onDelete={selectedSubmission.status === "draft" && selectedSubmission.created_by === userId ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
+          <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={canDeleteSubmission(selectedSubmission) ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} onDelete={canDeleteSubmission(selectedSubmission) ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
         </SheetContent>
       </Sheet>
 

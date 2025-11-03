@@ -372,6 +372,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          created_by: string | null
           id: string
           is_active: boolean | null
           is_global: boolean | null
@@ -385,6 +386,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_active?: boolean | null
           is_global?: boolean | null
@@ -398,6 +400,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_active?: boolean | null
           is_global?: boolean | null
@@ -710,6 +713,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_org_admin: boolean | null
           is_super_admin: boolean | null
           organization_id: string | null
           updated_at: string | null
@@ -720,6 +724,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_org_admin?: boolean | null
           is_super_admin?: boolean | null
           organization_id?: string | null
           updated_at?: string | null
@@ -730,6 +735,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_org_admin?: boolean | null
           is_super_admin?: boolean | null
           organization_id?: string | null
           updated_at?: string | null

@@ -236,6 +236,10 @@ const Dashboard = () => {
     ));
   };
 
+  const handleWidgetsReorder = (reorderedWidgets: Widget[]) => {
+    setWidgets(reorderedWidgets.map((w, idx) => ({ ...w, position: idx })));
+  };
+
   const handleSaveLayout = () => {
     setIsEditMode(false);
     toast({
@@ -287,6 +291,7 @@ const Dashboard = () => {
           isEditMode={isEditMode}
           onSizeChange={handleSizeChange}
           onRemoveWidget={handleRemoveWidget}
+          onWidgetsReorder={handleWidgetsReorder}
         />
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">

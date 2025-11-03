@@ -399,7 +399,7 @@ const Admin = () => {
             {pendingUsers.length === 0 ? (
               <p className="text-muted-foreground">No pending approvals</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto pr-12">
+              <div className="rounded-md border overflow-x-auto pr-16 pb-2">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -408,7 +408,7 @@ const Admin = () => {
                       <TableHead>Organization</TableHead>
                       <TableHead>Registration Date</TableHead>
                       <TableHead>Actions</TableHead>
-                      <TableHead className="w-8 sm:w-12" />
+                      <TableHead className="w-12 sm:w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -457,7 +457,7 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="w-8 sm:w-12"></TableCell>
+                        <TableCell className="w-12 sm:w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -475,7 +475,7 @@ const Admin = () => {
             {approvedUsers.length === 0 ? (
               <p className="text-muted-foreground">No approved users</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto pr-12">
+              <div className="rounded-md border overflow-x-auto pr-16 pb-2">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -485,7 +485,7 @@ const Admin = () => {
                       <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
-                      <TableHead className="w-8 sm:w-12" />
+                      <TableHead className="w-12 sm:w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -545,7 +545,7 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="w-8 sm:w-12"></TableCell>
+                        <TableCell className="w-12 sm:w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -561,7 +561,7 @@ const Admin = () => {
               <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border overflow-x-auto pr-12">
+              <div className="rounded-md border overflow-x-auto pr-16 pb-2">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -570,7 +570,7 @@ const Admin = () => {
                       <TableHead>Organization</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
-                      <TableHead className="w-8 sm:w-12" />
+                      <TableHead className="w-12 sm:w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -608,7 +608,7 @@ const Admin = () => {
                             Approve
                           </Button>
                         </TableCell>
-                        <TableCell className="w-8 sm:w-12"></TableCell>
+                        <TableCell className="w-12 sm:w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -661,7 +661,7 @@ const Admin = () => {
               {organizations.length === 0 ? (
                 <p className="text-muted-foreground">No organizations created yet</p>
               ) : (
-                <div className="rounded-md border overflow-x-auto pr-12">
+              <div className="rounded-md border overflow-x-auto pr-16 pb-2">
                   <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
@@ -669,7 +669,7 @@ const Admin = () => {
                         <TableHead>Members</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead>Actions</TableHead>
-                        <TableHead className="w-8 sm:w-12" />
+                        <TableHead className="w-12 sm:w-16" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -690,7 +690,7 @@ const Admin = () => {
                               Delete
                             </Button>
                           </TableCell>
-                          <TableCell className="w-8 sm:w-12"></TableCell>
+                          <TableCell className="w-12 sm:w-16"></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

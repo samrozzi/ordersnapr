@@ -33,8 +33,8 @@ import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
-import ordersnaprIcon from "@/assets/ordersnapr-icon.png";
-import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark.png";
+import ordersnaprIcon from "@/assets/ordersnapr-icon-light-new.png";
+import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -124,7 +124,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className={state === "collapsed" ? "border-b py-2 px-2" : "border-b py-4 px-4"}>
+      <SidebarHeader className={state === "collapsed" ? "border-b py-1 px-1" : "border-b py-4 px-4"}>
         <button
           onClick={() => navigate("/dashboard")}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"

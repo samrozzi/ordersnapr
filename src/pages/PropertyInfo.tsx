@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ interface Property {
 
 const PropertyInfo = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -80,6 +81,20 @@ const PropertyInfo = () => {
       fetchProperties();
     }
   }, [session]);
+
+  // Handle opening property from URL parameter (e.g., from favorites)
+  useEffect(() => {
+    const propertyId = searchParams.get('property');
+    if (propertyId && properties.length > 0) {
+      // For properties, we could scroll to it or highlight it
+      // For now, just clear the parameter to acknowledge it was handled
+      setSearchParams({});
+      toast({
+        title: "Property",
+        description: "Viewing property from favorites",
+      });
+    }
+  }, [searchParams, properties, setSearchParams, toast]);
 
   const handleGetUserLocation = () => {
     if (!navigator.geolocation) {

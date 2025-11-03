@@ -107,8 +107,23 @@ export const FavoritesWidget = memo(() => {
   }, []);
 
   const handleClick = (item: FavoriteItem) => {
-    // Navigate to profile favorites tab
-    navigate("/profile?tab=favorites");
+    // Navigate to the specific entity based on type
+    switch (item.entity_type) {
+      case "work_order":
+        navigate(`/work-orders?open=${item.entity_id}`);
+        break;
+      case "calendar_event":
+        navigate(`/calendar?event=${item.entity_id}`);
+        break;
+      case "property":
+        navigate(`/property-info?property=${item.entity_id}`);
+        break;
+      case "form_draft":
+        navigate(`/forms?draft=${item.entity_id}`);
+        break;
+      default:
+        navigate("/profile?tab=favorites");
+    }
   };
 
   return (

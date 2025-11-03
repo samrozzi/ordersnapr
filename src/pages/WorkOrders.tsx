@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ interface WorkOrder {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { getFeatureConfig } = useFeatureContext();
   const [session, setSession] = useState<Session | null>(null);
@@ -152,6 +153,19 @@ const Dashboard = () => {
       fetchWorkOrders();
     }
   }, [session]);
+
+  // Handle opening work order from URL parameter (e.g., from favorites)
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId && workOrders.length > 0) {
+      const orderToOpen = workOrders.find(wo => wo.id === openId);
+      if (orderToOpen) {
+        setViewingOrder(orderToOpen);
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, workOrders, setSearchParams]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

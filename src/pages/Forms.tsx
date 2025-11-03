@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +16,7 @@ import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Forms() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("all");
   const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
@@ -44,6 +46,21 @@ export default function Forms() {
   const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
   const deleteMutation = useDeleteSubmission();
+
+  // Handle opening form draft from URL parameter (e.g., from favorites)
+  useEffect(() => {
+    const draftId = searchParams.get('draft');
+    if (draftId && submissions.length > 0 && templates.length > 0) {
+      const draftToOpen = submissions.find(s => s.id === draftId);
+      if (draftToOpen) {
+        setSelectedSubmission(draftToOpen);
+        setSelectedTemplate(templates.find(t => t.id === draftToOpen.form_template_id));
+        setSheetMode('edit-submission');
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, submissions, templates, setSearchParams]);
 
   const canDeleteSubmission = (submission: FormSubmission) => {
     return submission.status === "draft" && (submission.created_by === userId || isOrgAdmin);

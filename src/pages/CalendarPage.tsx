@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CalendarView } from "@/components/CalendarView";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
@@ -6,9 +7,23 @@ import { AddEventDialog } from "@/components/AddEventDialog";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 const CalendarPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const { workOrders, calendarEvents, refetch, loading } = useOrgCalendarData();
+
+  // Handle opening calendar event from URL parameter (e.g., from favorites)
+  useEffect(() => {
+    const eventId = searchParams.get('event');
+    if (eventId && calendarEvents.length > 0) {
+      const eventToOpen = calendarEvents.find(e => e.id === eventId);
+      if (eventToOpen) {
+        setSelectedEvent(eventToOpen);
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, calendarEvents, setSearchParams]);
 
   const handleEventClick = (item: any) => {
     if (item.type === 'work_order') {

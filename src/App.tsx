@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { useOrgTheme } from "@/hooks/use-org-theme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureProvider } from "@/contexts/FeatureContext";
+import { WorkOrderDialogProvider } from "@/contexts/WorkOrderDialogContext";
 import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
 import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
@@ -65,7 +66,9 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <TooltipProvider>
-          <AppContent />
+          <WorkOrderDialogProvider>
+            <AppContent />
+          </WorkOrderDialogProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -324,29 +324,27 @@ const Dashboard = () => {
             onJobClick={(order) => setViewingOrder(order as WorkOrder)}
           />
         ) : (
-          <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pending" className="text-xs sm:text-sm">
-                <span className="hidden sm:inline">Pending / Scheduled</span>
-                <span className="sm:hidden">Pending</span> ({pendingOrders.length})
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="text-xs sm:text-sm">
-                Completed ({completedOrders.length})
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex-1 min-h-0">
+            <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 sticky top-0 z-[1] bg-background">
+                <TabsTrigger value="pending" className="text-xs sm:text-sm">
+                  <span className="hidden sm:inline">Pending / Scheduled</span>
+                  <span className="sm:hidden">Pending</span> ({pendingOrders.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs sm:text-sm">
+                  Completed ({completedOrders.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="pending" className="mt-6">
-              <div className="overflow-x-auto">
+              <TabsContent value="pending" className="flex-1 overflow-y-auto">
                 <WorkOrderTable workOrders={pendingOrders} onUpdate={fetchWorkOrders} />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="completed" className="mt-6">
-              <div className="overflow-x-auto">
+              <TabsContent value="completed" className="flex-1 overflow-y-auto">
                 <WorkOrderTable workOrders={completedOrders} onUpdate={fetchWorkOrders} />
-              </div>
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
         )}
 
         <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>

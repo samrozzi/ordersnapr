@@ -3,6 +3,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, memo } from "react";
+import { useWorkOrderDialog } from "@/contexts/WorkOrderDialogContext";
 
 interface FavoriteItem {
   id: string;
@@ -16,6 +17,7 @@ export const FavoritesWidget = memo(() => {
   const [enrichedFavorites, setEnrichedFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { openWorkOrderDialog } = useWorkOrderDialog();
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -112,10 +114,10 @@ export const FavoritesWidget = memo(() => {
   }, []);
 
   const handleClick = (item: FavoriteItem) => {
-    // Navigate to the specific entity based on type
+    // Open dialog for work orders, navigate for other types
     switch (item.entity_type) {
       case "work_order":
-        navigate(`/work-orders?view=${item.entity_id}`);
+        openWorkOrderDialog(item.entity_id);
         break;
       case "calendar_event":
         navigate(`/calendar?event=${item.entity_id}`);

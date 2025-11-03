@@ -234,18 +234,16 @@ const WorkOrders = () => {
 
       {/* Filter buttons row - only for list view */}
       {viewMode === 'list' && (
-        <div className="w-full relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+        <div className="flex gap-2 mb-3 max-w-md">
           <Button
             variant={listTab === 'pending' ? 'default' : 'outline'}
             onClick={() => setListTab('pending')}
-            className="w-full"
           >
             Pending ({pendingOrders.length})
           </Button>
           <Button
             variant={listTab === 'completed' ? 'default' : 'outline'}
             onClick={() => setListTab('completed')}
-            className="w-full"
           >
             Completed ({completedOrders.length})
           </Button>

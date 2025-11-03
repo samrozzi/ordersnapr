@@ -30,6 +30,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
   const [signature, setSignature] = useState(submission?.signature || null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [draftSubmission, setDraftSubmission] = useState<FormSubmission | null>(null);
   
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
@@ -52,6 +53,33 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
     };
     fetchUser();
   }, []);
+
+  // Auto-create draft submission if none exists (enables photo upload on new forms)
+  useEffect(() => {
+    const createDraft = async () => {
+      if (!submission && userId && orgId && !draftSubmission) {
+        try {
+          const { data, error } = await supabase
+            .from("form_submissions")
+            .insert({
+              org_id: orgId,
+              form_template_id: template.id,
+              created_by: userId,
+              answers: {},
+              status: "draft"
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          setDraftSubmission(data as unknown as FormSubmission);
+        } catch (error) {
+          console.error("Error creating draft submission:", error);
+        }
+      }
+    };
+    createDraft();
+  }, [userId, orgId, submission, template.id, draftSubmission]);
 
   // Auto-save draft every 10 seconds
   useEffect(() => {
@@ -310,7 +338,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
         );
 
       case "file":
-        return orgId && submission?.id ? (
+        return orgId && (submission?.id || draftSubmission?.id) ? (
           <FileUploadField
             key={field.key}
             label={field.label}
@@ -320,7 +348,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
             value={value || []}
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
             orgId={orgId}
-            submissionId={submission.id}
+            submissionId={submission?.id || draftSubmission?.id || ""}
           />
         ) : null;
 

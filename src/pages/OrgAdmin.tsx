@@ -481,14 +481,15 @@ const OrgAdmin = () => {
                 <CardDescription>Members waiting for approval</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto pr-12">
+                  <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Email</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Requested</TableHead>
                         <TableHead>Actions</TableHead>
+                        <TableHead className="w-8 sm:w-12" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -519,6 +520,7 @@ const OrgAdmin = () => {
                               </Button>
                             </div>
                           </TableCell>
+                          <TableCell className="w-8 sm:w-12"></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -535,8 +537,8 @@ const OrgAdmin = () => {
                 <CardDescription>Pending email change requests from members</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto pr-12">
+                  <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
                         <TableHead>User</TableHead>
@@ -544,6 +546,7 @@ const OrgAdmin = () => {
                         <TableHead>Requested Email</TableHead>
                         <TableHead>Requested</TableHead>
                         <TableHead>Actions</TableHead>
+                        <TableHead className="w-8 sm:w-12" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -587,6 +590,7 @@ const OrgAdmin = () => {
                               </Button>
                             </div>
                           </TableCell>
+                          <TableCell className="w-8 sm:w-12"></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -605,14 +609,15 @@ const OrgAdmin = () => {
               {approvedMembers.length === 0 ? (
                 <p className="text-muted-foreground">No active members</p>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto pr-12">
+                  <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Email</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
+                        <TableHead className="w-8 sm:w-12" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -652,6 +657,7 @@ const OrgAdmin = () => {
                               </AlertDialogContent>
                             </AlertDialog>
                           </TableCell>
+                          <TableCell className="w-8 sm:w-12"></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

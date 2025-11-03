@@ -399,7 +399,7 @@ const Admin = () => {
             {pendingUsers.length === 0 ? (
               <p className="text-muted-foreground">No pending approvals</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto pr-24 pb-2">
+              <div className="rounded-md border overflow-x-auto pr-16">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -408,7 +408,7 @@ const Admin = () => {
                       <TableHead>Organization</TableHead>
                       <TableHead>Registration Date</TableHead>
                       <TableHead>Actions</TableHead>
-                      <TableHead className="w-20 sm:w-24" />
+                      <TableHead className="w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -457,6 +457,7 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
+                        <TableCell className="w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -474,8 +475,8 @@ const Admin = () => {
             {approvedUsers.length === 0 ? (
               <p className="text-muted-foreground">No approved users</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto">
-                <Table className="w-full">
+               <div className="rounded-md border overflow-x-auto pr-16">
+                <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[200px]">Email</TableHead>
@@ -484,6 +485,7 @@ const Admin = () => {
                       <TableHead className="min-w-[120px]">Role</TableHead>
                       <TableHead className="min-w-[100px]">Status</TableHead>
                       <TableHead className="w-[150px] pr-4">Actions</TableHead>
+                      <TableHead className="w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>

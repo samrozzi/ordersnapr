@@ -141,7 +141,7 @@ export function FileUploadField({
       {value.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {value.map((file) => {
-            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)($|\?)/i.test(file.url) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
             
             return (
               <div key={file.id} className="relative border rounded-lg overflow-hidden bg-card">

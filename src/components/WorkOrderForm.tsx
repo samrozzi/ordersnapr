@@ -57,7 +57,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
-  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>(workOrder?.photos || []);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

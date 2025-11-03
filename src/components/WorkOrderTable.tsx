@@ -188,12 +188,11 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   return (
     <>
       <div className="rounded-md border overflow-x-auto touch-pan-x">
-        <div className="pr-4">
         <Table className="min-w-max">
             <TableHeader>
               <TableRow>
-              <TableHead className="w-8 px-2"></TableHead>
-              <TableHead className="min-w-[150px]">
+              <TableHead className="w-8 sm:w-12"></TableHead>
+              <TableHead>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -204,7 +203,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("customer_name")}
                 </Button>
               </TableHead>
-              <TableHead className="min-w-[120px]">
+              <TableHead>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -215,8 +214,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("scheduled_date")}
                 </Button>
               </TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[120px]">Contact</TableHead>
-              <TableHead className="hidden lg:table-cell min-w-[140px]">
+              <TableHead className="hidden lg:table-cell">Contact</TableHead>
+              <TableHead className="hidden lg:table-cell">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -227,7 +226,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("created_at")}
                 </Button>
               </TableHead>
-              <TableHead className="min-w-[100px]">Status</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -404,7 +403,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
              ))}
            </TableBody>
         </Table>
-        </div>
       </div>
 
       <WorkOrderDetails

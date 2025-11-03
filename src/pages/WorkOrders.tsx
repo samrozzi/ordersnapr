@@ -227,11 +227,13 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center gap-4 justify-between mb-4">
-          <h2 className="text-2xl font-semibold">{displayName}</h2>
+        <div className="relative mb-4">
+          <div className="flex flex-wrap items-center gap-2 pr-32 min-w-0">
+            <h2 className="text-2xl font-semibold mr-2">{displayName}</h2>
+          </div>
           
-          {/* View Toggle - Always visible on right */}
-          <div className="flex gap-2 shrink-0 ml-auto">
+          {/* View Toggle - Absolutely positioned to prevent clipping */}
+          <div className="mt-3 md:mt-0 md:absolute md:right-0 md:top-0 flex gap-2 shrink-0">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"

@@ -32,6 +32,7 @@ import {
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import ordersnaprIcon from "@/assets/ordersnapr-icon.png";
 import { Separator } from "@/components/ui/separator";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -128,7 +129,7 @@ export function AppSidebar() {
           aria-label="Go to dashboard"
         >
           <img 
-            src={ordersnaprLogo} 
+            src={state === "collapsed" ? ordersnaprIcon : ordersnaprLogo} 
             alt="OrderSnapr" 
             className={state === "collapsed" ? "h-8 w-8 object-contain" : "h-12 max-w-[180px] object-contain"}
           />

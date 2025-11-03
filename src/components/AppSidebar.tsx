@@ -32,7 +32,9 @@ import {
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon.png";
+import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark.png";
 import { Separator } from "@/components/ui/separator";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -122,16 +124,33 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className="border-b py-4 px-4">
+      <SidebarHeader className={state === "collapsed" ? "border-b py-2 px-2" : "border-b py-4 px-4"}>
         <button
           onClick={() => navigate("/dashboard")}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           aria-label="Go to dashboard"
         >
+          {/* Light mode logos */}
           <img 
-            src={state === "collapsed" ? ordersnaprIcon : ordersnaprLogo} 
+            src={ordersnaprIcon} 
             alt="OrderSnapr" 
-            className={state === "collapsed" ? "h-8 w-8 object-contain" : "h-12 max-w-[180px] object-contain"}
+            className={state === "collapsed" ? "h-10 w-10 object-contain mx-auto block dark:hidden" : "hidden"}
+          />
+          <img 
+            src={ordersnaprLogo} 
+            alt="OrderSnapr" 
+            className={state === "collapsed" ? "hidden" : "h-[44px] max-w-[220px] object-contain block dark:hidden"}
+          />
+          {/* Dark mode logos */}
+          <img 
+            src={ordersnaprIconDark} 
+            alt="OrderSnapr" 
+            className={state === "collapsed" ? "h-10 w-10 object-contain mx-auto hidden dark:block" : "hidden"}
+          />
+          <img 
+            src={ordersnaprLogoDark} 
+            alt="OrderSnapr" 
+            className={state === "collapsed" ? "hidden" : "h-[44px] max-w-[220px] object-contain hidden dark:block"}
           />
         </button>
         {state !== "collapsed" && (

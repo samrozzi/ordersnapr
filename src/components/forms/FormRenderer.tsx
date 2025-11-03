@@ -6,6 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChecklistField } from "./ChecklistField";
 import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
@@ -231,6 +234,66 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
             />
+          </div>
+        );
+
+      case "select":
+        return (
+          <div key={field.key} className="space-y-2">
+            <Label htmlFor={field.key}>
+              {field.label} {field.required && <span className="text-destructive">*</span>}
+            </Label>
+            <Select
+              value={value || ""}
+              onValueChange={(val) => handleFieldChange(field.key, val)}
+            >
+              <SelectTrigger id={field.key}>
+                <SelectValue placeholder={field.placeholder || "Select an option"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(field.options || []).map((option, idx) => (
+                  <SelectItem key={idx} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+
+      case "radio":
+        return (
+          <div key={field.key} className="space-y-2">
+            <Label>
+              {field.label} {field.required && <span className="text-destructive">*</span>}
+            </Label>
+            <RadioGroup
+              value={value || ""}
+              onValueChange={(val) => handleFieldChange(field.key, val)}
+            >
+              {(field.options || []).map((option, idx) => (
+                <div key={idx} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`${field.key}-${idx}`} />
+                  <Label htmlFor={`${field.key}-${idx}`} className="font-normal cursor-pointer">
+                    {option}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+        );
+
+      case "checkbox":
+        return (
+          <div key={field.key} className="flex items-center space-x-2">
+            <Checkbox
+              id={field.key}
+              checked={value || false}
+              onCheckedChange={(checked) => handleFieldChange(field.key, checked)}
+            />
+            <Label htmlFor={field.key} className="font-normal cursor-pointer">
+              {field.label} {field.required && <span className="text-destructive">*</span>}
+            </Label>
           </div>
         );
 

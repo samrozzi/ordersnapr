@@ -34,7 +34,12 @@ export function FieldPropertiesPanel({
   if (!editedField) return null;
 
   const handleSave = () => {
-    onFieldUpdate(editedField);
+    // Auto-generate key from label before saving
+    const fieldWithKey = {
+      ...editedField,
+      key: generateKey(editedField.label),
+    };
+    onFieldUpdate(fieldWithKey);
     onOpenChange(false);
   };
 
@@ -193,23 +198,96 @@ export function FieldPropertiesPanel({
               />
             </div>
 
+            {/* Text/Textarea Length */}
+            {(editedField.type === "text" || editedField.type === "textarea") && (
+              <div className="space-y-2">
+                <Label htmlFor="maxLength">Max Length (characters)</Label>
+                <Input
+                  id="maxLength"
+                  type="number"
+                  value={editedField.maxLength || ""}
+                  onChange={(e) =>
+                    setEditedField({ ...editedField, maxLength: parseInt(e.target.value) || undefined })
+                  }
+                  placeholder="e.g. 100"
+                  min="1"
+                />
+              </div>
+            )}
+
+            {/* Number Min/Max */}
+            {editedField.type === "number" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="min">Minimum Value</Label>
+                  <Input
+                    id="min"
+                    type="number"
+                    value={editedField.min ?? ""}
+                    onChange={(e) =>
+                      setEditedField({ ...editedField, min: e.target.value ? parseInt(e.target.value) : undefined })
+                    }
+                    placeholder="e.g. 0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="max">Maximum Value</Label>
+                  <Input
+                    id="max"
+                    type="number"
+                    value={editedField.max ?? ""}
+                    onChange={(e) =>
+                      setEditedField({ ...editedField, max: e.target.value ? parseInt(e.target.value) : undefined })
+                    }
+                    placeholder="e.g. 100"
+                  />
+                </div>
+              </>
+            )}
+
             {/* File restrictions (for file upload) */}
             {editedField.type === "file" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="maxSize">Max File Size (MB)</Label>
+                  <Label htmlFor="maxFiles">Max Number of Files</Label>
                   <Input
-                    id="maxSize"
+                    id="maxFiles"
                     type="number"
+                    value={editedField.maxFiles || 10}
+                    onChange={(e) =>
+                      setEditedField({ ...editedField, maxFiles: parseInt(e.target.value) || 10 })
+                    }
                     placeholder="e.g. 5"
-                    min="0"
+                    min="1"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fileTypes">Allowed File Types</Label>
                   <Input
                     id="fileTypes"
+                    value={(editedField.accept || []).join(", ")}
+                    onChange={(e) =>
+                      setEditedField({ 
+                        ...editedField, 
+                        accept: e.target.value.split(",").map(s => s.trim()).filter(Boolean) 
+                      })
+                    }
                     placeholder="e.g. .jpg, .png, .pdf"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allowCaptions">Allow Captions</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Let users add captions to uploaded files
+                    </p>
+                  </div>
+                  <Switch
+                    id="allowCaptions"
+                    checked={editedField.allowCaptions || false}
+                    onCheckedChange={(checked) =>
+                      setEditedField({ ...editedField, allowCaptions: checked })
+                    }
                   />
                 </div>
               </>

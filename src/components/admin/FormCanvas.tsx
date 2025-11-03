@@ -26,11 +26,27 @@ import { fieldTypes } from "./FieldPalette";
 
 export interface Field {
   id: string;
+  key: string; // Auto-generated from label, used in form data
   type: FieldType;
   label: string;
   placeholder?: string;
   required: boolean;
+  
+  // Text/Textarea specific
+  maxLength?: number;
+  default?: string;
+  
+  // Number specific
+  min?: number;
+  max?: number;
+  
+  // Select/Radio/Checklist specific
   options?: string[];
+  
+  // File upload specific
+  accept?: string[];
+  maxFiles?: number;
+  allowCaptions?: boolean;
 }
 
 export interface Section {

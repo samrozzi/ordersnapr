@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   } | null>(null);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
 
+  const generateKey = useCallback((label: string): string => {
+    return label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
+  }, []);
+
   // Load initial schema
   useEffect(() => {
     if (schema?.sections) {
@@ -32,11 +39,19 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         collapsed: false,
         fields: (s.fields || []).map((f: any) => ({
           id: f.id || crypto.randomUUID(),
+          key: f.key || generateKey(f.label || "untitled_field"),
           type: f.type || "text",
           label: f.label || "Untitled Field",
           placeholder: f.placeholder,
           required: f.required || false,
           options: f.options,
+          maxLength: f.maxLength,
+          min: f.min,
+          max: f.max,
+          accept: f.accept,
+          maxFiles: f.maxFiles,
+          allowCaptions: f.allowCaptions,
+          default: f.default,
         })),
       }));
       setSections(loadedSections);
@@ -45,7 +60,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (schema?.requireSignature) {
       setRequireSignature(true);
     }
-  }, [schema]);
+  }, [schema, generateKey]);
 
   // Update parent schema when sections change
   useEffect(() => {
@@ -57,11 +72,19 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         title: s.title,
         fields: s.fields.map((f) => ({
           id: f.id,
+          key: f.key,
           type: f.type,
           label: f.label,
           placeholder: f.placeholder,
           required: f.required,
           options: f.options,
+          maxLength: f.maxLength,
+          min: f.min,
+          max: f.max,
+          accept: f.accept,
+          maxFiles: f.maxFiles,
+          allowCaptions: f.allowCaptions,
+          default: f.default,
         })),
       })),
       requireSignature,
@@ -92,10 +115,12 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     }
 
     // Add field to the last section
+    const label = `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`;
     const newField: Field = {
       id: crypto.randomUUID(),
+      key: generateKey(label),
       type,
-      label: `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
+      label,
       placeholder: "",
       required: false,
       options: type === "select" || type === "radio" || type === "checklist" ? ["Option 1"] : undefined,

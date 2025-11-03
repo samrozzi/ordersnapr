@@ -1,10 +1,5 @@
 import { jsPDF } from "jspdf";
 
-interface ChecklistItem {
-  label: string;
-  status: string;
-}
-
 interface JobAuditPDFData {
   technicianName?: string;
   ban?: string;
@@ -32,7 +27,6 @@ export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF>
   const margin = 15;
   const lineHeight = 6;
 
-  // Helper to check if we need a new page
   const checkPageBreak = (neededSpace: number) => {
     if (yPos + neededSpace > pageHeight - margin) {
       pdf.addPage();
@@ -42,24 +36,24 @@ export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF>
     return false;
   };
 
-  // Title - centered, bold
+  // Title
   pdf.setFontSize(18);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(40, 40, 40);
   pdf.text("Job Quality Inspection Report", pageWidth / 2, yPos, { align: "center" });
   yPos += 12;
 
-  // Job Details section header with black background
+  // Job Details header (simple, no #)
   pdf.setFillColor(0, 0, 0);
   pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(255, 255, 255);
-  pdf.text("# Job Details", margin + 2, yPos);
+  pdf.text("Job Details", margin + 2, yPos);
   pdf.setTextColor(40, 40, 40);
   yPos += 10;
 
-  // Metadata fields
+  // Metadata
   pdf.setFontSize(10);
   const metadata = [
     { label: "Technician:", value: data.technicianName || "" },
@@ -85,7 +79,7 @@ export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF>
 
   yPos += 8;
 
-  // Observations section (prominent)
+  // Observations
   if (data.observations) {
     checkPageBreak(20);
     pdf.setFillColor(0, 0, 0);
@@ -93,7 +87,7 @@ export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF>
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(255, 255, 255);
-    pdf.text("# Observations:", margin + 2, yPos);
+    pdf.text("Observations:", margin + 2, yPos);
     pdf.setTextColor(40, 40, 40);
     yPos += 10;
 
@@ -108,119 +102,110 @@ export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF>
     yPos += 10;
   }
 
-  // Helper function to render checklist section
+  // Helper to normalize and color status; and show as Yes/No/N/A
+  const renderStatusRightAligned = (raw: string) => {
+    const norm = (raw || "").toUpperCase();
+    let label = "N/A";
+    let color: [number, number, number] = [128, 128, 128]; // gray
+
+    if (norm === "OK" || norm === "YES") {
+      label = "Yes";
+      color = [0, 128, 0]; // green
+    } else if (norm === "DEV" || norm === "NO") {
+      label = "No";
+      color = [239, 68, 68]; // red-500
+    } else if (norm === "N/A" || norm === "NA") {
+      label = "N/A";
+      color = [128, 128, 128];
+    } else if (norm) {
+      // Any custom text shown as-is in dark gray
+      label = raw;
+      color = [60, 60, 60];
+    }
+
+    pdf.setTextColor(...color);
+    const rightX = pageWidth - margin - 10;
+    pdf.text(label, rightX, yPos);
+    pdf.setTextColor(40, 40, 40);
+  };
+
+  // Checklist section renderer (items listed, status right side on same line)
   const renderChecklistSection = (
     title: string,
-    items: string[],
-    checklist: Record<number, string>
+    items: string[] = [],
+    checklist: Record<number, string> = {}
   ) => {
+    if (!items.length) return;
+
     checkPageBreak(15);
-    
-    // Section header
     pdf.setFillColor(0, 0, 0);
     pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(255, 255, 255);
-    pdf.text(`# ${title}`, margin + 2, yPos);
+    pdf.text(title, margin + 2, yPos);
     pdf.setTextColor(40, 40, 40);
     yPos += 10;
 
-    // Individual checklist items
-    items.forEach((item, index) => {
-      checkPageBreak(15);
-      
-      // Item number and label
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(`# ${index + 1}. ${item}`, margin + 2, yPos);
-      yPos += 8;
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
 
-      // Status with color coding
-      const status = checklist[index] || "N/A";
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      
-      if (status === "OK") {
-        pdf.setTextColor(0, 128, 0); // Green
-      } else if (status === "N/A") {
-        pdf.setTextColor(128, 128, 128); // Gray
-      } else {
-        pdf.setTextColor(40, 40, 40); // Black for other statuses
-      }
-      
-      pdf.text(status, margin + 2, yPos);
-      pdf.setTextColor(40, 40, 40); // Reset to black
-      yPos += 10;
+    items.forEach((item, index) => {
+      checkPageBreak(10);
+
+      const bullet = `${index + 1}. ${item}`;
+      const maxTextWidth = pageWidth - 2 * margin - 50; // keep room for status at right
+      const lines = pdf.splitTextToSize(bullet, maxTextWidth);
+
+      // Draw item text
+      pdf.text(lines, margin + 2, yPos);
+
+      // Draw status on first line right side
+      renderStatusRightAligned(checklist[index] || "N/A");
+
+      // Advance y by number of lines
+      yPos += lines.length * lineHeight + 4;
     });
 
-    yPos += 5;
+    yPos += 4;
   };
 
-  // Administrative/Testing section
-  if (data.adminChecklistItems && data.adminChecklistItems.length > 0) {
-    renderChecklistSection(
-      "Administrative/Testing",
-      data.adminChecklistItems,
-      data.adminChecklist || {}
-    );
-  }
+  // Render sections in desired order
+  renderChecklistSection("Administrative/Testing", data.adminChecklistItems, data.adminChecklist);
+  renderChecklistSection("Customer Experience", data.customerChecklistItems, data.customerChecklist);
+  renderChecklistSection("MAIN FOCUS/BSW AUDIT - Drop", data.dropChecklistItems, data.dropChecklist);
 
-  // Customer Experience section
-  if (data.customerChecklistItems && data.customerChecklistItems.length > 0) {
-    renderChecklistSection(
-      "Customer Experience",
-      data.customerChecklistItems,
-      data.customerChecklist || {}
-    );
-  }
-
-  // MAIN FOCUS/BSW AUDIT - Drop section
-  if (data.dropChecklistItems && data.dropChecklistItems.length > 0) {
-    renderChecklistSection(
-      "MAIN FOCUS/BSW AUDIT - Drop",
-      data.dropChecklistItems,
-      data.dropChecklist || {}
-    );
-  }
-
-  // Photos section
+  // Photos
   if (data.photos && data.photos.length > 0) {
     checkPageBreak(20);
-    
     pdf.setFillColor(0, 0, 0);
     pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(255, 255, 255);
-    pdf.text("# Photos", margin + 2, yPos);
+    pdf.text("Photos", margin + 2, yPos);
     pdf.setTextColor(40, 40, 40);
     yPos += 15;
 
     for (const photo of data.photos) {
       try {
         checkPageBreak(80);
-        
+
         const response = await fetch(photo.url);
         const blob = await response.blob();
         const reader = new FileReader();
-        
+
         await new Promise((resolve, reject) => {
           reader.onload = async () => {
             try {
               const img = new Image();
               img.src = reader.result as string;
-              
-              await new Promise((imgResolve) => {
-                img.onload = imgResolve;
-              });
+              await new Promise((r) => { img.onload = r; });
 
-              // Calculate dimensions to fit in PDF
               const maxImgWidth = pageWidth - 2 * margin;
               const maxImgHeight = 100;
               let imgWidth = img.width;
               let imgHeight = img.height;
-              
               const ratio = Math.min(maxImgWidth / imgWidth, maxImgHeight / imgHeight);
               imgWidth *= ratio;
               imgHeight *= ratio;

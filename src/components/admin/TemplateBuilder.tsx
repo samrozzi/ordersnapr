@@ -181,6 +181,7 @@ export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: Templ
                   placeholder="Section Title"
                 />
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => toggleSectionCollapse(section.id)}
@@ -192,6 +193,7 @@ export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: Templ
                   )}
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => removeSection(section.id)}
@@ -323,6 +325,7 @@ export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: Templ
                         </div>
 
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeField(section.id, field.id)}
@@ -335,6 +338,7 @@ export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: Templ
                 ))}
 
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => addField(section.id)}
@@ -349,7 +353,7 @@ export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: Templ
         ))}
       </div>
 
-      <Button variant="outline" onClick={addSection} className="w-full">
+      <Button variant="outline" type="button" onClick={addSection} className="w-full">
         <Plus className="h-4 w-4 mr-2" />
         Add Section
       </Button>

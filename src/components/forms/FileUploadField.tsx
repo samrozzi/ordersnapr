@@ -140,46 +140,50 @@ export function FileUploadField({
 
       {value.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {value.map((file) => (
-            <div key={file.id} className="relative border rounded-lg overflow-hidden bg-card">
-              {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                <img
-                  src={file.url}
-                  alt={file.name}
-                  className="w-full h-32 object-cover"
-                />
-              ) : (
-                <div className="w-full h-32 flex items-center justify-center bg-muted">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
-              
-              {!readOnly && (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="destructive"
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={() => handleRemoveFile(file.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              
-              <div className="p-2 space-y-1">
-                <p className="text-xs font-medium truncate">{file.name}</p>
-                {allowCaptions && (
-                  <Input
-                    placeholder="Add caption..."
-                    value={file.caption || ''}
-                    onChange={(e) => handleCaptionChange(file.id, e.target.value)}
-                    readOnly={readOnly}
-                    className="text-xs h-7"
+          {value.map((file) => {
+            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+            
+            return (
+              <div key={file.id} className="relative border rounded-lg overflow-hidden bg-card">
+                {isImage ? (
+                  <img
+                    src={file.url}
+                    alt={file.name}
+                    className="w-full h-32 object-cover"
                   />
+                ) : (
+                  <div className="w-full h-32 flex items-center justify-center bg-muted">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  </div>
                 )}
+              
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-2 right-2 h-6 w-6"
+                    onClick={() => handleRemoveFile(file.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              
+                <div className="p-2 space-y-1">
+                  <p className="text-xs font-medium truncate">{file.name}</p>
+                  {allowCaptions && (
+                    <Input
+                      placeholder="Add caption..."
+                      value={file.caption || ''}
+                      onChange={(e) => handleCaptionChange(file.id, e.target.value)}
+                      readOnly={readOnly}
+                      className="text-xs h-7"
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

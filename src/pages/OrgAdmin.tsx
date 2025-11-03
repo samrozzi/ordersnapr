@@ -481,15 +481,14 @@ const OrgAdmin = () => {
                 <CardDescription>Members waiting for approval</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                  <Table className="min-w-max">
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Requested</TableHead>
-                        <TableHead>Actions</TableHead>
-                        <TableHead className="w-20 sm:w-24" />
+                        <TableHead className="min-w-[200px]">Email</TableHead>
+                        <TableHead className="min-w-[150px]">Name</TableHead>
+                        <TableHead className="min-w-[140px]">Requested</TableHead>
+                        <TableHead className="w-[180px] pr-4">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -519,9 +518,8 @@ const OrgAdmin = () => {
                                 Reject
                               </Button>
                             </div>
-                          </TableCell>
-                          <TableCell className="w-20 sm:w-24"></TableCell>
-                        </TableRow>
+                        </TableCell>
+                      </TableRow>
                       ))}
                     </TableBody>
                   </Table>
@@ -537,16 +535,15 @@ const OrgAdmin = () => {
                 <CardDescription>Pending email change requests from members</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                  <Table className="min-w-max">
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Current Email</TableHead>
-                        <TableHead>Requested Email</TableHead>
-                        <TableHead>Requested</TableHead>
-                        <TableHead>Actions</TableHead>
-                        <TableHead className="w-20 sm:w-24" />
+                        <TableHead className="min-w-[150px]">User</TableHead>
+                        <TableHead className="min-w-[180px]">Current Email</TableHead>
+                        <TableHead className="min-w-[180px]">Requested Email</TableHead>
+                        <TableHead className="min-w-[120px]">Requested</TableHead>
+                        <TableHead className="w-[180px] pr-4">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -609,15 +606,14 @@ const OrgAdmin = () => {
               {approvedMembers.length === 0 ? (
                 <p className="text-muted-foreground">No active members</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                  <Table className="min-w-max">
+              <div className="rounded-md border overflow-x-auto">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                        <TableHead className="w-20 sm:w-24" />
+                        <TableHead className="min-w-[200px]">Email</TableHead>
+                        <TableHead className="min-w-[150px]">Name</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
+                        <TableHead className="w-[150px] pr-4">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

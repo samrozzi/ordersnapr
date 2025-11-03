@@ -187,12 +187,12 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
   return (
     <>
-      <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-        <Table className="min-w-max">
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="w-full">
             <TableHeader>
               <TableRow>
               <TableHead className="w-8 px-2"></TableHead>
-              <TableHead>
+              <TableHead className="min-w-[150px]">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -203,7 +203,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("customer_name")}
                 </Button>
               </TableHead>
-              <TableHead>
+              <TableHead className="min-w-[120px]">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -214,7 +214,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("ban")}
                 </Button>
               </TableHead>
-              <TableHead>
+              <TableHead className="min-w-[120px]">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -225,12 +225,12 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("scheduled_date")}
                 </Button>
               </TableHead>
-              <TableHead className="hidden lg:table-cell">Contact</TableHead>
-              <TableHead className="hidden lg:table-cell">BPC</TableHead>
-              <TableHead className="hidden lg:table-cell">Package</TableHead>
-              <TableHead className="hidden lg:table-cell">Job ID</TableHead>
-              <TableHead className="hidden lg:table-cell">Created By</TableHead>
-              <TableHead className="hidden lg:table-cell">
+              <TableHead className="hidden lg:table-cell min-w-[120px]">Contact</TableHead>
+              <TableHead className="hidden lg:table-cell min-w-[100px]">BPC</TableHead>
+              <TableHead className="hidden lg:table-cell min-w-[120px]">Package</TableHead>
+              <TableHead className="hidden lg:table-cell min-w-[100px]">Job ID</TableHead>
+              <TableHead className="hidden lg:table-cell min-w-[120px]">Created By</TableHead>
+              <TableHead className="hidden lg:table-cell min-w-[140px]">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -241,9 +241,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("created_at")}
                 </Button>
               </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-32">Actions</TableHead>
-              <TableHead className="w-20 sm:w-24" />
+              <TableHead className="min-w-[100px]">Status</TableHead>
+              <TableHead className="w-[130px] pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -425,7 +424,6 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     </AlertDialog>
                   </div>
                 </TableCell>
-                <TableCell className="w-20 sm:w-24"></TableCell>
               </TableRow>
             ))}
           </TableBody>

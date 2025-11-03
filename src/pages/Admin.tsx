@@ -457,7 +457,6 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="w-20 sm:w-24"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -475,17 +474,16 @@ const Admin = () => {
             {approvedUsers.length === 0 ? (
               <p className="text-muted-foreground">No approved users</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                <Table className="min-w-max">
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                      <TableHead className="w-20 sm:w-24" />
+                      <TableHead className="min-w-[200px]">Email</TableHead>
+                      <TableHead className="min-w-[150px]">Name</TableHead>
+                      <TableHead className="min-w-[180px]">Organization</TableHead>
+                      <TableHead className="min-w-[120px]">Role</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="w-[150px] pr-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -545,7 +543,6 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="w-20 sm:w-24"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -561,16 +558,15 @@ const Admin = () => {
               <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                <Table className="min-w-max">
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                      <TableHead className="w-20 sm:w-24" />
+                      <TableHead className="min-w-[200px]">Email</TableHead>
+                      <TableHead className="min-w-[150px]">Name</TableHead>
+                      <TableHead className="min-w-[180px]">Organization</TableHead>
+                      <TableHead className="min-w-[120px]">Status</TableHead>
+                      <TableHead className="w-[180px] pr-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -608,7 +604,6 @@ const Admin = () => {
                             Approve
                           </Button>
                         </TableCell>
-                        <TableCell className="w-20 sm:w-24"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -661,15 +656,14 @@ const Admin = () => {
               {organizations.length === 0 ? (
                 <p className="text-muted-foreground">No organizations created yet</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto pr-24 pb-2">
-                  <Table className="min-w-max">
+              <div className="rounded-md border overflow-x-auto">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Organization Name</TableHead>
-                        <TableHead>Members</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
-                        <TableHead className="w-20 sm:w-24" />
+                        <TableHead className="min-w-[250px]">Organization Name</TableHead>
+                        <TableHead className="min-w-[120px]">Members</TableHead>
+                        <TableHead className="min-w-[140px]">Created</TableHead>
+                        <TableHead className="w-[120px] pr-4">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

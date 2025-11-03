@@ -33,7 +33,7 @@ import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
-import ordersnaprIcon from "@/assets/ordersnapr-icon-light-new.png";
+import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
 import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
 

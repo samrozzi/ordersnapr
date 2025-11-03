@@ -36,36 +36,6 @@ export const generateFormPDF = async (
   pdf.text(submission.form_templates?.name || "Form Submission Report", pageWidth / 2, yPos, { align: "center" });
   yPos += 20;
 
-  // Add Job Details section header
-  pdf.setFillColor(50, 50, 50);
-  pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(255, 255, 255);
-  pdf.text("Job Details", margin + 2, yPos);
-  pdf.setTextColor(40, 40, 40);
-  yPos += 10;
-
-  // Extract key metadata fields and display them
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
-  
-  const metadataFields: Array<{ label: string; value: string }> = [
-    { label: "Status", value: submission.status.toUpperCase() },
-    { label: "Service Date", value: submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "N/A" },
-    { label: "Created", value: new Date(submission.created_at).toLocaleDateString() },
-  ];
-
-  metadataFields.forEach(field => {
-    checkPageBreak(6);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`${field.label}:`, margin, yPos);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(field.value, margin + 35, yPos);
-    yPos += 6;
-  });
-
-  yPos += 8;
 
   // Extract and display Observations prominently if exists
   let observationsText = "";

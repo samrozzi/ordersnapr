@@ -227,35 +227,11 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto max-w-7xl space-y-6 overflow-x-hidden">
-        <div className="relative mb-4">
-          <div className="flex flex-wrap items-center gap-2 pr-40 min-w-0">
-            <h2 className="text-2xl font-semibold mr-2">{displayName}</h2>
-          </div>
-          
-          {/* View Toggle - Absolutely positioned to prevent clipping */}
-          <div className="mt-3 md:mt-0 md:absolute md:right-4 md:top-1 flex gap-2 shrink-0">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="gap-2"
-            >
-              <List className="h-4 w-4" />
-              <span className="hidden lg:inline">List</span>
-            </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('kanban')}
-              className="gap-2"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden lg:inline">Kanban</span>
-            </Button>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-2xl font-semibold">{displayName}</h2>
         </div>
         
-        <div className="flex gap-2 mb-6">{/* Action buttons row */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">{/* Action buttons row */}
           <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <SheetTrigger asChild>
               <Button>
@@ -294,6 +270,26 @@ const Dashboard = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* View Toggle - now inline with action buttons */}
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="gap-2"
+          >
+            <List className="h-4 w-4" />
+            <span className="hidden sm:inline">List</span>
+          </Button>
+          <Button
+            variant={viewMode === 'kanban' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('kanban')}
+            className="gap-2"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline">Kanban</span>
+          </Button>
         </div>
 
         {viewMode === 'kanban' ? (

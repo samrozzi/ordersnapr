@@ -134,7 +134,7 @@ export function AppSidebar() {
           <img 
             src={ordersnaprIcon} 
             alt="OrderSnapr" 
-            className={state === "collapsed" ? "h-10 w-10 object-contain mx-auto block dark:hidden" : "hidden"}
+            className={state === "collapsed" ? "h-12 w-12 object-contain mx-auto block dark:hidden" : "hidden"}
           />
           <img 
             src={ordersnaprLogo} 
@@ -145,7 +145,7 @@ export function AppSidebar() {
           <img 
             src={ordersnaprIconDark} 
             alt="OrderSnapr" 
-            className={state === "collapsed" ? "h-10 w-10 object-contain mx-auto hidden dark:block" : "hidden"}
+            className={state === "collapsed" ? "h-12 w-12 object-contain mx-auto hidden dark:block" : "hidden"}
           />
           <img 
             src={ordersnaprLogoDark} 

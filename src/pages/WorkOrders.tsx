@@ -308,14 +308,14 @@ const Dashboard = () => {
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2 flex-shrink-0 sticky top-0 z-10 bg-background">
-                <TabsTrigger value="pending" className="px-2 py-1 text-xs sm:text-sm justify-center">
+                <TabsTrigger value="pending" className="px-1 py-1 text-[10px] sm:text-sm">
                   <span className="hidden sm:inline">Pending / Scheduled</span>
                   <span className="sm:inline">Pending</span>
-                  <span className="ml-1 opacity-70 text-[10px]">({pendingOrders.length})</span>
+                  <span className="ml-1 opacity-70 text-[8px]">({pendingOrders.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="px-2 py-1 text-xs sm:text-sm justify-center">
+                <TabsTrigger value="completed" className="px-1 py-1 text-[10px] sm:text-sm">
                   Completed
-                  <span className="ml-1 opacity-70 text-[10px]">({completedOrders.length})</span>
+                  <span className="ml-1 opacity-70 text-[8px]">({completedOrders.length})</span>
                 </TabsTrigger>
               </TabsList>
 

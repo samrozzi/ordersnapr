@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compression";
 
 interface FileItem {
   id: string;
@@ -42,9 +43,9 @@ export function FileUploadField({
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    
+
     const files = Array.from(e.target.files);
-    
+
     if (value.length + files.length > maxFiles) {
       toast.error(`Maximum ${maxFiles} files allowed`);
       return;
@@ -56,13 +57,16 @@ export function FileUploadField({
       const uploadedFiles: FileItem[] = [];
 
       for (const file of files) {
+        // Compress image files before upload to reduce storage and bandwidth costs
+        const fileToUpload = await compressImage(file);
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `orgs/${orgId}/forms/${submissionId}/${fileName}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('form-attachments')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 
@@ -74,7 +78,7 @@ export function FileUploadField({
           id: uploadData.path,
           name: file.name,
           url: urlData.publicUrl,
-          size: file.size,
+          size: fileToUpload.size, // Use compressed file size
         });
       }
 

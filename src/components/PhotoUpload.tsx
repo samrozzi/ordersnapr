@@ -3,6 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Camera, X } from "lucide-react";
+import { compressImages } from "@/lib/image-compression";
+import { toast } from "sonner";
 
 export interface PhotoWithCaption {
   file: File;
@@ -16,14 +18,33 @@ interface PhotoUploadProps {
 }
 
 export const PhotoUpload = ({ photos, onPhotosChange }: PhotoUploadProps) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [compressing, setCompressing] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newPhotos = files.map((file) => ({
-      file,
-      caption: "",
-      preview: URL.createObjectURL(file),
-    }));
-    onPhotosChange([...photos, ...newPhotos]);
+    if (files.length === 0) return;
+
+    setCompressing(true);
+    toast.info(`Compressing ${files.length} image(s)...`);
+
+    try {
+      // Compress all images before creating previews
+      const compressedFiles = await compressImages(files);
+
+      const newPhotos = compressedFiles.map((file) => ({
+        file,
+        caption: "",
+        preview: URL.createObjectURL(file),
+      }));
+
+      onPhotosChange([...photos, ...newPhotos]);
+      toast.success(`${files.length} image(s) ready for upload`);
+    } catch (error) {
+      console.error('Compression error:', error);
+      toast.error('Failed to compress images. Please try again.');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const handleCaptionChange = (index: number, caption: string) => {
@@ -48,10 +69,13 @@ export const PhotoUpload = ({ photos, onPhotosChange }: PhotoUploadProps) => {
           onChange={handleFileChange}
           className="hidden"
           id="photo-upload"
+          disabled={compressing}
         />
-        <label htmlFor="photo-upload" className="cursor-pointer">
+        <label htmlFor="photo-upload" className={compressing ? "cursor-wait" : "cursor-pointer"}>
           <Camera className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Click to add photos</p>
+          <p className="text-sm text-muted-foreground">
+            {compressing ? "Compressing images..." : "Click to add photos"}
+          </p>
         </label>
       </div>
       

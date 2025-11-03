@@ -34,6 +34,16 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
   const [showReview, setShowReview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const lastProcessTimeRef = useRef<number>(0);
+  const processingCacheRef = useRef<Map<string, ExtractedFormData>>(new Map());
+
+  // Generate a simple hash for caching (to avoid re-processing the same image)
+  const hashString = async (str: string): Promise<string> => {
+    const msgBuffer = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+  };
 
   // Compress image to reduce AI costs by 65-90%
   const compressImage = async (file: File): Promise<string> => {
@@ -41,13 +51,13 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
       const img = new Image();
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
-      
+
       img.onload = () => {
         // Calculate dimensions (max 1024px on longest side)
         const maxDimension = 1024;
         let width = img.width;
         let height = img.height;
-        
+
         if (width > height && width > maxDimension) {
           height = (height / width) * maxDimension;
           width = maxDimension;
@@ -55,23 +65,34 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
           width = (width / height) * maxDimension;
           height = maxDimension;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw and compress to JPEG (80% quality)
         ctx.drawImage(img, 0, 0, width, height);
         const compressed = canvas.toDataURL('image/jpeg', 0.8);
-        
+
         console.log(`Image compressed: ${Math.round(file.size/1024)}KB → ${Math.round(compressed.length*0.75/1024)}KB`);
         resolve(compressed);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
 
   const processImage = async (file: File) => {
+    // RATE LIMITING: Prevent spam (5 second cooldown between requests)
+    const now = Date.now();
+    const timeSinceLastProcess = now - lastProcessTimeRef.current;
+    const COOLDOWN_MS = 5000; // 5 seconds
+
+    if (timeSinceLastProcess < COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastProcess) / 1000);
+      toast.error(`Please wait ${remainingSeconds}s before processing another image`);
+      return;
+    }
+
     setIsProcessing(true);
     setShowReview(false);
 
@@ -87,6 +108,24 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
       // Compress image first
       const compressed = await compressImage(file);
       setImagePreview(compressed);
+
+      // CACHING: Check if we've already processed this image
+      const imageHash = await hashString(compressed);
+      const cachedResult = processingCacheRef.current.get(imageHash);
+
+      if (cachedResult) {
+        console.log('✓ Using cached extraction result (saved AI API call!)');
+        toast.success(`Found ${Object.keys(cachedResult).length} fields (from cache)`);
+        setExtractedData(cachedResult);
+        setShowReview(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Update rate limit timestamp
+      lastProcessTimeRef.current = now;
+
+      console.log('Calling AI API for form extraction...');
 
       // Call edge function with compressed image and auth header
       const { data, error } = await supabase.functions.invoke('extract-form-data', {
@@ -116,6 +155,15 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
       const cleanedData = Object.fromEntries(
         Object.entries(data.data).filter(([_, value]) => value !== null && value !== '')
       );
+
+      // Store in cache
+      processingCacheRef.current.set(imageHash, cleanedData);
+
+      // Keep cache size reasonable (max 20 entries)
+      if (processingCacheRef.current.size > 20) {
+        const firstKey = processingCacheRef.current.keys().next().value;
+        processingCacheRef.current.delete(firstKey);
+      }
 
       setExtractedData(cleanedData);
       setShowReview(true);

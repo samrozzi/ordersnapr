@@ -239,7 +239,7 @@ const Dashboard = () => {
           <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{/* Action buttons row */}
+        <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto w-full">{/* Action buttons row */}
           <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <SheetTrigger asChild>
               <Button size="sm" className="md:h-10">
@@ -312,7 +312,7 @@ const Dashboard = () => {
         ) : (
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur -mx-[max(16px,env(safe-area-inset-left))] px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
+              <div className="sticky top-0 z-[5] bg-background/95 backdrop-blur px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
                 <TabsList className="grid w-full grid-cols-2 gap-2 p-1">
                   <TabsTrigger value="pending" className="w-full text-sm">
                     Pending ({pendingOrders.length})

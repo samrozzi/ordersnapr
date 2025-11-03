@@ -349,7 +349,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
         </Card>
       ))}
 
-      {template.schema.require_signature && (
+      {template.schema.require_signature && !["job-audit","ride-along"].includes((template.slug || template.name || "").toLowerCase()) && (
         <Card>
           <CardHeader>
             <CardTitle>Signature</CardTitle>

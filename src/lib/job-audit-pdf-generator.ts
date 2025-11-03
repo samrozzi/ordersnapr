@@ -20,227 +20,208 @@ interface JobAuditPDFData {
 }
 
 export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF> => {
-  const pdf = new jsPDF();
+  const doc = new jsPDF();
   let yPos = 20;
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const margin = 15;
-  const lineHeight = 6;
-
-  const checkPageBreak = (neededSpace: number) => {
-    if (yPos + neededSpace > pageHeight - margin) {
-      pdf.addPage();
-      yPos = margin;
-      return true;
-    }
-    return false;
-  };
+  const lineHeight = 7;
+  const pageHeight = doc.internal.pageSize.height;
 
   // Title
-  pdf.setFontSize(18);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(40, 40, 40);
-  pdf.text("Job Quality Inspection Report", pageWidth / 2, yPos, { align: "center" });
-  yPos += 12;
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Job Quality Inspection Report", 20, yPos);
+  yPos += 15;
 
-  // Job Details header (simple, no #)
-  pdf.setFillColor(0, 0, 0);
-  pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(255, 255, 255);
-  pdf.text("Job Details", margin + 2, yPos);
-  pdf.setTextColor(40, 40, 40);
-  yPos += 10;
-
+  // Job Details header
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("# Job Details", 20, yPos);
+  yPos += 7;
+  
   // Metadata
-  pdf.setFontSize(10);
-  const metadata = [
-    { label: "Technician:", value: data.technicianName || "" },
-    { label: "BAN:", value: data.ban || "" },
-    { label: "Service Date:", value: data.serviceDate || "" },
-    { label: "Address:", value: data.address || "" },
-    { label: "Customer:", value: data.customerName || "" },
-    { label: "Can Be Reached:", value: data.contactPhone || "" },
-    { label: "Report Date:", value: data.reportDate ? data.reportDate.toLocaleDateString() : new Date().toLocaleDateString() },
-    { label: "Report by:", value: data.reportBy || "" }
-  ];
-
-  metadata.forEach(field => {
-    if (field.value) {
-      checkPageBreak(6);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(field.label, margin + 2, yPos);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(field.value, margin + 40, yPos);
-      yPos += lineHeight;
-    }
-  });
-
-  yPos += 8;
+  doc.setFont("helvetica", "normal");
+  if (data.technicianName) {
+    doc.text(`Technician: ${data.technicianName}`, 20, yPos);
+    yPos += 5;
+  }
+  if (data.ban) {
+    doc.text(`BAN: ${data.ban}`, 20, yPos);
+    yPos += 5;
+  }
+  if (data.serviceDate) {
+    doc.text(`Service Date: ${data.serviceDate}`, 20, yPos);
+    yPos += 5;
+  }
+  if (data.address) {
+    doc.text(`Address: ${data.address}`, 20, yPos);
+    yPos += 5;
+  }
+  if (data.customerName) {
+    doc.text(`Customer: ${data.customerName}`, 20, yPos);
+    yPos += 5;
+  }
+  if (data.contactPhone) {
+    doc.text(`Can Be Reached: ${data.contactPhone}`, 20, yPos);
+    yPos += 5;
+  }
+  doc.text(`Report Date: ${data.reportDate ? data.reportDate.toLocaleDateString() : new Date().toLocaleDateString()}`, 20, yPos);
+  yPos += 5;
+  if (data.reportBy) {
+    doc.text(`Report by: ${data.reportBy}`, 20, yPos);
+    yPos += 5;
+  }
+  yPos += 5;
 
   // Observations
   if (data.observations) {
-    checkPageBreak(20);
-    pdf.setFillColor(0, 0, 0);
-    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("Observations:", margin + 2, yPos);
-    pdf.setTextColor(40, 40, 40);
-    yPos += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    const obsLines = pdf.splitTextToSize(data.observations, pageWidth - 2 * margin - 4);
-    obsLines.forEach((line: string) => {
-      checkPageBreak(6);
-      pdf.text(line, margin + 2, yPos);
-      yPos += lineHeight;
-    });
-    yPos += 10;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("# Observations:", 20, yPos);
+    yPos += 7;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const obsLines = doc.splitTextToSize(data.observations, 170);
+    doc.text(obsLines, 20, yPos);
+    yPos += obsLines.length * lineHeight + 5;
   }
 
-  // Helper to normalize and color status; and show as Yes/No/N/A
-  const renderStatusRightAligned = (raw: string) => {
-    const norm = (raw || "").toUpperCase();
-    let label = "N/A";
-    let color: [number, number, number] = [128, 128, 128]; // gray
-
-    if (norm === "OK" || norm === "YES") {
-      label = "Yes";
-      color = [0, 128, 0]; // green
-    } else if (norm === "DEV" || norm === "NO") {
-      label = "No";
-      color = [239, 68, 68]; // red-500
-    } else if (norm === "N/A" || norm === "NA") {
-      label = "N/A";
-      color = [128, 128, 128];
-    } else if (norm) {
-      // Any custom text shown as-is in dark gray
-      label = raw;
-      color = [60, 60, 60];
+  // Helper function to add checklist section
+  const addSection = (title: string, items: string[], checklist: Record<number, string>) => {
+    if (yPos > pageHeight - 40) {
+      doc.addPage();
+      yPos = 20;
     }
 
-    pdf.setTextColor(...color);
-    const rightX = pageWidth - margin - 10;
-    pdf.text(label, rightX, yPos);
-    pdf.setTextColor(40, 40, 40);
-  };
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`# ${title}`, 20, yPos);
+    yPos += 8;
 
-  // Checklist section renderer (items listed, status right side on same line)
-  const renderChecklistSection = (
-    title: string,
-    items: string[] = [],
-    checklist: Record<number, string> = {}
-  ) => {
-    if (!items.length) return;
-
-    checkPageBreak(15);
-    pdf.setFillColor(0, 0, 0);
-    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(255, 255, 255);
-    pdf.text(title, margin + 2, yPos);
-    pdf.setTextColor(40, 40, 40);
-    yPos += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
 
     items.forEach((item, index) => {
-      checkPageBreak(10);
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+      }
 
-      const bullet = `${index + 1}. ${item}`;
-      const maxTextWidth = pageWidth - 2 * margin - 50; // keep room for status at right
-      const lines = pdf.splitTextToSize(bullet, maxTextWidth);
+      // Item number and text
+      doc.setFont("helvetica", "bold");
+      const itemText = `# ${index + 1}. ${item}`;
+      const lines = doc.splitTextToSize(itemText, 170);
+      doc.text(lines, 20, yPos);
+      yPos += lines.length * lineHeight;
 
-      // Draw item text
-      pdf.text(lines, margin + 2, yPos);
-
-      // Draw status on first line right side
-      renderStatusRightAligned(checklist[index] || "N/A");
-
-      // Advance y by number of lines
-      yPos += lines.length * lineHeight + 4;
+      // Status with color
+      const status = checklist[index] || "N/A";
+      doc.setFont("helvetica", "normal");
+      
+      if (status === "OK") {
+        doc.setTextColor(0, 128, 0); // Green
+      } else if (status === "DEV") {
+        doc.setTextColor(239, 68, 68); // Red
+      } else {
+        doc.setTextColor(128, 128, 128); // Gray
+      }
+      
+      doc.text(status, 20, yPos);
+      doc.setTextColor(0, 0, 0); // Reset to black
+      yPos += 8;
     });
 
-    yPos += 4;
+    yPos += 5;
   };
 
-  // Render sections in desired order
-  renderChecklistSection("Administrative/Testing", data.adminChecklistItems, data.adminChecklist);
-  renderChecklistSection("Customer Experience", data.customerChecklistItems, data.customerChecklist);
-  renderChecklistSection("MAIN FOCUS/BSW AUDIT - Drop", data.dropChecklistItems, data.dropChecklist);
+  // Add all checklist sections
+  if (data.adminChecklistItems && data.adminChecklistItems.length > 0) {
+    addSection("Administrative/Testing", data.adminChecklistItems, data.adminChecklist || {});
+  }
+
+  if (data.customerChecklistItems && data.customerChecklistItems.length > 0) {
+    addSection("Customer Experience", data.customerChecklistItems, data.customerChecklist || {});
+  }
+
+  if (data.dropChecklistItems && data.dropChecklistItems.length > 0) {
+    addSection("MAIN FOCUS/BSW AUDIT - Drop", data.dropChecklistItems, data.dropChecklist || {});
+  }
 
   // Photos
   if (data.photos && data.photos.length > 0) {
-    checkPageBreak(20);
-    pdf.setFillColor(0, 0, 0);
-    pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("Photos", margin + 2, yPos);
-    pdf.setTextColor(40, 40, 40);
-    yPos += 15;
+    doc.addPage();
+    yPos = 20;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("# Photos", 20, yPos);
+    yPos += 10;
+
+    const imgSize = 85;
+    const margin = 10;
+    let photoCount = 0;
 
     for (const photo of data.photos) {
       try {
-        checkPageBreak(80);
-
         const response = await fetch(photo.url);
         const blob = await response.blob();
-        const reader = new FileReader();
-
-        await new Promise((resolve, reject) => {
-          reader.onload = async () => {
-            try {
-              const img = new Image();
-              img.src = reader.result as string;
-              await new Promise((r) => { img.onload = r; });
-
-              const maxImgWidth = pageWidth - 2 * margin;
-              const maxImgHeight = 100;
-              let imgWidth = img.width;
-              let imgHeight = img.height;
-              const ratio = Math.min(maxImgWidth / imgWidth, maxImgHeight / imgHeight);
-              imgWidth *= ratio;
-              imgHeight *= ratio;
-
-              pdf.addImage(reader.result as string, "JPEG", margin, yPos, imgWidth, imgHeight, undefined, "MEDIUM");
-              yPos += imgHeight + 5;
-
-              if (photo.caption) {
-                pdf.setFontSize(9);
-                pdf.setFont("helvetica", "italic");
-                pdf.setTextColor(100, 100, 100);
-                const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
-                captionLines.forEach((line: string) => {
-                  checkPageBreak(5);
-                  pdf.text(line, margin, yPos);
-                  yPos += 5;
-                });
-                pdf.setTextColor(40, 40, 40);
+        
+        await new Promise<void>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              const col = photoCount % 2;
+              const row = Math.floor((photoCount % 4) / 2);
+              
+              if (photoCount > 0 && photoCount % 4 === 0) {
+                doc.addPage();
+                yPos = 20;
               }
-
-              yPos += 8;
-              resolve(null);
-            } catch (error) {
-              console.error("Error processing image:", error);
-              resolve(null);
-            }
+              
+              const xPos = 20 + col * (imgSize + margin);
+              const yPosition = yPos + row * (imgSize + margin);
+              
+              const aspectRatio = img.width / img.height;
+              let drawWidth = imgSize;
+              let drawHeight = imgSize;
+              
+              if (aspectRatio > 1) {
+                drawHeight = imgSize / aspectRatio;
+              } else {
+                drawWidth = imgSize * aspectRatio;
+              }
+              
+              doc.addImage(
+                reader.result as string,
+                "JPEG",
+                xPos,
+                yPosition,
+                drawWidth,
+                drawHeight
+              );
+              
+              if (photo.caption) {
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(100, 100, 100);
+                const captionLines = doc.splitTextToSize(photo.caption, imgSize);
+                doc.text(captionLines, xPos, yPosition + drawHeight + 3);
+                doc.setTextColor(0, 0, 0);
+              }
+              
+              photoCount++;
+              resolve();
+            };
+            img.onerror = reject;
+            img.src = reader.result as string;
           };
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
       } catch (error) {
-        console.error("Error loading photo:", error);
+        console.error("Error processing photo:", error);
       }
     }
   }
 
-  return pdf;
+  return doc;
 };

@@ -188,7 +188,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
   return (
     <>
       <div className="rounded-md border overflow-x-auto">
-          <Table className="min-w-max">
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow>
               <TableHead className="w-8 px-2"></TableHead>
@@ -241,8 +241,8 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("created_at")}
                 </Button>
               </TableHead>
-              <TableHead className="hidden md:table-cell">Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-32">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -309,7 +309,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                 <TableCell className="hidden lg:table-cell">
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <span
                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       order.status === "completed"

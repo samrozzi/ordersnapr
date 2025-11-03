@@ -62,38 +62,43 @@ export const FavoritesWidget = memo(() => {
         const propMap = new Map((properties.data || []).map(p => [p.id, p]));
         const draftMap = new Map((formDrafts.data || []).map(d => [d.id, d]));
 
-        const enriched = favorites.map(fav => {
-          let title = "Unknown";
-          let date = "";
+        const enriched = favorites
+          .map(fav => {
+            let title: string | null = null;
+            let date = "";
 
-          if (fav.entity_type === "work_order") {
-            const wo = woMap.get(fav.entity_id);
-            if (wo) {
-              title = wo.customer_name;
-              date = wo.scheduled_date || "";
+            if (fav.entity_type === "work_order") {
+              const wo = woMap.get(fav.entity_id);
+              if (wo) {
+                title = wo.customer_name;
+                date = wo.scheduled_date || "";
+              }
+            } else if (fav.entity_type === "calendar_event") {
+              const ev = evMap.get(fav.entity_id);
+              if (ev) {
+                title = ev.title;
+                date = ev.event_date;
+              }
+            } else if (fav.entity_type === "property") {
+              const prop = propMap.get(fav.entity_id);
+              if (prop) title = prop.property_name;
+            } else if (fav.entity_type === "form_draft") {
+              const draft = draftMap.get(fav.entity_id);
+              if (draft) title = draft.draft_name || draft.form_type;
             }
-          } else if (fav.entity_type === "calendar_event") {
-            const ev = evMap.get(fav.entity_id);
-            if (ev) {
-              title = ev.title;
-              date = ev.event_date;
-            }
-          } else if (fav.entity_type === "property") {
-            const prop = propMap.get(fav.entity_id);
-            if (prop) title = prop.property_name;
-          } else if (fav.entity_type === "form_draft") {
-            const draft = draftMap.get(fav.entity_id);
-            if (draft) title = draft.draft_name || draft.form_type;
-          }
 
-          return {
-            id: fav.id,
-            entity_type: fav.entity_type,
-            entity_id: fav.entity_id,
-            title,
-            date,
-          };
-        });
+            // Filter out deleted entities
+            if (!title) return null;
+
+            return {
+              id: fav.id,
+              entity_type: fav.entity_type,
+              entity_id: fav.entity_id,
+              title,
+              date,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => item !== null);
 
         setEnrichedFavorites(enriched);
       } catch (error) {
@@ -110,7 +115,7 @@ export const FavoritesWidget = memo(() => {
     // Navigate to the specific entity based on type
     switch (item.entity_type) {
       case "work_order":
-        navigate(`/work-orders?open=${item.entity_id}`);
+        navigate(`/work-orders?view=${item.entity_id}`);
         break;
       case "calendar_event":
         navigate(`/calendar?event=${item.entity_id}`);

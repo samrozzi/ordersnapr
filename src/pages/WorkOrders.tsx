@@ -69,6 +69,7 @@ const Dashboard = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
+  const [viewingOrderDetails, setViewingOrderDetails] = useState<WorkOrder | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullStartY, setPullStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -157,11 +158,18 @@ const Dashboard = () => {
   // Handle opening work order from URL parameter (e.g., from favorites)
   useEffect(() => {
     const openId = searchParams.get('open');
+    const viewId = searchParams.get('view');
+    
     if (openId && workOrders.length > 0) {
       const orderToOpen = workOrders.find(wo => wo.id === openId);
       if (orderToOpen) {
         setViewingOrder(orderToOpen);
-        // Clear the URL parameter
+        setSearchParams({});
+      }
+    } else if (viewId && workOrders.length > 0) {
+      const orderToView = workOrders.find(wo => wo.id === viewId);
+      if (orderToView) {
+        setViewingOrderDetails(orderToView);
         setSearchParams({});
       }
     }
@@ -317,11 +325,12 @@ const Dashboard = () => {
           />
         ) : (
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="pending">
-                Pending / Scheduled ({pendingOrders.length})
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="pending" className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">Pending / Scheduled</span>
+                <span className="sm:hidden">Pending</span> ({pendingOrders.length})
               </TabsTrigger>
-              <TabsTrigger value="completed">
+              <TabsTrigger value="completed" className="text-xs sm:text-sm">
                 Completed ({completedOrders.length})
               </TabsTrigger>
             </TabsList>
@@ -356,6 +365,17 @@ const Dashboard = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <WorkOrderDetails
+          workOrder={viewingOrderDetails}
+          open={!!viewingOrderDetails}
+          onOpenChange={(open) => !open && setViewingOrderDetails(null)}
+          onEdit={(order) => {
+            setViewingOrder(order);
+            setViewingOrderDetails(null);
+          }}
+          onUpdate={handleRefresh}
+        />
       </div>
     </div>
   );

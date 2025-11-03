@@ -243,11 +243,11 @@ ${getDistance(property)} miles from your location` : ''}`;
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-8 sm:w-12"></TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -266,9 +266,9 @@ ${getDistance(property)} miles from your location` : ''}`;
                   Address {getSortIcon("address")}
                 </Button>
               </TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead className="hidden md:table-cell">Contact</TableHead>
               {userLocation && (
-                <TableHead>
+                <TableHead className="hidden lg:table-cell">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("distance")}
@@ -292,18 +292,19 @@ ${getDistance(property)} miles from your location` : ''}`;
             ) : (
               sortedProperties.map((property) => (
                 <TableRow key={property.id}>
-                  <TableCell>
+                  <TableCell className="px-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setViewingProperty(property)}
+                      className="h-7 w-7 p-0"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>
                   <TableCell className="font-medium">{property.property_name}</TableCell>
                   <TableCell>{property.address || "-"}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {property.contact ? (
                       <div className="flex items-center gap-1">
                         <span className="mr-1">{property.contact}</span>
@@ -331,27 +332,29 @@ ${getDistance(property)} miles from your location` : ''}`;
                     ) : "-"}
                   </TableCell>
                   {userLocation && (
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       {getDistance(property) ? `${getDistance(property)} mi` : "-"}
                     </TableCell>
                   )}
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1 md:gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setEditingProperty(property)}
+                        className="h-8"
                       >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Edit
+                        <Pencil className="h-4 w-4 md:mr-1" />
+                        <span className="hidden md:inline">Edit</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setDeletingProperty(property)}
+                        className="h-8"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
+                        <Trash2 className="h-4 w-4 md:mr-1" />
+                        <span className="hidden md:inline">Delete</span>
                       </Button>
                     </div>
                   </TableCell>

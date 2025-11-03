@@ -226,20 +226,20 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-7xl space-y-6 overflow-x-hidden">
+      <div className="space-y-4 md:space-y-6">
         <div className="mb-4">
-          <h2 className="text-2xl font-semibold">{displayName}</h2>
+          <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 mb-6">{/* Action buttons row */}
+        <div className="flex flex-wrap items-center gap-2">{/* Action buttons row */}
           <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <SheetTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New {displayName.replace(/s$/, '')}
+              <Button size="sm" className="md:h-10">
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="overflow-y-auto sm:max-w-2xl">
+            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-4 sm:p-6">
               <SheetHeader>
                 <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
               </SheetHeader>
@@ -256,9 +256,9 @@ const Dashboard = () => {
 
           <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
-                <Calendar className="h-4 w-4 mr-2" />
-                Calendar View
+              <Button variant="outline" size="sm" className="md:h-10">
+                <Calendar className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Calendar View</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
@@ -272,24 +272,26 @@ const Dashboard = () => {
           </Dialog>
 
           {/* View Toggle - now inline with action buttons */}
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-            className="gap-2"
-          >
-            <List className="h-4 w-4" />
-            <span className="hidden sm:inline">List</span>
-          </Button>
-          <Button
-            variant={viewMode === 'kanban' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('kanban')}
-            className="gap-2"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            <span className="hidden sm:inline">Kanban</span>
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-1 md:gap-2"
+            >
+              <List className="h-4 w-4" />
+              <span className="hidden sm:inline">List</span>
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className="gap-1 md:gap-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span className="hidden sm:inline">Kanban</span>
+            </Button>
+          </div>
         </div>
 
         {viewMode === 'kanban' ? (

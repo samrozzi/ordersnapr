@@ -124,32 +124,34 @@ const PropertyInfo = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">Property Information</h2>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
+          size="sm"
           onClick={() => userLocation ? setUserLocation(null) : handleGetUserLocation()}
           disabled={isGettingLocation}
+          className="md:h-10"
         >
           {userLocation ? (
             <>
-              <MapPinOff className="h-4 w-4 mr-2" />
-              Clear Location
+              <MapPinOff className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Clear Location</span>
             </>
           ) : (
             <>
-              <MapPin className="h-4 w-4 mr-2" />
-              {isGettingLocation ? "Getting Location..." : "Sort by Distance"}
+              <MapPin className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">{isGettingLocation ? "Getting Location..." : "Sort by Distance"}</span>
             </>
           )}
         </Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Property
+            <Button size="sm" className="md:h-10">
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">New Property</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

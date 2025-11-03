@@ -225,12 +225,12 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("scheduled_date")}
                 </Button>
               </TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>BPC</TableHead>
-              <TableHead>Package</TableHead>
-              <TableHead>Job ID</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead>
+              <TableHead className="hidden lg:table-cell">Contact</TableHead>
+              <TableHead className="hidden lg:table-cell">BPC</TableHead>
+              <TableHead className="hidden lg:table-cell">Package</TableHead>
+              <TableHead className="hidden lg:table-cell">Job ID</TableHead>
+              <TableHead className="hidden lg:table-cell">Created By</TableHead>
+              <TableHead className="hidden lg:table-cell">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -241,7 +241,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   {getSortIcon("created_at")}
                 </Button>
               </TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -273,7 +273,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     return dateStr;
                   })() : "Not yet scheduled"}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {order.contact_info ? (
                     <div className="flex items-center gap-1">
                       <span className="mr-1">{order.contact_info}</span>
@@ -300,16 +300,16 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                     </div>
                   ) : "-"}
                 </TableCell>
-                <TableCell>{order.bpc || "-"}</TableCell>
-                <TableCell>{order.package || "-"}</TableCell>
-                <TableCell>{order.job_id || "-"}</TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">{order.bpc || "-"}</TableCell>
+                <TableCell className="hidden lg:table-cell">{order.package || "-"}</TableCell>
+                <TableCell className="hidden lg:table-cell">{order.job_id || "-"}</TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {order.profiles?.full_name || order.profiles?.email || "Unknown"}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {format(new Date(order.created_at), "MMM dd, yyyy")}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <span
                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       order.status === "completed"
@@ -323,7 +323,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 md:gap-2">
                     {order.status !== "completed" && (
                       <>
                         <Dialog open={editingOrder?.id === order.id} onOpenChange={(open) => !open && setEditingOrder(null)}>
@@ -332,9 +332,10 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                               variant="outline"
                               size="sm"
                               onClick={() => setEditingOrder(order)}
+                              className="h-8"
                             >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
+                              <Edit className="h-4 w-4 md:mr-1" />
+                              <span className="hidden md:inline">Edit</span>
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -356,9 +357,10 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedOrder(order)}
+                              className="h-8"
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Complete
+                              <CheckCircle2 className="h-4 w-4 md:mr-1" />
+                              <span className="hidden md:inline">Complete</span>
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
@@ -394,9 +396,10 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => setDeletingOrder(order)}
+                          className="h-8"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
+                          <Trash2 className="h-4 w-4 md:mr-1" />
+                          <span className="hidden md:inline">Delete</span>
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

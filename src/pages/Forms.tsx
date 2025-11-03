@@ -60,13 +60,12 @@ export default function Forms() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold">Forms</h2>
-        </div>
+    <div className="space-y-4 md:space-y-6">
+      <div className="mb-4">
+        <h1 className="text-xl md:text-2xl font-semibold">Forms</h1>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => setSheetMode('select-template')}>
             <Plus className="h-4 w-4 mr-2" />
             New Submission
@@ -104,9 +103,9 @@ export default function Forms() {
           </div>
         </div>
 
-        {/* Sheet for selecting template or creating new */}
+      {/* Sheet for selecting template or creating new */}
       <Sheet open={sheetMode === 'select-template'} onOpenChange={(open) => !open && setSheetMode(null)}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Select a Template</SheetTitle>
           </SheetHeader>
@@ -146,13 +145,13 @@ export default function Forms() {
         </SheetContent>
       </Sheet>
 
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Form Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,15 +164,15 @@ export default function Forms() {
                   submissions.map((submission) => (
                     <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
                       <TableCell className="font-medium">{submission.form_templates?.name || "Unknown Form"}</TableCell>
-                      <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
-                      <TableCell>{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="hidden sm:table-cell"><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
+                      <TableCell className="hidden md:table-cell">{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
+                        <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
                           {canDeleteSubmission(submission) && (
                             <>
-                              <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => { setSubmissionToDelete(submission.id); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSubmissionToDelete(submission.id); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
                             </>
                           )}
                         </div>
@@ -184,7 +183,6 @@ export default function Forms() {
               </TableBody>
             </Table>
         </div>
-      </div>
 
       {/* Sheet for creating/editing submission */}
       <Sheet open={sheetMode === 'create-submission' || sheetMode === 'edit-submission'} onOpenChange={(open) => {
@@ -194,7 +192,7 @@ export default function Forms() {
           setSelectedTemplate(null);
         }
       }}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle>
               {sheetMode === 'edit-submission' ? 'Edit Submission' : 'New Submission'}
@@ -227,7 +225,7 @@ export default function Forms() {
           setSheetMode(null);
         }
       }}>
-        <SheetContent className="sm:max-w-4xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-4xl overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle>Create New Template</SheetTitle>
           </SheetHeader>
@@ -247,7 +245,7 @@ export default function Forms() {
 
       {/* Sheet for viewing submission */}
       <Sheet open={sheetMode === "view"} onOpenChange={(open) => !open && setSheetMode(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-4 sm:p-6">
           <SheetHeader><SheetTitle>View Submission</SheetTitle></SheetHeader>
           <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={canDeleteSubmission(selectedSubmission) ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} onDelete={canDeleteSubmission(selectedSubmission) ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
         </SheetContent>

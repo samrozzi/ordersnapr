@@ -1,0 +1,225 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Eye, Save, Plus } from "lucide-react";
+import { FieldPalette, type FieldType } from "./FieldPalette";
+import { FormCanvas, type Section, type Field } from "./FormCanvas";
+import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
+import { toast } from "sonner";
+
+interface TemplateBuilderV2Props {
+  schema: any;
+  onSchemaChange: (schema: any) => void;
+}
+
+export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2Props) {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [requireSignature, setRequireSignature] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [selectedField, setSelectedField] = useState<{
+    sectionId: string;
+    fieldId: string;
+  } | null>(null);
+  const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
+
+  // Load initial schema
+  useEffect(() => {
+    if (schema?.sections) {
+      const loadedSections: Section[] = schema.sections.map((s: any) => ({
+        id: s.id || crypto.randomUUID(),
+        title: s.title || "Untitled Section",
+        collapsed: false,
+        fields: (s.fields || []).map((f: any) => ({
+          id: f.id || crypto.randomUUID(),
+          type: f.type || "text",
+          label: f.label || "Untitled Field",
+          placeholder: f.placeholder,
+          required: f.required || false,
+          options: f.options,
+        })),
+      }));
+      setSections(loadedSections);
+    }
+
+    if (schema?.requireSignature) {
+      setRequireSignature(true);
+    }
+  }, []);
+
+  // Update parent schema when sections change
+  useEffect(() => {
+    const newSchema = {
+      sections: sections.map((s) => ({
+        id: s.id,
+        title: s.title,
+        fields: s.fields.map((f) => ({
+          id: f.id,
+          type: f.type,
+          label: f.label,
+          placeholder: f.placeholder,
+          required: f.required,
+          options: f.options,
+        })),
+      })),
+      requireSignature,
+    };
+    onSchemaChange(newSchema);
+  }, [sections, requireSignature]);
+
+  const handleAddSection = () => {
+    const newSection: Section = {
+      id: crypto.randomUUID(),
+      title: "New Section",
+      fields: [],
+      collapsed: false,
+    };
+    setSections([...sections, newSection]);
+  };
+
+  const handleFieldSelect = (type: FieldType) => {
+    if (sections.length === 0) {
+      // Auto-create first section
+      const newSection: Section = {
+        id: crypto.randomUUID(),
+        title: "Section 1",
+        fields: [],
+        collapsed: false,
+      };
+      setSections([newSection]);
+    }
+
+    // Add field to the last section
+    const newField: Field = {
+      id: crypto.randomUUID(),
+      type,
+      label: `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
+      placeholder: "",
+      required: false,
+      options: type === "select" || type === "radio" || type === "checklist" ? ["Option 1"] : undefined,
+    };
+
+    setSections((prev) => {
+      const updated = [...prev];
+      const lastSection = updated[updated.length - 1];
+      lastSection.fields = [...lastSection.fields, newField];
+      return updated;
+    });
+
+    toast.success("Field added");
+  };
+
+  const handleFieldClick = (sectionId: string, fieldId: string) => {
+    setSelectedField({ sectionId, fieldId });
+    setPropertiesPanelOpen(true);
+  };
+
+  const handleFieldUpdate = (updatedField: Field) => {
+    if (!selectedField) return;
+
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === selectedField.sectionId
+          ? {
+              ...section,
+              fields: section.fields.map((f) =>
+                f.id === selectedField.fieldId ? updatedField : f
+              ),
+            }
+          : section
+      )
+    );
+
+    toast.success("Field updated");
+  };
+
+  const currentField = selectedField
+    ? sections
+        .find((s) => s.id === selectedField.sectionId)
+        ?.fields.find((f) => f.id === selectedField.fieldId) || null
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between pb-4 border-b">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="signature"
+              checked={requireSignature}
+              onCheckedChange={setRequireSignature}
+            />
+            <Label htmlFor="signature" className="text-sm">
+              Require Signature
+            </Label>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPreviewMode(!previewMode)}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {previewMode ? "Builder" : "Preview"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      {!previewMode ? (
+        <div className="grid grid-cols-12 gap-4">
+          {/* Left: Field Palette */}
+          <div className="col-span-12 md:col-span-3 lg:col-span-2">
+            <FieldPalette onFieldSelect={handleFieldSelect} />
+          </div>
+
+          {/* Center: Canvas */}
+          <div className="col-span-12 md:col-span-9 lg:col-span-10">
+            <FormCanvas
+              sections={sections}
+              onSectionsChange={setSections}
+              onFieldClick={handleFieldClick}
+              onAddSection={handleAddSection}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-lg font-semibold mb-4">Form Preview</h3>
+            <p className="text-sm text-muted-foreground">
+              Preview functionality will render the form exactly as users will see it.
+            </p>
+            {/* TODO: Integrate FormRenderer for preview */}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Add Field Button */}
+      {!previewMode && sections.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            type="button"
+            size="lg"
+            className="rounded-full shadow-lg h-14 w-14"
+            onClick={handleAddSection}
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
+
+      {/* Field Properties Panel */}
+      <FieldPropertiesPanel
+        open={propertiesPanelOpen}
+        field={currentField}
+        onOpenChange={setPropertiesPanelOpen}
+        onFieldUpdate={handleFieldUpdate}
+      />
+    </div>
+  );
+}

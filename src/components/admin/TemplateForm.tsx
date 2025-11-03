@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateTemplate, useUpdateTemplate, FormTemplate } from "@/hooks/use-form-templates";
 import { TemplateBuilder } from "./TemplateBuilder";
+import { TemplateBuilderV2 } from "./TemplateBuilderV2";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -159,10 +160,9 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
         </TabsList>
 
         <TabsContent value="visual" className="mt-4">
-          <TemplateBuilder
+          <TemplateBuilderV2
             schema={schema}
             onSchemaChange={handleSchemaChange}
-            initialSchema={schema}
           />
         </TabsContent>
 

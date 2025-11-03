@@ -123,3 +123,13 @@ All colors MUST be HSL.
     transition: all 150ms ease-out;
   }
 }
+
+/* Table scrolling utilities for mobile Safari */
+@layer utilities {
+  .table-scroll-wrapper {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    /* Ensure scrolling works on iOS */
+    position: relative;
+  }
+}

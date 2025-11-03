@@ -399,7 +399,7 @@ const Admin = () => {
             {pendingUsers.length === 0 ? (
               <p className="text-muted-foreground">No pending approvals</p>
             ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
+              <div className="rounded-md border table-scroll-wrapper pr-16">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -475,7 +475,7 @@ const Admin = () => {
             {approvedUsers.length === 0 ? (
               <p className="text-muted-foreground">No approved users</p>
             ) : (
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
+               <div className="rounded-md border table-scroll-wrapper pr-16">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -561,7 +561,7 @@ const Admin = () => {
               <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
+               <div className="rounded-md border table-scroll-wrapper pr-16">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
@@ -661,8 +661,8 @@ const Admin = () => {
               {organizations.length === 0 ? (
                 <p className="text-muted-foreground">No organizations created yet</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x">
-                  <Table className="w-full">
+              <div className="rounded-md border table-scroll-wrapper">
+                  <Table style={{ minWidth: '700px' }}>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[250px]">Organization Name</TableHead>

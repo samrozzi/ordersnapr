@@ -481,8 +481,8 @@ const OrgAdmin = () => {
                 <CardDescription>Members waiting for approval</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border overflow-x-auto touch-pan-x">
-                  <Table className="w-full">
+                <div className="rounded-md border table-scroll-wrapper">
+                  <Table style={{ minWidth: '600px' }}>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[200px]">Email</TableHead>
@@ -535,7 +535,7 @@ const OrgAdmin = () => {
                 <CardDescription>Pending email change requests from members</CardDescription>
               </CardHeader>
               <CardContent>
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
+               <div className="rounded-md border table-scroll-wrapper pr-16">
                   <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
@@ -607,7 +607,7 @@ const OrgAdmin = () => {
               {approvedMembers.length === 0 ? (
                 <p className="text-muted-foreground">No active members</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
+              <div className="rounded-md border table-scroll-wrapper pr-16">
                   <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>

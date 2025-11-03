@@ -312,12 +312,12 @@ const Dashboard = () => {
         ) : (
           <div className="flex-1 min-h-0">
             <Tabs defaultValue="pending" className="w-full h-full flex flex-col">
-              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
+              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur -mx-[max(16px,env(safe-area-inset-left))] px-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pt-3 pb-3">
                 <TabsList className="grid w-full grid-cols-2 gap-2 p-1">
-                  <TabsTrigger value="pending" className="w-full text-xs sm:text-sm">
+                  <TabsTrigger value="pending" className="w-full text-sm">
                     Pending ({pendingOrders.length})
                   </TabsTrigger>
-                  <TabsTrigger value="completed" className="w-full text-xs sm:text-sm">
+                  <TabsTrigger value="completed" className="w-full text-sm">
                     Completed ({completedOrders.length})
                   </TabsTrigger>
                 </TabsList>

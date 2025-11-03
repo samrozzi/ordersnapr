@@ -535,8 +535,8 @@ const OrgAdmin = () => {
                 <CardDescription>Pending email change requests from members</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table className="w-full">
+               <div className="rounded-md border overflow-x-auto pr-16">
+                  <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[150px]">User</TableHead>
@@ -544,6 +544,7 @@ const OrgAdmin = () => {
                         <TableHead className="min-w-[180px]">Requested Email</TableHead>
                         <TableHead className="min-w-[120px]">Requested</TableHead>
                         <TableHead className="w-[180px] pr-4">Actions</TableHead>
+                        <TableHead className="w-16" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -587,7 +588,7 @@ const OrgAdmin = () => {
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="w-20 sm:w-24"></TableCell>
+                          <TableCell className="w-16"></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -606,14 +607,15 @@ const OrgAdmin = () => {
               {approvedMembers.length === 0 ? (
                 <p className="text-muted-foreground">No active members</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto">
-                  <Table className="w-full">
+              <div className="rounded-md border overflow-x-auto pr-16">
+                  <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[200px]">Email</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                         <TableHead className="w-[150px] pr-4">Actions</TableHead>
+                        <TableHead className="w-16" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>

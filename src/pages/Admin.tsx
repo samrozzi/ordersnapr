@@ -545,6 +545,7 @@ const Admin = () => {
                             </Button>
                           </div>
                         </TableCell>
+                        <TableCell className="w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -560,8 +561,8 @@ const Admin = () => {
               <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border overflow-x-auto">
-                <Table className="w-full">
+               <div className="rounded-md border overflow-x-auto pr-16">
+                <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[200px]">Email</TableHead>
@@ -569,6 +570,7 @@ const Admin = () => {
                       <TableHead className="min-w-[180px]">Organization</TableHead>
                       <TableHead className="min-w-[120px]">Status</TableHead>
                       <TableHead className="w-[180px] pr-4">Actions</TableHead>
+                      <TableHead className="w-16" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -606,6 +608,7 @@ const Admin = () => {
                             Approve
                           </Button>
                         </TableCell>
+                        <TableCell className="w-16"></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -31,7 +31,7 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const createMutation = useCreateTemplate();
   const updateMutation = useUpdateTemplate();
 
-  const handleVisualSave = (newSchema: any) => {
+  const handleSchemaChange = (newSchema: any) => {
     setSchema(newSchema);
     setSchemaJson(JSON.stringify(newSchema, null, 2));
   };
@@ -149,8 +149,8 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
 
         <TabsContent value="visual" className="mt-4">
           <TemplateBuilder
-            onSave={handleVisualSave}
-            onCancel={onCancel}
+            schema={schema}
+            onSchemaChange={handleSchemaChange}
             initialSchema={schema}
           />
         </TabsContent>
@@ -170,17 +170,17 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
               Define form structure using JSON schema format
             </p>
           </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1">
-              {template ? "Update" : "Create"} Template
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
+
+      <div className="flex gap-2 pt-4 border-t">
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+          Cancel
+        </Button>
+        <Button type="submit" className="flex-1">
+          {template ? "Update" : "Create"} Template
+        </Button>
+      </div>
     </form>
   );
 }

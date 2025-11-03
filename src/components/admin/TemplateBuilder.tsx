@@ -28,12 +28,12 @@ interface Section {
 }
 
 interface TemplateBuilderProps {
-  onSave: (schema: any) => void;
-  onCancel: () => void;
+  schema: any;
+  onSchemaChange: (schema: any) => void;
   initialSchema?: any;
 }
 
-export const TemplateBuilder = ({ onSave, onCancel, initialSchema }: TemplateBuilderProps) => {
+export const TemplateBuilder = ({ schema, onSchemaChange, initialSchema }: TemplateBuilderProps) => {
   const { toast } = useToast();
   const [sections, setSections] = useState<Section[]>(
     initialSchema?.sections || [
@@ -47,123 +47,10 @@ export const TemplateBuilder = ({ onSave, onCancel, initialSchema }: TemplateBui
 
   const [requireSignature, setRequireSignature] = useState(initialSchema?.require_signature || false);
 
-  const addSection = () => {
-    setSections([
-      ...sections,
-      {
-        id: crypto.randomUUID(),
-        title: `Section ${sections.length + 1}`,
-        fields: [],
-      },
-    ]);
-  };
-
-  const removeSection = (sectionId: string) => {
-    setSections(sections.filter((s) => s.id !== sectionId));
-  };
-
-  const updateSection = (sectionId: string, updates: Partial<Section>) => {
-    setSections(sections.map((s) => (s.id === sectionId ? { ...s, ...updates } : s)));
-  };
-
-  const toggleSectionCollapse = (sectionId: string) => {
-    setSections(
-      sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
-    );
-  };
-
-  const addField = (sectionId: string) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId
-          ? {
-              ...s,
-              fields: [
-                ...s.fields,
-                {
-                  id: crypto.randomUUID(),
-                  type: "text",
-                  label: "New Field",
-                  key: `field_${s.fields.length + 1}`,
-                  required: false,
-                },
-              ],
-            }
-          : s
-      )
-    );
-  };
-
-  const removeField = (sectionId: string, fieldId: string) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId ? { ...s, fields: s.fields.filter((f) => f.id !== fieldId) } : s
-      )
-    );
-  };
-
-  const updateField = (sectionId: string, fieldId: string, updates: Partial<Field>) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId
-          ? { ...s, fields: s.fields.map((f) => (f.id === fieldId ? { ...f, ...updates } : f)) }
-          : s
-      )
-    );
-  };
-
-  const generateKey = (label: string) => {
-    return label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
-  };
-
-  const handleSave = () => {
-    // Validate
-    if (sections.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one section",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    for (const section of sections) {
-      if (!section.title.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "All sections must have a title",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (section.fields.length === 0) {
-        toast({
-          title: "Validation Error",
-          description: `Section "${section.title}" must have at least one field`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      for (const field of section.fields) {
-        if (!field.label.trim()) {
-          toast({
-            title: "Validation Error",
-            description: "All fields must have a label",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-    }
-
-    // Generate schema
-    const schema = {
-      sections: sections.map((s) => ({
+  // Auto-update parent schema when local state changes
+  const updateParentSchema = (newSections: Section[], newRequireSignature: boolean) => {
+    const newSchema = {
+      sections: newSections.map((s) => ({
         title: s.title,
         fields: s.fields.map((f) => {
           const baseField: any = {
@@ -180,11 +67,89 @@ export const TemplateBuilder = ({ onSave, onCancel, initialSchema }: TemplateBui
           return baseField;
         }),
       })),
-      require_signature: requireSignature,
+      require_signature: newRequireSignature,
     };
-
-    onSave(schema);
+    onSchemaChange(newSchema);
   };
+
+  const addSection = () => {
+    const newSections = [
+      ...sections,
+      {
+        id: crypto.randomUUID(),
+        title: `Section ${sections.length + 1}`,
+        fields: [],
+      },
+    ];
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const removeSection = (sectionId: string) => {
+    const newSections = sections.filter((s) => s.id !== sectionId);
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const updateSection = (sectionId: string, updates: Partial<Section>) => {
+    const newSections = sections.map((s) => (s.id === sectionId ? { ...s, ...updates } : s));
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const toggleSectionCollapse = (sectionId: string) => {
+    setSections(
+      sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
+    );
+  };
+
+  const addField = (sectionId: string) => {
+    const newSections = sections.map((s) =>
+      s.id === sectionId
+        ? {
+            ...s,
+            fields: [
+              ...s.fields,
+              {
+                id: crypto.randomUUID(),
+                type: "text",
+                label: "New Field",
+                key: `field_${s.fields.length + 1}`,
+                required: false,
+              },
+            ],
+          }
+        : s
+    );
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const removeField = (sectionId: string, fieldId: string) => {
+    const newSections = sections.map((s) =>
+      s.id === sectionId ? { ...s, fields: s.fields.filter((f) => f.id !== fieldId) } : s
+    );
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const updateField = (sectionId: string, fieldId: string, updates: Partial<Field>) => {
+    const newSections = sections.map((s) =>
+      s.id === sectionId
+        ? { ...s, fields: s.fields.map((f) => (f.id === fieldId ? { ...f, ...updates } : f)) }
+        : s
+    );
+    setSections(newSections);
+    updateParentSchema(newSections, requireSignature);
+  };
+
+  const generateKey = (label: string) => {
+    return label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
+  };
+
 
   return (
     <div className="space-y-6">
@@ -195,7 +160,10 @@ export const TemplateBuilder = ({ onSave, onCancel, initialSchema }: TemplateBui
           <Switch
             id="signature-toggle"
             checked={requireSignature}
-            onCheckedChange={setRequireSignature}
+            onCheckedChange={(checked) => {
+              setRequireSignature(checked);
+              updateParentSchema(sections, checked);
+            }}
           />
         </div>
       </div>
@@ -385,13 +353,6 @@ export const TemplateBuilder = ({ onSave, onCancel, initialSchema }: TemplateBui
         <Plus className="h-4 w-4 mr-2" />
         Add Section
       </Button>
-
-      <div className="flex gap-3 justify-end pt-4 border-t">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleSave}>Save Template</Button>
-      </div>
     </div>
   );
 };

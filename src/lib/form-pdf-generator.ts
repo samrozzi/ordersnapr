@@ -139,6 +139,38 @@ export const generateFormPDF = async (
           pdf.setFont("helvetica", "italic");
           pdf.text(`(${answer.length} photo${answer.length !== 1 ? 's' : ''} attached - see end of report)`, margin + 5, yPos);
           yPos += 8;
+        } else if (field.type === "repeating_group" && Array.isArray(answer) && answer.length > 0) {
+          // Repeating group entries
+          checkPageBreak(12);
+          pdf.setFontSize(11);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(field.label, margin + 5, yPos);
+          yPos += 8;
+          
+          answer.forEach((entry: any, idx: number) => {
+            checkPageBreak(15);
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`Entry ${idx + 1}:`, margin + 8, yPos);
+            yPos += 6;
+            
+            (field.fields || []).forEach((subField: any) => {
+              const subValue = entry[subField.key];
+              if (subValue) {
+                pdf.setFont("helvetica", "normal");
+                const lines = pdf.splitTextToSize(`${subField.label}: ${subValue}`, pageWidth - margin - 25);
+                lines.forEach((line: string) => {
+                  checkPageBreak(5);
+                  pdf.text(line, margin + 12, yPos);
+                  yPos += 5;
+                });
+              }
+            });
+            
+            yPos += 3;
+          });
+          
+          yPos += 3;
         } else {
           // Regular text field - render with label if not hidden
           if (!field.hideLabel) {

@@ -14,7 +14,7 @@ import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,6 +32,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [draftSubmission, setDraftSubmission] = useState<FormSubmission | null>(null);
+  const [repeatCounts, setRepeatCounts] = useState<Record<string, number>>({});
   
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
@@ -93,6 +94,22 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     createDraft();
   }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
 
+  // Initialize repeat counts from submission data or defaults
+  useEffect(() => {
+    const initialCounts: Record<string, number> = {};
+    
+    template.schema.sections.forEach((section: any) => {
+      section.fields.forEach((field: any) => {
+        if (field.type === "repeating_group") {
+          const existingEntries = answers[field.key] as any[];
+          initialCounts[field.key] = existingEntries?.length || field.minInstances || 1;
+        }
+      });
+    });
+    
+    setRepeatCounts(initialCounts);
+  }, [template, answers]);
+
   // Auto-save draft every 10 seconds
   useEffect(() => {
     if (previewMode || !submission || submission.status !== "draft") return;
@@ -112,6 +129,116 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
   const handleFieldChange = (key: string, value: any) => {
     setAnswers(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleAddInstance = (fieldKey: string) => {
+    setRepeatCounts(prev => ({
+      ...prev,
+      [fieldKey]: (prev[fieldKey] || 1) + 1
+    }));
+    
+    const currentEntries = (answers[fieldKey] as any[]) || [];
+    setAnswers(prev => ({
+      ...prev,
+      [fieldKey]: [...currentEntries, {}]
+    }));
+  };
+
+  const handleRemoveInstance = (fieldKey: string, instanceIndex: number) => {
+    setRepeatCounts(prev => ({
+      ...prev,
+      [fieldKey]: Math.max((prev[fieldKey] || 1) - 1, 1)
+    }));
+    
+    const currentEntries = (answers[fieldKey] as any[]) || [];
+    const newEntries = currentEntries.filter((_, idx) => idx !== instanceIndex);
+    setAnswers(prev => ({
+      ...prev,
+      [fieldKey]: newEntries
+    }));
+  };
+
+  const renderRepeatingSubField = (
+    subField: any,
+    value: any,
+    parentKey: string,
+    instanceIndex: number
+  ) => {
+    const handleNestedChange = (subKey: string, newValue: any) => {
+      const currentEntries = (answers[parentKey] as any[]) || [];
+      const updatedEntries = [...currentEntries];
+      
+      if (!updatedEntries[instanceIndex]) {
+        updatedEntries[instanceIndex] = {};
+      }
+      
+      updatedEntries[instanceIndex][subKey] = newValue;
+      
+      setAnswers(prev => ({
+        ...prev,
+        [parentKey]: updatedEntries
+      }));
+    };
+    
+    switch (subField.type) {
+      case "select":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Select
+              value={value || ""}
+              onValueChange={(val) => handleNestedChange(subField.key, val)}
+            >
+              <SelectTrigger id={`${parentKey}-${instanceIndex}-${subField.key}`}>
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                {(subField.options || []).map((option: string, idx: number) => (
+                  <SelectItem key={idx} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+        
+      case "textarea":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Textarea
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              placeholder={subField.placeholder}
+              rows={3}
+            />
+          </div>
+        );
+        
+      case "text":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Input
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              placeholder={subField.placeholder}
+            />
+          </div>
+        );
+        
+      default:
+        return null;
+    }
   };
 
   const validateForm = () => {
@@ -400,6 +527,62 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               placeholder={field.placeholder || "Enter job ID or search..."}
               aria-label={field.hideLabel ? field.label : undefined}
             />
+          </div>
+        );
+
+      case "repeating_group":
+        const instanceCount = repeatCounts[field.key] || field.minInstances || 1;
+        const entries = (value as any[]) || [];
+        
+        return (
+          <div key={field.key} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-lg font-semibold">{field.label}</Label>
+            </div>
+            
+            {Array.from({ length: instanceCount }).map((_, instanceIndex) => (
+              <Card key={`${field.key}-${instanceIndex}`} className="relative">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">
+                      Entry {instanceIndex + 1}
+                    </CardTitle>
+                    {instanceIndex >= (field.minInstances || 1) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveInstance(field.key, instanceIndex)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(field.fields || []).map((subField: any) => {
+                    const subValue = entries[instanceIndex]?.[subField.key];
+                    return renderRepeatingSubField(
+                      subField,
+                      subValue,
+                      field.key,
+                      instanceIndex
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ))}
+            
+            {instanceCount < (field.maxInstances || 20) && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => handleAddInstance(field.key)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another {field.label}
+              </Button>
+            )}
           </div>
         );
 

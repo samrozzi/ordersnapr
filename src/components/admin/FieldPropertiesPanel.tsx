@@ -102,6 +102,7 @@ export function FieldPropertiesPanel({
 
   const fieldDef = fieldTypes.find((ft) => ft.type === editedField.type);
   const needsOptions = ["select", "radio", "checklist"].includes(editedField.type);
+  const isRepeatingGroup = editedField.type === "repeating_group";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -222,6 +223,58 @@ export function FieldPropertiesPanel({
                       No options yet. Click "Add Option" to create one.
                     </p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Repeating Group Configuration */}
+            {isRepeatingGroup && (
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Repeating groups allow users to dynamically add multiple entries with the same fields.
+                    Configure min/max instances below.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="minInstances">Min Instances</Label>
+                      <Input
+                        id="minInstances"
+                        type="number"
+                        value={(editedField as any).minInstances || 1}
+                        onChange={(e) =>
+                          setEditedField((prev) => (
+                            prev ? { ...prev, minInstances: parseInt(e.target.value) || 1 } : prev
+                          ))
+                        }
+                        min="1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxInstances">Max Instances</Label>
+                      <Input
+                        id="maxInstances"
+                        type="number"
+                        value={(editedField as any).maxInstances || 20}
+                        onChange={(e) =>
+                          setEditedField((prev) => (
+                            prev ? { ...prev, maxInstances: parseInt(e.target.value) || 20 } : prev
+                          ))
+                        }
+                        min="1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm font-medium mb-2">Sub-fields</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Define the fields that will repeat in each entry. Currently supports text, textarea, and select fields.
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Note: Sub-field configuration is done via direct JSON editing in the template. Click "Save Changes" to continue.
+                  </p>
                 </div>
               </div>
             )}

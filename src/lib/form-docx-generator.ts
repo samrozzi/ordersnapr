@@ -197,6 +197,56 @@ export const generateFormDOCX = async (
               spacing: { after: 200 },
             })
           );
+        } else if (field.type === "repeating_group" && Array.isArray(answer) && answer.length > 0) {
+          // Repeating group entries
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: field.label,
+                  bold: true,
+                  size: 22,
+                }),
+              ],
+              spacing: { before: 200, after: 100 },
+            })
+          );
+          
+          answer.forEach((entry: any, idx: number) => {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Entry ${idx + 1}:`,
+                    bold: true,
+                  }),
+                ],
+                spacing: { before: 100, after: 50 },
+              })
+            );
+            
+            (field.fields || []).forEach((subField: any) => {
+              const subValue = entry[subField.key];
+              if (subValue) {
+                sections.push(
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `${subField.label}: `,
+                        bold: true,
+                      }),
+                      new TextRun({
+                        text: String(subValue),
+                      }),
+                    ],
+                    spacing: { after: 50 },
+                  })
+                );
+              }
+            });
+          });
+          
+          sections.push(new Paragraph({ text: "", spacing: { after: 200 } }));
         } else {
           // Regular text field
           if (!field.hideLabel) {

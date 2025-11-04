@@ -10,6 +10,7 @@ import {
   ListChecks,
   Paperclip,
   PenTool,
+  Copy,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,8 @@ export type FieldType =
   | "radio"
   | "checklist"
   | "file"
-  | "signature";
+  | "signature"
+  | "repeating_group";
 
 export interface FieldTypeDefinition {
   type: FieldType;
@@ -46,6 +48,7 @@ export const fieldTypes: FieldTypeDefinition[] = [
   { type: "checklist", icon: ListChecks, label: "Checklist", description: "Multi-select" },
   { type: "file", icon: Paperclip, label: "File Upload", description: "Upload files/photos" },
   { type: "signature", icon: PenTool, label: "Signature", description: "Draw or type signature" },
+  { type: "repeating_group", icon: Copy, label: "Repeating Group", description: "Add multiple entries" },
 ];
 
 interface FieldPaletteProps {

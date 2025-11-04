@@ -40,6 +40,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         id: s.id || crypto.randomUUID(),
         title: s.title || "Untitled Section",
         collapsed: false,
+        hideTitle: s.hideTitle ?? false,
         fields: (s.fields || []).map((f: any) => ({
           id: f.id || crypto.randomUUID(),
           key: f.key || generateKey(f.label || "untitled_field"),
@@ -74,6 +75,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       sections: sections.map((s) => ({
         id: s.id,
         title: s.title,
+        hideTitle: s.hideTitle,
         fields: s.fields.map((f) => ({
           id: f.id,
           key: f.key,
@@ -103,6 +105,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       title: "New Section",
       fields: [],
       collapsed: false,
+      hideTitle: false,
     };
     setSections([...sections, newSection]);
   };
@@ -115,6 +118,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         title: "Section 1",
         fields: [],
         collapsed: false,
+        hideTitle: false,
       };
       setSections([newSection]);
       setTargetSectionId(newSection.id);
@@ -268,6 +272,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                   sections: sections.map((s) => ({
                     id: s.id,
                     title: s.title,
+                    hideTitle: s.hideTitle,
                     fields: s.fields.map((f) => ({
                       id: f.id,
                       key: f.key,

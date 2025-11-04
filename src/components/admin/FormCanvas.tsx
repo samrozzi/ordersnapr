@@ -22,7 +22,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy } from "lucide-react";
+import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FieldType } from "./FieldPalette";
 import { fieldTypes } from "./FieldPalette";
@@ -58,6 +58,7 @@ export interface Section {
   title: string;
   fields: Field[];
   collapsed: boolean;
+  hideTitle?: boolean;
 }
 
 interface FormCanvasProps {
@@ -102,6 +103,12 @@ export function FormCanvas({
   const handleToggleCollapse = (sectionId: string) => {
     onSectionsChange(
       sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
+    );
+  };
+
+  const handleToggleHideTitle = (sectionId: string) => {
+    onSectionsChange(
+      sections.map((s) => (s.id === sectionId ? { ...s, hideTitle: !s.hideTitle } : s))
     );
   };
 
@@ -283,6 +290,17 @@ export function FormCanvas({
                 className="font-medium bg-transparent border-none h-7 px-2 flex-1"
                 placeholder="Section Title"
               />
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0"
+                onClick={() => handleToggleHideTitle(section.id)}
+                title={section.hideTitle ? "Show section title" : "Hide section title"}
+              >
+                {section.hideTitle ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
 
               <Button
                 type="button"

@@ -391,9 +391,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
       {template.schema.sections.map((section: any, index: number) => (
         <Card key={index}>
-          <CardHeader>
-            <CardTitle>{section.title}</CardTitle>
-          </CardHeader>
+          {!section.hideTitle && (
+            <CardHeader>
+              <CardTitle>{section.title}</CardTitle>
+            </CardHeader>
+          )}
           <CardContent className="space-y-4">
             {section.fields.map(renderField)}
           </CardContent>

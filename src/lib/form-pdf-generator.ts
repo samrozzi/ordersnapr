@@ -39,17 +39,20 @@ export const generateFormPDF = async (
   // Add sections and fields
   if (submission.form_templates?.schema?.sections) {
     for (const section of submission.form_templates.schema.sections) {
-      checkPageBreak(12);
-      
-      // Section header with background
-      pdf.setFillColor(50, 50, 50);
-      pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(255, 255, 255);
-      pdf.text(section.title, margin + 2, yPos);
-      pdf.setTextColor(40, 40, 40);
-      yPos += 10;
+      // Only render section title if not hidden
+      if (!section.hideTitle) {
+        checkPageBreak(12);
+        
+        // Section header with background
+        pdf.setFillColor(50, 50, 50);
+        pdf.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, "F");
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(section.title, margin + 2, yPos);
+        pdf.setTextColor(40, 40, 40);
+        yPos += 10;
+      }
 
       // Field details
       for (const field of section.fields) {
@@ -94,7 +97,7 @@ export const generateFormPDF = async (
           if (tableRows.length > 0) {
             autoTable(pdf, {
               startY: yPos,
-              head: [[field.label || "Checklist", "Status"]],
+              head: field.hideLabel ? undefined : [[field.label || "Checklist", "Status"]],
               body: tableRows,
               theme: "striped",
               headStyles: {
@@ -135,11 +138,13 @@ export const generateFormPDF = async (
           pdf.text(`(${answer.length} photo${answer.length !== 1 ? 's' : ''} attached - see end of report)`, margin + 5, yPos);
           yPos += 8;
         } else {
-          // Regular text field - render with label
-          pdf.setFontSize(10);
-          pdf.setFont("helvetica", "bold");
-          pdf.text(`${field.label}:`, margin + 5, yPos);
-          yPos += 5;
+          // Regular text field - render with label if not hidden
+          if (!field.hideLabel) {
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`${field.label}:`, margin + 5, yPos);
+            yPos += 5;
+          }
 
           pdf.setFont("helvetica", "normal");
           const lines = pdf.splitTextToSize(String(answer), pageWidth - margin - 20);

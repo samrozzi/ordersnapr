@@ -276,13 +276,15 @@ export function FormSubmissionViewer({
 
       {schema?.sections.map((section: any, index: number) => (
         <Card key={index}>
-          <CardHeader>
-            <CardTitle>{section.title}</CardTitle>
-          </CardHeader>
+          {!section.hideTitle && (
+            <CardHeader>
+              <CardTitle>{section.title}</CardTitle>
+            </CardHeader>
+          )}
           <CardContent className="space-y-6">
             {section.fields.map((field: any) => (
               <div key={field.key} className="space-y-2">
-                <h4 className="font-medium text-sm">{field.label}</h4>
+                {!field.hideLabel && <h4 className="font-medium text-sm">{field.label}</h4>}
                 {renderFieldValue(field)}
               </div>
             ))}

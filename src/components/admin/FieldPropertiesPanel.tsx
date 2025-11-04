@@ -131,6 +131,23 @@ export function FieldPropertiesPanel({
               />
             </div>
 
+            {/* Hide Label */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="hideLabel">Hide Label</Label>
+                <p className="text-xs text-muted-foreground">
+                  Hide the label in form display
+                </p>
+              </div>
+              <Switch
+                id="hideLabel"
+                checked={editedField.hideLabel || false}
+                onCheckedChange={(checked) =>
+                  setEditedField((prev) => (prev ? { ...prev, hideLabel: checked } : prev))
+                }
+              />
+            </div>
+
             {/* Field Key (read-only) */}
             <div className="space-y-2">
               <Label htmlFor="key" className="text-xs text-muted-foreground">
@@ -201,23 +218,6 @@ export function FieldPropertiesPanel({
                 checked={editedField.required}
                 onCheckedChange={(checked) =>
                   setEditedField((prev) => (prev ? { ...prev, required: checked } : prev))
-                }
-              />
-            </div>
-
-            {/* Hide Label */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="hideLabel">Hide Label</Label>
-                <p className="text-xs text-muted-foreground">
-                  Hide the label in form display (placeholder still shows)
-                </p>
-              </div>
-              <Switch
-                id="hideLabel"
-                checked={editedField.hideLabel || false}
-                onCheckedChange={(checked) =>
-                  setEditedField((prev) => (prev ? { ...prev, hideLabel: checked } : prev))
                 }
               />
             </div>

@@ -69,6 +69,8 @@ const Profile = () => {
   const [approvalStatus, setApprovalStatus] = useState<string>("");
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [currentFullName, setCurrentFullName] = useState("");
 
   useEffect(() => {
     fetchUserData();
@@ -92,6 +94,7 @@ const Profile = () => {
       .select(`
         approval_status,
         organization_id,
+        full_name,
         organizations (
           id,
           name
@@ -102,6 +105,8 @@ const Profile = () => {
     
     if (data) {
       setApprovalStatus(data.approval_status || '');
+      setCurrentFullName(data.full_name || '');
+      setFullName(data.full_name || '');
       if (data.organizations) {
         setOrganization(data.organizations as Organization);
       }
@@ -295,6 +300,43 @@ const Profile = () => {
     }
   };
 
+  const handleUpdateFullName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: fullName.trim() })
+        .eq("id", userId);
+      
+      if (error) throw error;
+
+      setCurrentFullName(fullName.trim());
+      toast({
+        title: "Success",
+        description: "Display name updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update display name",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForceSessionRefresh = async () => {
     setRefreshing(true);
     try {
@@ -407,6 +449,38 @@ const Profile = () => {
                     You are not assigned to any organization. Contact an admin to be added to an organization.
                   </p>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Display Name</CardTitle>
+                <CardDescription>
+                  This name will be shown throughout the app instead of your email
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleUpdateFullName} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter your full name"
+                      disabled={loading}
+                    />
+                    {currentFullName && (
+                      <p className="text-xs text-muted-foreground">
+                        Current: {currentFullName}
+                      </p>
+                    )}
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Updating..." : "Update Display Name"}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
 

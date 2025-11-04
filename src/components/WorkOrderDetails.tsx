@@ -62,7 +62,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [completionNotes, setCompletionNotes] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
-  const [creatorEmail, setCreatorEmail] = useState<string>("");
+  const [creatorProfile, setCreatorProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
@@ -78,10 +78,10 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
   const fetchCreatorInfo = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("email")
+      .select("full_name, email")
       .eq("id", userId)
       .single();
-    if (data) setCreatorEmail(data.email || "Unknown");
+    if (data) setCreatorProfile(data);
   };
 
   const fetchAuditLogs = async (entityId: string) => {
@@ -540,12 +540,12 @@ ${workOrder.notes}` : ''}`;
             <div className="space-y-3 border-t pt-4">
               <h3 className="font-semibold text-lg border-b pb-2">Information</h3>
               <div className="grid gap-3 text-sm">
-                {creatorEmail && (
+                {creatorProfile && (
                   <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-muted-foreground">Created by</p>
-                      <p className="font-medium">{creatorEmail}</p>
+                      <p className="font-medium">{creatorProfile.full_name || creatorProfile.email || "Unknown"}</p>
                     </div>
                   </div>
                 )}

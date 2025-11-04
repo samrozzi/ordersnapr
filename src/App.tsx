@@ -10,6 +10,7 @@ import { FeatureProvider } from "@/contexts/FeatureContext";
 import { WorkOrderDialogProvider } from "@/contexts/WorkOrderDialogContext";
 import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
 import { AppLayout } from "@/components/AppLayout";
+import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import OrgAdmin from "./pages/OrgAdmin";
@@ -67,7 +68,9 @@ const App = () => {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <TooltipProvider>
           <WorkOrderDialogProvider>
-            <AppContent />
+            <ProfileCompletionWrapper>
+              <AppContent />
+            </ProfileCompletionWrapper>
           </WorkOrderDialogProvider>
         </TooltipProvider>
       </ThemeProvider>

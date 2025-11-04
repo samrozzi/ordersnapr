@@ -49,7 +49,7 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
   const [sortField, setSortField] = useState<SortField>("property_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [mapError, setMapError] = useState(false);
-  const [creatorEmail, setCreatorEmail] = useState<string>("");
+  const [creatorProfile, setCreatorProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   useEffect(() => {
@@ -62,10 +62,10 @@ export function PropertyTable({ properties, onUpdate, userLocation }: PropertyTa
   const fetchCreatorInfo = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("email")
+      .select("full_name, email")
       .eq("id", userId)
       .single();
-    if (data) setCreatorEmail(data.email || "Unknown");
+    if (data) setCreatorProfile(data);
   };
 
   const fetchAuditLogs = async (entityId: string) => {
@@ -369,7 +369,7 @@ ${getDistance(property)} miles from your location` : ''}`;
       <Dialog open={!!viewingProperty} onOpenChange={() => {
         setViewingProperty(null);
         setMapError(false);
-        setCreatorEmail("");
+        setCreatorProfile(null);
         setAuditLogs([]);
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
@@ -529,12 +529,12 @@ ${getDistance(property)} miles from your location` : ''}`;
               <div className="space-y-3 border-t pt-4">
                 <h3 className="font-semibold text-lg border-b pb-2">Information</h3>
                 <div className="grid gap-3 text-sm">
-                  {creatorEmail && (
+                  {creatorProfile && (
                     <div className="flex items-start gap-3">
                       <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div>
                         <p className="text-muted-foreground">Created by</p>
-                        <p className="font-medium">{creatorEmail}</p>
+                        <p className="font-medium">{creatorProfile.full_name || creatorProfile.email || "Unknown"}</p>
                       </div>
                     </div>
                   )}

@@ -381,7 +381,9 @@ export function FormSubmissionViewer({
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <User className="h-4 w-4" />
-              <span>Created by User</span>
+              <span>
+                Created by {submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown User"}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />

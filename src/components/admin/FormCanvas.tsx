@@ -10,6 +10,7 @@ import {
   DragOverEvent,
   DragOverlay,
   DragStartEvent,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -248,17 +249,21 @@ export function FormCanvas({
     
     if (!activeSectionId || !overSectionId) return;
 
+    // Check if dropping into a repeating group drop zone
+    const isDropZone = overFieldId.endsWith('-drop-zone');
+    const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
+    
     const activeParentId = fieldToParentMap.get(activeFieldId);
     const overParentId = fieldToParentMap.get(overFieldId);
-    const overField = findFieldById(overFieldId);
+    const overField = findFieldById(targetRepeatingGroupId);
     
     // Prevent dropping repeating group into another repeating group
     const activeField = findFieldById(activeFieldId);
-    if (activeField?.type === "repeating_group" && overParentId) {
+    if (activeField?.type === "repeating_group" && (overParentId || isDropZone)) {
       return; // Can't nest repeating groups
     }
 
-    // Scenario: Dropping INTO a repeating group container
+    // Scenario: Dropping INTO a repeating group container (either on the container or its drop zone)
     if (overField?.type === "repeating_group" && !overParentId) {
       onSectionsChange(
         sections.map((section) => {
@@ -281,7 +286,7 @@ export function FormCanvas({
           return {
             ...section,
             fields: cleanedFields.map(f => {
-              if (f.id === overFieldId && activeField) {
+              if (f.id === targetRepeatingGroupId && activeField) {
                 return {
                   ...f,
                   fields: [...(f.fields || []), { ...activeField, id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }]
@@ -428,11 +433,14 @@ export function FormCanvas({
     );
   }
 
-  // Get all field IDs for DndContext (including nested)
+  // Get all field IDs for DndContext (including nested and drop zones)
   const allFieldIds: string[] = [];
   sections.forEach(section => {
     section.fields.forEach(field => {
       allFieldIds.push(field.id);
+      if (field.type === "repeating_group") {
+        allFieldIds.push(`${field.id}-drop-zone`); // Add drop zone ID
+      }
       if (field.fields) {
         field.fields.forEach(subField => allFieldIds.push(subField.id));
       }
@@ -679,30 +687,49 @@ function RepeatingGroupFieldCard({
       </div>
 
       {/* Nested Fields */}
-      {isExpanded && (
-        <div className="p-4 pl-12 space-y-2 bg-muted/20 border-t">
-          {field.fields && field.fields.length > 0 ? (
-            <SortableContext
-              items={field.fields.map((f) => f.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {field.fields.map((subField) => (
-                <SortableFieldCard
-                  key={subField.id}
-                  field={subField}
-                  onFieldClick={() => onFieldClick(sectionId, subField.id, field.id)}
-                  onCopy={() => onCopy(sectionId, subField.id, field.id)}
-                  onRemove={() => onRemove(sectionId, subField.id, field.id)}
-                  isNested
-                />
-              ))}
-            </SortableContext>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed rounded-lg bg-background">
-              <p className="mb-2">Drag fields here to add sub-fields</p>
-              <p className="text-xs">Sub-fields will repeat for each entry</p>
-            </div>
+      {isExpanded && <DropZoneForRepeatingGroup field={field} sectionId={sectionId} onFieldClick={onFieldClick} onCopy={onCopy} onRemove={onRemove} />}
+    </div>
+  );
+}
+
+function DropZoneForRepeatingGroup({ field, sectionId, onFieldClick, onCopy, onRemove }: {
+  field: Field;
+  sectionId: string;
+  onFieldClick: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
+  onCopy: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
+  onRemove: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
+}) {
+  const dropZoneId = `${field.id}-drop-zone`;
+  const { setNodeRef, isOver } = useDroppable({ id: dropZoneId });
+
+  return (
+    <div className="p-4 pl-12 space-y-2 bg-muted/20 border-t">
+      {field.fields && field.fields.length > 0 ? (
+        <SortableContext
+          items={field.fields.map((f) => f.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {field.fields.map((subField) => (
+            <SortableFieldCard
+              key={subField.id}
+              field={subField}
+              onFieldClick={() => onFieldClick(sectionId, subField.id, field.id)}
+              onCopy={() => onCopy(sectionId, subField.id, field.id)}
+              onRemove={() => onRemove(sectionId, subField.id, field.id)}
+              isNested
+            />
+          ))}
+        </SortableContext>
+      ) : (
+        <div
+          ref={setNodeRef}
+          className={cn(
+            "text-center py-6 text-muted-foreground text-sm border-2 border-dashed rounded-lg bg-background transition-all",
+            isOver && "border-primary bg-primary/5 ring-2 ring-primary/20"
           )}
+        >
+          <p className="mb-2">Drag fields here to add sub-fields</p>
+          <p className="text-xs">Sub-fields will repeat for each entry</p>
         </div>
       )}
     </div>

@@ -36,6 +36,15 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
 
+  // Helper function to initialize checklist with N/A defaults
+  const getDefaultChecklistValue = (items: string[]) => {
+    const defaultValue: Record<number, string> = {};
+    items.forEach((_, index) => {
+      defaultValue[index] = "N/A";
+    });
+    return defaultValue;
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -194,7 +203,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             )}
             <Input
               id={field.key}
-              value={value || field.default || ""}
+              value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               placeholder={field.placeholder}
               aria-label={field.hideLabel ? field.label : undefined}
@@ -355,7 +364,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             label={field.hideLabel ? undefined : field.label}
             items={field.items || field.options || []}
             options={field.responseOptions || ["OK", "DEV", "N/A"]}
-            value={value || {}}
+            value={value || getDefaultChecklistValue(field.items || field.options || [])}
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
           />
         );

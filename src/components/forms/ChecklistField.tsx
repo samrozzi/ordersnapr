@@ -28,7 +28,7 @@ export function ChecklistField({
 
   const getOptionColor = (option: string) => {
     const opt = option.toUpperCase();
-    if (opt === "OK" || opt === "YES") return "default";
+    if (opt === "OK" || opt === "YES") return "success";
     if (opt === "DEV" || opt === "NO") return "destructive";
     if (opt === "N/A") return "secondary";
     return "outline";

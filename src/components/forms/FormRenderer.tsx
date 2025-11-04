@@ -669,23 +669,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             
             {Array.from({ length: instanceCount }).map((_, instanceIndex) => (
               <Card key={`${field.key}-${instanceIndex}`} className="relative">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm">
-                      Entry {instanceIndex + 1}
-                    </CardTitle>
-                    {instanceIndex >= (field.minInstances || 1) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveInstance(field.key, instanceIndex)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                {instanceIndex >= (field.minInstances || 1) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 z-10"
+                    onClick={() => handleRemoveInstance(field.key, instanceIndex)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <CardContent className="pt-6 space-y-3">
                   {(field.fields || []).map((subField: any) => {
                     const subValue = entries[instanceIndex]?.[subField.key];
                     return renderRepeatingSubField(

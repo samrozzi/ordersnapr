@@ -43,7 +43,7 @@ export function AppLayout() {
       <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 overflow-hidden">
+          <header className="h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0 z-10">
             <SidebarTrigger />
             
             {/* Center: OrderSnapr Logo (mobile only) */}

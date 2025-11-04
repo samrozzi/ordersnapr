@@ -443,7 +443,7 @@ export function FormSubmissionViewer({
 
       <Separator />
 
-      <div className="flex gap-3 justify-end">
+      <div className="flex gap-3 justify-end pb-20">
         {onDelete && (
           <Button variant="destructive" onClick={onDelete}>
             Delete

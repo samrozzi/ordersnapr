@@ -47,6 +47,11 @@ const Auth = () => {
                   colors: {
                     brand: 'hsl(var(--primary))',
                     brandAccent: 'hsl(var(--primary))',
+                    brandButtonText: 'white',
+                    defaultButtonBackground: 'hsl(var(--primary))',
+                    defaultButtonBackgroundHover: 'hsl(var(--primary))',
+                    defaultButtonBorder: 'hsl(var(--primary))',
+                    defaultButtonText: 'white',
                   }
                 }
               }

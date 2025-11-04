@@ -247,7 +247,7 @@ export default function Forms() {
       {activeTab === 'templates' ? (
         <TemplateManager orgId={orgId} />
       ) : (
-        <div className="border rounded-lg overflow-x-auto touch-pan-x">
+        <div className="border rounded-lg overflow-x-auto touch-pan-x max-w-full">
           <Table className="min-w-max">
             <TableHeader>
               <TableRow>

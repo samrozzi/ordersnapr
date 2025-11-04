@@ -7,6 +7,9 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -70,6 +73,9 @@ export function FormCanvas({
   onFieldClick,
   onAddSection,
 }: FormCanvasProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -78,6 +84,14 @@ export function FormCanvas({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Create a flat map of all fields with their section IDs
+  const fieldToSectionMap = new Map<string, string>();
+  sections.forEach(section => {
+    section.fields.forEach(field => {
+      fieldToSectionMap.set(field.id, section.id);
+    });
+  });
 
   const handleSectionTitleChange = (sectionId: string, title: string) => {
     onSectionsChange(
@@ -129,23 +143,83 @@ export function FormCanvas({
     );
   };
 
-  const handleDragEnd = (event: DragEndEvent, sectionId: string) => {
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setOverId(over ? (over.id as string) : null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
+    setOverId(null);
+    
     if (!over || active.id === over.id) return;
 
-    onSectionsChange(
-      sections.map((section) => {
-        if (section.id !== sectionId) return section;
+    const activeFieldId = active.id as string;
+    const overFieldId = over.id as string;
+    
+    const activeSectionId = fieldToSectionMap.get(activeFieldId);
+    const overSectionId = fieldToSectionMap.get(overFieldId);
+    
+    if (!activeSectionId || !overSectionId) return;
 
-        const oldIndex = section.fields.findIndex((f) => f.id === active.id);
-        const newIndex = section.fields.findIndex((f) => f.id === over.id);
+    // Moving within the same section
+    if (activeSectionId === overSectionId) {
+      onSectionsChange(
+        sections.map((section) => {
+          if (section.id !== activeSectionId) return section;
 
-        return {
-          ...section,
-          fields: arrayMove(section.fields, oldIndex, newIndex),
-        };
-      })
-    );
+          const oldIndex = section.fields.findIndex((f) => f.id === activeFieldId);
+          const newIndex = section.fields.findIndex((f) => f.id === overFieldId);
+
+          return {
+            ...section,
+            fields: arrayMove(section.fields, oldIndex, newIndex),
+          };
+        })
+      );
+    } else {
+      // Moving between sections
+      const activeSection = sections.find(s => s.id === activeSectionId);
+      const overSection = sections.find(s => s.id === overSectionId);
+      
+      if (!activeSection || !overSection) return;
+      
+      const activeField = activeSection.fields.find(f => f.id === activeFieldId);
+      if (!activeField) return;
+      
+      const overIndex = overSection.fields.findIndex(f => f.id === overFieldId);
+      
+      onSectionsChange(
+        sections.map((section) => {
+          if (section.id === activeSectionId) {
+            // Remove from source section
+            return {
+              ...section,
+              fields: section.fields.filter(f => f.id !== activeFieldId),
+            };
+          } else if (section.id === overSectionId) {
+            // Add to target section
+            const newFields = [...section.fields];
+            newFields.splice(overIndex, 0, activeField);
+            return {
+              ...section,
+              fields: newFields,
+            };
+          }
+          return section;
+        })
+      );
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setOverId(null);
   };
 
   if (sections.length === 0) {
@@ -162,77 +236,115 @@ export function FormCanvas({
     );
   }
 
+  // Get all field IDs for DndContext
+  const allFieldIds = sections.flatMap(section => section.fields.map(f => f.id));
+  
+  const activeField = activeId 
+    ? sections.flatMap(s => s.fields).find(f => f.id === activeId)
+    : null;
+
   return (
-    <div className="space-y-6">
-      {sections.map((section) => (
-        <Card key={section.id} className="overflow-hidden">
-          {/* Section Header */}
-          <div className="bg-muted/50 border-b px-4 py-3 flex items-center gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 flex-shrink-0"
-              onClick={() => handleToggleCollapse(section.id)}
-            >
-              {section.collapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-            
-            <Input
-              value={section.title}
-              onChange={(e) => handleSectionTitleChange(section.id, e.target.value)}
-              className="font-medium bg-transparent border-none h-7 px-2 flex-1"
-              placeholder="Section Title"
-            />
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 flex-shrink-0 hover:bg-destructive hover:text-destructive-foreground"
-              onClick={() => handleRemoveSection(section.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Section Content */}
-          {!section.collapsed && (
-            <div className="p-4 space-y-3">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(e) => handleDragEnd(e, section.id)}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="space-y-6">
+        {sections.map((section) => (
+          <Card 
+            key={section.id} 
+            className={cn(
+              "overflow-hidden transition-all",
+              overId && fieldToSectionMap.get(overId) === section.id && "ring-2 ring-primary"
+            )}
+          >
+            {/* Section Header */}
+            <div className="bg-muted/50 border-b px-4 py-3 flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0"
+                onClick={() => handleToggleCollapse(section.id)}
               >
+                {section.collapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+              
+              <Input
+                value={section.title}
+                onChange={(e) => handleSectionTitleChange(section.id, e.target.value)}
+                className="font-medium bg-transparent border-none h-7 px-2 flex-1"
+                placeholder="Section Title"
+              />
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0 hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => handleRemoveSection(section.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Section Content */}
+            {!section.collapsed && (
+              <div className="p-4 space-y-3">
                 <SortableContext
                   items={section.fields.map((f) => f.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {section.fields.map((field) => (
-                    <SortableFieldCard
-                      key={field.id}
-                      field={field}
-                      onFieldClick={() => onFieldClick(section.id, field.id)}
-                      onCopy={() => handleCopyField(section.id, field.id)}
-                      onRemove={() => handleRemoveField(section.id, field.id)}
-                    />
-                  ))}
+                  {section.fields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                      Drag fields here or add from the palette
+                    </div>
+                  ) : (
+                    section.fields.map((field) => (
+                      <SortableFieldCard
+                        key={field.id}
+                        field={field}
+                        onFieldClick={() => onFieldClick(section.id, field.id)}
+                        onCopy={() => handleCopyField(section.id, field.id)}
+                        onRemove={() => handleRemoveField(section.id, field.id)}
+                      />
+                    ))
+                  )}
                 </SortableContext>
-              </DndContext>
-            </div>
-          )}
-        </Card>
-      ))}
+              </div>
+            )}
+          </Card>
+        ))}
 
-      <Button onClick={onAddSection} variant="outline" className="w-full">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Section
-      </Button>
-    </div>
+        <Button onClick={onAddSection} variant="outline" className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Section
+        </Button>
+      </div>
+
+      <DragOverlay>
+        {activeField ? (
+          <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-card shadow-lg opacity-90">
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              {(() => {
+                const fieldDef = fieldTypes.find((ft) => ft.type === activeField.type);
+                const Icon = fieldDef?.icon || Edit2;
+                return <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />;
+              })()}
+            </div>
+            <div className="font-medium text-sm">{activeField.label}</div>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 

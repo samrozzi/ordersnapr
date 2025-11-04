@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Plus } from "lucide-react";
 import { FieldPalette, type FieldType } from "./FieldPalette";
 import { FormCanvas, type Section, type Field } from "./FormCanvas";
@@ -23,6 +24,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     fieldId: string;
   } | null>(null);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
+  const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
 
   const generateKey = useCallback((label: string): string => {
     return label
@@ -115,9 +117,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         collapsed: false,
       };
       setSections([newSection]);
+      setTargetSectionId(newSection.id);
     }
 
-    // Add field to the last section
+    // Determine which section to add the field to
+    const targetId = targetSectionId || sections[sections.length - 1]?.id;
+    if (!targetId) return;
+
     const label = `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`;
     const newField: Field = {
       id: crypto.randomUUID(),
@@ -129,12 +135,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       options: type === "select" || type === "radio" || type === "checklist" ? ["Option 1"] : undefined,
     };
 
-    setSections((prev) => {
-      const updated = [...prev];
-      const lastSection = updated[updated.length - 1];
-      lastSection.fields = [...lastSection.fields, newField];
-      return updated;
-    });
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === targetId
+          ? { ...section, fields: [...section.fields, newField] }
+          : section
+      )
+    );
 
     toast.success("Field added");
   };
@@ -203,7 +210,27 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       {!previewMode ? (
         <div className="grid grid-cols-12 gap-4">
           {/* Left: Field Palette */}
-          <div className="col-span-12 md:col-span-3 lg:col-span-2">
+          <div className="col-span-12 md:col-span-3 lg:col-span-2 space-y-4">
+            {sections.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Add Field To:</Label>
+                <Select
+                  value={targetSectionId || sections[sections.length - 1]?.id || ""}
+                  onValueChange={setTargetSectionId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sections.map((section) => (
+                      <SelectItem key={section.id} value={section.id}>
+                        {section.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <FieldPalette onFieldSelect={handleFieldSelect} />
           </div>
 

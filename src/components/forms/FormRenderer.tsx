@@ -23,9 +23,10 @@ interface FormRendererProps {
   submission?: FormSubmission;
   onSuccess: () => void;
   onCancel: () => void;
+  previewMode?: boolean;
 }
 
-export function FormRenderer({ template, submission, onSuccess, onCancel }: FormRendererProps) {
+export function FormRenderer({ template, submission, onSuccess, onCancel, previewMode = false }: FormRendererProps) {
   const [answers, setAnswers] = useState<Record<string, any>>(submission?.answers || {});
   const [signature, setSignature] = useState(submission?.signature || null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -56,6 +57,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
 
   // Auto-create draft submission if none exists (enables photo upload on new forms)
   useEffect(() => {
+    if (previewMode) return; // Don't create drafts in preview mode
+    
     const createDraft = async () => {
       if (!submission && userId && orgId && !draftSubmission) {
         try {
@@ -79,11 +82,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       }
     };
     createDraft();
-  }, [userId, orgId, submission, template.id, draftSubmission]);
+  }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
 
   // Auto-save draft every 10 seconds
   useEffect(() => {
-    if (!submission || submission.status !== "draft") return;
+    if (previewMode || !submission || submission.status !== "draft") return;
     
     const interval = setInterval(() => {
       if (submission?.id && Object.keys(answers).length > 0) {
@@ -96,7 +99,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [answers, signature, submission]);
+  }, [answers, signature, submission, previewMode]);
 
   const handleFieldChange = (key: string, value: any) => {
     setAnswers(prev => ({ ...prev, [key]: value }));
@@ -418,11 +421,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
         <Button variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
-        <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Draft
-        </Button>
-        <Button onClick={handleSubmit} disabled={isLoading}>
+        {!previewMode && (
+          <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Draft
+          </Button>
+        )}
+        <Button onClick={handleSubmit} disabled={isLoading || previewMode}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Submit
         </Button>

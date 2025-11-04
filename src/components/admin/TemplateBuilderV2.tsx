@@ -262,6 +262,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                   require_signature: requireSignature,
                 },
               }}
+              previewMode={true}
               onSuccess={() => {}}
               onCancel={() => setPreviewMode(false)}
             />

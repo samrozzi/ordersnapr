@@ -77,6 +77,29 @@ export function FieldPropertiesPanel({
     });
   };
 
+  const addResponseOption = () => {
+    setEditedField((prev) => (
+      prev ? { ...prev, responseOptions: [...(prev.responseOptions || []), ""] } : prev
+    ));
+  };
+
+  const updateResponseOption = (index: number, value: string) => {
+    setEditedField((prev) => {
+      if (!prev) return prev;
+      const responseOptions = [...(prev.responseOptions || [])];
+      responseOptions[index] = value;
+      return { ...prev, responseOptions };
+    });
+  };
+
+  const removeResponseOption = (index: number) => {
+    setEditedField((prev) => {
+      if (!prev) return prev;
+      const responseOptions = (prev.responseOptions || []).filter((_, i) => i !== index);
+      return { ...prev, responseOptions };
+    });
+  };
+
   const fieldDef = fieldTypes.find((ft) => ft.type === editedField.type);
   const needsOptions = ["select", "radio", "checklist"].includes(editedField.type);
 
@@ -161,15 +184,11 @@ export function FieldPropertiesPanel({
               />
             </div>
 
-            {/* Options (for select, radio, checklist) */}
-            {needsOptions && (
+            {/* Options for select and radio */}
+            {needsOptions && editedField.type !== "checklist" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>
-                    {editedField.type === "checklist" 
-                      ? "Questions/Items" 
-                      : "Options"}
-                  </Label>
+                  <Label>Options</Label>
                   <Button
                     type="button"
                     variant="outline"
@@ -177,21 +196,16 @@ export function FieldPropertiesPanel({
                     onClick={addOption}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Add {editedField.type === "checklist" ? "Question" : "Option"}
+                    Add Option
                   </Button>
                 </div>
-                {editedField.type === "checklist" && (
-                  <p className="text-xs text-muted-foreground">
-                    These questions appear on the left. Response options (OK, DEV, N/A) are configured separately.
-                  </p>
-                )}
                 <div className="space-y-2">
                   {(editedField.options || []).map((option, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
                         value={option}
                         onChange={(e) => updateOption(index, e.target.value)}
-                        placeholder={editedField.type === "checklist" ? `Question ${index + 1}` : `Option ${index + 1}`}
+                        placeholder={`Option ${index + 1}`}
                       />
                       <Button
                         type="button"
@@ -205,9 +219,100 @@ export function FieldPropertiesPanel({
                   ))}
                   {(!editedField.options || editedField.options.length === 0) && (
                     <p className="text-xs text-muted-foreground">
-                      No {editedField.type === "checklist" ? "questions" : "options"} yet. Click "Add {editedField.type === "checklist" ? "Question" : "Option"}" to create one.
+                      No options yet. Click "Add Option" to create one.
                     </p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Checklist specific - Questions AND Response Options */}
+            {editedField.type === "checklist" && (
+              <div className="space-y-6">
+                {/* Questions Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Questions/Items</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addOption}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Question
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    These are the questions or items that appear on the left side of each row
+                  </p>
+                  <div className="space-y-2">
+                    {(editedField.options || []).map((option, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={option}
+                          onChange={(e) => updateOption(index, e.target.value)}
+                          placeholder={`Question ${index + 1}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeOption(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(!editedField.options || editedField.options.length === 0) && (
+                      <p className="text-xs text-muted-foreground">
+                        No questions yet. Click "Add Question" to create one.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Response Options Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Response Options</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addResponseOption}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Response Option
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    These are the answer choices that appear as buttons on the right (e.g., OK, DEV, N/A)
+                  </p>
+                  <div className="space-y-2">
+                    {(editedField.responseOptions || []).map((option, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={option}
+                          onChange={(e) => updateResponseOption(index, e.target.value)}
+                          placeholder={`Option ${index + 1}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeResponseOption(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(!editedField.responseOptions || editedField.responseOptions.length === 0) && (
+                      <p className="text-xs text-muted-foreground">
+                        No response options yet. Click "Add Response Option" to create one.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

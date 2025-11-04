@@ -184,11 +184,12 @@ export function FormSubmissionViewer({
 
     switch (field.type) {
       case "checklist":
+        const checklistValue = value as Record<number, string>;
         return (
           <ChecklistField
-            items={field.items}
-            options={field.options}
-            value={value}
+            items={field.items || field.options || []}
+            options={field.responseOptions || ["OK", "DEV", "N/A"]}
+            value={checklistValue}
             onChange={() => {}}
             readOnly
           />

@@ -354,7 +354,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             key={field.key}
             label={field.hideLabel ? undefined : field.label}
             items={field.items || field.options || []}
-            options={field.options || field.items || []}
+            options={field.responseOptions || ["OK", "DEV", "N/A"]}
             value={value || {}}
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
           />

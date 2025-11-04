@@ -50,6 +50,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           required: f.required || false,
           options: f.options || f.items, // Use items if options don't exist
           items: f.items, // Preserve items for backwards compatibility
+          responseOptions: f.responseOptions || (f.type === "checklist" ? ["OK", "DEV", "N/A"] : undefined), // Default response options for checklist
           maxLength: f.maxLength,
           min: f.min,
           max: f.max,
@@ -86,6 +87,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           required: f.required,
           options: f.options,
           items: f.items, // Preserve items for backwards compatibility
+          responseOptions: f.responseOptions, // Save response options
           maxLength: f.maxLength,
           min: f.min,
           max: f.max,
@@ -140,6 +142,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       placeholder: "",
       required: false,
       options: type === "select" || type === "radio" || type === "checklist" ? ["Option 1"] : undefined,
+      responseOptions: type === "checklist" ? ["OK", "DEV", "N/A"] : undefined, // Default response options for checklist
     };
 
     setSections((prev) =>
@@ -285,6 +288,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                       required: f.required,
                       options: f.options,
                       items: f.items,
+                      responseOptions: f.responseOptions,
                       maxLength: f.maxLength,
                       min: f.min,
                       max: f.max,

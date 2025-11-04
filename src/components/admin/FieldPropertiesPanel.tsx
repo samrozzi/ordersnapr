@@ -26,10 +26,10 @@ export function FieldPropertiesPanel({
   const [editedField, setEditedField] = useState<Field | null>(null);
 
   useEffect(() => {
-    if (field) {
+    if (open && field) {
       setEditedField({ ...field });
     }
-  }, [field]);
+  }, [open, field?.id]);
 
   if (!editedField) return null;
 
@@ -51,23 +51,30 @@ export function FieldPropertiesPanel({
   };
 
   const handleLabelChange = (label: string) => {
-    setEditedField({ ...editedField, label });
+    setEditedField((prev) => (prev ? { ...prev, label } : prev));
   };
 
   const addOption = () => {
-    const options = editedField.options || [];
-    setEditedField({ ...editedField, options: [...options, ""] });
+    setEditedField((prev) => (
+      prev ? { ...prev, options: [...(prev.options || []), ""] } : prev
+    ));
   };
 
   const updateOption = (index: number, value: string) => {
-    const options = [...(editedField.options || [])];
-    options[index] = value;
-    setEditedField({ ...editedField, options });
+    setEditedField((prev) => {
+      if (!prev) return prev;
+      const options = [...(prev.options || [])];
+      options[index] = value;
+      return { ...prev, options };
+    });
   };
 
   const removeOption = (index: number) => {
-    const options = (editedField.options || []).filter((_, i) => i !== index);
-    setEditedField({ ...editedField, options });
+    setEditedField((prev) => {
+      if (!prev) return prev;
+      const options = (prev.options || []).filter((_, i) => i !== index);
+      return { ...prev, options };
+    });
   };
 
   const fieldDef = fieldTypes.find((ft) => ft.type === editedField.type);
@@ -75,7 +82,7 @@ export function FieldPropertiesPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md overflow-y-auto" side="right">
+      <SheetContent className="sm:max-w-md overflow-y-auto" side="right" onKeyDownCapture={(e) => e.stopPropagation()}>
         <SheetHeader>
           <SheetTitle>Field Settings</SheetTitle>
         </SheetHeader>
@@ -117,9 +124,9 @@ export function FieldPropertiesPanel({
               <Input
                 id="field-placeholder"
                 value={editedField.placeholder || ""}
-                onChange={(e) =>
-                  setEditedField({ ...editedField, placeholder: e.target.value })
-                }
+                  onChange={(e) =>
+                    setEditedField((prev) => (prev ? { ...prev, placeholder: e.target.value } : prev))
+                  }
                 placeholder="Placeholder hint text"
               />
             </div>
@@ -193,7 +200,7 @@ export function FieldPropertiesPanel({
                 id="required"
                 checked={editedField.required}
                 onCheckedChange={(checked) =>
-                  setEditedField({ ...editedField, required: checked })
+                  setEditedField((prev) => (prev ? { ...prev, required: checked } : prev))
                 }
               />
             </div>
@@ -207,7 +214,9 @@ export function FieldPropertiesPanel({
                   type="number"
                   value={editedField.maxLength || ""}
                   onChange={(e) =>
-                    setEditedField({ ...editedField, maxLength: parseInt(e.target.value) || undefined })
+                    setEditedField((prev) => (
+                      prev ? { ...prev, maxLength: parseInt(e.target.value) || undefined } : prev
+                    ))
                   }
                   placeholder="e.g. 100"
                   min="1"
@@ -225,7 +234,9 @@ export function FieldPropertiesPanel({
                     type="number"
                     value={editedField.min ?? ""}
                     onChange={(e) =>
-                      setEditedField({ ...editedField, min: e.target.value ? parseInt(e.target.value) : undefined })
+                      setEditedField((prev) => (
+                        prev ? { ...prev, min: e.target.value ? parseInt(e.target.value) : undefined } : prev
+                      ))
                     }
                     placeholder="e.g. 0"
                   />
@@ -237,7 +248,9 @@ export function FieldPropertiesPanel({
                     type="number"
                     value={editedField.max ?? ""}
                     onChange={(e) =>
-                      setEditedField({ ...editedField, max: e.target.value ? parseInt(e.target.value) : undefined })
+                      setEditedField((prev) => (
+                        prev ? { ...prev, max: e.target.value ? parseInt(e.target.value) : undefined } : prev
+                      ))
                     }
                     placeholder="e.g. 100"
                   />
@@ -255,7 +268,9 @@ export function FieldPropertiesPanel({
                     type="number"
                     value={editedField.maxFiles || 10}
                     onChange={(e) =>
-                      setEditedField({ ...editedField, maxFiles: parseInt(e.target.value) || 10 })
+                      setEditedField((prev) => (
+                        prev ? { ...prev, maxFiles: parseInt(e.target.value) || 10 } : prev
+                      ))
                     }
                     placeholder="e.g. 5"
                     min="1"
@@ -267,10 +282,17 @@ export function FieldPropertiesPanel({
                     id="fileTypes"
                     value={(editedField.accept || []).join(", ")}
                     onChange={(e) =>
-                      setEditedField({ 
-                        ...editedField, 
-                        accept: e.target.value.split(",").map(s => s.trim()).filter(Boolean) 
-                      })
+                      setEditedField((prev) => (
+                        prev
+                          ? {
+                              ...prev,
+                              accept: e.target.value
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter(Boolean),
+                            }
+                          : prev
+                      ))
                     }
                     placeholder="e.g. .jpg, .png, .pdf"
                   />
@@ -286,7 +308,7 @@ export function FieldPropertiesPanel({
                     id="allowCaptions"
                     checked={editedField.allowCaptions || false}
                     onCheckedChange={(checked) =>
-                      setEditedField({ ...editedField, allowCaptions: checked })
+                      setEditedField((prev) => (prev ? { ...prev, allowCaptions: checked } : prev))
                     }
                   />
                 </div>

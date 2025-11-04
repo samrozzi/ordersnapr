@@ -47,13 +47,21 @@ const Auth = () => {
                   colors: {
                     brand: 'hsl(var(--primary))',
                     brandAccent: 'hsl(var(--primary))',
-                    brandButtonText: 'white',
+                    brandButtonText: 'hsl(var(--primary-foreground))',
                     defaultButtonBackground: 'hsl(var(--primary))',
                     defaultButtonBackgroundHover: 'hsl(var(--primary))',
                     defaultButtonBorder: 'hsl(var(--primary))',
-                    defaultButtonText: 'white',
+                    defaultButtonText: 'hsl(var(--primary-foreground))',
+                    inputBackground: 'hsl(var(--background))',
+                    inputText: 'hsl(var(--foreground))',
+                    inputBorder: 'hsl(var(--border))',
+                    inputPlaceholder: 'hsl(var(--muted-foreground))',
                   }
                 }
+              },
+              className: {
+                button: 'text-primary-foreground',
+                input: 'bg-background text-foreground',
               }
             }}
             providers={[]}

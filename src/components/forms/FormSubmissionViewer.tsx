@@ -443,18 +443,18 @@ export function FormSubmissionViewer({
 
       <Separator />
 
-      <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur border-t flex gap-3 justify-end">
+      <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur border-t flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
         {onDelete && (
-          <Button variant="destructive" onClick={onDelete}>
+          <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
             Delete
           </Button>
         )}
         {canEdit && (
-          <Button onClick={onEdit}>
+          <Button onClick={onEdit} className="w-full sm:w-auto">
             Edit
           </Button>
         )}
-        <Button variant="outline" onClick={handleDownloadPDF} disabled={isGeneratingPDF}>
+        <Button variant="outline" onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="w-full sm:w-auto">
           {isGeneratingPDF ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -462,7 +462,7 @@ export function FormSubmissionViewer({
           )}
           <span className="ml-2">Download PDF</span>
         </Button>
-        <Button variant="outline" onClick={handleDownloadDOCX} disabled={isGeneratingDOCX}>
+        <Button variant="outline" onClick={handleDownloadDOCX} disabled={isGeneratingDOCX} className="w-full sm:w-auto">
           {isGeneratingDOCX ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -470,7 +470,7 @@ export function FormSubmissionViewer({
           )}
           <span className="ml-2">Download Word Doc</span>
         </Button>
-        <Button variant="outline" onClick={() => setIsEmailDialogOpen(true)}>
+        <Button variant="outline" onClick={() => setIsEmailDialogOpen(true)} className="w-full sm:w-auto">
           <Mail className="h-4 w-4" />
           <span className="ml-2">Share via Email</span>
         </Button>

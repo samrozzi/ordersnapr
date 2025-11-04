@@ -187,7 +187,7 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
 
   return (
     <>
-      <div className="rounded-md border overflow-x-auto touch-pan-x max-w-full">
+      <div className="w-full rounded-md border overflow-x-auto touch-pan-x">
         <Table className="min-w-max">
             <TableHeader>
               <TableRow>

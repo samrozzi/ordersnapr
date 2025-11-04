@@ -69,7 +69,7 @@ export function AppLayout() {
             {/* Desktop: Empty spacer */}
             <div className="hidden md:flex flex-1" />
           </header>
-          <main className="flex-1 overflow-auto p-2 md:p-4 lg:p-6">
+          <main className="flex-1 overflow-auto p-2 md:p-4 lg:p-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <Outlet />
           </main>
         </div>

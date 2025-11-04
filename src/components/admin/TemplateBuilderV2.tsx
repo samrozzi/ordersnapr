@@ -53,6 +53,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           maxFiles: f.maxFiles,
           allowCaptions: f.allowCaptions,
           default: f.default,
+          hideLabel: f.hideLabel || false,
         })),
       }));
       setSections(loadedSections);
@@ -86,6 +87,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           maxFiles: f.maxFiles,
           allowCaptions: f.allowCaptions,
           default: f.default,
+          hideLabel: f.hideLabel,
         })),
       })),
       requireSignature,

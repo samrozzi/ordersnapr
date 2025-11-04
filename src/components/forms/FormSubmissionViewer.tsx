@@ -443,7 +443,7 @@ export function FormSubmissionViewer({
 
       <Separator />
 
-      <div className="flex gap-3 justify-end pb-20">
+      <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur border-t flex gap-3 justify-end">
         {onDelete && (
           <Button variant="destructive" onClick={onDelete}>
             Delete

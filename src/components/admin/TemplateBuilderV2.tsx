@@ -6,6 +6,7 @@ import { Eye, Plus } from "lucide-react";
 import { FieldPalette, type FieldType } from "./FieldPalette";
 import { FormCanvas, type Section, type Field } from "./FormCanvas";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
+import { FormRenderer } from "@/components/forms/FormRenderer";
 import { toast } from "sonner";
 
 interface TemplateBuilderV2Props {
@@ -217,11 +218,50 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       ) : (
         <div className="max-w-3xl mx-auto">
           <div className="rounded-xl border bg-card p-6">
-            <h3 className="text-lg font-semibold mb-4">Form Preview</h3>
-            <p className="text-sm text-muted-foreground">
-              Preview functionality will render the form exactly as users will see it.
-            </p>
-            {/* TODO: Integrate FormRenderer for preview */}
+            <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-dashed">
+              <p className="text-sm text-muted-foreground text-center">
+                Preview Mode - Form submission is disabled
+              </p>
+            </div>
+            <FormRenderer
+              template={{
+                id: "preview",
+                org_id: null,
+                is_global: false,
+                name: "Form Preview",
+                slug: "preview",
+                category: null,
+                is_active: true,
+                version: 1,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                schema: {
+                  sections: sections.map((s) => ({
+                    id: s.id,
+                    title: s.title,
+                    fields: s.fields.map((f) => ({
+                      id: f.id,
+                      key: f.key,
+                      type: f.type,
+                      label: f.label,
+                      placeholder: f.placeholder,
+                      required: f.required,
+                      options: f.options,
+                      maxLength: f.maxLength,
+                      min: f.min,
+                      max: f.max,
+                      accept: f.accept,
+                      maxFiles: f.maxFiles,
+                      allowCaptions: f.allowCaptions,
+                      default: f.default,
+                    })),
+                  })),
+                  require_signature: requireSignature,
+                },
+              }}
+              onSuccess={() => {}}
+              onCancel={() => setPreviewMode(false)}
+            />
           </div>
         </div>
       )}

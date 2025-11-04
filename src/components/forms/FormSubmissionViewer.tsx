@@ -349,6 +349,24 @@ export function FormSubmissionViewer({
           </div>
         );
 
+      case "address":
+        const addr = value as { street?: string; street2?: string; city?: string; state?: string; zip?: string; country?: string };
+        if (!addr || (!addr.street && !addr.city && !addr.state && !addr.zip)) {
+          return <p className="text-muted-foreground">—</p>;
+        }
+        return (
+          <div className="text-sm space-y-0.5">
+            {addr.street && <div>{addr.street}</div>}
+            {addr.street2 && <div>{addr.street2}</div>}
+            {(addr.city || addr.state || addr.zip) && (
+              <div>
+                {addr.city}{addr.city && (addr.state || addr.zip) ? ', ' : ''}{addr.state} {addr.zip}
+              </div>
+            )}
+            {addr.country && <div>{addr.country}</div>}
+          </div>
+        );
+
       default:
         // Safety check: if value is an array or object, don't crash
         if (Array.isArray(value)) {

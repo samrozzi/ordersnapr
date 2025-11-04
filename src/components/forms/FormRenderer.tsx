@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChecklistField } from "./ChecklistField";
 import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
+import { AddressField, AddressValue } from "./AddressField";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
 import { Loader2, Plus, X } from "lucide-react";
@@ -346,6 +347,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             </Label>
           </div>
         );
+
+      case "address":
+        return (
+          <AddressField
+            key={subField.key}
+            label={subField.label}
+            value={value || {}}
+            onChange={(newValue) => handleNestedChange(subField.key, newValue)}
+            required={subField.required}
+          />
+        );
         
       default:
         return (
@@ -673,6 +685,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               aria-label={field.hideLabel ? field.label : undefined}
             />
           </div>
+        );
+
+      case "address":
+        return (
+          <AddressField
+            key={field.key}
+            label={field.hideLabel ? undefined : field.label}
+            value={value || {}}
+            onChange={(newValue) => handleFieldChange(field.key, newValue)}
+            required={field.required}
+          />
         );
 
       case "repeating_group":

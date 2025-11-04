@@ -42,8 +42,8 @@ export function AppLayout() {
     <SidebarProvider defaultOpen>
       <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0 z-10">
+        <div className="flex-1 flex flex-col overflow-y-auto min-h-0 overscroll-y-contain">
+          <header className="sticky top-0 z-20 h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger />
             
             {/* Center: OrderSnapr Logo (mobile only) */}
@@ -69,7 +69,7 @@ export function AppLayout() {
             {/* Desktop: Empty spacer */}
             <div className="hidden md:flex flex-1" />
           </header>
-          <main className="flex-1 overflow-auto p-2 md:p-4 lg:p-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <main className="flex-1 min-h-0 p-2 md:p-4 lg:p-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <Outlet />
           </main>
         </div>

@@ -210,6 +210,33 @@ export function FormSubmissionViewer({
     if (!value && value !== 0) return <p className="text-muted-foreground">—</p>;
 
     switch (field.type) {
+      case "repeating_group":
+        // Handle repeating groups with proper rendering
+        if (!Array.isArray(value) || value.length === 0) {
+          return <p className="text-muted-foreground">No entries</p>;
+        }
+        return (
+          <div className="space-y-3">
+            {value.map((entry: any, idx: number) => (
+              <div key={idx} className="border rounded-lg p-3 bg-muted/30">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Entry {idx + 1}</p>
+                <div className="space-y-2">
+                  {(field.fields || []).map((subField: any) => {
+                    const subValue = entry[subField.key];
+                    if (!subValue && subValue !== 0) return null;
+                    return (
+                      <div key={subField.key} className="text-sm">
+                        <span className="font-medium">{subField.label}: </span>
+                        <span>{String(subValue)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+
       case "checklist":
         const checklistValue = value as Record<number, string>;
         return (
@@ -269,7 +296,26 @@ export function FormSubmissionViewer({
         );
 
       default:
-        return <p className="text-sm">{value}</p>;
+        // Safety check: if value is an array or object, don't crash
+        if (Array.isArray(value)) {
+          return (
+            <div className="space-y-1">
+              {value.map((item, idx) => (
+                <p key={idx} className="text-sm">
+                  {idx + 1}. {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+                </p>
+              ))}
+            </div>
+          );
+        }
+        if (typeof value === 'object') {
+          return (
+            <div className="text-xs bg-muted p-2 rounded font-mono">
+              {JSON.stringify(value, null, 2)}
+            </div>
+          );
+        }
+        return <p className="text-sm">{String(value)}</p>;
     }
   };
 

@@ -270,10 +270,10 @@ export function FieldPropertiesPanel({
                 <div className="p-4 border rounded-lg">
                   <p className="text-sm font-medium mb-2">Sub-fields</p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Define the fields that will repeat in each entry. Currently supports text, textarea, and select fields.
+                    Define the fields that will repeat in each entry. Currently supports text, textarea, select, number, date, time, checkbox, and radio fields.
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Note: Sub-field configuration is done via direct JSON editing in the template. Click "Save Changes" to continue.
+                    Note: Advanced sub-field configuration is done via the template builder. The repeating group will display all configured sub-fields.
                   </p>
                 </div>
               </div>

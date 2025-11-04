@@ -156,9 +156,12 @@ export const generateFormPDF = async (
             
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
-              if (subValue) {
+              if (subValue !== null && subValue !== undefined && subValue !== "") {
+                const displayValue = typeof subValue === 'boolean' 
+                  ? (subValue ? 'Yes' : 'No') 
+                  : String(subValue);
                 pdf.setFont("helvetica", "normal");
-                const lines = pdf.splitTextToSize(`${subField.label}: ${subValue}`, pageWidth - margin - 25);
+                const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
                 lines.forEach((line: string) => {
                   checkPageBreak(5);
                   pdf.text(line, margin + 12, yPos);

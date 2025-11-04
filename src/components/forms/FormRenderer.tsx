@@ -190,6 +190,85 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     };
     
     switch (subField.type) {
+      case "text":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Input
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              placeholder={subField.placeholder}
+            />
+          </div>
+        );
+
+      case "textarea":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Textarea
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              placeholder={subField.placeholder}
+              rows={3}
+            />
+          </div>
+        );
+        
+      case "number":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Input
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              type="number"
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, parseInt(e.target.value) || null)}
+              placeholder={subField.placeholder}
+              min={subField.min}
+              max={subField.max}
+            />
+          </div>
+        );
+
+      case "date":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Input
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              type="date"
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+            />
+          </div>
+        );
+
+      case "time":
+        return (
+          <div key={subField.key} className="space-y-2">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              {subField.label}
+            </Label>
+            <Input
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              type="time"
+              value={value || ""}
+              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+            />
+          </div>
+        );
+        
       case "select":
         return (
           <div key={subField.key} className="space-y-2">
@@ -213,40 +292,47 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             </Select>
           </div>
         );
-        
-      case "textarea":
+
+      case "radio":
         return (
           <div key={subField.key} className="space-y-2">
-            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
-              {subField.label}
-            </Label>
-            <Textarea
-              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+            <Label>{subField.label}</Label>
+            <RadioGroup
               value={value || ""}
-              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
-              placeholder={subField.placeholder}
-              rows={3}
-            />
+              onValueChange={(val) => handleNestedChange(subField.key, val)}
+            >
+              {(subField.options || []).map((option: string, idx: number) => (
+                <div key={idx} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`${parentKey}-${instanceIndex}-${subField.key}-${idx}`} />
+                  <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}-${idx}`} className="font-normal cursor-pointer">
+                    {option}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
         );
-        
-      case "text":
+
+      case "checkbox":
         return (
-          <div key={subField.key} className="space-y-2">
-            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`}>
+          <div key={subField.key} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${parentKey}-${instanceIndex}-${subField.key}`}
+              checked={value || false}
+              onCheckedChange={(checked) => handleNestedChange(subField.key, checked)}
+            />
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`} className="font-normal cursor-pointer">
               {subField.label}
             </Label>
-            <Input
-              id={`${parentKey}-${instanceIndex}-${subField.key}`}
-              value={value || ""}
-              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
-              placeholder={subField.placeholder}
-            />
           </div>
         );
         
       default:
-        return null;
+        return (
+          <div key={subField.key} className="p-2 border border-dashed rounded text-xs text-muted-foreground">
+            Unsupported sub-field type: {subField.type}
+          </div>
+        );
     }
   };
 
@@ -610,7 +696,14 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         );
 
       default:
-        return null;
+        // Defensive rendering for unknown field types
+        return (
+          <div key={field.key} className="p-3 border border-dashed rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Unsupported field type: {field.type}
+            </p>
+          </div>
+        );
     }
   };
 

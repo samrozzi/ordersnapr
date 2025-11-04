@@ -15,6 +15,7 @@ import { TemplateManager } from "@/components/admin/TemplateManager";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -302,20 +303,22 @@ export default function Forms() {
           )}
           <div className="mt-6">
             {selectedTemplate && (
-              <FormRenderer
-                template={selectedTemplate}
-                submission={selectedSubmission}
-                onSuccess={() => {
-                  setSheetMode(null);
-                  setSelectedSubmission(null);
-                  setSelectedTemplate(null);
-                }}
-                onCancel={() => {
-                  setSheetMode(null);
-                  setSelectedSubmission(null);
-                  setSelectedTemplate(null);
-                }}
-              />
+              <ErrorBoundary>
+                <FormRenderer
+                  template={selectedTemplate}
+                  submission={selectedSubmission}
+                  onSuccess={() => {
+                    setSheetMode(null);
+                    setSelectedSubmission(null);
+                    setSelectedTemplate(null);
+                  }}
+                  onCancel={() => {
+                    setSheetMode(null);
+                    setSelectedSubmission(null);
+                    setSelectedTemplate(null);
+                  }}
+                />
+              </ErrorBoundary>
             )}
           </div>
         </SheetContent>
@@ -355,7 +358,17 @@ export default function Forms() {
       <Sheet open={sheetMode === "view"} onOpenChange={(open) => !open && setSheetMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-4 sm:p-6">
           <SheetHeader><SheetTitle>View Submission</SheetTitle></SheetHeader>
-          <div className="mt-6">{selectedSubmission && <FormSubmissionViewer submission={selectedSubmission} onEdit={canDeleteSubmission(selectedSubmission) ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} onDelete={canDeleteSubmission(selectedSubmission) ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} />}</div>
+          <div className="mt-6">
+            {selectedSubmission && (
+              <ErrorBoundary>
+                <FormSubmissionViewer 
+                  submission={selectedSubmission} 
+                  onEdit={canDeleteSubmission(selectedSubmission) ? () => { setSelectedTemplate(templates.find(t => t.id === selectedSubmission.form_template_id)); setSheetMode("edit-submission"); } : undefined} 
+                  onDelete={canDeleteSubmission(selectedSubmission) ? () => { setSubmissionToDelete(selectedSubmission.id); setDeleteDialogOpen(true); } : undefined} 
+                />
+              </ErrorBoundary>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 

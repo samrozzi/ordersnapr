@@ -227,7 +227,10 @@ export const generateFormDOCX = async (
             
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
-              if (subValue) {
+              if (subValue !== null && subValue !== undefined && subValue !== "") {
+                const displayValue = typeof subValue === 'boolean' 
+                  ? (subValue ? 'Yes' : 'No') 
+                  : String(subValue);
                 sections.push(
                   new Paragraph({
                     children: [
@@ -236,7 +239,7 @@ export const generateFormDOCX = async (
                         bold: true,
                       }),
                       new TextRun({
-                        text: String(subValue),
+                        text: displayValue,
                       }),
                     ],
                     spacing: { after: 50 },

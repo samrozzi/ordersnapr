@@ -234,6 +234,23 @@ export function FormCanvas({
     setOverId(over ? (over.id as string) : null);
   };
 
+  // Helper to create a new field from a palette field type
+  const createFieldFromType = (fieldType: FieldType): Field => {
+    const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const label = fieldDef?.label || "New Field";
+    
+    return {
+      id: `field-${timestamp}-${randomId}`,
+      key: label.toLowerCase().replace(/\s+/g, '_'),
+      type: fieldType,
+      label: label,
+      placeholder: "",
+      required: false,
+    };
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -244,14 +261,49 @@ export function FormCanvas({
     const activeFieldId = active.id as string;
     const overFieldId = over.id as string;
     
+    // Check if dragging from palette (field type string) vs existing field (UUID)
+    const isDraggingFromPalette = !fieldToSectionMap.has(activeFieldId);
+    
     const activeSectionId = fieldToSectionMap.get(activeFieldId);
     const overSectionId = fieldToSectionMap.get(overFieldId);
     
-    if (!activeSectionId || !overSectionId) return;
-
     // Check if dropping into a repeating group drop zone
     const isDropZone = overFieldId.endsWith('-drop-zone');
     const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
+    
+    // Handle dropping from palette into repeating group drop zone
+    if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
+      const targetSectionId = fieldToSectionMap.get(targetRepeatingGroupId);
+      if (!targetSectionId) return;
+      
+      // Prevent nested repeating groups
+      if (activeFieldId === "repeating_group") return;
+      
+      const newField = createFieldFromType(activeFieldId as FieldType);
+      
+      onSectionsChange(
+        sections.map((section) => {
+          if (section.id !== targetSectionId) return section;
+          
+          return {
+            ...section,
+            fields: section.fields.map(f => {
+              if (f.id === targetRepeatingGroupId) {
+                return {
+                  ...f,
+                  fields: [...(f.fields || []), newField]
+                };
+              }
+              return f;
+            })
+          };
+        })
+      );
+      return;
+    }
+    
+    // For existing field movements, require section IDs
+    if (!isDraggingFromPalette && (!activeSectionId || !overSectionId)) return;
     
     const activeParentId = fieldToParentMap.get(activeFieldId);
     const overParentId = fieldToParentMap.get(overFieldId);

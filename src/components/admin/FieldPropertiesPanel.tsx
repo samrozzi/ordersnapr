@@ -267,13 +267,13 @@ export function FieldPropertiesPanel({
                   </div>
                 </div>
                 
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium mb-2">Sub-fields</p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Define the fields that will repeat in each entry. Currently supports text, textarea, select, number, date, time, checkbox, and radio fields.
+                <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adding Sub-fields
                   </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Note: Advanced sub-field configuration is done via the template builder. The repeating group will display all configured sub-fields.
+                  <p className="text-xs text-muted-foreground">
+                    To add fields to this repeating group, simply <strong>drag any field from the palette</strong> and drop it onto this repeating group container in the canvas. You can also drag existing fields into the group.
                   </p>
                 </div>
               </div>

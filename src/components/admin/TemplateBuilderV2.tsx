@@ -22,6 +22,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   const [selectedField, setSelectedField] = useState<{
     sectionId: string;
     fieldId: string;
+    parentFieldId?: string;
   } | null>(null);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
   const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
@@ -95,7 +96,22 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           maxFiles: f.maxFiles,
           allowCaptions: f.allowCaptions,
           default: f.default,
-          hideLabel: f.hideLabel,
+          hideLabel: f.hideLabel ?? false, // Default to false if missing
+          fields: f.fields ? f.fields.map((sf: any) => ({
+            id: sf.id || crypto.randomUUID(),
+            key: sf.key || generateKey(sf.label || "untitled_field"),
+            type: sf.type || "text",
+            label: sf.label || "Untitled Field",
+            placeholder: sf.placeholder,
+            required: sf.required || false,
+            options: sf.options,
+            maxLength: sf.maxLength,
+            min: sf.min,
+            max: sf.max,
+            hideLabel: sf.hideLabel ?? false,
+          })) : undefined,
+          minInstances: (f as any).minInstances,
+          maxInstances: (f as any).maxInstances,
         })),
       })),
       require_signature: requireSignature, // Use snake_case for consistency
@@ -158,8 +174,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     toast.success("Field added");
   };
 
-  const handleFieldClick = (sectionId: string, fieldId: string) => {
-    setSelectedField({ sectionId, fieldId });
+  const handleFieldClick = (sectionId: string, fieldId: string, parentFieldId?: string) => {
+    setSelectedField({ sectionId, fieldId, parentFieldId });
     setPropertiesPanelOpen(true);
   };
 
@@ -167,25 +183,51 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (!selectedField) return;
 
     setSections((prev) =>
-      prev.map((section) =>
-        section.id === selectedField.sectionId
-          ? {
-              ...section,
-              fields: section.fields.map((f) =>
-                f.id === selectedField.fieldId ? updatedField : f
-              ),
-            }
-          : section
-      )
+      prev.map((section) => {
+        if (section.id !== selectedField.sectionId) return section;
+
+        if (selectedField.parentFieldId) {
+          // Update nested field
+          return {
+            ...section,
+            fields: section.fields.map((f) =>
+              f.id === selectedField.parentFieldId && f.fields
+                ? {
+                    ...f,
+                    fields: f.fields.map((sf) =>
+                      sf.id === selectedField.fieldId ? updatedField : sf
+                    ),
+                  }
+                : f
+            ),
+          };
+        } else {
+          // Update top-level field
+          return {
+            ...section,
+            fields: section.fields.map((f) =>
+              f.id === selectedField.fieldId ? updatedField : f
+            ),
+          };
+        }
+      })
     );
 
     toast.success("Field updated");
   };
 
   const currentField = selectedField
-    ? sections
-        .find((s) => s.id === selectedField.sectionId)
-        ?.fields.find((f) => f.id === selectedField.fieldId) || null
+    ? (() => {
+        const section = sections.find((s) => s.id === selectedField.sectionId);
+        if (!section) return null;
+
+        if (selectedField.parentFieldId) {
+          const parentField = section.fields.find((f) => f.id === selectedField.parentFieldId);
+          return parentField?.fields?.find((sf) => sf.id === selectedField.fieldId) || null;
+        } else {
+          return section.fields.find((f) => f.id === selectedField.fieldId) || null;
+        }
+      })()
     : null;
 
   return (
@@ -299,6 +341,21 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                       allowCaptions: f.allowCaptions,
                       default: f.default,
                       hideLabel: f.hideLabel,
+                      fields: f.fields?.map((sf) => ({
+                        id: sf.id,
+                        key: sf.key,
+                        type: sf.type,
+                        label: sf.label,
+                        placeholder: sf.placeholder,
+                        required: sf.required,
+                        options: sf.options,
+                        maxLength: sf.maxLength,
+                        min: sf.min,
+                        max: sf.max,
+                        hideLabel: sf.hideLabel,
+                      })),
+                      minInstances: (f as any).minInstances,
+                      maxInstances: (f as any).maxInstances,
                     })),
                   })),
                   require_signature: requireSignature,

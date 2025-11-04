@@ -42,8 +42,9 @@ export const FavoritesWidget = memo(() => {
         const calendarEventIds = favorites.filter(f => f.entity_type === "calendar_event").map(f => f.entity_id);
         const propertyIds = favorites.filter(f => f.entity_type === "property").map(f => f.entity_id);
         const formDraftIds = favorites.filter(f => f.entity_type === "form_draft").map(f => f.entity_id);
+        const formTemplateIds = favorites.filter(f => f.entity_type === "form_template").map(f => f.entity_id);
 
-        const [workOrders, calendarEvents, properties, formDrafts] = await Promise.all([
+        const [workOrders, calendarEvents, properties, formDrafts, formTemplates] = await Promise.all([
           workOrderIds.length > 0 
             ? supabase.from("work_orders").select("id, customer_name, scheduled_date").in("id", workOrderIds)
             : Promise.resolve({ data: [] }),
@@ -56,6 +57,9 @@ export const FavoritesWidget = memo(() => {
           formDraftIds.length > 0
             ? supabase.from("form_drafts").select("id, draft_name, form_type").in("id", formDraftIds)
             : Promise.resolve({ data: [] }),
+          formTemplateIds.length > 0
+            ? supabase.from("form_templates").select("id, name").in("id", formTemplateIds)
+            : Promise.resolve({ data: [] }),
         ]);
 
         // Map entities to lookup
@@ -63,6 +67,7 @@ export const FavoritesWidget = memo(() => {
         const evMap = new Map((calendarEvents.data || []).map(e => [e.id, e]));
         const propMap = new Map((properties.data || []).map(p => [p.id, p]));
         const draftMap = new Map((formDrafts.data || []).map(d => [d.id, d]));
+        const templateMap = new Map((formTemplates.data || []).map(t => [t.id, t]));
 
         const enriched = favorites
           .map(fav => {
@@ -87,6 +92,9 @@ export const FavoritesWidget = memo(() => {
             } else if (fav.entity_type === "form_draft") {
               const draft = draftMap.get(fav.entity_id);
               if (draft) title = draft.draft_name || draft.form_type;
+            } else if (fav.entity_type === "form_template") {
+              const template = templateMap.get(fav.entity_id);
+              if (template) title = template.name;
             }
 
             // Filter out deleted entities
@@ -127,6 +135,9 @@ export const FavoritesWidget = memo(() => {
         break;
       case "form_draft":
         navigate(`/forms?draft=${item.entity_id}`);
+        break;
+      case "form_template":
+        navigate(`/forms?template=${item.entity_id}`);
         break;
       default:
         navigate("/profile?tab=favorites");

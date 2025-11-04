@@ -12,6 +12,7 @@ import { TemplateForm } from "./TemplateForm";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { format } from "date-fns";
 import { useUserPermissions } from "@/hooks/use-user-permissions";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface TemplateManagerProps {
   orgId: string | null;
@@ -155,6 +156,10 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
+                      <FavoriteButton
+                        entityType="form_template"
+                        entityId={template.id}
+                      />
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>

@@ -65,9 +65,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     fetchUser();
   }, []);
 
-  // Auto-create draft submission if none exists (enables photo upload on new forms)
+  // Track if form has been interacted with
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Auto-create draft submission ONLY after user starts filling form
   useEffect(() => {
     if (previewMode) return; // Don't create drafts in preview mode
+    if (!hasInteracted) return; // Don't create until user interacts
     
     const createDraft = async () => {
       if (!submission && userId && orgId && !draftSubmission) {
@@ -92,7 +96,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       }
     };
     createDraft();
-  }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
+  }, [userId, orgId, submission, template.id, draftSubmission, previewMode, hasInteracted]);
 
   // Initialize repeat counts from submission data or defaults (stable)
   useEffect(() => {
@@ -137,6 +141,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   }, [answers, signature, submission, previewMode]);
 
   const handleFieldChange = (key: string, value: any) => {
+    setHasInteracted(true); // Mark as interacted when user changes any field
     setAnswers(prev => ({ ...prev, [key]: value }));
   };
 
@@ -357,6 +362,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       return;
     }
 
+    setHasInteracted(true); // Mark as interacted when explicitly saving
+
     if (submission?.id) {
       await updateMutation.mutateAsync({
         id: submission.id,
@@ -394,21 +401,38 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       submitted_at: new Date().toISOString(),
     };
 
-    if (submission?.id) {
-      await updateMutation.mutateAsync({
-        id: submission.id,
-        ...submissionData,
-      });
-    } else {
-      await createMutation.mutateAsync({
-        org_id: orgId,
-        form_template_id: template.id,
-        created_by: userId,
-        ...submissionData,
-      });
+    try {
+      if (submission?.id) {
+        await updateMutation.mutateAsync({
+          id: submission.id,
+          ...submissionData,
+        });
+      } else {
+        await createMutation.mutateAsync({
+          org_id: orgId,
+          form_template_id: template.id,
+          created_by: userId,
+          ...submissionData,
+        });
+      }
+      
+      // Delete the auto-created draft if it exists and is different from the submission
+      if (draftSubmission && draftSubmission.id !== submission?.id) {
+        try {
+          await supabase
+            .from("form_submissions")
+            .delete()
+            .eq("id", draftSubmission.id);
+        } catch (error) {
+          console.error("Error deleting draft:", error);
+        }
+      }
+      
+      onSuccess();
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Failed to submit form");
     }
-    
-    onSuccess();
   };
 
   const renderField = (field: any) => {

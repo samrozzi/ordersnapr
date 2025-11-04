@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -67,6 +68,20 @@ export default function Forms() {
       }
     }
   }, [searchParams, submissions, templates, setSearchParams]);
+
+  // Handle opening template directly from URL parameter (for favorited templates)
+  useEffect(() => {
+    const templateId = searchParams.get('template');
+    if (templateId && templates.length > 0) {
+      const templateToOpen = templates.find(t => t.id === templateId);
+      if (templateToOpen) {
+        setSelectedTemplate(templateToOpen);
+        setSheetMode('create-submission');
+        // Clear the URL parameter
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, templates, setSearchParams]);
 
   const canDeleteSubmission = (submission: FormSubmission) => {
     return submission.created_by === userId || isOrgAdmin;
@@ -206,17 +221,22 @@ export default function Forms() {
                 </p>
               ) : (
                 templates.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setSelectedTemplate(template);
-                      setSheetMode('create-submission');
-                    }}
-                  >
-                    {template.name}
-                  </Button>
+                  <div key={template.id} className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 justify-start"
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setSheetMode('create-submission');
+                      }}
+                    >
+                      {template.name}
+                    </Button>
+                    <FavoriteButton
+                      entityType="form_template"
+                      entityId={template.id}
+                    />
+                  </div>
                 ))
               )}
             </div>

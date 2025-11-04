@@ -215,7 +215,20 @@ export const generateFormDOCX = async (
           }
           
           answer.forEach((entry: any, idx: number) => {
-            // Entry heading removed per design
+            // Show entry label if preference is enabled
+            if (submission.metadata?.entryLabelPreferences?.[field.key]) {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `Entry ${idx + 1}:`,
+                      bold: true,
+                    }),
+                  ],
+                  spacing: { before: 100, after: 50 },
+                })
+              );
+            }
             
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];

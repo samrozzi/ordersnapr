@@ -162,7 +162,14 @@ export const generateFormPDF = async (
           
           answer.forEach((entry: any, idx: number) => {
             checkPageBreak(15);
-            // Entry heading removed per design
+            
+            // Show entry label if preference is enabled
+            if (submission.metadata?.entryLabelPreferences?.[field.key]) {
+              pdf.setFontSize(10);
+              pdf.setFont("helvetica", "bold");
+              pdf.text(`Entry ${idx + 1}:`, margin + 8, yPos);
+              yPos += 6;
+            }
             
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];

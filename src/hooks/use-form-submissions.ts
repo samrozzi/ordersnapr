@@ -15,6 +15,9 @@ export interface FormSubmission {
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
+  metadata?: {
+    entryLabelPreferences?: Record<string, boolean>;
+  };
   form_templates?: {
     name: string;
     schema: any;
@@ -90,6 +93,9 @@ export const useCreateSubmission = () => {
       job_id?: string | null;
       attachments?: any[];
       signature?: any | null;
+      metadata?: {
+        entryLabelPreferences?: Record<string, boolean>;
+      };
     }) => {
       const { data, error } = await supabase
         .from("form_submissions")

@@ -14,7 +14,7 @@ import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,6 +33,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [orgId, setOrgId] = useState<string | null>(null);
   const [draftSubmission, setDraftSubmission] = useState<FormSubmission | null>(null);
   const [repeatCounts, setRepeatCounts] = useState<Record<string, number>>({});
+  const [showEntryLabels, setShowEntryLabels] = useState<Record<string, boolean>>({});
   
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
@@ -64,6 +65,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     };
     fetchUser();
   }, []);
+
+  // Initialize entry label preferences from submission metadata
+  useEffect(() => {
+    if (submission?.metadata?.entryLabelPreferences) {
+      setShowEntryLabels(submission.metadata.entryLabelPreferences);
+    }
+  }, [submission]);
 
   // Track if form has been interacted with
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -169,6 +177,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     setAnswers(prev => ({
       ...prev,
       [fieldKey]: newEntries
+    }));
+  };
+
+  const toggleEntryLabels = (fieldKey: string) => {
+    setShowEntryLabels(prev => ({
+      ...prev,
+      [fieldKey]: !prev[fieldKey]
     }));
   };
 
@@ -373,6 +388,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         answers,
         signature,
         status: "draft" as const,
+        metadata: { entryLabelPreferences: showEntryLabels },
       });
       toast.success("Draft saved");
     } else {
@@ -383,6 +399,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         answers,
         signature,
         status: "draft" as const,
+        metadata: { entryLabelPreferences: showEntryLabels },
       });
       toast.success("Draft created");
     }
@@ -402,6 +419,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       signature,
       status: "submitted" as const,
       submitted_at: new Date().toISOString(),
+      metadata: { entryLabelPreferences: showEntryLabels },
     };
 
     try {
@@ -665,6 +683,25 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           <div key={field.key} className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-lg font-semibold">{field.label}</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleEntryLabels(field.key)}
+                className="h-8"
+              >
+                {showEntryLabels[field.key] ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Hide Labels
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Show Labels
+                  </>
+                )}
+              </Button>
             </div>
             
             {Array.from({ length: instanceCount }).map((_, instanceIndex) => (
@@ -679,7 +716,14 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <CardContent className="pt-6 space-y-3">
+                {showEntryLabels[field.key] && (
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">
+                      Entry {instanceIndex + 1}
+                    </CardTitle>
+                  </CardHeader>
+                )}
+                <CardContent className={showEntryLabels[field.key] ? "space-y-3" : "pt-6 space-y-3"}>
                   {(field.fields || []).map((subField: any) => {
                     const subValue = entries[instanceIndex]?.[subField.key];
                     return renderRepeatingSubField(

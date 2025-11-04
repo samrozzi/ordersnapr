@@ -12,6 +12,7 @@ import { FormSubmission } from "@/hooks/use-form-submissions";
 import { Calendar, User, FileText, Download, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { generateFormPDF } from "@/lib/form-pdf-generator";
+import { generateFormDOCX } from "@/lib/form-docx-generator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ export function FormSubmissionViewer({
   const schema = submission.form_templates?.schema;
   const canEdit = onEdit; // Allow editing for all submissions if callback provided
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingDOCX, setIsGeneratingDOCX] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -62,6 +64,31 @@ export function FormSubmissionViewer({
       toast.error("Failed to generate PDF");
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleDownloadDOCX = async () => {
+    setIsGeneratingDOCX(true);
+    try {
+      const docBlob = await generateFormDOCX(submission);
+      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.docx`;
+      
+      // Create download link
+      const url = window.URL.createObjectURL(docBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success("Word document downloaded successfully");
+    } catch (error) {
+      console.error("Error generating DOCX:", error);
+      toast.error("Failed to generate Word document");
+    } finally {
+      setIsGeneratingDOCX(false);
     }
   };
 
@@ -347,6 +374,14 @@ export function FormSubmissionViewer({
             <Download className="h-4 w-4" />
           )}
           <span className="ml-2">Download PDF</span>
+        </Button>
+        <Button variant="outline" onClick={handleDownloadDOCX} disabled={isGeneratingDOCX}>
+          {isGeneratingDOCX ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileText className="h-4 w-4" />
+          )}
+          <span className="ml-2">Download Word Doc</span>
         </Button>
         <Button variant="outline" onClick={() => setIsEmailDialogOpen(true)}>
           <Mail className="h-4 w-4" />

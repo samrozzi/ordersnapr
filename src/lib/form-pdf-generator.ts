@@ -206,6 +206,33 @@ export const generateFormPDF = async (
           });
           
           yPos += 3;
+        } else if (field.type === "address" && typeof answer === "object") {
+          // Address field - format as multi-line address
+          if (!field.hideLabel) {
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`${field.label}:`, margin + 5, yPos);
+            yPos += 5;
+          }
+
+          pdf.setFont("helvetica", "normal");
+          const addr = answer as { street?: string; street2?: string; city?: string; state?: string; zip?: string; country?: string };
+          const addressLines: string[] = [];
+          
+          if (addr.street) addressLines.push(addr.street);
+          if (addr.street2) addressLines.push(addr.street2);
+          if (addr.city || addr.state || addr.zip) {
+            const cityStateZip = [addr.city, addr.state, addr.zip].filter(Boolean).join(' ');
+            if (cityStateZip) addressLines.push(cityStateZip);
+          }
+          if (addr.country) addressLines.push(addr.country);
+          
+          addressLines.forEach((line: string) => {
+            checkPageBreak(5);
+            pdf.text(line, margin + 10, yPos);
+            yPos += 5;
+          });
+          yPos += 5;
         } else {
           // Regular text field - render with label if not hidden
           if (!field.hideLabel) {

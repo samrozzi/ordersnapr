@@ -266,6 +266,39 @@ export const generateFormDOCX = async (
           });
           
           sections.push(new Paragraph({ text: "", spacing: { after: 200 } }));
+        } else if (field.type === "address" && typeof answer === "object") {
+          // Address field - format as multi-line address
+          if (!field.hideLabel) {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `${field.label}:`,
+                    bold: true,
+                  }),
+                ],
+                spacing: { after: 100 },
+              })
+            );
+          }
+          
+          const addr = answer as { street?: string; street2?: string; city?: string; state?: string; zip?: string; country?: string };
+          const addressLines: string[] = [];
+          
+          if (addr.street) addressLines.push(addr.street);
+          if (addr.street2) addressLines.push(addr.street2);
+          if (addr.city || addr.state || addr.zip) {
+            const cityStateZip = [addr.city, addr.state, addr.zip].filter(Boolean).join(' ');
+            if (cityStateZip) addressLines.push(cityStateZip);
+          }
+          if (addr.country) addressLines.push(addr.country);
+          
+          sections.push(
+            new Paragraph({
+              text: addressLines.join('\n'),
+              spacing: { after: 200 },
+            })
+          );
         } else {
           // Regular text field
           if (!field.hideLabel) {

@@ -14,7 +14,8 @@ import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
-import { Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -683,25 +684,16 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           <div key={field.key} className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-lg font-semibold">{field.label}</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => toggleEntryLabels(field.key)}
-                className="h-8"
-              >
-                {showEntryLabels[field.key] ? (
-                  <>
-                    <EyeOff className="h-4 w-4 mr-1" />
-                    Hide Labels
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-1" />
-                    Show Labels
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Label htmlFor={`labels-toggle-${field.key}`} className="text-sm text-muted-foreground">
+                  Labels {showEntryLabels[field.key] ? "On" : "Off"}
+                </Label>
+                <Switch
+                  id={`labels-toggle-${field.key}`}
+                  checked={showEntryLabels[field.key] || false}
+                  onCheckedChange={() => toggleEntryLabels(field.key)}
+                />
+              </div>
             </div>
             
             {Array.from({ length: instanceCount }).map((_, instanceIndex) => (

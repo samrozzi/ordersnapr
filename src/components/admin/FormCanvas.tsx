@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2 } from "lucide-react";
+import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FieldType } from "./FieldPalette";
 import { fieldTypes } from "./FieldPalette";
@@ -102,6 +102,30 @@ export function FormCanvas({
           ? { ...s, fields: s.fields.filter((f) => f.id !== fieldId) }
           : s
       )
+    );
+  };
+
+  const handleCopyField = (sectionId: string, fieldId: string) => {
+    onSectionsChange(
+      sections.map((s) => {
+        if (s.id !== sectionId) return s;
+        
+        const fieldIndex = s.fields.findIndex((f) => f.id === fieldId);
+        if (fieldIndex === -1) return s;
+        
+        const originalField = s.fields[fieldIndex];
+        const copiedField: Field = {
+          ...originalField,
+          id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          label: `${originalField.label} (Copy)`,
+          key: `${originalField.key}_copy_${Date.now()}`,
+        };
+        
+        const newFields = [...s.fields];
+        newFields.splice(fieldIndex + 1, 0, copiedField);
+        
+        return { ...s, fields: newFields };
+      })
     );
   };
 
@@ -193,6 +217,7 @@ export function FormCanvas({
                       key={field.id}
                       field={field}
                       onFieldClick={() => onFieldClick(section.id, field.id)}
+                      onCopy={() => handleCopyField(section.id, field.id)}
                       onRemove={() => handleRemoveField(section.id, field.id)}
                     />
                   ))}
@@ -214,10 +239,12 @@ export function FormCanvas({
 function SortableFieldCard({
   field,
   onFieldClick,
+  onCopy,
   onRemove,
 }: {
   field: Field;
   onFieldClick: () => void;
+  onCopy: () => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -275,6 +302,7 @@ function SortableFieldCard({
           size="icon"
           className="h-8 w-8"
           onClick={onFieldClick}
+          title="Edit field settings"
         >
           <Settings className="h-4 w-4" />
         </Button>
@@ -282,8 +310,19 @@ function SortableFieldCard({
           type="button"
           variant="ghost"
           size="icon"
+          className="h-8 w-8"
+          onClick={onCopy}
+          title="Duplicate field"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
           onClick={onRemove}
+          title="Delete field"
         >
           <Trash2 className="h-4 w-4" />
         </Button>

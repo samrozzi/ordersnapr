@@ -94,8 +94,19 @@ export function FormSubmissionViewer({
         themeColor: themeColor || undefined
       });
       const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
-      pdf.save(fileName);
-      toast.success("PDF downloaded successfully");
+      
+      // Create blob and download link (same pattern as DOCX)
+      const blob = pdf.output('blob');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success("PDF ready for download");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF");

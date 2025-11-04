@@ -260,8 +260,7 @@ export function FormSubmissionViewer({
           <div className="space-y-3">
             {value.map((entry: any, idx: number) => (
               <div key={idx} className="border rounded-lg p-3 bg-muted/30">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Entry {idx + 1}</p>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                   {(field.fields || []).map((subField: any) => {
                     const subValue = entry[subField.key];
                     if (!subValue && subValue !== 0) return null;

@@ -3,5 +3,8 @@ project_id = "vqudyddedeacspujotsa"
 [functions.extract-form-data]
 verify_jwt = true
 
+[functions.extract-form-structure]
+verify_jwt = true
+
 [functions.send-report-email]
 verify_jwt = true

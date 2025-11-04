@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateTemplate, useUpdateTemplate, FormTemplate } from "@/hooks/use-form-templates";
 import { TemplateBuilder } from "./TemplateBuilder";
 import { TemplateBuilderV2 } from "./TemplateBuilderV2";
+import { FormImporter } from "./FormImporter";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,7 +32,7 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const [schemaJson, setSchemaJson] = useState(
     template ? JSON.stringify(template.schema, null, 2) : ""
   );
-  const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
+  const [viewMode, setViewMode] = useState<"visual" | "json" | "import">("visual");
   const [userId, setUserId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
@@ -63,6 +64,13 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const handleSchemaChange = useCallback((newSchema: any) => {
     setSchema(newSchema);
     setSchemaJson(JSON.stringify(newSchema, null, 2));
+  }, []);
+
+  const handleImportComplete = useCallback((importedSchema: any) => {
+    setSchema(importedSchema);
+    setSchemaJson(JSON.stringify(importedSchema, null, 2));
+    setViewMode("visual");
+    toast.success("Template structure loaded into builder!");
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,10 +198,11 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
         </div>
       </div>
 
-      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "visual" | "json")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "visual" | "json" | "import")} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="visual">Visual Builder</TabsTrigger>
           <TabsTrigger value="json">JSON Editor</TabsTrigger>
+          <TabsTrigger value="import">Import Form</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visual" className="mt-4">
@@ -218,6 +227,10 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
               Define form structure using JSON schema format
             </p>
           </div>
+        </TabsContent>
+
+        <TabsContent value="import" className="mt-4">
+          <FormImporter onImportComplete={handleImportComplete} />
         </TabsContent>
       </Tabs>
 

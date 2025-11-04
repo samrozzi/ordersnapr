@@ -45,6 +45,7 @@ interface AuditLog {
   action: string;
   created_at: string;
   changes: any;
+  user_name?: string;
   user_email?: string;
 }
 
@@ -94,22 +95,26 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
       .limit(5);
     
     if (data) {
-      // Fetch user emails separately
+      // Fetch user profiles separately
       const userIds = [...new Set((data as any[]).map((log: any) => log.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, email")
+        .select("id, full_name, email")
         .in("id", userIds);
       
-      const profileMap = new Map(profiles?.map(p => [p.id, p.email]) || []);
+      const profileMap = new Map(profiles?.map(p => [p.id, { name: p.full_name, email: p.email }]) || []);
       
-      setAuditLogs((data as any[]).map((log: any) => ({
-        id: log.id,
-        action: log.action,
-        created_at: log.created_at,
-        changes: log.changes,
-        user_email: profileMap.get(log.user_id) || "Unknown"
-      })));
+      setAuditLogs((data as any[]).map((log: any) => {
+        const profile = profileMap.get(log.user_id);
+        return {
+          id: log.id,
+          action: log.action,
+          created_at: log.created_at,
+          changes: log.changes,
+          user_name: profile?.name || null,
+          user_email: profile?.email || "Unknown"
+        };
+      }));
     }
   };
 
@@ -574,7 +579,7 @@ ${workOrder.notes}` : ''}`;
                       <div className="flex-1">
                         <p className="font-medium">{log.action.charAt(0).toUpperCase() + log.action.slice(1)}</p>
                         <p className="text-muted-foreground">
-                          by {log.user_email} on {format(new Date(log.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                          by {log.user_name || log.user_email} on {format(new Date(log.created_at), "MMM dd, yyyy 'at' h:mm a")}
                         </p>
                       </div>
                     </div>

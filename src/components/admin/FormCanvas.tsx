@@ -46,6 +46,7 @@ export interface Field {
   
   // Select/Radio/Checklist specific
   options?: string[];
+  items?: string[]; // For checklist backwards compatibility
   
   // File upload specific
   accept?: string[];

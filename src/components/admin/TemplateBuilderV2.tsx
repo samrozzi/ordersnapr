@@ -44,11 +44,12 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         fields: (s.fields || []).map((f: any) => ({
           id: f.id || crypto.randomUUID(),
           key: f.key || generateKey(f.label || "untitled_field"),
-          type: f.type || "text",
+          type: f.type === 'job_lookup' ? 'text' : (f.type || "text"), // Convert unsupported types
           label: f.label || "Untitled Field",
           placeholder: f.placeholder,
           required: f.required || false,
-          options: f.options,
+          options: f.options || f.items, // Use items if options don't exist
+          items: f.items, // Preserve items for backwards compatibility
           maxLength: f.maxLength,
           min: f.min,
           max: f.max,
@@ -56,13 +57,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           maxFiles: f.maxFiles,
           allowCaptions: f.allowCaptions,
           default: f.default,
-          hideLabel: f.hideLabel || false,
+          hideLabel: f.hideLabel ?? false, // Default to false if missing
         })),
       }));
       setSections(loadedSections);
     }
 
-    if (schema?.requireSignature) {
+    if (schema?.requireSignature || schema?.require_signature) {
       setRequireSignature(true);
     }
   }, [schema, generateKey]);
@@ -84,6 +85,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           placeholder: f.placeholder,
           required: f.required,
           options: f.options,
+          items: f.items, // Preserve items for backwards compatibility
           maxLength: f.maxLength,
           min: f.min,
           max: f.max,
@@ -94,7 +96,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           hideLabel: f.hideLabel,
         })),
       })),
-      requireSignature,
+      require_signature: requireSignature, // Use snake_case for consistency
+      requireSignature, // Keep both for backwards compatibility
     };
     onSchemaChange(newSchema);
   }, [sections, requireSignature, onSchemaChange]);
@@ -281,6 +284,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                       placeholder: f.placeholder,
                       required: f.required,
                       options: f.options,
+                      items: f.items,
                       maxLength: f.maxLength,
                       min: f.min,
                       max: f.max,

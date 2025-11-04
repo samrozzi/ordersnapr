@@ -353,8 +353,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           <ChecklistField
             key={field.key}
             label={field.hideLabel ? undefined : field.label}
-            items={field.items}
-            options={field.options}
+            items={field.items || field.options || []}
+            options={field.options || field.items || []}
             value={value || {}}
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
           />
@@ -374,6 +374,25 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             submissionId={submission?.id || draftSubmission?.id || ""}
           />
         ) : null;
+
+      case "job_lookup":
+        // Render as text input for backwards compatibility
+        return (
+          <div key={field.key} className="space-y-2">
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
+            <Input
+              id={field.key}
+              value={value || ""}
+              onChange={(e) => handleFieldChange(field.key, e.target.value)}
+              placeholder={field.placeholder || "Enter job ID or search..."}
+              aria-label={field.hideLabel ? field.label : undefined}
+            />
+          </div>
+        );
 
       default:
         return null;

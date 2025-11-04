@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
+  const creatingDraftRef = useRef(false);
 
   // Helper function to initialize checklist with N/A defaults
   const getDefaultChecklistValue = (items: string[]) => {
@@ -89,37 +90,49 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     }
   }, [submission]);
 
-  // Track if form has been interacted with
-  const [hasInteracted, setHasInteracted] = useState(false);
-
-  // Auto-create draft submission immediately when form loads
-  useEffect(() => {
-    if (previewMode) return; // Don't create drafts in preview mode
+  // Lazy draft creation - only create when user actually interacts
+  const ensureDraft = async (): Promise<string | null> => {
+    if (previewMode) return null;
     
-    const createDraft = async () => {
-      if (!submission && userId && orgId && !draftSubmission) {
-        try {
-          const { data, error } = await supabase
-            .from("form_submissions")
-            .insert({
-              org_id: orgId,
-              form_template_id: template.id,
-              created_by: userId,
-              answers: {},
-              status: "draft"
-            })
-            .select()
-            .single();
+    // If we already have a submission or draft, return its ID
+    const existingId = submission?.id || draftSubmission?.id;
+    if (existingId) return existingId;
+    
+    // Prevent duplicate creation during rapid interactions
+    if (creatingDraftRef.current) {
+      // Wait for the in-flight creation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return submission?.id || draftSubmission?.id || null;
+    }
+    
+    // Only create if we have the required IDs
+    if (!userId || !orgId) return null;
+    
+    creatingDraftRef.current = true;
+    
+    try {
+      const { data, error } = await supabase
+        .from("form_submissions")
+        .insert({
+          org_id: orgId,
+          form_template_id: template.id,
+          created_by: userId,
+          answers: {},
+          status: "draft"
+        })
+        .select()
+        .single();
 
-          if (error) throw error;
-          setDraftSubmission(data as unknown as FormSubmission);
-        } catch (error) {
-          console.error("Error creating draft submission:", error);
-        }
-      }
-    };
-    createDraft();
-  }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
+      if (error) throw error;
+      setDraftSubmission(data as unknown as FormSubmission);
+      return data.id;
+    } catch (error) {
+      console.error("Error creating draft submission:", error);
+      return null;
+    } finally {
+      creatingDraftRef.current = false;
+    }
+  };
 
   // Initialize repeat counts from submission data or defaults (stable)
   useEffect(() => {
@@ -163,8 +176,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     return () => clearInterval(interval);
   }, [answers, signature, submission, previewMode]);
 
-  const handleFieldChange = (key: string, value: any) => {
-    setHasInteracted(true); // Mark as interacted when user changes any field
+  const handleFieldChange = async (key: string, value: any) => {
+    // Ensure draft exists on first interaction
+    await ensureDraft();
     setAnswers(prev => ({ ...prev, [key]: value }));
   };
 
@@ -403,10 +417,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       return;
     }
 
-    setHasInteracted(true); // Mark as interacted when explicitly saving
-
-    // Use existing submission or auto-created draft
-    const existingId = submission?.id || draftSubmission?.id;
+    // Ensure draft exists
+    const existingId = await ensureDraft();
 
     if (existingId) {
       await updateMutation.mutateAsync({
@@ -449,8 +461,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     };
 
     try {
-      // Use existing submission or auto-created draft
-      const existingId = submission?.id || draftSubmission?.id;
+      // Ensure draft exists
+      const existingId = await ensureDraft();
       
       if (existingId) {
         await updateMutation.mutateAsync({
@@ -656,13 +668,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       case "file":
         const fileSubmissionId = submission?.id || draftSubmission?.id;
         
-        // Always show the field, but display a message if IDs are not ready
-        if (!orgId || !fileSubmissionId) {
+        // Show loading state if orgId is not ready
+        if (!orgId) {
           return (
             <div key={field.key} className="space-y-2">
               {!field.hideLabel && <Label>{field.label}</Label>}
               <div className="p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
-                Loading file upload...
+                Loading...
               </div>
             </div>
           );
@@ -679,6 +691,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
             orgId={orgId}
             submissionId={fileSubmissionId}
+            onPrepare={ensureDraft}
           />
         );
 

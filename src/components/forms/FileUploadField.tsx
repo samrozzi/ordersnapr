@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,9 @@ interface FileUploadFieldProps {
   onChange: (value: FileItem[]) => void;
   readOnly?: boolean;
   orgId: string;
-  submissionId: string;
+  submissionId?: string;
   label?: string;
+  onPrepare?: () => Promise<string | null>;
 }
 
 export function FileUploadField({
@@ -38,17 +39,42 @@ export function FileUploadField({
   orgId,
   submissionId,
   label,
+  onPrepare,
 }: FileUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = async () => {
+    setPreparing(true);
+    try {
+      // Ensure we have a submission ID before opening file picker
+      if (onPrepare && !submissionId) {
+        await onPrepare();
+      }
+      
+      // Trigger the hidden file input
+      fileInputRef.current?.click();
+    } finally {
+      setPreparing(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
+    
+    if (!submissionId) {
+      toast.error("Unable to upload files. Please try again.");
+      if (e.target) e.target.value = '';
+      return;
+    }
 
     const files = Array.from(e.target.files);
 
     if (value.length + files.length > maxFiles) {
       toast.error(`Maximum ${maxFiles} files allowed`);
+      if (e.target) e.target.value = '';
       return;
     }
 
@@ -118,28 +144,24 @@ export function FileUploadField({
       {!readOnly && value.length < maxFiles && (
         <div>
           <Input
+            ref={fileInputRef}
             type="file"
             accept={acceptString}
             onChange={handleFileUpload}
-            disabled={uploading}
+            disabled={uploading || preparing}
             multiple
             className="hidden"
-            id={`file-upload-${submissionId}`}
           />
-          <label htmlFor={`file-upload-${submissionId}`}>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={uploading}
-              className="w-full cursor-pointer"
-              asChild
-            >
-              <span>
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Uploading...' : `Upload Files (${value.length}/${maxFiles})`}
-              </span>
-            </Button>
-          </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={uploading || preparing}
+            className="w-full"
+            onClick={handleUploadClick}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {preparing ? 'Preparing...' : uploading ? 'Uploading...' : `Upload Files (${value.length}/${maxFiles})`}
+          </Button>
         </div>
       )}
 

@@ -102,25 +102,25 @@ export function FieldPropertiesPanel({
 
             {/* Label */}
             <div className="space-y-2">
-              <Label htmlFor="label">Label *</Label>
+              <Label htmlFor="field-label">Label *</Label>
               <Input
-                id="label"
+                id="field-label"
                 value={editedField.label}
                 onChange={(e) => handleLabelChange(e.target.value)}
-                placeholder="e.g. Customer Name"
+                placeholder="Field label text"
               />
             </div>
 
             {/* Placeholder */}
             <div className="space-y-2">
-              <Label htmlFor="placeholder">Placeholder</Label>
+              <Label htmlFor="field-placeholder">Placeholder</Label>
               <Input
-                id="placeholder"
+                id="field-placeholder"
                 value={editedField.placeholder || ""}
                 onChange={(e) =>
                   setEditedField({ ...editedField, placeholder: e.target.value })
                 }
-                placeholder="e.g. Enter customer name"
+                placeholder="Placeholder hint text"
               />
             </div>
 

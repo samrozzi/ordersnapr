@@ -379,6 +379,7 @@ export type Database = {
           name: string
           org_id: string | null
           schema: Json
+          scope: string | null
           slug: string
           updated_at: string | null
           version: number | null
@@ -393,6 +394,7 @@ export type Database = {
           name: string
           org_id?: string | null
           schema: Json
+          scope?: string | null
           slug: string
           updated_at?: string | null
           version?: number | null
@@ -407,6 +409,7 @@ export type Database = {
           name?: string
           org_id?: string | null
           schema?: Json
+          scope?: string | null
           slug?: string
           updated_at?: string | null
           version?: number | null

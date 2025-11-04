@@ -91,16 +91,18 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {template.is_global ? (
+                      {(template as any).scope === 'global' ? (
                         <>
                           <Globe className="h-3 w-3" />
                           <span className="text-xs">Global</span>
                         </>
-                      ) : (
+                      ) : (template as any).scope === 'organization' ? (
                         <>
                           <Building2 className="h-3 w-3" />
-                          <span className="text-xs">Org</span>
+                          <span className="text-xs">Organization</span>
                         </>
+                      ) : (
+                        <span className="text-xs">Personal</span>
                       )}
                     </div>
                   </TableCell>

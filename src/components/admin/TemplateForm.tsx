@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateTemplate, useUpdateTemplate, FormTemplate } from "@/hooks/use-form-templates";
 import { TemplateBuilder } from "./TemplateBuilder";
@@ -22,7 +23,9 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const [name, setName] = useState(template?.name || "");
   const [category, setCategory] = useState(template?.category || "");
   const [description, setDescription] = useState(template?.schema?.description || "");
-  const [isGlobal, setIsGlobal] = useState(template?.is_global || false);
+  const [scope, setScope] = useState<'global' | 'organization' | 'user'>(
+    (template as any)?.scope || 'user'
+  );
   const [isActive, setIsActive] = useState(template?.is_active !== false);
   const [schema, setSchema] = useState(template?.schema || { sections: [] });
   const [schemaJson, setSchemaJson] = useState(
@@ -30,16 +33,31 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   );
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
   const [userId, setUserId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 
   const createMutation = useCreateTemplate();
   const updateMutation = useUpdateTemplate();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserRoles = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_super_admin, is_org_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setIsSuperAdmin(profile.is_super_admin || false);
+          setIsOrgAdmin(profile.is_org_admin || false);
+        }
+      }
     };
-    fetchUser();
+    fetchUserRoles();
   }, []);
 
   const handleSchemaChange = useCallback((newSchema: any) => {
@@ -77,7 +95,8 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
       slug,
       category: category || null,
       schema: finalSchema,
-      is_global: isGlobal,
+      scope,
+      is_global: scope === 'global',
       is_active: isActive,
       created_by: userId,
     };
@@ -108,36 +127,54 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Input
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="e.g. AT&T"
+          />
+        </div>
+
+        <div className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. AT&T"
-            />
+            <Label>Template Visibility</Label>
+            <RadioGroup value={scope} onValueChange={(v) => setScope(v as any)}>
+              {isSuperAdmin && (
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="global" id="scope-global" />
+                  <Label htmlFor="scope-global" className="font-normal cursor-pointer">
+                    <span className="font-medium">Global</span> - Available to all organizations site-wide
+                  </Label>
+                </div>
+              )}
+              {(isSuperAdmin || isOrgAdmin) && (
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="organization" id="scope-org" />
+                  <Label htmlFor="scope-org" className="font-normal cursor-pointer">
+                    <span className="font-medium">All Organization</span> - Available to everyone in your organization
+                  </Label>
+                </div>
+              )}
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="user" id="scope-user" />
+                <Label htmlFor="scope-user" className="font-normal cursor-pointer">
+                  <span className="font-medium">User Only</span> - Only visible to you
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
-          <div className="space-y-2 flex items-end">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="is_global"
-                  checked={isGlobal}
-                  onCheckedChange={setIsGlobal}
-                />
-                <Label htmlFor="is_global" className="text-sm">Global</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="is_active"
-                  checked={isActive}
-                  onCheckedChange={setIsActive}
-                />
-                <Label htmlFor="is_active" className="text-sm">Active</Label>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 pt-2">
+            <Switch
+              id="is_active"
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+            <Label htmlFor="is_active" className="text-sm font-normal">
+              Active (visible in selection lists)
+            </Label>
           </div>
         </div>
 

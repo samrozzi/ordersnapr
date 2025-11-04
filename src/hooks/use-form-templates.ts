@@ -22,11 +22,18 @@ export const useFormTemplates = (orgId: string | null) => {
     queryFn: async () => {
       if (!orgId) return [];
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
+      // Fetch templates based on scope:
+      // - Global templates (scope = 'global')
+      // - Organization templates in user's org (scope = 'organization' AND org_id matches)
+      // - Personal templates created by user (scope = 'user' AND created_by matches)
       const { data, error } = await supabase
         .from("form_templates")
         .select("*")
-        .or(`is_global.eq.true,org_id.eq.${orgId}`)
         .eq("is_active", true)
+        .or(`scope.eq.global,and(scope.eq.organization,org_id.eq.${orgId}),and(scope.eq.user,created_by.eq.${user.id})`)
         .order("name");
 
       if (error) throw error;

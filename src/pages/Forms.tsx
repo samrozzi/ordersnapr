@@ -19,7 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("all");
-  const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | null>(null);
+  const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | "edit-template" | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -227,6 +227,21 @@ export default function Forms() {
               {sheetMode === 'edit-submission' ? 'Edit Submission' : 'New Submission'}
             </SheetTitle>
           </SheetHeader>
+          {selectedTemplate && isOrgAdmin && (
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSheetMode('edit-template');
+                }}
+                className="w-full"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Template Structure
+              </Button>
+            </div>
+          )}
           <div className="mt-6">
             {selectedTemplate && (
               <FormRenderer
@@ -248,24 +263,30 @@ export default function Forms() {
         </SheetContent>
       </Sheet>
 
-      {/* Sheet for creating template */}
-      <Sheet open={sheetMode === 'create-template'} onOpenChange={(open) => {
+      {/* Sheet for creating/editing template */}
+      <Sheet open={sheetMode === 'create-template' || sheetMode === 'edit-template'} onOpenChange={(open) => {
         if (!open) {
           setSheetMode(null);
+          setSelectedTemplate(null);
         }
       }}>
         <SheetContent className="w-full sm:max-w-4xl overflow-y-auto p-4 sm:p-6">
           <SheetHeader>
-            <SheetTitle>Create New Template</SheetTitle>
+            <SheetTitle>
+              {sheetMode === 'edit-template' ? 'Edit Template Structure' : 'Create New Template'}
+            </SheetTitle>
           </SheetHeader>
           <div className="mt-6">
             <TemplateForm
+              template={sheetMode === 'edit-template' ? selectedTemplate : undefined}
               orgId={orgId}
               onSuccess={() => {
                 setSheetMode(null);
+                setSelectedTemplate(null);
               }}
               onCancel={() => {
                 setSheetMode(null);
+                setSelectedTemplate(null);
               }}
             />
           </div>

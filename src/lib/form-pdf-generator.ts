@@ -1,10 +1,12 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FormSubmission } from "@/hooks/use-form-submissions";
+import { hexToRGB } from "./color-utils";
 
 interface PDFOptions {
   includePhotos?: boolean;
   includeSignature?: boolean;
+  themeColor?: string; // hex color for header bar
 }
 
 export const generateFormPDF = async (
@@ -27,13 +29,20 @@ export const generateFormPDF = async (
     return false;
   };
 
-  // Add professional header
-  pdf.setFillColor(240, 240, 240);
+  // Add professional header with theme color if available
+  if (options.themeColor) {
+    const [r, g, b] = hexToRGB(options.themeColor);
+    pdf.setFillColor(r, g, b);
+    pdf.setTextColor(255, 255, 255); // White text on colored background
+  } else {
+    pdf.setFillColor(240, 240, 240);
+    pdf.setTextColor(40, 40, 40); // Dark text on grey background
+  }
   pdf.rect(0, 10, pageWidth, 15, "F");
   pdf.setFontSize(18);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(40, 40, 40);
   pdf.text(submission.form_templates?.name || "Form Submission Report", pageWidth / 2, yPos, { align: "center" });
+  pdf.setTextColor(40, 40, 40); // Reset to dark text for body
   yPos += 20;
 
   // Add sections and fields

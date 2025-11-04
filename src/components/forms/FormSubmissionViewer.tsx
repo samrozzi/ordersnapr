@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,39 @@ export function FormSubmissionViewer({
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [themeColor, setThemeColor] = useState<string | null>(null);
+
+  // Fetch organization theme color
+  useEffect(() => {
+    const fetchThemeColor = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", user.id)
+          .single();
+
+        if (!profileData?.organization_id) return;
+
+        const { data: settingsData } = await supabase
+          .from("organization_settings")
+          .select("custom_theme_color")
+          .eq("organization_id", profileData.organization_id)
+          .maybeSingle();
+
+        if (settingsData?.custom_theme_color) {
+          setThemeColor(settingsData.custom_theme_color);
+        }
+      } catch (error) {
+        console.error("Error fetching theme color:", error);
+      }
+    };
+
+    fetchThemeColor();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -55,7 +88,11 @@ export function FormSubmissionViewer({
     try {
       // Always use the generic generator for form submissions
       // Job Audit forms from the JobAudit page use their own specialized generator
-      const pdf = await generateFormPDF(submission);
+      const pdf = await generateFormPDF(submission, { 
+        includePhotos: true, 
+        includeSignature: true,
+        themeColor: themeColor || undefined
+      });
       const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
       pdf.save(fileName);
       toast.success("PDF downloaded successfully");
@@ -108,7 +145,11 @@ export function FormSubmissionViewer({
 
     try {
       // Generate PDF
-      const pdf = await generateFormPDF(submission);
+      const pdf = await generateFormPDF(submission, {
+        includePhotos: true,
+        includeSignature: true,
+        themeColor: themeColor || undefined
+      });
       const pdfBase64 = pdf.output("dataurlstring").split(",")[1];
       const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
 

@@ -43,3 +43,19 @@ export function hexToHSL(hex: string): string {
   // Return in the format expected by CSS variables (no commas, no units except %)
   return `${hDeg} ${sPercent}% ${lPercent}%`;
 }
+
+/**
+ * Convert hex color to RGB array for PDF/canvas
+ * @param hex - Hex color string (e.g., "#3b82f6")
+ * @returns RGB array (e.g., [59, 130, 246])
+ */
+export function hexToRGB(hex: string): [number, number, number] {
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+  
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+
+  return [r, g, b];
+}

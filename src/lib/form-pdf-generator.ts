@@ -285,10 +285,15 @@ export const generateFormPDF = async (
       pdf.setTextColor(40, 40, 40);
       yPos += 15;
 
+      // 2-column grid layout tracking
+      let columnIndex = 0;
+      let currentRowMaxHeight = 0;
+      const photosPerRow = 2;
+      const columnSpacing = 10;
+      const maxImgWidth = (pageWidth - 3 * margin) / 2;
+
       for (const photo of allPhotos) {
         try {
-          checkPageBreak(80);
-          
           // Fetch and compress image with timeout
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -314,8 +319,7 @@ export const generateFormPDF = async (
                   img.onload = imgResolve;
                 });
 
-                // Calculate dimensions to fit in PDF (2 per row)
-                const maxImgWidth = (pageWidth - 3 * margin) / 2;
+                // Calculate dimensions to fit in PDF
                 const maxImgHeight = 70;
                 let imgWidth = img.width;
                 let imgHeight = img.height;
@@ -324,23 +328,44 @@ export const generateFormPDF = async (
                 imgWidth *= ratio;
                 imgHeight *= ratio;
 
-                pdf.addImage(reader.result as string, "JPEG", margin, yPos, imgWidth, imgHeight, undefined, "MEDIUM");
-                yPos += imgHeight + 5;
+                // Calculate x position based on column
+                const xPos = columnIndex === 0 
+                  ? margin 
+                  : margin + maxImgWidth + columnSpacing;
 
+                // Add image at calculated position
+                pdf.addImage(reader.result as string, "JPEG", xPos, yPos, imgWidth, imgHeight, undefined, "MEDIUM");
+
+                // Track the maximum height in this row
+                currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight);
+
+                // Handle caption if present
+                let captionHeight = 0;
                 if (photo.caption) {
                   pdf.setFontSize(9);
                   pdf.setFont("helvetica", "italic");
                   pdf.setTextColor(100, 100, 100);
                   const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
-                  captionLines.forEach((line: string) => {
-                    checkPageBreak(5);
-                    pdf.text(line, margin, yPos);
-                    yPos += 5;
+                  captionLines.forEach((line: string, idx: number) => {
+                    pdf.text(line, xPos, yPos + imgHeight + 5 + (idx * 5));
+                    captionHeight += 5;
                   });
                   pdf.setTextColor(40, 40, 40);
+                  currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight + captionHeight + 5);
                 }
 
-                yPos += 8;
+                // Move to next column or next row
+                columnIndex++;
+                if (columnIndex >= photosPerRow) {
+                  // Move to next row
+                  columnIndex = 0;
+                  yPos += currentRowMaxHeight + 8;
+                  currentRowMaxHeight = 0;
+                  
+                  // Check if we need a new page for next row
+                  checkPageBreak(80);
+                }
+
                 resolve(null);
               } catch (error) {
                 console.error("Error processing image:", error);
@@ -358,6 +383,11 @@ export const generateFormPDF = async (
           }
           // Continue with next photo instead of failing entire PDF
         }
+      }
+
+      // If we ended mid-row, increment yPos for the final row
+      if (columnIndex > 0) {
+        yPos += currentRowMaxHeight + 8;
       }
     }
   }

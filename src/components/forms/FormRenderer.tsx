@@ -364,9 +364,12 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
     setHasInteracted(true); // Mark as interacted when explicitly saving
 
-    if (submission?.id) {
+    // Use existing submission or auto-created draft
+    const existingId = submission?.id || draftSubmission?.id;
+
+    if (existingId) {
       await updateMutation.mutateAsync({
-        id: submission.id,
+        id: existingId,
         answers,
         signature,
         status: "draft" as const,
@@ -402,9 +405,12 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     };
 
     try {
-      if (submission?.id) {
+      // Use existing submission or auto-created draft
+      const existingId = submission?.id || draftSubmission?.id;
+      
+      if (existingId) {
         await updateMutation.mutateAsync({
-          id: submission.id,
+          id: existingId,
           ...submissionData,
         });
       } else {
@@ -414,18 +420,6 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           created_by: userId,
           ...submissionData,
         });
-      }
-      
-      // Delete the auto-created draft if it exists and is different from the submission
-      if (draftSubmission && draftSubmission.id !== submission?.id) {
-        try {
-          await supabase
-            .from("form_submissions")
-            .delete()
-            .eq("id", draftSubmission.id);
-        } catch (error) {
-          console.error("Error deleting draft:", error);
-        }
       }
       
       onSuccess();

@@ -11,6 +11,7 @@ import { useFormSubmissions, useDeleteSubmission, FormSubmission } from "@/hooks
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { FormSubmissionViewer } from "@/components/forms/FormSubmissionViewer";
 import { TemplateForm } from "@/components/admin/TemplateForm";
+import { TemplateManager } from "@/components/admin/TemplateManager";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -117,6 +118,13 @@ export default function Forms() {
           >
             Submitted
           </Button>
+          <Button
+            variant={activeTab === 'templates' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('templates')}
+          >
+            Templates
+          </Button>
         </div>
       </div>
 
@@ -162,6 +170,9 @@ export default function Forms() {
         </SheetContent>
       </Sheet>
 
+      {activeTab === 'templates' ? (
+        <TemplateManager orgId={orgId} />
+      ) : (
         <div className="border rounded-lg overflow-x-auto touch-pan-x">
           <Table className="min-w-max">
             <TableHeader>
@@ -200,6 +211,7 @@ export default function Forms() {
               </TableBody>
             </Table>
         </div>
+      )}
 
       {/* Sheet for creating/editing submission */}
       <Sheet open={sheetMode === 'create-submission' || sheetMode === 'edit-submission'} onOpenChange={(open) => {

@@ -267,20 +267,6 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         </div>
       )}
 
-      {/* Floating Add Field Button */}
-      {!previewMode && sections.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Button
-            type="button"
-            size="lg"
-            className="rounded-full shadow-lg h-14 w-14"
-            onClick={handleAddSection}
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </div>
-      )}
-
       {/* Field Properties Panel */}
       <FieldPropertiesPanel
         open={propertiesPanelOpen}

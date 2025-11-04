@@ -241,6 +241,9 @@ export function FormCanvas({
     const randomId = Math.random().toString(36).substr(2, 9);
     const label = fieldDef?.label || "New Field";
     
+    const isChoice = fieldType === "select" || fieldType === "radio" || fieldType === "checklist";
+    const isFile = fieldType === "file";
+
     return {
       id: `field-${timestamp}-${randomId}`,
       key: label.toLowerCase().replace(/\s+/g, '_'),
@@ -248,6 +251,10 @@ export function FormCanvas({
       label: label,
       placeholder: "",
       required: false,
+      options: isChoice ? ["Option 1"] : undefined,
+      responseOptions: fieldType === "checklist" ? ["OK", "DEV", "N/A"] : undefined,
+      maxFiles: isFile ? 10 : undefined,
+      accept: isFile ? ["image/*"] : undefined,
     };
   };
 

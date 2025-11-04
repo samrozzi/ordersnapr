@@ -45,13 +45,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         fields: (s.fields || []).map((f: any) => ({
           id: f.id || crypto.randomUUID(),
           key: f.key || generateKey(f.label || "untitled_field"),
-          type: f.type === 'job_lookup' ? 'text' : (f.type || "text"), // Convert unsupported types
+          type: f.type === 'job_lookup' ? 'text' : (f.type || "text"),
           label: f.label || "Untitled Field",
           placeholder: f.placeholder,
           required: f.required || false,
-          options: f.options || f.items, // Use items if options don't exist
-          items: f.items, // Preserve items for backwards compatibility
-          responseOptions: f.responseOptions || (f.type === "checklist" ? ["OK", "DEV", "N/A"] : undefined), // Default response options for checklist
+          options: f.options || f.items,
+          items: f.items,
+          responseOptions: f.responseOptions || (f.type === "checklist" ? ["OK", "DEV", "N/A"] : undefined),
           maxLength: f.maxLength,
           min: f.min,
           max: f.max,
@@ -59,7 +59,22 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           maxFiles: f.maxFiles,
           allowCaptions: f.allowCaptions,
           default: f.default,
-          hideLabel: f.hideLabel ?? false, // Default to false if missing
+          hideLabel: f.hideLabel ?? false,
+          fields: (f.fields || []).map((sf: any) => ({
+            id: sf.id || crypto.randomUUID(),
+            key: sf.key || generateKey(sf.label || "untitled_field"),
+            type: sf.type || "text",
+            label: sf.label || "Untitled Field",
+            placeholder: sf.placeholder,
+            required: sf.required || false,
+            options: sf.options,
+            maxLength: sf.maxLength,
+            min: sf.min,
+            max: sf.max,
+            hideLabel: sf.hideLabel ?? false,
+          })),
+          minInstances: f.minInstances,
+          maxInstances: f.maxInstances,
         })),
       }));
       setSections(loadedSections);

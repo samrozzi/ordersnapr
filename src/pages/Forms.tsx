@@ -27,16 +27,18 @@ export default function Forms() {
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin, is_super_admin").eq("id", user.id).single();
         if (profile) {
           setOrgId(profile.organization_id);
           setIsOrgAdmin(profile.is_org_admin || false);
+          setIsSuperAdmin(profile.is_super_admin || false);
         }
       }
     };
@@ -227,10 +229,10 @@ export default function Forms() {
               {sheetMode === 'edit-submission' ? 'Edit Submission' : 'New Submission'}
             </SheetTitle>
           </SheetHeader>
-          {selectedTemplate && isOrgAdmin && (
-            <div className="mt-4">
+          {selectedTemplate && (isOrgAdmin || isSuperAdmin) && (
+            <div className="border-b pb-4 mb-4 mt-4">
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setSheetMode('edit-template');
@@ -240,6 +242,9 @@ export default function Forms() {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Template Structure
               </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Changes will update the template for all users in your organization
+              </p>
             </div>
           )}
           <div className="mt-6">

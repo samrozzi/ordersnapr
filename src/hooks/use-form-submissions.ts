@@ -74,7 +74,7 @@ export const useCreateSubmission = () => {
         .from("form_submissions")
         .insert([submission as any])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -99,7 +99,7 @@ export const useUpdateSubmission = () => {
         .update(updates)
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

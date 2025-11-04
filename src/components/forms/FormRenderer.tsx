@@ -94,21 +94,30 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     createDraft();
   }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
 
-  // Initialize repeat counts from submission data or defaults
+  // Initialize repeat counts from submission data or defaults (stable)
   useEffect(() => {
-    const initialCounts: Record<string, number> = {};
-    
-    template.schema.sections.forEach((section: any) => {
-      section.fields.forEach((field: any) => {
-        if (field.type === "repeating_group") {
-          const existingEntries = answers[field.key] as any[];
-          initialCounts[field.key] = existingEntries?.length || field.minInstances || 1;
-        }
+    const next: Record<string, number> = {};
+
+    try {
+      template.schema.sections.forEach((section: any) => {
+        (section.fields || []).forEach((field: any) => {
+          if (field?.type === "repeating_group") {
+            const existing = answers?.[field.key] as any[] | undefined;
+            const count = Array.isArray(existing) ? existing.length : (field.minInstances || 1);
+            next[field.key] = Math.max(count || 1, 1);
+          }
+        });
       });
-    });
-    
-    setRepeatCounts(initialCounts);
-  }, [template, answers]);
+    } catch (e) {
+      console.error("repeatCounts init error", e);
+    }
+
+    // Shallow equality check to avoid unnecessary renders
+    const same = Object.keys(next).length === Object.keys(repeatCounts).length &&
+      Object.keys(next).every((k) => repeatCounts[k] === next[k]);
+
+    if (!same) setRepeatCounts(next);
+  }, [template, answers, repeatCounts]);
 
   // Auto-save draft every 10 seconds
   useEffect(() => {

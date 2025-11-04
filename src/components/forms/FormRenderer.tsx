@@ -497,7 +497,21 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         );
 
       case "file":
-        return orgId && (submission?.id || draftSubmission?.id) ? (
+        const fileSubmissionId = submission?.id || draftSubmission?.id;
+        
+        // Always show the field, but display a message if IDs are not ready
+        if (!orgId || !fileSubmissionId) {
+          return (
+            <div key={field.key} className="space-y-2">
+              {!field.hideLabel && <Label>{field.label}</Label>}
+              <div className="p-4 border border-dashed rounded-lg text-center text-sm text-muted-foreground">
+                Loading file upload...
+              </div>
+            </div>
+          );
+        }
+        
+        return (
           <FileUploadField
             key={field.key}
             label={field.hideLabel ? undefined : field.label}
@@ -507,9 +521,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             value={value || []}
             onChange={(newValue) => handleFieldChange(field.key, newValue)}
             orgId={orgId}
-            submissionId={submission?.id || draftSubmission?.id || ""}
+            submissionId={fileSubmissionId}
           />
-        ) : null;
+        );
 
       case "job_lookup":
         // Render as text input for backwards compatibility

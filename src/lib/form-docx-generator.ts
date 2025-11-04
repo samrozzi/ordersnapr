@@ -199,18 +199,20 @@ export const generateFormDOCX = async (
           );
         } else if (field.type === "repeating_group" && Array.isArray(answer) && answer.length > 0) {
           // Repeating group entries
-          sections.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: field.label,
-                  bold: true,
-                  size: 22,
-                }),
-              ],
-              spacing: { before: 200, after: 100 },
-            })
-          );
+          if (!field.hideLabel) {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: field.label,
+                    bold: true,
+                    size: 22,
+                  }),
+                ],
+                spacing: { before: 200, after: 100 },
+              })
+            );
+          }
           
           answer.forEach((entry: any, idx: number) => {
             sections.push(
@@ -231,20 +233,31 @@ export const generateFormDOCX = async (
                 const displayValue = typeof subValue === 'boolean' 
                   ? (subValue ? 'Yes' : 'No') 
                   : String(subValue);
-                sections.push(
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: `${subField.label}: `,
-                        bold: true,
-                      }),
-                      new TextRun({
-                        text: displayValue,
-                      }),
-                    ],
-                    spacing: { after: 50 },
-                  })
-                );
+                
+                if (!subField.hideLabel) {
+                  sections.push(
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: `${subField.label}: `,
+                          bold: true,
+                        }),
+                        new TextRun({
+                          text: displayValue,
+                        }),
+                      ],
+                      spacing: { after: 50 },
+                    })
+                  );
+                } else {
+                  // If label is hidden, just show the value
+                  sections.push(
+                    new Paragraph({
+                      text: displayValue,
+                      spacing: { after: 50 },
+                    })
+                  );
+                }
               }
             });
           });

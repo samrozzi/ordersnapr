@@ -142,10 +142,14 @@ export const generateFormPDF = async (
         } else if (field.type === "repeating_group" && Array.isArray(answer) && answer.length > 0) {
           // Repeating group entries
           checkPageBreak(12);
-          pdf.setFontSize(11);
-          pdf.setFont("helvetica", "bold");
-          pdf.text(field.label, margin + 5, yPos);
-          yPos += 8;
+          
+          // Only show the field label if not hidden
+          if (!field.hideLabel) {
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(field.label, margin + 5, yPos);
+            yPos += 8;
+          }
           
           answer.forEach((entry: any, idx: number) => {
             checkPageBreak(15);
@@ -157,16 +161,31 @@ export const generateFormPDF = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
-                const displayValue = typeof subValue === 'boolean' 
-                  ? (subValue ? 'Yes' : 'No') 
-                  : String(subValue);
-                pdf.setFont("helvetica", "normal");
-                const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
-                lines.forEach((line: string) => {
-                  checkPageBreak(5);
-                  pdf.text(line, margin + 12, yPos);
-                  yPos += 5;
-                });
+                // Only show sub-field label if not hidden
+                if (!subField.hideLabel) {
+                  const displayValue = typeof subValue === 'boolean' 
+                    ? (subValue ? 'Yes' : 'No') 
+                    : String(subValue);
+                  pdf.setFont("helvetica", "normal");
+                  const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
+                  lines.forEach((line: string) => {
+                    checkPageBreak(5);
+                    pdf.text(line, margin + 12, yPos);
+                    yPos += 5;
+                  });
+                } else {
+                  // If label is hidden, just show the value
+                  const displayValue = typeof subValue === 'boolean' 
+                    ? (subValue ? 'Yes' : 'No') 
+                    : String(subValue);
+                  pdf.setFont("helvetica", "normal");
+                  const lines = pdf.splitTextToSize(displayValue, pageWidth - margin - 25);
+                  lines.forEach((line: string) => {
+                    checkPageBreak(5);
+                    pdf.text(line, margin + 12, yPos);
+                    yPos += 5;
+                  });
+                }
               }
             });
             

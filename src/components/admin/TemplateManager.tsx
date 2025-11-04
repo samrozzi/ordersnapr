@@ -4,12 +4,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Globe, Building2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Pencil, Trash2, Globe, Building2, Lock, User } from "lucide-react";
 import { useFormTemplates } from "@/hooks/use-form-templates";
 import { useDeleteTemplate } from "@/hooks/use-form-templates";
 import { TemplateForm } from "./TemplateForm";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { format } from "date-fns";
+import { useUserPermissions } from "@/hooks/use-user-permissions";
 
 interface TemplateManagerProps {
   orgId: string | null;
@@ -22,7 +24,27 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
   const { data: templates = [], isLoading } = useFormTemplates(orgId);
+  const { data: permissions } = useUserPermissions();
   const deleteMutation = useDeleteTemplate();
+
+  const canEditTemplate = (template: FormTemplate) => {
+    if (!permissions) return false;
+    const scope = (template as any).scope;
+    const createdBy = (template as any).created_by;
+    
+    // Super admins can edit all templates
+    if (permissions.isSuperAdmin) return true;
+    
+    // Org admins can edit organization templates in their org
+    if (permissions.isOrgAdmin && scope === "organization" && template.org_id === permissions.organizationId) {
+      return true;
+    }
+    
+    // Users can edit their own personal templates
+    if (scope === "user" && createdBy === permissions.userId) return true;
+    
+    return false;
+  };
 
   const handleEdit = (template: FormTemplate) => {
     setSelectedTemplate(template);
@@ -90,19 +112,36 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      {(template as any).scope === 'global' ? (
-                        <>
-                          <Globe className="h-3 w-3" />
-                          <span className="text-xs">Global</span>
-                        </>
-                      ) : (template as any).scope === 'organization' ? (
-                        <>
-                          <Building2 className="h-3 w-3" />
-                          <span className="text-xs">Organization</span>
-                        </>
-                      ) : (
-                        <span className="text-xs">Personal</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {(template as any).scope === 'global' ? (
+                          <>
+                            <Globe className="h-3 w-3" />
+                            <span className="text-xs">Global</span>
+                          </>
+                        ) : (template as any).scope === 'organization' ? (
+                          <>
+                            <Building2 className="h-3 w-3" />
+                            <span className="text-xs">Organization</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-3 w-3" />
+                            <span className="text-xs">Personal</span>
+                          </>
+                        )}
+                      </div>
+                      {!canEditTemplate(template) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View only</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   </TableCell>
@@ -116,23 +155,51 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(template)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setTemplateToDelete(template.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(template)}
+                                disabled={!canEditTemplate(template)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {!canEditTemplate(template) && (
+                            <TooltipContent>
+                              <p>You don't have permission to edit this template</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setTemplateToDelete(template.id);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                disabled={!canEditTemplate(template)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {!canEditTemplate(template) && (
+                            <TooltipContent>
+                              <p>You don't have permission to delete this template</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>

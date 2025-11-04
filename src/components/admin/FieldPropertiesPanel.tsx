@@ -205,6 +205,23 @@ export function FieldPropertiesPanel({
               />
             </div>
 
+            {/* Hide Label */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="hideLabel">Hide Label</Label>
+                <p className="text-xs text-muted-foreground">
+                  Hide the label in form display (placeholder still shows)
+                </p>
+              </div>
+              <Switch
+                id="hideLabel"
+                checked={editedField.hideLabel || false}
+                onCheckedChange={(checked) =>
+                  setEditedField((prev) => (prev ? { ...prev, hideLabel: checked } : prev))
+                }
+              />
+            </div>
+
             {/* Text/Textarea Length */}
             {(editedField.type === "text" || editedField.type === "textarea") && (
               <div className="space-y-2">

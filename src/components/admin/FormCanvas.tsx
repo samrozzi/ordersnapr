@@ -31,6 +31,7 @@ export interface Field {
   label: string;
   placeholder?: string;
   required: boolean;
+  hideLabel?: boolean; // Option to hide label in form display
   
   // Text/Textarea specific
   maxLength?: number;
@@ -259,6 +260,7 @@ function SortableFieldCard({
         <div className="font-medium text-sm text-foreground flex items-center gap-2">
           {field.label}
           {field.required && <span className="text-destructive text-xs">*</span>}
+          {field.hideLabel && <span className="text-xs text-muted-foreground">(Hidden Label)</span>}
         </div>
         <div className="text-xs text-muted-foreground mt-0.5">
           {field.placeholder || `${fieldDef?.label} field`}

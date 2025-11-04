@@ -184,14 +184,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "text":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Input
               id={field.key}
               value={value || field.default || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               placeholder={field.placeholder}
+              aria-label={field.hideLabel ? field.label : undefined}
             />
           </div>
         );
@@ -199,9 +202,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "textarea":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Textarea
               id={field.key}
               value={value || ""}
@@ -209,6 +214,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
               placeholder={field.placeholder}
               maxLength={field.maxLength}
               rows={4}
+              aria-label={field.hideLabel ? field.label : undefined}
             />
             {field.maxLength && (
               <p className="text-xs text-muted-foreground">
@@ -221,9 +227,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "number":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Input
               id={field.key}
               type="number"
@@ -231,6 +239,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
               onChange={(e) => handleFieldChange(field.key, parseInt(e.target.value) || null)}
               min={field.min}
               max={field.max}
+              aria-label={field.hideLabel ? field.label : undefined}
             />
           </div>
         );
@@ -238,14 +247,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "date":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Input
               id={field.key}
               type="date"
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
+              aria-label={field.hideLabel ? field.label : undefined}
             />
           </div>
         );
@@ -253,14 +265,17 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "time":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Input
               id={field.key}
               type="time"
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
+              aria-label={field.hideLabel ? field.label : undefined}
             />
           </div>
         );
@@ -268,14 +283,16 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "select":
         return (
           <div key={field.key} className="space-y-2">
-            <Label htmlFor={field.key}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label htmlFor={field.key}>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <Select
               value={value || ""}
               onValueChange={(val) => handleFieldChange(field.key, val)}
             >
-              <SelectTrigger id={field.key}>
+              <SelectTrigger id={field.key} aria-label={field.hideLabel ? field.label : undefined}>
                 <SelectValue placeholder={field.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
@@ -292,12 +309,15 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
       case "radio":
         return (
           <div key={field.key} className="space-y-2">
-            <Label>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
-            </Label>
+            {!field.hideLabel && (
+              <Label>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
             <RadioGroup
               value={value || ""}
               onValueChange={(val) => handleFieldChange(field.key, val)}
+              aria-label={field.hideLabel ? field.label : undefined}
             >
               {(field.options || []).map((option, idx) => (
                 <div key={idx} className="flex items-center space-x-2">
@@ -329,7 +349,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
         return (
           <ChecklistField
             key={field.key}
-            label={field.label}
+            label={field.hideLabel ? undefined : field.label}
             items={field.items}
             options={field.options}
             value={value || {}}
@@ -341,7 +361,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel }: Form
         return orgId && (submission?.id || draftSubmission?.id) ? (
           <FileUploadField
             key={field.key}
-            label={field.label}
+            label={field.hideLabel ? undefined : field.label}
             maxFiles={field.maxFiles || 10}
             accept={field.accept || [".jpg", ".jpeg", ".png"]}
             allowCaptions={field.allowCaptions || false}

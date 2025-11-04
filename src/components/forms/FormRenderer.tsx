@@ -33,6 +33,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [signature, setSignature] = useState(submission?.signature || null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgThemeColor, setOrgThemeColor] = useState<string | null>(null);
   const [draftSubmission, setDraftSubmission] = useState<FormSubmission | null>(null);
   const [repeatCounts, setRepeatCounts] = useState<Record<string, number>>({});
   const [showEntryLabels, setShowEntryLabels] = useState<Record<string, boolean>>({});
@@ -62,11 +63,24 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         
         if (profile) {
           setOrgId(profile.organization_id);
+          
+          // Fetch organization theme color if useOrgTheme is enabled
+          if (template.schema?.use_org_theme || template.schema?.useOrgTheme) {
+            const { data: settings } = await supabase
+              .from("organization_settings")
+              .select("custom_theme_color")
+              .eq("organization_id", profile.organization_id)
+              .maybeSingle();
+            
+            if (settings?.custom_theme_color) {
+              setOrgThemeColor(settings.custom_theme_color);
+            }
+          }
         }
       }
     };
     fetchUser();
-  }, []);
+  }, [template.schema]);
 
   // Initialize entry label preferences from submission metadata
   useEffect(() => {
@@ -789,7 +803,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       {template.schema.sections.map((section: any, index: number) => (
         <Card key={index}>
           {!section.hideTitle && (
-            <CardHeader>
+            <CardHeader 
+              style={orgThemeColor ? { 
+                backgroundColor: orgThemeColor,
+                color: 'white'
+              } : undefined}
+              className={orgThemeColor ? "text-white" : undefined}
+            >
               <CardTitle>{section.title}</CardTitle>
             </CardHeader>
           )}
@@ -801,7 +821,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
       {template.schema.require_signature && !["job-audit","ride-along"].includes((template.slug || template.name || "").toLowerCase()) && (
         <Card>
-          <CardHeader>
+          <CardHeader
+            style={orgThemeColor ? { 
+              backgroundColor: orgThemeColor,
+              color: 'white'
+            } : undefined}
+            className={orgThemeColor ? "text-white" : undefined}
+          >
             <CardTitle>Signature</CardTitle>
           </CardHeader>
           <CardContent>

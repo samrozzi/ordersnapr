@@ -18,6 +18,7 @@ interface TemplateBuilderV2Props {
 export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2Props) {
   const [sections, setSections] = useState<Section[]>([]);
   const [requireSignature, setRequireSignature] = useState(false);
+  const [useOrgTheme, setUseOrgTheme] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedField, setSelectedField] = useState<{
     sectionId: string;
@@ -83,6 +84,10 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (schema?.requireSignature || schema?.require_signature) {
       setRequireSignature(true);
     }
+    
+    if (schema?.useOrgTheme || schema?.use_org_theme) {
+      setUseOrgTheme(true);
+    }
   }, [schema, generateKey]);
 
   // Update parent schema when sections change
@@ -131,9 +136,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       })),
       require_signature: requireSignature, // Use snake_case for consistency
       requireSignature, // Keep both for backwards compatibility
+      use_org_theme: useOrgTheme, // Use snake_case for consistency
+      useOrgTheme, // Keep both for backwards compatibility
     };
     onSchemaChange(newSchema);
-  }, [sections, requireSignature, onSchemaChange]);
+  }, [sections, requireSignature, useOrgTheme, onSchemaChange, generateKey]);
 
   const handleAddSection = () => {
     const newSection: Section = {
@@ -258,6 +265,17 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
             />
             <Label htmlFor="signature" className="text-sm">
               Require Signature
+            </Label>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Switch
+              id="orgTheme"
+              checked={useOrgTheme}
+              onCheckedChange={setUseOrgTheme}
+            />
+            <Label htmlFor="orgTheme" className="text-sm">
+              Use Organization Color Theme
             </Label>
           </div>
         </div>

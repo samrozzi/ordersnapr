@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 
+// Helper to parse date strings in local timezone (avoids UTC conversion issues)
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 interface WorkOrder {
   id: string;
   customer_name: string;
@@ -116,7 +122,7 @@ export const UpcomingWorkOrdersWidget = memo(() => {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{order.customer_name}</div>
                   <div className="text-muted-foreground">
-                    {format(new Date(order.scheduled_date), "MMM d, yyyy")}
+                    {format(parseLocalDate(order.scheduled_date), "MMM d, yyyy")}
                     {order.scheduled_time && ` • ${order.scheduled_time}`}
                   </div>
                   {order.address && (

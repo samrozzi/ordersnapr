@@ -3,6 +3,12 @@ import { Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
+// Helper to parse date strings in local timezone (avoids UTC conversion issues)
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export const CalendarWidgetSmall = () => {
   const navigate = useNavigate();
   const { items, loading } = useOrgCalendarData();
@@ -10,8 +16,8 @@ export const CalendarWidgetSmall = () => {
   
   // Get upcoming items (next 2)
   const upcomingItems = items
-    .filter(item => new Date(item.date) >= today)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(item => parseLocalDate(item.date) >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+    .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
     .slice(0, 2);
 
   return (

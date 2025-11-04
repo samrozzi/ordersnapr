@@ -3,6 +3,12 @@ import { Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
+// Helper to parse date strings in local timezone (avoids UTC conversion issues)
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export const CalendarWidgetMedium = () => {
   const navigate = useNavigate();
   const { items, loading } = useOrgCalendarData();
@@ -11,8 +17,8 @@ export const CalendarWidgetMedium = () => {
   
   // Get upcoming items (next 5)
   const upcomingItems = items
-    .filter(item => new Date(item.date) >= today)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(item => parseLocalDate(item.date) >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+    .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
     .slice(0, 5);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -70,7 +76,7 @@ export const CalendarWidgetMedium = () => {
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{item.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {format(new Date(item.date), "MMM d")} • {item.all_day ? "All day" : item.time || "All day"}
+                  {format(parseLocalDate(item.date), "MMM d")} • {item.all_day ? "All day" : item.time || "All day"}
                 </div>
               </div>
             </div>

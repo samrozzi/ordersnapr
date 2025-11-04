@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, memo } from "react";
 import { useWorkOrderDialog } from "@/contexts/WorkOrderDialogContext";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { FormRenderer } from "@/components/forms/FormRenderer";
 
 interface FavoriteItem {
   id: string;
@@ -16,6 +18,8 @@ interface FavoriteItem {
 export const FavoritesWidget = memo(() => {
   const [enrichedFavorites, setEnrichedFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formSheetOpen, setFormSheetOpen] = useState(false);
+  const [selectedFormTemplate, setSelectedFormTemplate] = useState<any>(null);
   const navigate = useNavigate();
   const { openWorkOrderDialog } = useWorkOrderDialog();
 
@@ -121,7 +125,7 @@ export const FavoritesWidget = memo(() => {
     fetchFavorites();
   }, []);
 
-  const handleClick = (item: FavoriteItem) => {
+  const handleClick = async (item: FavoriteItem) => {
     // Open dialog for work orders, navigate for other types
     switch (item.entity_type) {
       case "work_order":
@@ -137,7 +141,22 @@ export const FavoritesWidget = memo(() => {
         navigate(`/forms?draft=${item.entity_id}`);
         break;
       case "form_template":
-        navigate(`/forms?template=${item.entity_id}`);
+        // Fetch template and open in drawer
+        try {
+          const { data: template } = await supabase
+            .from("form_templates")
+            .select("*")
+            .eq("id", item.entity_id)
+            .single();
+          
+          if (template) {
+            setSelectedFormTemplate(template);
+            setFormSheetOpen(true);
+          }
+        } catch (error) {
+          console.error("Error fetching template:", error);
+          navigate(`/forms?template=${item.entity_id}`);
+        }
         break;
       default:
         navigate("/profile?tab=favorites");
@@ -145,8 +164,9 @@ export const FavoritesWidget = memo(() => {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {loading ? (
+    <>
+      <div className="h-full flex flex-col">
+        {loading ? (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <p className="text-xs">Loading...</p>
         </div>
@@ -191,5 +211,23 @@ export const FavoritesWidget = memo(() => {
         </>
       )}
     </div>
+
+    <Sheet open={formSheetOpen} onOpenChange={setFormSheetOpen}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{selectedFormTemplate?.name || "Form"}</SheetTitle>
+        </SheetHeader>
+        {selectedFormTemplate && (
+          <div className="mt-6">
+            <FormRenderer
+              template={selectedFormTemplate}
+              onSuccess={() => setFormSheetOpen(false)}
+              onCancel={() => setFormSheetOpen(false)}
+            />
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+    </>
   );
 });

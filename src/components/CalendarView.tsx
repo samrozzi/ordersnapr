@@ -7,6 +7,12 @@ import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
 
 type ViewMode = "month" | "week" | "day";
 
+// Helper to parse date strings in local timezone (avoids UTC conversion issues)
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 interface CalendarViewProps {
   onEventClick?: (item: any) => void;
 }
@@ -22,7 +28,7 @@ export function CalendarView({ onEventClick }: CalendarViewProps) {
 
   const getItemsForDate = (date: Date) => {
     return items.filter(item => 
-      isSameDay(new Date(item.date), date)
+      isSameDay(parseLocalDate(item.date), date)
     );
   };
 

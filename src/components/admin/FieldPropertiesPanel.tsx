@@ -165,7 +165,11 @@ export function FieldPropertiesPanel({
             {needsOptions && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Options</Label>
+                  <Label>
+                    {editedField.type === "checklist" 
+                      ? "Questions/Items" 
+                      : "Options"}
+                  </Label>
                   <Button
                     type="button"
                     variant="outline"
@@ -173,16 +177,21 @@ export function FieldPropertiesPanel({
                     onClick={addOption}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Add Option
+                    Add {editedField.type === "checklist" ? "Question" : "Option"}
                   </Button>
                 </div>
+                {editedField.type === "checklist" && (
+                  <p className="text-xs text-muted-foreground">
+                    These questions appear on the left. Response options (OK, DEV, N/A) are configured separately.
+                  </p>
+                )}
                 <div className="space-y-2">
                   {(editedField.options || []).map((option, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
                         value={option}
                         onChange={(e) => updateOption(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
+                        placeholder={editedField.type === "checklist" ? `Question ${index + 1}` : `Option ${index + 1}`}
                       />
                       <Button
                         type="button"
@@ -196,7 +205,7 @@ export function FieldPropertiesPanel({
                   ))}
                   {(!editedField.options || editedField.options.length === 0) && (
                     <p className="text-xs text-muted-foreground">
-                      No options yet. Click "Add Option" to create one.
+                      No {editedField.type === "checklist" ? "questions" : "options"} yet. Click "Add {editedField.type === "checklist" ? "Question" : "Option"}" to create one.
                     </p>
                   )}
                 </div>

@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useFormTemplates } from "@/hooks/use-form-templates";
 import { useFormSubmissions, useDeleteSubmission, FormSubmission } from "@/hooks/use-form-submissions";
 import { FormRenderer } from "@/components/forms/FormRenderer";
@@ -28,6 +28,8 @@ export default function Forms() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [sortField, setSortField] = useState<'name' | 'creator' | 'status' | 'date'>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -78,6 +80,55 @@ export default function Forms() {
       default: return "outline";
     }
   };
+
+  const handleSort = (field: 'name' | 'creator' | 'status' | 'date') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedSubmissions = [...submissions].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortField) {
+      case 'name':
+        comparison = (a.form_templates?.name || '').localeCompare(b.form_templates?.name || '');
+        break;
+      case 'creator':
+        const aName = a.creator_profile?.full_name || a.creator_profile?.email || '';
+        const bName = b.creator_profile?.full_name || b.creator_profile?.email || '';
+        comparison = aName.localeCompare(bName);
+        break;
+      case 'status':
+        const statusOrder = { draft: 0, submitted: 1, approved: 2, rejected: 3 };
+        comparison = (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+        break;
+      case 'date':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+    }
+    
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const SortButton = ({ field, label }: { field: typeof sortField, label: string }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 px-2 -ml-2 font-semibold"
+      onClick={() => handleSort(field)}
+    >
+      {label}
+      {sortField === field ? (
+        sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+      )}
+    </Button>
+  );
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -179,21 +230,23 @@ export default function Forms() {
           <Table className="min-w-max">
             <TableHeader>
               <TableRow>
-                <TableHead>Form Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+                <TableHead><SortButton field="name" label="Form Name" /></TableHead>
+                <TableHead><SortButton field="creator" label="Created By" /></TableHead>
+                <TableHead><SortButton field="status" label="Status" /></TableHead>
+                <TableHead className="hidden md:table-cell"><SortButton field="date" label="Date" /></TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
               <TableBody>
                 {submissionsLoading ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-                ) : submissions.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No submissions found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                ) : sortedSubmissions.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No submissions found</TableCell></TableRow>
                 ) : (
-                  submissions.map((submission) => (
+                  sortedSubmissions.map((submission) => (
                     <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
                       <TableCell className="font-medium">{submission.form_templates?.name || "Unknown Form"}</TableCell>
+                      <TableCell>{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
                       <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
                       <TableCell className="hidden md:table-cell">{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">

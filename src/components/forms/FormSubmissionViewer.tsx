@@ -274,23 +274,42 @@ export function FormSubmissionViewer({
 
       <Separator />
 
-      {schema?.sections.map((section: any, index: number) => (
-        <Card key={index}>
-          {!section.hideTitle && (
-            <CardHeader>
-              <CardTitle>{section.title}</CardTitle>
-            </CardHeader>
-          )}
-          <CardContent className="space-y-6">
-            {section.fields.map((field: any) => (
-              <div key={field.key} className="space-y-2">
-                {!field.hideLabel && <h4 className="font-medium text-sm">{field.label}</h4>}
-                {renderFieldValue(field)}
+      {/* Sections */}
+      {schema?.sections && Array.isArray(schema.sections) ? (
+        schema.sections.map((section: any, idx: number) => {
+          try {
+            return (
+              <Card key={idx}>
+                {!section.hideTitle && section.title && (
+                  <CardHeader>
+                    <CardTitle>{section.title}</CardTitle>
+                  </CardHeader>
+                )}
+                <CardContent className="space-y-6">
+                  {section.fields?.map((field: any) => (
+                    <div key={field.key || field.id || idx} className="space-y-2">
+                      {!field.hideLabel && <h4 className="font-medium text-sm">{field.label}</h4>}
+                      {renderFieldValue(field)}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          } catch (error) {
+            console.error("Error rendering section:", section, error);
+            return (
+              <div key={idx} className="p-4 border border-destructive rounded-lg bg-destructive/10">
+                <p className="text-sm text-destructive">Error rendering section: {section?.title || `Section ${idx + 1}`}</p>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+            );
+          }
+        })
+      ) : (
+        <div className="p-4 border border-destructive rounded-lg bg-destructive/10">
+          <p className="text-sm text-destructive">Error: Invalid form schema. This form may be using an outdated format.</p>
+          <p className="text-xs text-muted-foreground mt-2">Please contact your administrator to update this form template.</p>
+        </div>
+      )}
 
       {submission.signature && (
         <Card>

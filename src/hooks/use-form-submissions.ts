@@ -19,6 +19,10 @@ export interface FormSubmission {
     name: string;
     schema: any;
   };
+  creator_profile?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 export const useFormSubmissions = (orgId: string | null, filter?: {
@@ -50,6 +54,23 @@ export const useFormSubmissions = (orgId: string | null, filter?: {
       const { data, error } = await query;
 
       if (error) throw error;
+      
+      // Fetch creator profiles separately
+      if (data && data.length > 0) {
+        const creatorIds = [...new Set(data.map(s => s.created_by))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", creatorIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        
+        return data.map(submission => ({
+          ...submission,
+          creator_profile: profileMap.get(submission.created_by) || null
+        })) as FormSubmission[];
+      }
+      
       return data as FormSubmission[];
     },
     enabled: !!orgId,

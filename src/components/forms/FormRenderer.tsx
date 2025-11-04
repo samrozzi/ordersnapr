@@ -77,10 +77,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   // Track if form has been interacted with
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Auto-create draft submission ONLY after user starts filling form
+  // Auto-create draft submission immediately when form loads
   useEffect(() => {
     if (previewMode) return; // Don't create drafts in preview mode
-    if (!hasInteracted) return; // Don't create until user interacts
     
     const createDraft = async () => {
       if (!submission && userId && orgId && !draftSubmission) {
@@ -105,7 +104,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       }
     };
     createDraft();
-  }, [userId, orgId, submission, template.id, draftSubmission, previewMode, hasInteracted]);
+  }, [userId, orgId, submission, template.id, draftSubmission, previewMode]);
 
   // Initialize repeat counts from submission data or defaults (stable)
   useEffect(() => {

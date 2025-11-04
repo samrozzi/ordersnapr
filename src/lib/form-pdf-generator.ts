@@ -85,9 +85,10 @@ export const generateFormPDF = async (
               const status = item?.checked ? toStatus(item?.status || "OK") : "N/A";
               tableRows.push([`${idx + 1}. ${label}`, status]);
             });
-          } else if (answer && typeof answer === "object" && Array.isArray((field as any).items)) {
-            // Record format driven by field.items
-            (field as any).items.forEach((label: string, idx: number) => {
+          } else if (answer && typeof answer === "object" && (Array.isArray((field as any).items) || Array.isArray((field as any).options))) {
+            // Record format driven by field.items or field.options (new format)
+            const questions = (field as any).items || (field as any).options || [];
+            questions.forEach((label: string, idx: number) => {
               const statusRaw = (answer as Record<number, string>)[idx];
               const status = toStatus(statusRaw);
               tableRows.push([`${idx + 1}. ${label}`, status]);

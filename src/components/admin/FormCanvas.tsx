@@ -270,6 +270,7 @@ export function FormCanvas({
     // Check if dropping into a repeating group drop zone
     const isDropZone = overFieldId.endsWith('-drop-zone');
     const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
+    const effectiveOverSectionId = overSectionId ?? fieldToSectionMap.get(targetRepeatingGroupId);
     
     // Handle dropping from palette into repeating group drop zone
     if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
@@ -283,7 +284,7 @@ export function FormCanvas({
       
       onSectionsChange(
         sections.map((section) => {
-          if (section.id !== targetSectionId) return section;
+          if (section.id !== effectiveOverSectionId) return section;
           
           return {
             ...section,
@@ -303,7 +304,7 @@ export function FormCanvas({
     }
     
     // For existing field movements, require section IDs
-    if (!isDraggingFromPalette && (!activeSectionId || !overSectionId)) return;
+    if (!isDraggingFromPalette && (!activeSectionId || !effectiveOverSectionId)) return;
     
     const activeParentId = fieldToParentMap.get(activeFieldId);
     const overParentId = fieldToParentMap.get(overFieldId);
@@ -319,7 +320,7 @@ export function FormCanvas({
     if (overField?.type === "repeating_group" && !overParentId) {
       onSectionsChange(
         sections.map((section) => {
-          if (section.id !== overSectionId) return section;
+          if (section.id !== effectiveOverSectionId) return section;
 
           // Remove from source
           const removeFromFields = (fields: Field[]): Field[] => {
@@ -381,7 +382,7 @@ export function FormCanvas({
     if (activeParentId || overParentId) {
       onSectionsChange(
         sections.map((section) => {
-          if (section.id !== activeSectionId && section.id !== overSectionId) return section;
+          if (section.id !== activeSectionId && section.id !== effectiveOverSectionId) return section;
 
           let updatedFields = [...section.fields];
 
@@ -398,7 +399,7 @@ export function FormCanvas({
           }
 
           // Add to target
-          if (overParentId && section.id === overSectionId && activeField) {
+          if (overParentId && section.id === effectiveOverSectionId && activeField) {
             updatedFields = updatedFields.map(f => {
               if (f.id === overParentId && f.fields) {
                 const overIndex = f.fields.findIndex(sf => sf.id === overFieldId);
@@ -408,7 +409,7 @@ export function FormCanvas({
               }
               return f;
             });
-          } else if (!overParentId && section.id === overSectionId && activeField) {
+          } else if (!overParentId && section.id === effectiveOverSectionId && activeField) {
             const overIndex = updatedFields.findIndex(f => f.id === overFieldId);
             updatedFields.splice(overIndex, 0, activeField);
           }

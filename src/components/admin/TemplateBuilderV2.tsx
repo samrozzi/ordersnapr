@@ -143,6 +143,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       required: false,
       options: type === "select" || type === "radio" || type === "checklist" ? ["Option 1"] : undefined,
       responseOptions: type === "checklist" ? ["OK", "DEV", "N/A"] : undefined, // Default response options for checklist
+      maxFiles: type === "file" ? 10 : undefined, // Default max files for file uploads
+      accept: type === "file" ? ["image/*"] : undefined, // Default to images for file uploads
     };
 
     setSections((prev) =>

@@ -40,6 +40,7 @@ export function FileUploadField({
   label,
 }: FileUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -150,11 +151,30 @@ export function FileUploadField({
             return (
               <div key={file.id} className="relative border rounded-lg overflow-hidden bg-card">
                 {isImage ? (
-                  <img
-                    src={file.url}
-                    alt={file.name}
-                    className="w-full h-32 object-cover"
-                  />
+                  <div className="relative w-full h-32">
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        console.error('Image load error:', file.url);
+                        setImageErrors(prev => new Set(prev).add(file.id));
+                      }}
+                      onLoad={() => {
+                        setImageErrors(prev => {
+                          const next = new Set(prev);
+                          next.delete(file.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    {imageErrors.has(file.id) && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground mt-1">Failed to load</p>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full h-32 flex items-center justify-center bg-muted">
                     <ImageIcon className="h-8 w-8 text-muted-foreground" />

@@ -101,12 +101,13 @@ export const generateFormPDF = async (
               head: field.hideLabel ? undefined : [[field.label || "Checklist", "Status"]],
               body: tableRows,
               theme: "striped",
-              headStyles: {
-                fillColor: [240, 240, 240],
-                textColor: [40, 40, 40],
-                fontStyle: "bold",
-                fontSize: 10,
-              },
+            headStyles: {
+              fillColor: [240, 240, 240],
+              textColor: [40, 40, 40],
+              fontStyle: "bold",
+              fontSize: 10,
+              halign: "center",
+            },
               bodyStyles: {
                 fontSize: 9,
               },

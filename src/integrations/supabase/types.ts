@@ -310,6 +310,7 @@ export type Database = {
           form_template_id: string
           id: string
           job_id: string | null
+          metadata: Json | null
           org_id: string
           signature: Json | null
           status: string | null
@@ -324,6 +325,7 @@ export type Database = {
           form_template_id: string
           id?: string
           job_id?: string | null
+          metadata?: Json | null
           org_id: string
           signature?: Json | null
           status?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           form_template_id?: string
           id?: string
           job_id?: string | null
+          metadata?: Json | null
           org_id?: string
           signature?: Json | null
           status?: string | null

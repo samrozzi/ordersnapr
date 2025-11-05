@@ -794,7 +794,32 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   const formFieldKey = keyMapping[extractedKey];
                   if (formFieldKey && value) {
                     console.log(`Mapping ${extractedKey} -> ${formFieldKey}:`, value);
-                    handleFieldChange(formFieldKey, value);
+                    
+                    // Special handling for address fields
+                    if (extractedKey === 'address' && typeof value === 'string') {
+                      // Parse address string into components
+                      const addressParts = value.split(',').map(p => p.trim());
+                      const addressValue: any = {
+                        street: addressParts[0] || '',
+                        city: addressParts[1] || '',
+                        state: '',
+                        zip: ''
+                      };
+                      
+                      // Try to parse state and zip from last part (e.g., "CA 12345")
+                      if (addressParts.length >= 3) {
+                        const lastPart = addressParts[addressParts.length - 1];
+                        const stateZipMatch = lastPart.match(/([A-Z]{2})\s*(\d{5}(?:-\d{4})?)/);
+                        if (stateZipMatch) {
+                          addressValue.state = stateZipMatch[1];
+                          addressValue.zip = stateZipMatch[2];
+                        }
+                      }
+                      
+                      handleFieldChange(formFieldKey, addressValue);
+                    } else {
+                      handleFieldChange(formFieldKey, value);
+                    }
                   } else {
                     console.warn(`No mapping found for extracted key: ${extractedKey}`);
                   }

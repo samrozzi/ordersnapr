@@ -83,6 +83,37 @@ export function FormSubmissionViewer({
     }
   };
 
+  const generateFileName = (extension: string) => {
+    const answers = submission.answers || {};
+    
+    // Extract tech name
+    const techName = answers.technicianName || answers.technician_name || answers.technician || '';
+    
+    // Extract address - handle both string and object formats
+    let address = '';
+    if (typeof answers.address === 'string') {
+      address = answers.address;
+    } else if (typeof answers.address === 'object' && answers.address) {
+      const addr = answers.address as any;
+      address = addr.street || addr.address || '';
+    }
+    // Clean address for filename (remove special chars, limit length)
+    address = address.replace(/[^a-zA-Z0-9\s]/g, '').trim().slice(0, 30);
+    
+    // Extract BAN/Account Number
+    const ban = answers.ban || answers.accountNumber || answers.account_number || '';
+    
+    // Build filename parts
+    const parts = [techName, address, ban].filter(part => part && String(part).trim());
+    
+    // Fallback if no data available
+    if (parts.length === 0) {
+      return `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.${extension}`;
+    }
+    
+    return `${parts.join('-')}.${extension}`;
+  };
+
   const handleDownloadPDF = async () => {
     setIsGeneratingPDF(true);
     try {
@@ -93,7 +124,7 @@ export function FormSubmissionViewer({
         includeSignature: true,
         themeColor: themeColor || undefined
       });
-      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
+      const fileName = generateFileName('pdf');
       
       // Create blob and download link (same pattern as DOCX)
       const blob = pdf.output('blob');
@@ -119,7 +150,7 @@ export function FormSubmissionViewer({
     setIsGeneratingDOCX(true);
     try {
       const docBlob = await generateFormDOCX(submission);
-      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.docx`;
+      const fileName = generateFileName('docx');
       
       // Create download link
       const url = window.URL.createObjectURL(docBlob);
@@ -162,7 +193,7 @@ export function FormSubmissionViewer({
         themeColor: themeColor || undefined
       });
       const pdfBase64 = pdf.output("dataurlstring").split(",")[1];
-      const fileName = `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.pdf`;
+      const fileName = generateFileName('pdf');
 
       // Collect photos
       const photos: Array<{ filename: string; content: string; caption?: string }> = [];

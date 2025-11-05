@@ -764,7 +764,10 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     if (label?.includes('address') || fieldKey?.includes('address')) {
                       keyMapping['address'] = fieldKey;
                     }
-                    if (label?.includes('customer') && label?.includes('name') || fieldKey?.includes('customer')) {
+                    if ((label?.includes('customer') && label?.includes('name')) || 
+                        (label?.includes('customer') && !label?.includes('address')) ||
+                        fieldKey?.toLowerCase().includes('customer') ||
+                        label?.includes('name') && !label?.includes('technician') && !label?.includes('observer')) {
                       keyMapping['customerName'] = fieldKey;
                     }
                     if (label?.includes('reached') || fieldKey?.includes('reach')) {
@@ -798,24 +801,44 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     // Special handling for address fields
                     if (extractedKey === 'address' && typeof value === 'string') {
                       // Parse address string into components
-                      const addressParts = value.split(',').map(p => p.trim());
                       const addressValue: any = {
-                        street: addressParts[0] || '',
-                        city: addressParts[1] || '',
+                        street: '',
+                        city: '',
                         state: '',
                         zip: ''
                       };
                       
-                      // Try to parse state and zip from last part (e.g., "CA 12345")
-                      if (addressParts.length >= 3) {
-                        const lastPart = addressParts[addressParts.length - 1];
-                        const stateZipMatch = lastPart.match(/([A-Z]{2})\s*(\d{5}(?:-\d{4})?)/);
-                        if (stateZipMatch) {
-                          addressValue.state = stateZipMatch[1];
-                          addressValue.zip = stateZipMatch[2];
-                        }
+                      // Try to extract zip code (5 digits or 5+4 format)
+                      const zipMatch = value.match(/\b(\d{5}(?:-\d{4})?)\b/);
+                      if (zipMatch) {
+                        addressValue.zip = zipMatch[1];
                       }
                       
+                      // Try to extract state code (2 uppercase letters)
+                      const stateMatch = value.match(/\b([A-Z]{2})\b/);
+                      if (stateMatch) {
+                        addressValue.state = stateMatch[1];
+                      }
+                      
+                      // Split by comma to get street, city
+                      const addressParts = value.split(',').map(p => p.trim());
+                      if (addressParts.length > 0) {
+                        addressValue.street = addressParts[0];
+                      }
+                      if (addressParts.length > 1) {
+                        // Second part might contain city, or city + state + zip
+                        // Remove state and zip from city if present
+                        let cityPart = addressParts[1];
+                        if (addressValue.state) {
+                          cityPart = cityPart.replace(addressValue.state, '').trim();
+                        }
+                        if (addressValue.zip) {
+                          cityPart = cityPart.replace(addressValue.zip, '').trim();
+                        }
+                        addressValue.city = cityPart;
+                      }
+                      
+                      console.log('Parsed address:', addressValue);
                       handleFieldChange(formFieldKey, addressValue);
                     } else {
                       handleFieldChange(formFieldKey, value);

@@ -13,6 +13,7 @@ import { ChecklistField } from "./ChecklistField";
 import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
 import { AddressField, AddressValue } from "./AddressField";
+import { SmartFormImport } from "@/components/SmartFormImport";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
 import { Loader2, Plus, X } from "lucide-react";
@@ -733,14 +734,22 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 {field.label} {field.required && <span className="text-destructive">*</span>}
               </Label>
             )}
-            <div className="p-4 border-2 border-dashed rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-3">
-                {field.description || "Upload or capture an image to automatically extract and populate form data using AI"}
+            {field.description && (
+              <p className="text-sm text-muted-foreground mb-2">
+                {field.description}
               </p>
-              <p className="text-xs text-muted-foreground italic">
-                Note: Smart Import functionality will be available when this form is rendered. Configure field mappings in the template settings.
-              </p>
-            </div>
+            )}
+            <SmartFormImport
+              formType="job-audit"
+              onDataExtracted={(data) => {
+                // Map extracted data to form fields
+                Object.entries(data).forEach(([key, value]) => {
+                  if (value) {
+                    handleFieldChange(key, value);
+                  }
+                });
+              }}
+            />
           </div>
         );
 

@@ -322,7 +322,7 @@ export default function Forms() {
                 <TableHead><SortButton field="name" label="Form Name" /></TableHead>
                 <TableHead><SortButton field="creator" label="Created By" /></TableHead>
                 <TableHead><SortButton field="status" label="Status" /></TableHead>
-                <TableHead className="hidden md:table-cell"><SortButton field="date" label="Date" /></TableHead>
+                <TableHead><SortButton field="date" label="Date & Time" /></TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -337,7 +337,7 @@ export default function Forms() {
                       <TableCell className="font-medium">{submission.form_templates?.name || "Unknown Form"}</TableCell>
                       <TableCell>{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
                       <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
-                      <TableCell className="hidden md:table-cell">{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>

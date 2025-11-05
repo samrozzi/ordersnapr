@@ -23,6 +23,7 @@ import WorkOrders from "./pages/WorkOrders";
 import PropertyInfo from "./pages/PropertyInfo";
 import Forms from "./pages/Forms";
 import CalendarPage from "./pages/CalendarPage";
+import HealthData from "./pages/HealthData";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const AppContent = () => {
               <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
               <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
               <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+              <Route path="health-data" element={<HealthData />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />

@@ -8,7 +8,7 @@ export interface FormSubmission {
   form_template_id: string;
   created_by: string;
   job_id: string | null;
-  status: "draft" | "submitted" | "approved" | "rejected";
+  status: "draft" | "submitted" | "approved" | "rejected" | "logged";
   answers: Record<string, any>;
   attachments: any[];
   signature: any | null;

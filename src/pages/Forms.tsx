@@ -19,9 +19,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("all");
   const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | "edit-template" | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
@@ -361,8 +364,11 @@ export default function Forms() {
                                     .update({ status: 'logged', updated_at: new Date().toISOString() })
                                     .eq('id', submission.id);
                                   if (error) throw error;
-                                } catch (error) {
+                                  toast.success("Form marked as logged");
+                                  queryClient.invalidateQueries({ queryKey: ["form-submissions"] });
+                                } catch (error: any) {
                                   console.error("Failed to update status:", error);
+                                  toast.error(error.message || "Failed to update status");
                                 }
                               }}
                               title="Mark as Logged"

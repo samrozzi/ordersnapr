@@ -196,10 +196,10 @@ export function FormSubmissionViewer({
       
       if (error) throw error;
       toast.success("Form marked as logged");
-      // Parent component should refresh automatically via React Query
-    } catch (error) {
+      window.location.reload(); // Refresh to show updated status
+    } catch (error: any) {
       console.error("Error updating status:", error);
-      toast.error("Failed to update status");
+      toast.error(error?.message || "Failed to update status");
     } finally {
       setIsUpdatingStatus(false);
     }

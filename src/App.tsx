@@ -12,6 +12,7 @@ import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
 import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import OrgAdmin from "./pages/OrgAdmin";
 import PendingApproval from "./pages/PendingApproval";
@@ -39,6 +40,7 @@ const AppContent = () => {
         <FeatureProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

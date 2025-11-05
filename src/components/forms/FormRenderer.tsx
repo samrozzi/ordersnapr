@@ -742,12 +742,65 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <SmartFormImport
               formType="job-audit"
               onDataExtracted={(data) => {
-                // Map extracted data to form fields
-                Object.entries(data).forEach(([key, value]) => {
-                  if (value) {
-                    handleFieldChange(key, value);
+                // Create a mapping of extracted keys to form field keys
+                const keyMapping: Record<string, string> = {};
+                
+                // Build mapping by finding fields with matching labels or keys
+                template.schema.sections.forEach((section: any) => {
+                  (section.fields || []).forEach((f: any) => {
+                    const label = f.label?.toLowerCase().replace(/\s+/g, '');
+                    const fieldKey = f.key;
+                    
+                    // Map common extracted keys to form field keys
+                    if (label?.includes('technician') || fieldKey?.includes('technician') || fieldKey?.includes('tech')) {
+                      keyMapping['technicianName'] = fieldKey;
+                    }
+                    if (label?.includes('account') || label?.includes('ban') || fieldKey?.includes('ban') || fieldKey?.includes('account')) {
+                      keyMapping['accountNumber'] = fieldKey;
+                    }
+                    if (label?.includes('service') && label?.includes('date') || fieldKey?.includes('servicedate') || fieldKey?.includes('service_date')) {
+                      keyMapping['serviceDate'] = fieldKey;
+                    }
+                    if (label?.includes('address') || fieldKey?.includes('address')) {
+                      keyMapping['address'] = fieldKey;
+                    }
+                    if (label?.includes('customer') && label?.includes('name') || fieldKey?.includes('customer')) {
+                      keyMapping['customerName'] = fieldKey;
+                    }
+                    if (label?.includes('reached') || fieldKey?.includes('reach')) {
+                      keyMapping['canBeReached'] = fieldKey;
+                    }
+                    if (label?.includes('observer') || fieldKey?.includes('observer') || fieldKey?.includes('reported')) {
+                      keyMapping['observerName'] = fieldKey;
+                      keyMapping['reportedBy'] = fieldKey;
+                    }
+                    if (fieldKey?.includes('date') && !fieldKey?.includes('service')) {
+                      keyMapping['date'] = fieldKey;
+                    }
+                    if (label?.includes('start') && label?.includes('time') || fieldKey?.includes('starttime') || fieldKey?.includes('start_time')) {
+                      keyMapping['startTime'] = fieldKey;
+                    }
+                    if (label?.includes('end') && label?.includes('time') || fieldKey?.includes('endtime') || fieldKey?.includes('end_time')) {
+                      keyMapping['endTime'] = fieldKey;
+                    }
+                  });
+                });
+                
+                console.log('Smart Import - Field mapping:', keyMapping);
+                console.log('Smart Import - Extracted data:', data);
+                
+                // Apply extracted data to form fields using mapping
+                Object.entries(data).forEach(([extractedKey, value]) => {
+                  const formFieldKey = keyMapping[extractedKey];
+                  if (formFieldKey && value) {
+                    console.log(`Mapping ${extractedKey} -> ${formFieldKey}:`, value);
+                    handleFieldChange(formFieldKey, value);
+                  } else {
+                    console.warn(`No mapping found for extracted key: ${extractedKey}`);
                   }
                 });
+                
+                toast.success(`Applied ${Object.keys(data).length} fields to form`);
               }}
             />
           </div>

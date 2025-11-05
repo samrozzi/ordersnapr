@@ -800,6 +800,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     
                     // Special handling for address fields
                     if (extractedKey === 'address' && typeof value === 'string') {
+                      console.log('Raw address value:', value);
+                      
                       // Parse address string into components
                       const addressValue: any = {
                         street: '',
@@ -814,32 +816,53 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         addressValue.zip = zipMatch[1];
                       }
                       
-                      // Try to extract state code (2 uppercase letters)
-                      const stateMatch = value.match(/\b([A-Z]{2})\b/);
-                      if (stateMatch) {
-                        addressValue.state = stateMatch[1];
-                      }
-                      
-                      // Split by comma to get street, city
+                      // Split by comma to get parts
                       const addressParts = value.split(',').map(p => p.trim());
+                      
                       if (addressParts.length > 0) {
                         addressValue.street = addressParts[0];
                       }
+                      
+                      // Look for state code near the zip - check last few parts for pattern like "NC" or "NC 28215"
+                      // State should be 2 letters that are NOT part of street names (like LN, ST, DR, etc.)
+                      const commonStreetSuffixes = ['LN', 'ST', 'DR', 'RD', 'AVE', 'CT', 'PL', 'WAY', 'BLVD', 'CIR'];
+                      for (let i = addressParts.length - 1; i >= 0; i--) {
+                        const part = addressParts[i];
+                        // Look for 2-letter code that's not a street suffix and appears standalone or before zip
+                        const stateMatch = part.match(/\b([A-Z]{2})(?:\s+\d{5}|\s*$)/);
+                        if (stateMatch && !commonStreetSuffixes.includes(stateMatch[1])) {
+                          addressValue.state = stateMatch[1];
+                          break;
+                        }
+                      }
+                      
+                      // Extract city - typically second part or before state/zip
                       if (addressParts.length > 1) {
-                        // Second part might contain city, or city + state + zip
-                        // Remove state and zip from city if present
                         let cityPart = addressParts[1];
+                        // Remove state and zip from city if present
                         if (addressValue.state) {
-                          cityPart = cityPart.replace(addressValue.state, '').trim();
+                          cityPart = cityPart.replace(new RegExp(`\\b${addressValue.state}\\b`, 'g'), '').trim();
                         }
                         if (addressValue.zip) {
                           cityPart = cityPart.replace(addressValue.zip, '').trim();
                         }
+                        // Remove any remaining extra parts
+                        cityPart = cityPart.replace(/\s*,\s*$/, '').trim();
                         addressValue.city = cityPart;
                       }
                       
                       console.log('Parsed address:', addressValue);
                       handleFieldChange(formFieldKey, addressValue);
+                    } else if (extractedKey === 'customerName' || extractedKey === 'customer' || extractedKey === 'name') {
+                      // Ensure customer name gets to the right field
+                      console.log('Customer name extracted:', extractedKey, value);
+                      const customerFieldKey = keyMapping['customerName'] || keyMapping['customer'] || keyMapping['name'];
+                      if (customerFieldKey) {
+                        console.log('Mapping customer name to field:', customerFieldKey);
+                        handleFieldChange(customerFieldKey, value);
+                      } else {
+                        handleFieldChange(formFieldKey, value);
+                      }
                     } else {
                       handleFieldChange(formFieldKey, value);
                     }

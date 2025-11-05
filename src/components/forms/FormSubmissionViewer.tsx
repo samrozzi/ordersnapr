@@ -86,22 +86,34 @@ export function FormSubmissionViewer({
   const generateFileName = (extension: string) => {
     const answers = submission.answers || {};
     
-    // Extract tech name
-    const techName = answers.technicianName || answers.technician_name || answers.technician || '';
+    // Helper to find field value by searching for keywords in field keys
+    const findFieldValue = (keywords: string[]) => {
+      for (const key in answers) {
+        const lowerKey = key.toLowerCase();
+        if (keywords.some(keyword => lowerKey.includes(keyword))) {
+          return answers[key];
+        }
+      }
+      return '';
+    };
+    
+    // Extract tech name - search for fields containing these keywords
+    let techName = findFieldValue(['technician', 'tech']);
     
     // Extract address - handle both string and object formats
     let address = '';
-    if (typeof answers.address === 'string') {
-      address = answers.address;
-    } else if (typeof answers.address === 'object' && answers.address) {
-      const addr = answers.address as any;
+    const addressValue = findFieldValue(['address', 'location', 'street']);
+    if (typeof addressValue === 'string') {
+      address = addressValue;
+    } else if (typeof addressValue === 'object' && addressValue) {
+      const addr = addressValue as any;
       address = addr.street || addr.address || '';
     }
     // Clean address for filename (remove special chars, limit length)
     address = address.replace(/[^a-zA-Z0-9\s]/g, '').trim().slice(0, 30);
     
-    // Extract BAN/Account Number
-    const ban = answers.ban || answers.accountNumber || answers.account_number || '';
+    // Extract BAN/Account Number - search for fields containing these keywords
+    const ban = findFieldValue(['ban', 'account']);
     
     // Build filename parts
     const parts = [techName, address, ban].filter(part => part && String(part).trim());

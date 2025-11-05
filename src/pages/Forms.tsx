@@ -5,7 +5,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { useFormTemplates } from "@/hooks/use-form-templates";
 import { useFormSubmissions, useDeleteSubmission, FormSubmission } from "@/hooks/use-form-submissions";
 import { FormRenderer } from "@/components/forms/FormRenderer";
@@ -17,6 +18,7 @@ import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +34,8 @@ export default function Forms() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'creator' | 'status' | 'date'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [dateFilter, setDateFilter] = useState("");
+  const [timeFilter, setTimeFilter] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -106,7 +110,23 @@ export default function Forms() {
     }
   };
 
-  const sortedSubmissions = [...submissions].sort((a, b) => {
+  const filteredSubmissions = submissions.filter((submission) => {
+    // Date filter
+    if (dateFilter) {
+      const submissionDate = format(new Date(submission.created_at), "yyyy-MM-dd");
+      if (submissionDate !== dateFilter) return false;
+    }
+    
+    // Time filter (HH:mm format)
+    if (timeFilter) {
+      const submissionTime = format(new Date(submission.created_at), "HH:mm");
+      if (!submissionTime.startsWith(timeFilter)) return false;
+    }
+    
+    return true;
+  });
+
+  const sortedSubmissions = [...filteredSubmissions].sort((a, b) => {
     let comparison = 0;
     
     switch (sortField) {
@@ -195,6 +215,54 @@ export default function Forms() {
             Templates
           </Button>
         </div>
+
+        {activeTab !== 'templates' && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+                {(dateFilter || timeFilter) && <span className="text-xs">({[dateFilter, timeFilter].filter(Boolean).length})</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm">Filter Submissions</h4>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date</label>
+                  <Input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    placeholder="Filter by date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Time</label>
+                  <Input
+                    type="time"
+                    value={timeFilter}
+                    onChange={(e) => setTimeFilter(e.target.value)}
+                    placeholder="Filter by time"
+                  />
+                </div>
+                {(dateFilter || timeFilter) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setDateFilter("");
+                      setTimeFilter("");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* Sheet for selecting template or creating new */}

@@ -495,6 +495,9 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
     if (data.address) setAddress(data.address);
     if (data.customerName) setCustomerName(data.customerName);
     if (data.canBeReached) setCanBeReached(data.canBeReached);
+    if (data.observations) setObservations(data.observations);
+    if (data.reportedBy) setReportedBy(data.reportedBy);
+    toast.success("Form data extracted and populated!");
   };
 
   if (!session) {

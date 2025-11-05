@@ -20,9 +20,9 @@ export default function HealthData() {
       if (!user) return null;
 
       const { data, error } = await supabase
-        .from("user_roles")
+        .from("profiles")
         .select("organization_id")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .single();
 
       if (error) throw error;
@@ -32,100 +32,16 @@ export default function HealthData() {
     enabled: !!user,
   });
 
-  // Fetch health imports
-  const { data: imports, refetch: refetchImports } = useQuery({
-    queryKey: ["health-imports", orgId],
-    queryFn: async () => {
-      if (!orgId) return [];
-
-      const { data, error } = await supabase
-        .from("health_imports")
-        .select("*")
-        .eq("org_id", orgId)
-        .order("import_date", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!orgId,
-  });
+  // Health data is not used in this app - return empty array
+  const imports: any[] = [];
+  const refetchImports = () => {};
 
   const handleImportComplete = async (importData: any) => {
-    if (!user || !orgId) return;
-
-    try {
-      // Save import metadata to database
-      const { data: importRecord, error: importError } = await supabase
-        .from("health_imports")
-        .insert({
-          org_id: orgId,
-          user_id: user.id,
-          file_name: importData.fileName,
-          file_path: importData.filePath,
-          file_size_mb: (importData.data.length * 0.001).toFixed(2), // Rough estimate
-          record_count: importData.recordCount,
-          filter_date: importData.filterDate,
-          status: "completed",
-        })
-        .select()
-        .single();
-
-      if (importError) throw importError;
-
-      // Save health records in batches (to avoid payload limits)
-      const batchSize = 1000;
-      const records = importData.data.map((record: any) => ({
-        import_id: importRecord.id,
-        org_id: orgId,
-        record_type: record.type,
-        value: record.value,
-        unit: record.unit,
-        record_date: record.date,
-        source_name: record.sourceName,
-        device: record.device,
-      }));
-
-      for (let i = 0; i < records.length; i += batchSize) {
-        const batch = records.slice(i, i + batchSize);
-        const { error: recordsError } = await supabase
-          .from("health_records")
-          .insert(batch);
-
-        if (recordsError) {
-          console.error("Error saving batch:", recordsError);
-          throw recordsError;
-        }
-
-        toast.info(`Saved ${Math.min(i + batchSize, records.length)} of ${records.length} records...`);
-      }
-
-      toast.success("Health data imported and saved successfully!");
-      refetchImports();
-    } catch (error: any) {
-      console.error("Error saving import:", error);
-      toast.error("Failed to save import: " + error.message);
-    }
+    toast.info("Health data import feature is not enabled for this organization");
   };
 
   const handleDeleteImport = async (importId: string) => {
-    if (!confirm("Are you sure you want to delete this import? All associated health records will be deleted.")) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("health_imports")
-        .delete()
-        .eq("id", importId);
-
-      if (error) throw error;
-
-      toast.success("Import deleted successfully");
-      refetchImports();
-    } catch (error: any) {
-      console.error("Error deleting import:", error);
-      toast.error("Failed to delete import: " + error.message);
-    }
+    toast.info("Health data management is not enabled for this organization");
   };
 
   if (!orgId) {

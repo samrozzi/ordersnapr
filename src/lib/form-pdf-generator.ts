@@ -291,6 +291,7 @@ export const generateFormPDF = async (
       const photosPerRow = 2;
       const columnSpacing = 10;
       const maxImgWidth = (pageWidth - 3 * margin) / 2;
+      const maxImgHeight = 70;
 
       for (const photo of allPhotos) {
         try {
@@ -320,13 +321,42 @@ export const generateFormPDF = async (
                 });
 
                 // Calculate dimensions to fit in PDF
-                const maxImgHeight = 70;
                 let imgWidth = img.width;
                 let imgHeight = img.height;
                 
                 const ratio = Math.min(maxImgWidth / imgWidth, maxImgHeight / imgHeight);
                 imgWidth *= ratio;
                 imgHeight *= ratio;
+
+                // Calculate caption height
+                let captionHeight = 0;
+                if (photo.caption) {
+                  pdf.setFontSize(9);
+                  const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
+                  captionHeight = captionLines.length * 5 + 5; // 5 per line + 5 spacing
+                }
+
+                // Calculate total space needed for this photo
+                const totalPhotoHeight = imgHeight + captionHeight + 8; // 8 for spacing
+
+                // Check if starting a new column (first photo) and need new page
+                if (columnIndex === 0) {
+                  if (checkPageBreak(totalPhotoHeight)) {
+                    // Page was added, reset row tracking
+                    currentRowMaxHeight = 0;
+                  }
+                } else {
+                  // Second column - check if we need to finish row and start new page
+                  const remainingSpace = pageHeight - margin - yPos;
+                  if (totalPhotoHeight > remainingSpace) {
+                    // Finish current row and start new page
+                    columnIndex = 0;
+                    yPos += currentRowMaxHeight + 8;
+                    pdf.addPage();
+                    yPos = margin;
+                    currentRowMaxHeight = 0;
+                  }
+                }
 
                 // Calculate x position based on column
                 const xPos = columnIndex === 0 
@@ -340,18 +370,15 @@ export const generateFormPDF = async (
                 currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight);
 
                 // Handle caption if present
-                let captionHeight = 0;
                 if (photo.caption) {
-                  pdf.setFontSize(9);
                   pdf.setFont("helvetica", "italic");
                   pdf.setTextColor(100, 100, 100);
                   const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
                   captionLines.forEach((line: string, idx: number) => {
                     pdf.text(line, xPos, yPos + imgHeight + 5 + (idx * 5));
-                    captionHeight += 5;
                   });
                   pdf.setTextColor(40, 40, 40);
-                  currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight + captionHeight + 5);
+                  currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight + captionHeight);
                 }
 
                 // Move to next column or next row
@@ -361,9 +388,6 @@ export const generateFormPDF = async (
                   columnIndex = 0;
                   yPos += currentRowMaxHeight + 8;
                   currentRowMaxHeight = 0;
-                  
-                  // Check if we need a new page for next row
-                  checkPageBreak(80);
                 }
 
                 resolve(null);

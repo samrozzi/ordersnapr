@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ChecklistField } from "./ChecklistField";
 import { SignatureField } from "./SignatureField";
 import { FormSubmission } from "@/hooks/use-form-submissions";
-import { Calendar, User, FileText, Download, Mail, Loader2 } from "lucide-react";
+import { Calendar, User, FileText, Download, Mail, Loader2, Pencil, Trash2, Check } from "lucide-react";
 import { format } from "date-fns";
 import { generateFormPDF } from "@/lib/form-pdf-generator";
 import { generateFormDOCX } from "@/lib/form-docx-generator";
@@ -35,6 +35,7 @@ export function FormSubmissionViewer({
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [themeColor, setThemeColor] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Fetch organization theme color
   useEffect(() => {
@@ -78,6 +79,8 @@ export function FormSubmissionViewer({
         return "default";
       case "rejected":
         return "destructive";
+      case "logged":
+        return "outline";
       default:
         return "outline";
     }
@@ -180,6 +183,25 @@ export function FormSubmissionViewer({
       toast.error("Failed to generate Word document");
     } finally {
       setIsGeneratingDOCX(false);
+    }
+  };
+
+  const handleMarkAsLogged = async () => {
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from('form_submissions')
+        .update({ status: 'logged', updated_at: new Date().toISOString() })
+        .eq('id', submission.id);
+      
+      if (error) throw error;
+      toast.success("Form marked as logged");
+      // Parent component should refresh automatically via React Query
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -522,12 +544,29 @@ export function FormSubmissionViewer({
       <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur border-t flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
         {onDelete && (
           <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
-            Delete
+            <Trash2 className="h-4 w-4" />
+            <span className="ml-2">Delete</span>
           </Button>
         )}
         {canEdit && (
           <Button onClick={onEdit} className="w-full sm:w-auto">
-            Edit
+            <Pencil className="h-4 w-4" />
+            <span className="ml-2">Edit</span>
+          </Button>
+        )}
+        {submission.status === 'submitted' && (
+          <Button 
+            variant="default" 
+            onClick={handleMarkAsLogged} 
+            disabled={isUpdatingStatus}
+            className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+          >
+            {isUpdatingStatus ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+            <span className="ml-2">{isUpdatingStatus ? "Updating..." : "Mark as Logged"}</span>
           </Button>
         )}
         <Button variant="outline" onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="w-full sm:w-auto">

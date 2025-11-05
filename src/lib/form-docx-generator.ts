@@ -345,6 +345,14 @@ export const generateFormDOCX = async (
     }
 
     if (allPhotos.length > 0) {
+      // Add page break before photos section to ensure they start on a fresh page
+      sections.push(
+        new Paragraph({
+          text: "",
+          pageBreakBefore: true,
+        })
+      );
+      
       sections.push(
         new Paragraph({
           text: "Photos",
@@ -356,7 +364,18 @@ export const generateFormDOCX = async (
         })
       );
 
+      let photoCount = 0;
       for (const photo of allPhotos) {
+        // Add page break every 3 photos to prevent overflow
+        if (photoCount > 0 && photoCount % 3 === 0) {
+          sections.push(
+            new Paragraph({
+              text: "",
+              pageBreakBefore: true,
+            })
+          );
+        }
+        photoCount++;
         try {
           // Fetch image with timeout
           const controller = new AbortController();

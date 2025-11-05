@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Check } from "lucide-react";
 import { useFormTemplates } from "@/hooks/use-form-templates";
 import { useFormSubmissions, useDeleteSubmission, FormSubmission } from "@/hooks/use-form-submissions";
 import { FormRenderer } from "@/components/forms/FormRenderer";
@@ -54,7 +54,7 @@ export default function Forms() {
   }, []);
 
   const { data: templates = [] } = useFormTemplates(orgId);
-  const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : undefined;
+  const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : activeTab === "logged" ? { status: "logged" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
   const deleteMutation = useDeleteSubmission();
 
@@ -97,6 +97,7 @@ export default function Forms() {
       case "submitted": return "default";
       case "approved": return "default";
       case "rejected": return "destructive";
+      case "logged": return "outline";
       default: return "outline";
     }
   };
@@ -139,7 +140,7 @@ export default function Forms() {
         comparison = aName.localeCompare(bName);
         break;
       case 'status':
-        const statusOrder = { draft: 0, submitted: 1, approved: 2, rejected: 3 };
+        const statusOrder = { draft: 0, submitted: 1, approved: 2, rejected: 3, logged: 4 };
         comparison = (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
         break;
       case 'date':
@@ -206,6 +207,13 @@ export default function Forms() {
             onClick={() => setActiveTab('submitted')}
           >
             Submitted
+          </Button>
+          <Button
+            variant={activeTab === 'logged' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('logged')}
+          >
+            Logged
           </Button>
           <Button
             variant={activeTab === 'templates' ? 'default' : 'outline'}
@@ -338,9 +346,30 @@ export default function Forms() {
                       <TableCell>{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
                       <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
                       <TableCell>{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
-                      <TableCell className="text-right">
+                       <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
+                          {submission.status === 'submitted' && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" 
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('form_submissions')
+                                    .update({ status: 'logged', updated_at: new Date().toISOString() })
+                                    .eq('id', submission.id);
+                                  if (error) throw error;
+                                } catch (error) {
+                                  console.error("Failed to update status:", error);
+                                }
+                              }}
+                              title="Mark as Logged"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          )}
                           {canDeleteSubmission(submission) && (
                             <>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>

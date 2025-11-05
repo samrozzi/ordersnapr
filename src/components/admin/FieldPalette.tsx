@@ -12,6 +12,7 @@ import {
   PenTool,
   Copy,
   MapPin,
+  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,8 @@ export type FieldType =
   | "file"
   | "signature"
   | "address"
-  | "repeating_group";
+  | "repeating_group"
+  | "smart_import";
 
 export interface FieldTypeDefinition {
   type: FieldType;
@@ -52,6 +54,7 @@ export const fieldTypes: FieldTypeDefinition[] = [
   { type: "signature", icon: PenTool, label: "Signature", description: "Draw or type signature" },
   { type: "address", icon: MapPin, label: "Address", description: "Structured address inputs" },
   { type: "repeating_group", icon: Copy, label: "Repeating Group", description: "Add multiple entries" },
+  { type: "smart_import", icon: Sparkles, label: "Smart Import", description: "AI-powered data extraction" },
 ];
 
 interface FieldPaletteProps {

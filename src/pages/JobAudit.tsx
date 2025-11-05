@@ -134,6 +134,20 @@ const JobAudit = ({ draftToLoad, onDraftLoaded }: JobAuditProps = {}) => {
     if (draftToLoad) {
       handleLoadDraft(draftToLoad);
       onDraftLoaded?.();
+    } else {
+      // Clear all form state when no draft is being loaded (starting fresh)
+      setPhotos([]);
+      setObservations("");
+      setTechnicianName("");
+      setBan("");
+      setServiceDate("");
+      setAddress("");
+      setReportedBy("");
+      setCustomerName("");
+      setCanBeReached("");
+      setAdminChecklist({});
+      setCustomerChecklist({});
+      setDropChecklist({});
     }
   }, [draftToLoad]);
 

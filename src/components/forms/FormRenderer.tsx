@@ -725,6 +725,25 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           />
         );
 
+      case "smart_import":
+        return (
+          <div key={field.key} className="space-y-2">
+            {!field.hideLabel && (
+              <Label>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
+            <div className="p-4 border-2 border-dashed rounded-lg bg-muted/50">
+              <p className="text-sm text-muted-foreground mb-3">
+                {field.description || "Upload or capture an image to automatically extract and populate form data using AI"}
+              </p>
+              <p className="text-xs text-muted-foreground italic">
+                Note: Smart Import functionality will be available when this form is rendered. Configure field mappings in the template settings.
+              </p>
+            </div>
+          </div>
+        );
+
       case "repeating_group":
         const instanceCount = repeatCounts[field.key] || field.minInstances || 1;
         const entries = (value as any[]) || [];

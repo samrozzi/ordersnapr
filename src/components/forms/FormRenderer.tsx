@@ -764,11 +764,24 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     if (label?.includes('address') || fieldKey?.includes('address')) {
                       keyMapping['address'] = fieldKey;
                     }
-                    if ((label?.includes('customer') && label?.includes('name')) || 
-                        (label?.includes('customer') && !label?.includes('address')) ||
-                        fieldKey?.toLowerCase().includes('customer') ||
-                        label?.includes('name') && !label?.includes('technician') && !label?.includes('observer')) {
+                    // Customer name mapping - be very specific to avoid conflicts with other name fields
+                    if ((label?.toLowerCase().includes('customer') && label?.toLowerCase().includes('name')) || 
+                        fieldKey?.toLowerCase().includes('customer_name') ||
+                        (label?.toLowerCase() === 'customer name')) {
                       keyMapping['customerName'] = fieldKey;
+                      console.log('Mapped customerName to field:', fieldKey, 'label:', label);
+                    }
+                    // Also check for standalone "name" field if not technician/observer/reported
+                    if (label?.toLowerCase() === 'name' || 
+                        (label?.toLowerCase().includes('name') && 
+                         !label?.toLowerCase().includes('technician') && 
+                         !label?.toLowerCase().includes('observer') && 
+                         !label?.toLowerCase().includes('reported') &&
+                         !label?.toLowerCase().includes('customer'))) {
+                      if (!keyMapping['customerName']) {
+                        keyMapping['name'] = fieldKey;
+                        console.log('Mapped name to field:', fieldKey, 'label:', label);
+                      }
                     }
                     if (label?.includes('reached') || fieldKey?.includes('reach')) {
                       keyMapping['canBeReached'] = fieldKey;
@@ -853,17 +866,20 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       
                       console.log('Parsed address:', addressValue);
                       handleFieldChange(formFieldKey, addressValue);
-                    } else if (extractedKey === 'customerName' || extractedKey === 'customer' || extractedKey === 'name') {
+                    } else if (extractedKey === 'customerName' || extractedKey === 'customer') {
                       // Ensure customer name gets to the right field
-                      console.log('Customer name extracted:', extractedKey, value);
-                      const customerFieldKey = keyMapping['customerName'] || keyMapping['customer'] || keyMapping['name'];
+                      console.log('Customer name extracted:', extractedKey, '=', value);
+                      const customerFieldKey = keyMapping['customerName'] || keyMapping['name'];
+                      console.log('Looking for customer field key:', customerFieldKey);
                       if (customerFieldKey) {
-                        console.log('Mapping customer name to field:', customerFieldKey);
+                        console.log('Applying customer name to field:', customerFieldKey);
                         handleFieldChange(customerFieldKey, value);
                       } else {
+                        console.warn('No customer name field found in mapping!');
                         handleFieldChange(formFieldKey, value);
                       }
                     } else {
+                      console.log('Applying field:', extractedKey, '=', value, 'to', formFieldKey);
                       handleFieldChange(formFieldKey, value);
                     }
                   } else {

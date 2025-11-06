@@ -25,7 +25,9 @@ import { useQueryClient } from "@tanstack/react-query";
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("formsActiveTab") || "all";
+  });
   const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | "edit-template" | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
@@ -39,6 +41,11 @@ export default function Forms() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [dateFilter, setDateFilter] = useState("");
   const [timeFilter, setTimeFilter] = useState("");
+
+  // Persist active tab to localStorage
+  useEffect(() => {
+    localStorage.setItem("formsActiveTab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchUser = async () => {

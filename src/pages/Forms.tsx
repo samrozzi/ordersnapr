@@ -201,13 +201,13 @@ export default function Forms() {
         <h1 className="text-xl md:text-2xl font-semibold">Forms</h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+      <div className="flex flex-wrap items-center gap-3 md:gap-2 mb-4 md:mb-6">
         <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10">
           <Plus className="md:mr-2 h-4 w-4" />
           <span className="hidden md:inline">New Submission</span>
         </Button>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2 md:gap-1">
           <Button
             variant={activeTab === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -255,7 +255,7 @@ export default function Forms() {
         {activeTab !== 'templates' && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="default" className="gap-2 h-10 px-4 min-w-[100px]">
                 <Filter className="h-4 w-4" />
                 Filters
                 {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}

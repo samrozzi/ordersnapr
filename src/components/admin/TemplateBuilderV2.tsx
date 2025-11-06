@@ -61,6 +61,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           allowCaptions: f.allowCaptions,
           default: f.default,
           hideLabel: f.hideLabel ?? false,
+          boldText: f.boldText ?? false,
+          underlineText: f.underlineText ?? false,
           fields: (f.fields || []).map((sf: any) => ({
             id: sf.id || crypto.randomUUID(),
             key: sf.key || generateKey(sf.label || "untitled_field"),
@@ -73,6 +75,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
             min: sf.min,
             max: sf.max,
             hideLabel: sf.hideLabel ?? false,
+            boldText: sf.boldText ?? false,
+            underlineText: sf.underlineText ?? false,
           })),
           minInstances: f.minInstances,
           maxInstances: f.maxInstances,
@@ -117,6 +121,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           allowCaptions: f.allowCaptions,
           default: f.default,
           hideLabel: f.hideLabel ?? false, // Default to false if missing
+          boldText: f.boldText ?? false,
+          underlineText: f.underlineText ?? false,
           fields: f.fields ? f.fields.map((sf: any) => ({
             id: sf.id || crypto.randomUUID(),
             key: sf.key || generateKey(sf.label || "untitled_field"),
@@ -129,6 +135,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
             min: sf.min,
             max: sf.max,
             hideLabel: sf.hideLabel ?? false,
+            boldText: sf.boldText ?? false,
+            underlineText: sf.underlineText ?? false,
           })) : undefined,
           minInstances: (f as any).minInstances,
           maxInstances: (f as any).maxInstances,
@@ -374,6 +382,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                       allowCaptions: f.allowCaptions,
                       default: f.default,
                       hideLabel: f.hideLabel,
+                      boldText: f.boldText,
+                      underlineText: f.underlineText,
                       fields: f.fields?.map((sf) => ({
                         id: sf.id,
                         key: sf.key,
@@ -386,6 +396,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                         min: sf.min,
                         max: sf.max,
                         hideLabel: sf.hideLabel,
+                        boldText: sf.boldText,
+                        underlineText: sf.underlineText,
                       })),
                       minInstances: (f as any).minInstances,
                       maxInstances: (f as any).maxInstances,

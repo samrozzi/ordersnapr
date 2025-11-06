@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FormSubmission } from "@/hooks/use-form-submissions";
-import { hexToRGB } from "./color-utils";
+import { hexToRGB, getMutedColorRGB } from "./color-utils";
 
 interface PDFOptions {
   includePhotos?: boolean;
@@ -162,6 +162,41 @@ export const generateFormPDF = async (
           
           answer.forEach((entry: any, idx: number) => {
             checkPageBreak(15);
+            
+            // Calculate entry height for background
+            const startY = yPos;
+            let entryHeight = 0;
+            
+            // If alternating backgrounds enabled, calculate and draw background for odd entries
+            if ((field as any).alternatingBackground && idx % 2 === 1 && options.themeColor) {
+              // Temporarily calculate height
+              const tempY = yPos;
+              let calculatedHeight = 0;
+              
+              if (submission.metadata?.entryLabelPreferences?.[field.key]) {
+                calculatedHeight += 6;
+              }
+              
+              (field.fields || []).forEach((subField: any) => {
+                const subValue = entry[subField.key];
+                if (subValue !== null && subValue !== undefined && subValue !== "") {
+                  const displayValue = typeof subValue === 'boolean' 
+                    ? (subValue ? 'Yes' : 'No') 
+                    : String(subValue);
+                  const text = !subField.hideLabel ? `${subField.label}: ${displayValue}` : displayValue;
+                  const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
+                  calculatedHeight += lines.length * 5;
+                }
+              });
+              
+              calculatedHeight += 3; // Extra spacing
+              entryHeight = calculatedHeight;
+              
+              // Draw muted background
+              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.05);
+              pdf.setFillColor(r, g, b);
+              pdf.rect(margin, startY - 2, pageWidth - 2 * margin, entryHeight, 'F');
+            }
             
             // Show entry label if preference is enabled
             if (submission.metadata?.entryLabelPreferences?.[field.key]) {

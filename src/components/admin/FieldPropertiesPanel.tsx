@@ -305,6 +305,25 @@ export function FieldPropertiesPanel({
                   </div>
                 </div>
                 
+                {/* Alternating Background Toggle */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="alternatingBackground">Alternating Background</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Apply subtle alternating backgrounds to entries in PDF/DOCX
+                    </p>
+                  </div>
+                  <Switch
+                    id="alternatingBackground"
+                    checked={(editedField as any).alternatingBackground || false}
+                    onCheckedChange={(checked) =>
+                      setEditedField((prev) => (
+                        prev ? { ...prev, alternatingBackground: checked } : prev
+                      ))
+                    }
+                  />
+                </div>
+                
                 <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30">
                   <p className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Plus className="h-4 w-4" />

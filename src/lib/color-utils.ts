@@ -59,3 +59,34 @@ export function hexToRGB(hex: string): [number, number, number] {
 
   return [r, g, b];
 }
+
+/**
+ * Get muted version of a color by blending with white
+ * @param hex - Hex color string (e.g., "#3b82f6")
+ * @param opacity - Opacity value from 0 to 1 (default 0.05 for 5% opacity)
+ * @returns RGB array for the muted color
+ */
+export function getMutedColorRGB(hex: string, opacity: number = 0.05): [number, number, number] {
+  const [r, g, b] = hexToRGB(hex);
+  
+  // Blend with white (255, 255, 255)
+  const mutedR = Math.round(r * opacity + 255 * (1 - opacity));
+  const mutedG = Math.round(g * opacity + 255 * (1 - opacity));
+  const mutedB = Math.round(b * opacity + 255 * (1 - opacity));
+  
+  return [mutedR, mutedG, mutedB];
+}
+
+/**
+ * Get muted version of a color as hex string for DOCX
+ * @param hex - Hex color string (e.g., "#3b82f6")
+ * @param opacity - Opacity value from 0 to 1 (default 0.05 for 5% opacity)
+ * @returns Hex string without # (e.g., "F2F7FC")
+ */
+export function getMutedColorHex(hex: string, opacity: number = 0.05): string {
+  const [r, g, b] = getMutedColorRGB(hex, opacity);
+  
+  // Convert to hex
+  const toHex = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
+  return `${toHex(r)}${toHex(g)}${toHex(b)}`;
+}

@@ -164,7 +164,11 @@ export function FormSubmissionViewer({
   const handleDownloadDOCX = async () => {
     setIsGeneratingDOCX(true);
     try {
-      const docBlob = await generateFormDOCX(submission);
+      const docBlob = await generateFormDOCX(submission, {
+        includePhotos: true,
+        includeSignature: true,
+        themeColor: themeColor || undefined
+      });
       const fileName = generateFileName('docx');
       
       // Create download link

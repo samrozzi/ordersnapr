@@ -1,9 +1,11 @@
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, ImageRun } from "docx";
 import { FormSubmission } from "@/hooks/use-form-submissions";
+import { getMutedColorHex } from "./color-utils";
 
 interface DOCXOptions {
   includePhotos?: boolean;
   includeSignature?: boolean;
+  themeColor?: string; // hex color for alternating backgrounds
 }
 
 export const generateFormDOCX = async (
@@ -215,6 +217,10 @@ export const generateFormDOCX = async (
           }
           
           answer.forEach((entry: any, idx: number) => {
+            // Determine if this entry should have a background
+            const shouldApplyBackground = (field as any).alternatingBackground && idx % 2 === 1 && options.themeColor;
+            const backgroundColor = shouldApplyBackground ? getMutedColorHex(options.themeColor!, 0.05) : undefined;
+            
             // Show entry label if preference is enabled
             if (submission.metadata?.entryLabelPreferences?.[field.key]) {
               sections.push(
@@ -226,6 +232,7 @@ export const generateFormDOCX = async (
                     }),
                   ],
                   spacing: { before: 100, after: 50 },
+                  shading: backgroundColor ? { fill: backgroundColor } : undefined,
                 })
               );
             }
@@ -252,6 +259,7 @@ export const generateFormDOCX = async (
                         }),
                       ],
                       spacing: { after: 50 },
+                      shading: backgroundColor ? { fill: backgroundColor } : undefined,
                     })
                   );
                 } else {
@@ -266,6 +274,7 @@ export const generateFormDOCX = async (
                         }),
                       ],
                       spacing: { after: 50 },
+                      shading: backgroundColor ? { fill: backgroundColor } : undefined,
                     })
                   );
                 }

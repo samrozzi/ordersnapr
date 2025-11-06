@@ -216,6 +216,11 @@ export const generateFormPDF = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
+                // Set correct font size for accurate measurement
+                const fontSize = parseFontSize(subField.fontSize);
+                pdf.setFontSize(fontSize);
+                console.log(`[PDF] Measuring subfield "${subField.label}" with fontSize: ${fontSize}pt`);
+                
                 let displayValue = typeof subValue === 'boolean' 
                   ? (subValue ? 'Yes' : 'No') 
                   : String(subValue);
@@ -238,10 +243,7 @@ export const generateFormPDF = async (
           };
           
           answer.forEach((entry: any, idx: number) => {
-            // Ensure consistent font size for measurement and rendering
-            pdf.setFontSize(ENTRY_FONT_SIZE);
-            
-            // Measure entry height first
+            // Measure entry height first (measureEntryHeight will set appropriate font sizes)
             const entryHeight = measureEntryHeight(entry, idx);
             checkPageBreak(entryHeight + TOP_PAD + SPACING_AFTER);
             
@@ -272,6 +274,7 @@ export const generateFormPDF = async (
               if (subValue !== null && subValue !== undefined && subValue !== "") {
                 const fontStyle = subField.boldText ? "bold" : "normal";
                 const fontSize = parseFontSize(subField.fontSize);
+                console.log(`[PDF] Rendering subfield "${subField.label}" with fontSize: ${fontSize}pt, bold: ${subField.boldText}`);
                 pdf.setFont("helvetica", fontStyle);
                 pdf.setFontSize(fontSize);
                 
@@ -351,6 +354,7 @@ export const generateFormPDF = async (
           // Apply text styling based on field properties
           const fontStyle = field.boldText ? "bold" : "normal";
           const fontSize = parseFontSize(field.fontSize);
+          console.log(`[PDF] Rendering regular field "${field.label}" with fontSize: ${fontSize}pt, bold: ${field.boldText}`);
           pdf.setFont("helvetica", fontStyle);
           pdf.setFontSize(fontSize);
            let valueRaw = typeof answer === 'string' ? answer : String(answer);

@@ -247,9 +247,31 @@ export const generateFormDOCX = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
-                const displayValue = typeof subValue === 'boolean' 
+                let displayValue = typeof subValue === 'boolean' 
                   ? (subValue ? 'Yes' : 'No') 
                   : String(subValue);
+                
+                // Convert 24h time to 12h AM/PM when appropriate
+                if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                  const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+                  if (m) {
+                    let h = parseInt(m[1], 10);
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    displayValue = `${h}:${m[2]} ${ampm}`;
+                  }
+                }
+                
+                // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
+                if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                  const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                  if (dateMatch) {
+                    const [, year, month, day] = dateMatch;
+                    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+                  }
+                }
                 
                 if (!subField.hideLabel) {
                   sections.push(
@@ -339,11 +361,35 @@ export const generateFormDOCX = async (
             );
           }
           
+          let displayValue = String(answer);
+          
+          // Convert 24h time to 12h AM/PM when appropriate
+          if (field?.type === 'time' || /time/i.test(field?.label || '') || /time/i.test(field?.key || '')) {
+            const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+            if (m) {
+              let h = parseInt(m[1], 10);
+              const ampm = h >= 12 ? 'PM' : 'AM';
+              h = h % 12 || 12;
+              displayValue = `${h}:${m[2]} ${ampm}`;
+            }
+          }
+          
+          // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
+          if (field?.type === 'date' || /date/i.test(field?.label || '') || /date/i.test(field?.key || '')) {
+            const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+              const [, year, month, day] = dateMatch;
+              const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+              const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+              displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+            }
+          }
+          
           sections.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: String(answer),
+                  text: displayValue,
                   bold: field.boldText || false,
                   underline: field.underlineText ? {} : undefined,
                 }),

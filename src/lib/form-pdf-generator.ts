@@ -195,6 +195,16 @@ export const generateFormPDF = async (
                       displayValue = `${h}:${m[2]} ${ampm}`;
                     }
                   }
+                  // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
+                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                    const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    if (dateMatch) {
+                      const [, year, month, day] = dateMatch;
+                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                      displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+                    }
+                  }
                   const text = !subField.hideLabel ? `${subField.label}: ${displayValue}` : displayValue;
                   const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
                   calculatedHeight += lines.length * 5;
@@ -245,6 +255,16 @@ export const generateFormPDF = async (
                       const ampm = h >= 12 ? 'PM' : 'AM';
                       h = h % 12 || 12;
                       displayValue = `${h}:${m[2]} ${ampm}`;
+                    }
+                  }
+                  // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
+                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                    const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    if (dateMatch) {
+                      const [, year, month, day] = dateMatch;
+                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                      displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
                     }
                   }
                   pdf.setFont("helvetica", fontStyle);
@@ -310,19 +330,33 @@ export const generateFormPDF = async (
           // Apply text styling based on field properties
           const fontStyle = field.boldText ? "bold" : "normal";
           pdf.setFont("helvetica", fontStyle);
-           const valueRaw = typeof answer === 'string' ? answer : String(answer);
+           let valueRaw = typeof answer === 'string' ? answer : String(answer);
+           
+           // Convert 24h time to 12h AM/PM when appropriate
            const needs12h = field?.type === 'time' || /time/i.test(field?.label || '') || /time/i.test(field?.key || '');
-           const formattedValue = needs12h ? (() => {
+           if (needs12h) {
              const m = valueRaw.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
              if (m) {
                let h = parseInt(m[1], 10);
                const ampm = h >= 12 ? 'PM' : 'AM';
                h = h % 12 || 12;
-               return `${h}:${m[2]} ${ampm}`;
+               valueRaw = `${h}:${m[2]} ${ampm}`;
              }
-             return valueRaw;
-           })() : valueRaw;
-           const lines = pdf.splitTextToSize(formattedValue, pageWidth - margin - 20);
+           }
+           
+           // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
+           const needsDateFormat = field?.type === 'date' || /date/i.test(field?.label || '') || /date/i.test(field?.key || '');
+           if (needsDateFormat) {
+             const dateMatch = valueRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+             if (dateMatch) {
+               const [, year, month, day] = dateMatch;
+               const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+               const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+               valueRaw = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+             }
+           }
+           
+           const lines = pdf.splitTextToSize(valueRaw, pageWidth - margin - 20);
           lines.forEach((line: string) => {
             checkPageBreak(5);
             const xPosition = margin + 10;

@@ -164,63 +164,13 @@ export const generateFormPDF = async (
           answer.forEach((entry: any, idx: number) => {
             checkPageBreak(15);
             
-            // Calculate entry height for background
-            const startY = yPos;
-            let entryHeight = 0;
-            
-            // If alternating backgrounds enabled, calculate and draw background for odd entries
-            if ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor) {
-              console.log(`[PDF] Applying alternating background for entry ${idx + 1}, theme color: ${options.themeColor}`);
-              // Temporarily calculate height
-              const tempY = yPos;
-              let calculatedHeight = 0;
-              
-              if (submission.metadata?.entryLabelPreferences?.[field.key]) {
-                calculatedHeight += 6;
-              }
-              
-              (field.fields || []).forEach((subField: any) => {
-                const subValue = entry[subField.key];
-                if (subValue !== null && subValue !== undefined && subValue !== "") {
-                  let displayValue = typeof subValue === 'boolean' 
-                    ? (subValue ? 'Yes' : 'No') 
-                    : String(subValue);
-                  // Convert 24h time to 12h AM/PM when appropriate
-                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
-                    const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
-                    if (m) {
-                      let h = parseInt(m[1], 10);
-                      const ampm = h >= 12 ? 'PM' : 'AM';
-                      h = h % 12 || 12;
-                      displayValue = `${h}:${m[2]} ${ampm}`;
-                    }
-                  }
-                  // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
-                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
-                    const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                    if (dateMatch) {
-                      const [, year, month, day] = dateMatch;
-                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                      displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
-                    }
-                  }
-                  const text = !subField.hideLabel ? `${subField.label}: ${displayValue}` : displayValue;
-                  const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
-                  calculatedHeight += lines.length * 5;
-                }
-              });
-              
-              calculatedHeight += 3; // Extra spacing
-              entryHeight = calculatedHeight;
-              
-              // Draw muted background (using 8% opacity for better visibility)
-              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.12);
-              console.log(`[PDF] Background RGB: [${r}, ${g}, ${b}], height: ${entryHeight}`);
-              pdf.setFillColor(r, g, b);
-              pdf.rect(margin, startY - 2, pageWidth - 2 * margin, entryHeight, 'F');
+            // Alternating background (per-line rendering to avoid overlap)
+            const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor);
+            const altRGB = applyAltBg ? getMutedColorRGB(options.themeColor!, 0.12) : null;
+            if (applyAltBg) {
+              console.log(`[PDF] Alternating BG active for entry ${idx + 1}`, { color: options.themeColor, altRGB });
             } else {
-              console.log(`[PDF] NOT applying background for entry ${idx + 1}:`, {
+              console.log(`[PDF] Alternating BG not active for entry ${idx + 1}`, {
                 fieldAlternatingBackground: (field as any).alternatingBackground,
                 globalAlternatingBackground: (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground,
                 isOddIndex: idx % 2 === 1,
@@ -232,6 +182,10 @@ export const generateFormPDF = async (
             if (submission.metadata?.entryLabelPreferences?.[field.key]) {
               pdf.setFontSize(10);
               pdf.setFont("helvetica", "bold");
+              if (applyAltBg && altRGB) {
+                pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
+                pdf.rect(margin, yPos - 4, pageWidth - 2 * margin, 6, 'F');
+              }
               pdf.text(`Entry ${idx + 1}:`, margin + 8, yPos);
               yPos += 6;
             }
@@ -270,7 +224,11 @@ export const generateFormPDF = async (
                   pdf.setFont("helvetica", fontStyle);
                   const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
                   lines.forEach((line: string) => {
-                    checkPageBreak(5);
+                    checkPageBreak(6);
+                    if (applyAltBg && altRGB) {
+                      pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
+                      pdf.rect(margin, yPos - 4, pageWidth - 2 * margin, 6, 'F');
+                    }
                     const xPosition = margin + 12;
                     pdf.text(line, xPosition, yPos);
                     

@@ -161,6 +161,11 @@ export const generateFormPDF = async (
             yPos += 8;
           }
           
+          // Consistent typography and spacing for repeating group entries
+          const ENTRY_FONT_SIZE = 10;
+          const TOP_PAD = 4;
+          const SPACING_AFTER = 4;
+          
           // Helper to normalize time format
           const normalizeTime = (value: string): string => {
             // Handle 12h formats like "1:32pm" or "1:32 pm" -> "1:32 PM"
@@ -226,9 +231,12 @@ export const generateFormPDF = async (
           };
           
           answer.forEach((entry: any, idx: number) => {
+            // Ensure consistent font size for measurement and rendering
+            pdf.setFontSize(ENTRY_FONT_SIZE);
+            
             // Measure entry height first
             const entryHeight = measureEntryHeight(entry, idx);
-            checkPageBreak(entryHeight + 5);
+            checkPageBreak(entryHeight + TOP_PAD + SPACING_AFTER);
             
             const yStart = yPos;
             
@@ -239,7 +247,7 @@ export const generateFormPDF = async (
             if (applyAltBg) {
               const altRGB = getMutedColorRGB(options.themeColor!, 0.10);
               pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
-              pdf.rect(margin, yPos - 3, pageWidth - 2 * margin, entryHeight + 6, 'F');
+              pdf.rect(margin, yPos - TOP_PAD, pageWidth - 2 * margin, entryHeight + SPACING_AFTER, 'F');
               console.log(`[PDF] Alternating BG drawn for entry ${idx + 1} at y=${yPos}, height=${entryHeight}`, { color: options.themeColor, altRGB });
             }
             
@@ -290,7 +298,7 @@ export const generateFormPDF = async (
               }
             });
             
-            yPos += 3;
+            yPos += SPACING_AFTER;
             console.log(`[PDF] Entry ${idx + 1} rendered from y=${yStart} to y=${yPos}, measured=${entryHeight}`);
           });
           

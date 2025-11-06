@@ -30,6 +30,13 @@ export const generateFormPDF = async (
     return false;
   };
 
+  // Helper to parse fontSize string to number
+  const parseFontSize = (fontSize?: string): number => {
+    if (!fontSize) return 10; // default
+    const match = fontSize.match(/(\d+)pt/);
+    return match ? parseInt(match[1]) : 10;
+  };
+
   // Add professional header with theme color if available
   if (options.themeColor) {
     const [r, g, b] = hexToRGB(options.themeColor);
@@ -264,7 +271,9 @@ export const generateFormPDF = async (
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
                 const fontStyle = subField.boldText ? "bold" : "normal";
+                const fontSize = parseFontSize(subField.fontSize);
                 pdf.setFont("helvetica", fontStyle);
+                pdf.setFontSize(fontSize);
                 
                 let displayValue = typeof subValue === 'boolean' 
                   ? (subValue ? 'Yes' : 'No') 
@@ -341,7 +350,9 @@ export const generateFormPDF = async (
 
           // Apply text styling based on field properties
           const fontStyle = field.boldText ? "bold" : "normal";
+          const fontSize = parseFontSize(field.fontSize);
           pdf.setFont("helvetica", fontStyle);
+          pdf.setFontSize(fontSize);
            let valueRaw = typeof answer === 'string' ? answer : String(answer);
            
            // Convert 24h time to 12h AM/PM when appropriate

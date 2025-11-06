@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import type { Field } from "./FormCanvas";
 import { fieldTypes } from "./FieldPalette";
@@ -172,43 +173,65 @@ export function FieldPropertiesPanel({
               />
             </div>
 
-            {/* Text Styling - Bold */}
-            {(editedField.type === "text" || editedField.type === "textarea" || editedField.type === "time") && (
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="boldText">Bold Text</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Display text in bold font weight
-                  </p>
-                </div>
-                <Switch
-                  id="boldText"
-                  checked={editedField.boldText || false}
-                  onCheckedChange={(checked) =>
-                    setEditedField((prev) => (prev ? { ...prev, boldText: checked } : prev))
-                  }
-                />
-              </div>
-            )}
+            {/* Font Size Selector - Available for ALL field types */}
+            <div className="space-y-2">
+              <Label htmlFor="fontSize">Font Size</Label>
+              <Select
+                value={editedField.fontSize || "default"}
+                onValueChange={(value) =>
+                  setEditedField((prev) => (prev ? { ...prev, fontSize: value === "default" ? undefined : value } : prev))
+                }
+              >
+                <SelectTrigger id="fontSize">
+                  <SelectValue placeholder="Default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="8pt">8pt</SelectItem>
+                  <SelectItem value="9pt">9pt</SelectItem>
+                  <SelectItem value="10pt">10pt</SelectItem>
+                  <SelectItem value="11pt">11pt</SelectItem>
+                  <SelectItem value="12pt">12pt</SelectItem>
+                  <SelectItem value="14pt">14pt</SelectItem>
+                  <SelectItem value="16pt">16pt</SelectItem>
+                  <SelectItem value="18pt">18pt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Text Styling - Underline */}
-            {(editedField.type === "text" || editedField.type === "textarea") && (
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="underlineText">Underline Text</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Display text with underline decoration
-                  </p>
-                </div>
-                <Switch
-                  id="underlineText"
-                  checked={editedField.underlineText || false}
-                  onCheckedChange={(checked) =>
-                    setEditedField((prev) => (prev ? { ...prev, underlineText: checked } : prev))
-                  }
-                />
+            {/* Text Styling - Bold (Available for ALL field types) */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="boldText">Bold Text</Label>
+                <p className="text-xs text-muted-foreground">
+                  Display text in bold font weight
+                </p>
               </div>
-            )}
+              <Switch
+                id="boldText"
+                checked={editedField.boldText || false}
+                onCheckedChange={(checked) =>
+                  setEditedField((prev) => (prev ? { ...prev, boldText: checked } : prev))
+                }
+              />
+            </div>
+
+            {/* Text Styling - Underline (Available for ALL field types) */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="underlineText">Underline Text</Label>
+                <p className="text-xs text-muted-foreground">
+                  Display text with underline decoration
+                </p>
+              </div>
+              <Switch
+                id="underlineText"
+                checked={editedField.underlineText || false}
+                onCheckedChange={(checked) =>
+                  setEditedField((prev) => (prev ? { ...prev, underlineText: checked } : prev))
+                }
+              />
+            </div>
 
             {/* Field Key (read-only) */}
             <div className="space-y-2">

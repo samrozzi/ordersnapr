@@ -8,6 +8,14 @@ interface DOCXOptions {
   themeColor?: string; // hex color for alternating backgrounds
 }
 
+// Helper to parse fontSize string to Word half-points
+const parseFontSize = (fontSize?: string): number | undefined => {
+  if (!fontSize) return undefined;
+  const match = fontSize.match(/(\d+)pt/);
+  // Word uses half-points (size: 20 = 10pt, size: 24 = 12pt)
+  return match ? parseInt(match[1]) * 2 : undefined;
+};
+
 export const generateFormDOCX = async (
   submission: FormSubmission,
   options: DOCXOptions = { includePhotos: true, includeSignature: true }
@@ -292,6 +300,7 @@ export const generateFormDOCX = async (
                           text: displayValue,
                           bold: subField.boldText || false,
                           underline: subField.underlineText ? {} : undefined,
+                          size: parseFontSize(subField.fontSize),
                         }),
                       ],
                       spacing: { after: 50 },
@@ -307,6 +316,7 @@ export const generateFormDOCX = async (
                           text: displayValue,
                           bold: subField.boldText || false,
                           underline: subField.underlineText ? {} : undefined,
+                          size: parseFontSize(subField.fontSize),
                         }),
                       ],
                       spacing: { after: 50 },
@@ -406,6 +416,7 @@ export const generateFormDOCX = async (
                   text: displayValue,
                   bold: field.boldText || false,
                   underline: field.underlineText ? {} : undefined,
+                  size: parseFontSize(field.fontSize),
                 }),
               ],
               spacing: { after: 200 },

@@ -194,6 +194,28 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     return () => clearInterval(interval);
   }, [answers, signature, submission, draftSubmission, showEntryLabels, previewMode]);
 
+  // Helper function to generate className string for field formatting
+  const getFieldClasses = (field: any) => {
+    const classes = [];
+    if (field.boldText) classes.push('font-bold');
+    if (field.underlineText) classes.push('underline');
+    if (field.fontSize) {
+      // Map font sizes to Tailwind classes
+      const sizeMap: Record<string, string> = {
+        '8pt': 'text-xs',
+        '9pt': 'text-sm',
+        '10pt': 'text-base',
+        '11pt': 'text-base',
+        '12pt': 'text-lg',
+        '14pt': 'text-xl',
+        '16pt': 'text-2xl',
+        '18pt': 'text-3xl',
+      };
+      classes.push(sizeMap[field.fontSize] || 'text-base');
+    }
+    return classes.join(' ');
+  };
+
   const handleFieldChange = async (key: string, value: any) => {
     // Ensure draft exists on first interaction
     await ensureDraft();
@@ -268,7 +290,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
               placeholder={subField.placeholder}
-              className={`${subField.boldText ? 'font-bold' : ''} ${subField.underlineText ? 'underline' : ''}`}
+              className={getFieldClasses(subField)}
             />
           </div>
         );
@@ -285,7 +307,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
               placeholder={subField.placeholder}
               rows={3}
-              className={`${subField.boldText ? 'font-bold' : ''} ${subField.underlineText ? 'underline' : ''}`}
+              className={getFieldClasses(subField)}
             />
           </div>
         );
@@ -304,6 +326,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               placeholder={subField.placeholder}
               min={subField.min}
               max={subField.max}
+              className={getFieldClasses(subField)}
             />
           </div>
         );
@@ -319,6 +342,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               type="date"
               value={value || ""}
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              className={getFieldClasses(subField)}
             />
           </div>
         );
@@ -334,7 +358,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               type="time"
               value={value || ""}
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
-              className={subField.boldText ? 'font-bold' : ''}
+              className={getFieldClasses(subField)}
             />
           </div>
         );
@@ -349,7 +373,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onValueChange={(val) => handleNestedChange(subField.key, val)}
             >
-              <SelectTrigger id={`${parentKey}-${instanceIndex}-${subField.key}`}>
+              <SelectTrigger id={`${parentKey}-${instanceIndex}-${subField.key}`} className={getFieldClasses(subField)}>
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
               <SelectContent>
@@ -370,6 +394,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <RadioGroup
               value={value || ""}
               onValueChange={(val) => handleNestedChange(subField.key, val)}
+              className={getFieldClasses(subField)}
             >
               {(subField.options || []).map((option: string, idx: number) => (
                 <div key={idx} className="flex items-center space-x-2">
@@ -391,7 +416,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               checked={value || false}
               onCheckedChange={(checked) => handleNestedChange(subField.key, checked)}
             />
-            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`} className="font-normal cursor-pointer">
+            <Label htmlFor={`${parentKey}-${instanceIndex}-${subField.key}`} className={`font-normal cursor-pointer ${getFieldClasses(subField)}`}>
               {subField.label}
             </Label>
           </div>
@@ -524,7 +549,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               placeholder={field.placeholder}
               aria-label={field.hideLabel ? field.label : undefined}
-              className={`${field.boldText ? 'font-bold' : ''} ${field.underlineText ? 'underline' : ''}`}
+              className={getFieldClasses(field)}
             />
           </div>
         );
@@ -545,7 +570,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               maxLength={field.maxLength}
               rows={4}
               aria-label={field.hideLabel ? field.label : undefined}
-              className={`${field.boldText ? 'font-bold' : ''} ${field.underlineText ? 'underline' : ''}`}
+              className={getFieldClasses(field)}
             />
             {field.maxLength && (
               <p className="text-xs text-muted-foreground">
@@ -571,6 +596,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               min={field.min}
               max={field.max}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={getFieldClasses(field)}
             />
           </div>
         );
@@ -589,6 +615,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={getFieldClasses(field)}
             />
           </div>
         );
@@ -607,7 +634,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               aria-label={field.hideLabel ? field.label : undefined}
-              className={field.boldText ? 'font-bold' : ''}
+              className={getFieldClasses(field)}
             />
           </div>
         );
@@ -624,7 +651,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onValueChange={(val) => handleFieldChange(field.key, val)}
             >
-              <SelectTrigger id={field.key} aria-label={field.hideLabel ? field.label : undefined}>
+              <SelectTrigger id={field.key} aria-label={field.hideLabel ? field.label : undefined} className={getFieldClasses(field)}>
                 <SelectValue placeholder={field.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
@@ -650,6 +677,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onValueChange={(val) => handleFieldChange(field.key, val)}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={getFieldClasses(field)}
             >
               {(field.options || []).map((option, idx) => (
                 <div key={idx} className="flex items-center space-x-2">
@@ -671,7 +699,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               checked={value || false}
               onCheckedChange={(checked) => handleFieldChange(field.key, checked)}
             />
-            <Label htmlFor={field.key} className="font-normal cursor-pointer">
+            <Label htmlFor={field.key} className={`font-normal cursor-pointer ${getFieldClasses(field)}`}>
               {field.label} {field.required && <span className="text-destructive">*</span>}
             </Label>
           </div>

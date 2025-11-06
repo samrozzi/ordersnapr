@@ -556,15 +556,13 @@ export function FormSubmissionViewer({
 
       <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] bg-background/80 supports-[backdrop-filter]:bg-background/60 backdrop-blur border-t flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
         {onDelete && (
-          <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
+          <Button variant="destructive" onClick={onDelete} size="icon" className="w-full sm:w-auto sm:w-10">
             <Trash2 className="h-4 w-4" />
-            <span className="ml-2">Delete</span>
           </Button>
         )}
         {canEdit && (
-          <Button onClick={onEdit} className="w-full sm:w-auto">
+          <Button onClick={onEdit} size="icon" className="w-full sm:w-auto sm:w-10">
             <Pencil className="h-4 w-4" />
-            <span className="ml-2">Edit</span>
           </Button>
         )}
         {submission.status === 'submitted' && (
@@ -588,7 +586,7 @@ export function FormSubmissionViewer({
           ) : (
             <Download className="h-4 w-4" />
           )}
-          <span className="ml-2">Download PDF</span>
+          <span className="ml-2">PDF</span>
         </Button>
         <Button variant="outline" onClick={handleDownloadDOCX} disabled={isGeneratingDOCX} className="w-full sm:w-auto">
           {isGeneratingDOCX ? (
@@ -596,11 +594,11 @@ export function FormSubmissionViewer({
           ) : (
             <FileText className="h-4 w-4" />
           )}
-          <span className="ml-2">Download Word Doc</span>
+          <span className="ml-2">Word Doc</span>
         </Button>
         <Button variant="outline" onClick={() => setIsEmailDialogOpen(true)} className="w-full sm:w-auto">
           <Mail className="h-4 w-4" />
-          <span className="ml-2">Share via Email</span>
+          <span className="ml-2">Email</span>
         </Button>
       </div>
 

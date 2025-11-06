@@ -13,6 +13,7 @@ export const generateFormPDF = async (
   submission: FormSubmission,
   options: PDFOptions = { includePhotos: true, includeSignature: true }
 ): Promise<jsPDF> => {
+  console.log('[PDF] Generating PDF with options:', options);
   const pdf = new jsPDF();
   let yPos = 20;
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -169,6 +170,7 @@ export const generateFormPDF = async (
             
             // If alternating backgrounds enabled, calculate and draw background for odd entries
             if ((field as any).alternatingBackground && idx % 2 === 1 && options.themeColor) {
+              console.log(`[PDF] Applying alternating background for entry ${idx + 1}, theme color: ${options.themeColor}`);
               // Temporarily calculate height
               const tempY = yPos;
               let calculatedHeight = 0;
@@ -192,10 +194,17 @@ export const generateFormPDF = async (
               calculatedHeight += 3; // Extra spacing
               entryHeight = calculatedHeight;
               
-              // Draw muted background
-              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.05);
+              // Draw muted background (using 8% opacity for better visibility)
+              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.08);
+              console.log(`[PDF] Background RGB: [${r}, ${g}, ${b}], height: ${entryHeight}`);
               pdf.setFillColor(r, g, b);
               pdf.rect(margin, startY - 2, pageWidth - 2 * margin, entryHeight, 'F');
+            } else {
+              console.log(`[PDF] NOT applying background for entry ${idx + 1}:`, {
+                alternatingBackground: (field as any).alternatingBackground,
+                isOddIndex: idx % 2 === 1,
+                hasThemeColor: !!options.themeColor
+              });
             }
             
             // Show entry label if preference is enabled

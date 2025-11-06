@@ -217,9 +217,16 @@ export const generateFormDOCX = async (
           }
           
           answer.forEach((entry: any, idx: number) => {
-            // Determine if this entry should have a background
+            // Determine if this entry should have a background (using 8% opacity for better visibility)
             const shouldApplyBackground = (field as any).alternatingBackground && idx % 2 === 1 && options.themeColor;
-            const backgroundColor = shouldApplyBackground ? getMutedColorHex(options.themeColor!, 0.05) : undefined;
+            const backgroundColor = shouldApplyBackground ? getMutedColorHex(options.themeColor!, 0.08) : undefined;
+            
+            console.log(`[DOCX] Entry ${idx + 1}:`, {
+              alternatingBackground: (field as any).alternatingBackground,
+              isOddIndex: idx % 2 === 1,
+              hasThemeColor: !!options.themeColor,
+              backgroundColor
+            });
             
             // Show entry label if preference is enabled
             if (submission.metadata?.entryLabelPreferences?.[field.key]) {

@@ -88,6 +88,15 @@ export function FormSubmissionViewer({
 
   const generateFileName = (extension: string) => {
     const answers = submission.answers || {};
+    const formTitle = schema?.title || submission.form_templates?.name || 'form';
+    
+    // Special handling for Overrun Reports
+    if (formTitle.toLowerCase().includes('overrun')) {
+      const now = new Date();
+      const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }).replace(':', '');
+      const date = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '');
+      return `overrun-${time}-${date}.${extension}`;
+    }
     
     // Helper to find field value by searching for keywords in field keys
     const findFieldValue = (keywords: string[]) => {
@@ -123,7 +132,7 @@ export function FormSubmissionViewer({
     
     // Fallback if no data available
     if (parts.length === 0) {
-      return `${schema?.title || 'form'}-${submission.id.slice(0, 8)}.${extension}`;
+      return `${formTitle}-${submission.id.slice(0, 8)}.${extension}`;
     }
     
     return `${parts.join('-')}.${extension}`;

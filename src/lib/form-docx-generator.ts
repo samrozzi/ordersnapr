@@ -251,14 +251,21 @@ export const generateFormDOCX = async (
                   ? (subValue ? 'Yes' : 'No') 
                   : String(subValue);
                 
-                // Convert 24h time to 12h AM/PM when appropriate
+                // Normalize time format
                 if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
-                  const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
-                  if (m) {
-                    let h = parseInt(m[1], 10);
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    h = h % 12 || 12;
-                    displayValue = `${h}:${m[2]} ${ampm}`;
+                  // Handle 12h formats like "1:32pm" or "1:32 pm" -> "1:32 PM"
+                  const m12h = displayValue.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+                  if (m12h) {
+                    displayValue = `${m12h[1]}:${m12h[2]} ${m12h[3].toUpperCase()}`;
+                  } else {
+                    // Handle 24h format -> 12h AM/PM
+                    const m24h = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+                    if (m24h) {
+                      let h = parseInt(m24h[1], 10);
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      h = h % 12 || 12;
+                      displayValue = `${h}:${m24h[2]} ${ampm}`;
+                    }
                   }
                 }
                 
@@ -363,14 +370,21 @@ export const generateFormDOCX = async (
           
           let displayValue = String(answer);
           
-          // Convert 24h time to 12h AM/PM when appropriate
+          // Normalize time format
           if (field?.type === 'time' || /time/i.test(field?.label || '') || /time/i.test(field?.key || '')) {
-            const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
-            if (m) {
-              let h = parseInt(m[1], 10);
-              const ampm = h >= 12 ? 'PM' : 'AM';
-              h = h % 12 || 12;
-              displayValue = `${h}:${m[2]} ${ampm}`;
+            // Handle 12h formats like "1:32pm" or "1:32 pm" -> "1:32 PM"
+            const m12h = displayValue.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+            if (m12h) {
+              displayValue = `${m12h[1]}:${m12h[2]} ${m12h[3].toUpperCase()}`;
+            } else {
+              // Handle 24h format -> 12h AM/PM
+              const m24h = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+              if (m24h) {
+                let h = parseInt(m24h[1], 10);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                displayValue = `${h}:${m24h[2]} ${ampm}`;
+              }
             }
           }
           

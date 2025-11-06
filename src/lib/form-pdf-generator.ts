@@ -161,91 +161,138 @@ export const generateFormPDF = async (
             yPos += 8;
           }
           
-          answer.forEach((entry: any, idx: number) => {
-            checkPageBreak(15);
+          // Helper to normalize time format
+          const normalizeTime = (value: string): string => {
+            // Handle 12h formats like "1:32pm" or "1:32 pm" -> "1:32 PM"
+            const m12h = value.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+            if (m12h) {
+              return `${m12h[1]}:${m12h[2]} ${m12h[3].toUpperCase()}`;
+            }
+            // Handle 24h format -> 12h AM/PM
+            const m24h = value.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+            if (m24h) {
+              let h = parseInt(m24h[1], 10);
+              const ampm = h >= 12 ? 'PM' : 'AM';
+              h = h % 12 || 12;
+              return `${h}:${m24h[2]} ${ampm}`;
+            }
+            return value;
+          };
+          
+          // Helper to format date
+          const formatDate = (value: string): string => {
+            const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+              const [, year, month, day] = dateMatch;
+              const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+              const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+              return `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+            }
+            return value;
+          };
+          
+          // Helper to measure entry height
+          const measureEntryHeight = (entry: any, entryIdx: number): number => {
+            let height = 0;
             
-            // Alternating background (per-line rendering to avoid overlap)
+            // Entry label height if enabled
+            if (submission.metadata?.entryLabelPreferences?.[field.key]) {
+              height += 6;
+            }
+            
+            // Measure each subfield
+            (field.fields || []).forEach((subField: any) => {
+              const subValue = entry[subField.key];
+              if (subValue !== null && subValue !== undefined && subValue !== "") {
+                let displayValue = typeof subValue === 'boolean' 
+                  ? (subValue ? 'Yes' : 'No') 
+                  : String(subValue);
+                
+                // Apply formatting
+                if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                  displayValue = normalizeTime(displayValue);
+                }
+                if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                  displayValue = formatDate(displayValue);
+                }
+                
+                const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
+                const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
+                height += lines.length * 5;
+              }
+            });
+            
+            height += 3; // spacing after entry
+            return height;
+          };
+          
+          answer.forEach((entry: any, idx: number) => {
+            // Measure entry height first
+            const entryHeight = measureEntryHeight(entry, idx);
+            checkPageBreak(entryHeight + 5);
+            
+            const yStart = yPos;
+            
+            // Check if alternating background should be applied
             const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor);
-            const altRGB = applyAltBg ? getMutedColorRGB(options.themeColor!, 0.12) : null;
+            
+            // Draw single background rectangle for entire entry BEHIND content
             if (applyAltBg) {
-              console.log(`[PDF] Alternating BG active for entry ${idx + 1}`, { color: options.themeColor, altRGB });
-            } else {
-              console.log(`[PDF] Alternating BG not active for entry ${idx + 1}`, {
-                fieldAlternatingBackground: (field as any).alternatingBackground,
-                globalAlternatingBackground: (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground,
-                isOddIndex: idx % 2 === 1,
-                hasThemeColor: !!options.themeColor
-              });
+              const altRGB = getMutedColorRGB(options.themeColor!, 0.10);
+              pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
+              pdf.rect(margin, yPos - 3, pageWidth - 2 * margin, entryHeight + 6, 'F');
+              console.log(`[PDF] Alternating BG drawn for entry ${idx + 1} at y=${yPos}, height=${entryHeight}`, { color: options.themeColor, altRGB });
             }
             
             // Show entry label if preference is enabled
             if (submission.metadata?.entryLabelPreferences?.[field.key]) {
               pdf.setFontSize(10);
               pdf.setFont("helvetica", "bold");
-              if (applyAltBg && altRGB) {
-                pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
-                pdf.rect(margin, yPos - 4, pageWidth - 2 * margin, 6, 'F');
-              }
               pdf.text(`Entry ${idx + 1}:`, margin + 8, yPos);
               yPos += 6;
             }
             
+            // Render subfields
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
-                // Apply text styling based on field properties
                 const fontStyle = subField.boldText ? "bold" : "normal";
+                pdf.setFont("helvetica", fontStyle);
                 
-                // Only show sub-field label if not hidden
-                if (!subField.hideLabel) {
-                  let displayValue = typeof subValue === 'boolean' 
-                    ? (subValue ? 'Yes' : 'No') 
-                    : String(subValue);
-                  // Convert 24h time to 12h AM/PM when appropriate
-                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
-                    const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
-                    if (m) {
-                      let h = parseInt(m[1], 10);
-                      const ampm = h >= 12 ? 'PM' : 'AM';
-                      h = h % 12 || 12;
-                      displayValue = `${h}:${m[2]} ${ampm}`;
-                    }
-                  }
-                  // Format dates as "Month Day, Year" (e.g., "November 6, 2025")
-                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
-                    const dateMatch = displayValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                    if (dateMatch) {
-                      const [, year, month, day] = dateMatch;
-                      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                      displayValue = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
-                    }
-                  }
-                  pdf.setFont("helvetica", fontStyle);
-                  const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
-                  lines.forEach((line: string) => {
-                    checkPageBreak(6);
-                    if (applyAltBg && altRGB) {
-                      pdf.setFillColor(altRGB[0], altRGB[1], altRGB[2]);
-                      pdf.rect(margin, yPos - 4, pageWidth - 2 * margin, 6, 'F');
-                    }
-                    const xPosition = margin + 12;
-                    pdf.text(line, xPosition, yPos);
-                    
-                    // Add underline if needed
-                    if (subField.underlineText) {
-                      const textWidth = pdf.getTextWidth(line);
-                      pdf.setLineWidth(0.3);
-                      pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
-                    }
-                    
-                    yPos += 5;
-                  });
+                let displayValue = typeof subValue === 'boolean' 
+                  ? (subValue ? 'Yes' : 'No') 
+                  : String(subValue);
+                
+                // Apply formatting
+                if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                  displayValue = normalizeTime(displayValue);
                 }
+                if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                  displayValue = formatDate(displayValue);
+                }
+                
+                // Build text with or without label
+                const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
+                const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
+                
+                lines.forEach((line: string) => {
+                  const xPosition = margin + 12;
+                  pdf.text(line, xPosition, yPos);
+                  
+                  // Add underline if needed
+                  if (subField.underlineText) {
+                    const textWidth = pdf.getTextWidth(line);
+                    pdf.setLineWidth(0.3);
+                    pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+                  }
+                  
+                  yPos += 5;
+                });
               }
             });
             
             yPos += 3;
+            console.log(`[PDF] Entry ${idx + 1} rendered from y=${yStart} to y=${yPos}, measured=${entryHeight}`);
           });
           
           yPos += 3;

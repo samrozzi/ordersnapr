@@ -222,7 +222,6 @@ export const generateFormPDF = async (
               }
             });
             
-            height += 3; // spacing after entry
             return height;
           };
           

@@ -21,10 +21,14 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const breakpoint = useBreakpoint();
+  const isMobileOrTablet = breakpoint === "mobile" || breakpoint === "tablet";
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("formsActiveTab") || "all";
   });
@@ -183,7 +187,7 @@ export default function Forms() {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 px-2 -ml-2 font-semibold"
+      className="h-8 px-2 -ml-2 font-semibold text-xs md:text-sm"
       onClick={() => handleSort(field)}
     >
       {label}
@@ -198,64 +202,145 @@ export default function Forms() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="mb-4">
-        <h1 className="text-xl md:text-2xl font-semibold">Forms</h1>
+        <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 md:gap-2 mb-4 md:mb-6">
-        <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10">
+        <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10 text-xs md:text-sm">
           <Plus className="md:mr-2 h-4 w-4" />
           <span className="hidden md:inline">New Submission</span>
         </Button>
         
-        <div className="flex items-center gap-2 md:gap-1">
-          <Button
-            variant={activeTab === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('all')}
+        {isMobileOrTablet ? (
+          <Carousel
+            opts={{
+              align: "start",
+              loop: false,
+              dragFree: true,
+              containScroll: "trimSnaps"
+            }}
+            className="w-full max-w-[calc(100vw-200px)] md:max-w-[500px]"
           >
-            All
-          </Button>
-          <Button
-            variant={activeTab === 'mine' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('mine')}
-          >
-            Mine
-          </Button>
-          <Button
-            variant={activeTab === 'drafts' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('drafts')}
-          >
-            Drafts
-          </Button>
-          <Button
-            variant={activeTab === 'submitted' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('submitted')}
-          >
-            Submitted
-          </Button>
-          <Button
-            variant={activeTab === 'logged' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('logged')}
-          >
-            Logged
-          </Button>
-          <Button
-            variant={activeTab === 'templates' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('templates')}
-          >
-            Templates
-          </Button>
-        </div>
+            <CarouselContent className="-ml-2">
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('all')}
+                  className="text-xs md:text-sm"
+                >
+                  All
+                </Button>
+              </CarouselItem>
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'mine' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('mine')}
+                  className="text-xs md:text-sm"
+                >
+                  Mine
+                </Button>
+              </CarouselItem>
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'drafts' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('drafts')}
+                  className="text-xs md:text-sm"
+                >
+                  Drafts
+                </Button>
+              </CarouselItem>
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'submitted' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('submitted')}
+                  className="text-xs md:text-sm"
+                >
+                  Submitted
+                </Button>
+              </CarouselItem>
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'logged' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('logged')}
+                  className="text-xs md:text-sm"
+                >
+                  Logged
+                </Button>
+              </CarouselItem>
+              <CarouselItem className="basis-auto pl-2">
+                <Button
+                  variant={activeTab === 'templates' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('templates')}
+                  className="text-xs md:text-sm"
+                >
+                  Templates
+                </Button>
+              </CarouselItem>
+            </CarouselContent>
+          </Carousel>
+        ) : (
+          <div className="flex items-center gap-2 md:gap-1">
+            <Button
+              variant={activeTab === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('all')}
+              className="text-sm"
+            >
+              All
+            </Button>
+            <Button
+              variant={activeTab === 'mine' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('mine')}
+              className="text-sm"
+            >
+              Mine
+            </Button>
+            <Button
+              variant={activeTab === 'drafts' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('drafts')}
+              className="text-sm"
+            >
+              Drafts
+            </Button>
+            <Button
+              variant={activeTab === 'submitted' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('submitted')}
+              className="text-sm"
+            >
+              Submitted
+            </Button>
+            <Button
+              variant={activeTab === 'logged' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('logged')}
+              className="text-sm"
+            >
+              Logged
+            </Button>
+            <Button
+              variant={activeTab === 'templates' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('templates')}
+              className="text-sm"
+            >
+              Templates
+            </Button>
+          </div>
+        )}
 
         {activeTab !== 'templates' && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="default" className="gap-2 h-10 px-4 min-w-[100px]">
+              <Button variant="outline" size="default" className="gap-2 h-10 px-4 min-w-[100px] text-sm md:text-base">
                 <Filter className="h-4 w-4" />
                 Filters
                 {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
@@ -263,10 +348,10 @@ export default function Forms() {
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-4">
-                <h4 className="font-medium text-sm">Filter Submissions</h4>
+                <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Form Type</label>
+                  <label className="text-xs md:text-sm font-medium">Form Type</label>
                   <select
                     className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     value={formTypeFilter}
@@ -282,7 +367,7 @@ export default function Forms() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Date</label>
+                  <label className="text-xs md:text-sm font-medium">Date</label>
                   <Input
                     type="date"
                     value={dateFilter}
@@ -291,7 +376,7 @@ export default function Forms() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Time</label>
+                  <label className="text-xs md:text-sm font-medium">Time</label>
                   <Input
                     type="time"
                     value={timeFilter}
@@ -387,11 +472,11 @@ export default function Forms() {
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No submissions found</TableCell></TableRow>
                 ) : (
                   sortedSubmissions.map((submission) => (
-                    <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
-                      <TableCell className="font-medium">{submission.form_templates?.name || "Unknown Form"}</TableCell>
-                      <TableCell>{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
-                      <TableCell><Badge variant={getStatusColor(submission.status)}>{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
-                      <TableCell>{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
+                  <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
+                      <TableCell className="font-medium text-xs md:text-sm">{submission.form_templates?.name || "Unknown Form"}</TableCell>
+                      <TableCell className="text-xs md:text-sm">{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
+                      <TableCell><Badge variant={getStatusColor(submission.status)} className="text-xs">{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
+                      <TableCell className="text-xs md:text-sm">{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
                        <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>

@@ -19,6 +19,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   const [sections, setSections] = useState<Section[]>([]);
   const [requireSignature, setRequireSignature] = useState(false);
   const [useOrgTheme, setUseOrgTheme] = useState(false);
+  const [alternatingBackground, setAlternatingBackground] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedField, setSelectedField] = useState<{
     sectionId: string;
@@ -92,6 +93,9 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (schema?.useOrgTheme || schema?.use_org_theme) {
       setUseOrgTheme(true);
     }
+    if (schema?.alternatingBackground || schema?.alternating_background) {
+      setAlternatingBackground(true);
+    }
   }, [schema, generateKey]);
 
   // Update parent schema when sections change
@@ -146,9 +150,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       requireSignature, // Keep both for backwards compatibility
       use_org_theme: useOrgTheme, // Use snake_case for consistency
       useOrgTheme, // Keep both for backwards compatibility
+      alternating_background: alternatingBackground, // Global alternating background toggle
+      alternatingBackground, // Backwards compatibility
     };
     onSchemaChange(newSchema);
-  }, [sections, requireSignature, useOrgTheme, onSchemaChange, generateKey]);
+  }, [sections, requireSignature, useOrgTheme, alternatingBackground, onSchemaChange, generateKey]);
 
   const handleAddSection = () => {
     const newSection: Section = {
@@ -284,6 +290,17 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
             />
             <Label htmlFor="orgTheme" className="text-sm">
               Use Organization Color Theme
+            </Label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Switch
+              id="alternatingBackground"
+              checked={alternatingBackground}
+              onCheckedChange={setAlternatingBackground}
+            />
+            <Label htmlFor="alternatingBackground" className="text-sm">
+              Alternating Background (PDF/DOCX)
             </Label>
           </div>
         </div>

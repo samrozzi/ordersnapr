@@ -169,7 +169,7 @@ export const generateFormPDF = async (
             let entryHeight = 0;
             
             // If alternating backgrounds enabled, calculate and draw background for odd entries
-            if ((field as any).alternatingBackground && idx % 2 === 1 && options.themeColor) {
+            if ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor) {
               console.log(`[PDF] Applying alternating background for entry ${idx + 1}, theme color: ${options.themeColor}`);
               // Temporarily calculate height
               const tempY = yPos;
@@ -182,9 +182,19 @@ export const generateFormPDF = async (
               (field.fields || []).forEach((subField: any) => {
                 const subValue = entry[subField.key];
                 if (subValue !== null && subValue !== undefined && subValue !== "") {
-                  const displayValue = typeof subValue === 'boolean' 
+                  let displayValue = typeof subValue === 'boolean' 
                     ? (subValue ? 'Yes' : 'No') 
                     : String(subValue);
+                  // Convert 24h time to 12h AM/PM when appropriate
+                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                    const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+                    if (m) {
+                      let h = parseInt(m[1], 10);
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      h = h % 12 || 12;
+                      displayValue = `${h}:${m[2]} ${ampm}`;
+                    }
+                  }
                   const text = !subField.hideLabel ? `${subField.label}: ${displayValue}` : displayValue;
                   const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
                   calculatedHeight += lines.length * 5;
@@ -195,13 +205,14 @@ export const generateFormPDF = async (
               entryHeight = calculatedHeight;
               
               // Draw muted background (using 8% opacity for better visibility)
-              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.08);
+              const [r, g, b] = getMutedColorRGB(options.themeColor, 0.12);
               console.log(`[PDF] Background RGB: [${r}, ${g}, ${b}], height: ${entryHeight}`);
               pdf.setFillColor(r, g, b);
               pdf.rect(margin, startY - 2, pageWidth - 2 * margin, entryHeight, 'F');
             } else {
               console.log(`[PDF] NOT applying background for entry ${idx + 1}:`, {
-                alternatingBackground: (field as any).alternatingBackground,
+                fieldAlternatingBackground: (field as any).alternatingBackground,
+                globalAlternatingBackground: (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground,
                 isOddIndex: idx % 2 === 1,
                 hasThemeColor: !!options.themeColor
               });
@@ -223,32 +234,21 @@ export const generateFormPDF = async (
                 
                 // Only show sub-field label if not hidden
                 if (!subField.hideLabel) {
-                  const displayValue = typeof subValue === 'boolean' 
+                  let displayValue = typeof subValue === 'boolean' 
                     ? (subValue ? 'Yes' : 'No') 
                     : String(subValue);
+                  // Convert 24h time to 12h AM/PM when appropriate
+                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                    const m = displayValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+                    if (m) {
+                      let h = parseInt(m[1], 10);
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      h = h % 12 || 12;
+                      displayValue = `${h}:${m[2]} ${ampm}`;
+                    }
+                  }
                   pdf.setFont("helvetica", fontStyle);
                   const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
-                  lines.forEach((line: string) => {
-                    checkPageBreak(5);
-                    const xPosition = margin + 12;
-                    pdf.text(line, xPosition, yPos);
-                    
-                    // Add underline if needed
-                    if (subField.underlineText) {
-                      const textWidth = pdf.getTextWidth(line);
-                      pdf.setLineWidth(0.3);
-                      pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
-                    }
-                    
-                    yPos += 5;
-                  });
-                } else {
-                  // If label is hidden, just show the value
-                  const displayValue = typeof subValue === 'boolean' 
-                    ? (subValue ? 'Yes' : 'No') 
-                    : String(subValue);
-                  pdf.setFont("helvetica", fontStyle);
-                  const lines = pdf.splitTextToSize(displayValue, pageWidth - margin - 25);
                   lines.forEach((line: string) => {
                     checkPageBreak(5);
                     const xPosition = margin + 12;
@@ -310,7 +310,19 @@ export const generateFormPDF = async (
           // Apply text styling based on field properties
           const fontStyle = field.boldText ? "bold" : "normal";
           pdf.setFont("helvetica", fontStyle);
-          const lines = pdf.splitTextToSize(String(answer), pageWidth - margin - 20);
+           const valueRaw = typeof answer === 'string' ? answer : String(answer);
+           const needs12h = field?.type === 'time' || /time/i.test(field?.label || '') || /time/i.test(field?.key || '');
+           const formattedValue = needs12h ? (() => {
+             const m = valueRaw.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+             if (m) {
+               let h = parseInt(m[1], 10);
+               const ampm = h >= 12 ? 'PM' : 'AM';
+               h = h % 12 || 12;
+               return `${h}:${m[2]} ${ampm}`;
+             }
+             return valueRaw;
+           })() : valueRaw;
+           const lines = pdf.splitTextToSize(formattedValue, pageWidth - margin - 20);
           lines.forEach((line: string) => {
             checkPageBreak(5);
             const xPosition = margin + 10;

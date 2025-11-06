@@ -174,16 +174,28 @@ export const generateFormPDF = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
+                // Apply text styling based on field properties
+                const fontStyle = subField.boldText ? "bold" : "normal";
+                
                 // Only show sub-field label if not hidden
                 if (!subField.hideLabel) {
                   const displayValue = typeof subValue === 'boolean' 
                     ? (subValue ? 'Yes' : 'No') 
                     : String(subValue);
-                  pdf.setFont("helvetica", "normal");
+                  pdf.setFont("helvetica", fontStyle);
                   const lines = pdf.splitTextToSize(`${subField.label}: ${displayValue}`, pageWidth - margin - 25);
                   lines.forEach((line: string) => {
                     checkPageBreak(5);
-                    pdf.text(line, margin + 12, yPos);
+                    const xPosition = margin + 12;
+                    pdf.text(line, xPosition, yPos);
+                    
+                    // Add underline if needed
+                    if (subField.underlineText) {
+                      const textWidth = pdf.getTextWidth(line);
+                      pdf.setLineWidth(0.3);
+                      pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+                    }
+                    
                     yPos += 5;
                   });
                 } else {
@@ -191,11 +203,20 @@ export const generateFormPDF = async (
                   const displayValue = typeof subValue === 'boolean' 
                     ? (subValue ? 'Yes' : 'No') 
                     : String(subValue);
-                  pdf.setFont("helvetica", "normal");
+                  pdf.setFont("helvetica", fontStyle);
                   const lines = pdf.splitTextToSize(displayValue, pageWidth - margin - 25);
                   lines.forEach((line: string) => {
                     checkPageBreak(5);
-                    pdf.text(line, margin + 12, yPos);
+                    const xPosition = margin + 12;
+                    pdf.text(line, xPosition, yPos);
+                    
+                    // Add underline if needed
+                    if (subField.underlineText) {
+                      const textWidth = pdf.getTextWidth(line);
+                      pdf.setLineWidth(0.3);
+                      pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+                    }
+                    
                     yPos += 5;
                   });
                 }
@@ -242,11 +263,22 @@ export const generateFormPDF = async (
             yPos += 5;
           }
 
-          pdf.setFont("helvetica", "normal");
+          // Apply text styling based on field properties
+          const fontStyle = field.boldText ? "bold" : "normal";
+          pdf.setFont("helvetica", fontStyle);
           const lines = pdf.splitTextToSize(String(answer), pageWidth - margin - 20);
           lines.forEach((line: string) => {
             checkPageBreak(5);
-            pdf.text(line, margin + 10, yPos);
+            const xPosition = margin + 10;
+            pdf.text(line, xPosition, yPos);
+            
+            // Add underline if needed
+            if (field.underlineText) {
+              const textWidth = pdf.getTextWidth(line);
+              pdf.setLineWidth(0.3);
+              pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+            }
+            
             yPos += 5;
           });
           yPos += 5;

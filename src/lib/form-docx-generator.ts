@@ -247,6 +247,8 @@ export const generateFormDOCX = async (
                         }),
                         new TextRun({
                           text: displayValue,
+                          bold: subField.boldText || false,
+                          underline: subField.underlineText ? {} : undefined,
                         }),
                       ],
                       spacing: { after: 50 },
@@ -256,7 +258,13 @@ export const generateFormDOCX = async (
                   // If label is hidden, just show the value
                   sections.push(
                     new Paragraph({
-                      text: displayValue,
+                      children: [
+                        new TextRun({
+                          text: displayValue,
+                          bold: subField.boldText || false,
+                          underline: subField.underlineText ? {} : undefined,
+                        }),
+                      ],
                       spacing: { after: 50 },
                     })
                   );
@@ -317,7 +325,13 @@ export const generateFormDOCX = async (
           
           sections.push(
             new Paragraph({
-              text: String(answer),
+              children: [
+                new TextRun({
+                  text: String(answer),
+                  bold: field.boldText || false,
+                  underline: field.underlineText ? {} : undefined,
+                }),
+              ],
               spacing: { after: 200 },
             })
           );

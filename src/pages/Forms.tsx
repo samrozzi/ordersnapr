@@ -41,11 +41,19 @@ export default function Forms() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [dateFilter, setDateFilter] = useState("");
   const [timeFilter, setTimeFilter] = useState("");
+  const [formTypeFilter, setFormTypeFilter] = useState<string>(() => {
+    return localStorage.getItem("formsTypeFilter") || "";
+  });
 
   // Persist active tab to localStorage
   useEffect(() => {
     localStorage.setItem("formsActiveTab", activeTab);
   }, [activeTab]);
+
+  // Persist form type filter to localStorage
+  useEffect(() => {
+    localStorage.setItem("formsTypeFilter", formTypeFilter);
+  }, [formTypeFilter]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -121,7 +129,17 @@ export default function Forms() {
     }
   };
 
+  // Get unique form types from submissions
+  const availableFormTypes = Array.from(
+    new Set(submissions.map(s => s.form_templates?.name).filter(Boolean))
+  ).sort();
+
   const filteredSubmissions = submissions.filter((submission) => {
+    // Form type filter
+    if (formTypeFilter && submission.form_templates?.name !== formTypeFilter) {
+      return false;
+    }
+
     // Date filter
     if (dateFilter) {
       const submissionDate = format(new Date(submission.created_at), "yyyy-MM-dd");
@@ -240,12 +258,29 @@ export default function Forms() {
               <Button variant="outline" size="sm" className="gap-2">
                 <Filter className="h-4 w-4" />
                 Filters
-                {(dateFilter || timeFilter) && <span className="text-xs">({[dateFilter, timeFilter].filter(Boolean).length})</span>}
+                {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-4">
                 <h4 className="font-medium text-sm">Filter Submissions</h4>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Form Type</label>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formTypeFilter}
+                    onChange={(e) => setFormTypeFilter(e.target.value)}
+                  >
+                    <option value="">All Forms</option>
+                    {availableFormTypes.map((formType) => (
+                      <option key={formType} value={formType}>
+                        {formType}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date</label>
                   <Input
@@ -264,7 +299,7 @@ export default function Forms() {
                     placeholder="Filter by time"
                   />
                 </div>
-                {(dateFilter || timeFilter) && (
+                {(dateFilter || timeFilter || formTypeFilter) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -272,6 +307,7 @@ export default function Forms() {
                     onClick={() => {
                       setDateFilter("");
                       setTimeFilter("");
+                      setFormTypeFilter("");
                     }}
                   >
                     Clear Filters

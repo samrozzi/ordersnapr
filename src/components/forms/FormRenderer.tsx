@@ -38,6 +38,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [draftSubmission, setDraftSubmission] = useState<FormSubmission | null>(null);
   const [repeatCounts, setRepeatCounts] = useState<Record<string, number>>({});
   const [showEntryLabels, setShowEntryLabels] = useState<Record<string, boolean>>({});
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
@@ -160,22 +162,37 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     if (!same) setRepeatCounts(next);
   }, [template, answers, repeatCounts]);
 
-  // Auto-save draft every 10 seconds
+  // Auto-save draft every 3 seconds (works for both new forms and existing drafts)
   useEffect(() => {
-    if (previewMode || !submission || submission.status !== "draft") return;
+    if (previewMode) return;
     
-    const interval = setInterval(() => {
-      if (submission?.id && Object.keys(answers).length > 0) {
-        updateMutation.mutate({
-          id: submission.id,
-          answers,
-          signature,
-        });
+    const currentSubmissionId = submission?.id || draftSubmission?.id;
+    
+    // Only auto-save drafts or new forms that have been interacted with
+    if (!currentSubmissionId) return;
+    if (submission && submission.status !== "draft") return;
+    
+    const interval = setInterval(async () => {
+      if (currentSubmissionId && Object.keys(answers).length > 0) {
+        setIsSaving(true);
+        try {
+          await updateMutation.mutateAsync({
+            id: currentSubmissionId,
+            answers,
+            signature,
+            metadata: { entryLabelPreferences: showEntryLabels },
+          });
+          setLastSaved(new Date());
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+        } finally {
+          setIsSaving(false);
+        }
       }
-    }, 10000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [answers, signature, submission, previewMode]);
+  }, [answers, signature, submission, draftSubmission, showEntryLabels, previewMode]);
 
   const handleFieldChange = async (key: string, value: any) => {
     // Ensure draft exists on first interaction
@@ -985,6 +1002,18 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       <div>
         <h2 className="text-2xl font-bold">{template.schema.title}</h2>
         <p className="text-muted-foreground">{template.schema.description}</p>
+        {!previewMode && (submission?.id || draftSubmission?.id) && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            {isSaving ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : lastSaved ? (
+              <span>Last saved at {lastSaved.toLocaleTimeString()}</span>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {template.schema.sections.map((section: any, index: number) => (

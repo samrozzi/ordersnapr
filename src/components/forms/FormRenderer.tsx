@@ -251,6 +251,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
               placeholder={subField.placeholder}
+              className={`${subField.boldText ? 'font-bold' : ''} ${subField.underlineText ? 'underline' : ''}`}
             />
           </div>
         );
@@ -267,6 +268,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
               placeholder={subField.placeholder}
               rows={3}
+              className={`${subField.boldText ? 'font-bold' : ''} ${subField.underlineText ? 'underline' : ''}`}
             />
           </div>
         );
@@ -315,6 +317,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               type="time"
               value={value || ""}
               onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              className={subField.boldText ? 'font-bold' : ''}
             />
           </div>
         );
@@ -504,6 +507,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               placeholder={field.placeholder}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={`${field.boldText ? 'font-bold' : ''} ${field.underlineText ? 'underline' : ''}`}
             />
           </div>
         );
@@ -524,6 +528,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               maxLength={field.maxLength}
               rows={4}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={`${field.boldText ? 'font-bold' : ''} ${field.underlineText ? 'underline' : ''}`}
             />
             {field.maxLength && (
               <p className="text-xs text-muted-foreground">
@@ -585,6 +590,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               value={value || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
               aria-label={field.hideLabel ? field.label : undefined}
+              className={field.boldText ? 'font-bold' : ''}
             />
           </div>
         );

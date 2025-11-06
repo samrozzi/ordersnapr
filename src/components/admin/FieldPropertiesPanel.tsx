@@ -172,6 +172,44 @@ export function FieldPropertiesPanel({
               />
             </div>
 
+            {/* Text Styling - Bold */}
+            {(editedField.type === "text" || editedField.type === "textarea" || editedField.type === "time") && (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="boldText">Bold Text</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display text in bold font weight
+                  </p>
+                </div>
+                <Switch
+                  id="boldText"
+                  checked={editedField.boldText || false}
+                  onCheckedChange={(checked) =>
+                    setEditedField((prev) => (prev ? { ...prev, boldText: checked } : prev))
+                  }
+                />
+              </div>
+            )}
+
+            {/* Text Styling - Underline */}
+            {(editedField.type === "text" || editedField.type === "textarea") && (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="underlineText">Underline Text</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display text with underline decoration
+                  </p>
+                </div>
+                <Switch
+                  id="underlineText"
+                  checked={editedField.underlineText || false}
+                  onCheckedChange={(checked) =>
+                    setEditedField((prev) => (prev ? { ...prev, underlineText: checked } : prev))
+                  }
+                />
+              </div>
+            )}
+
             {/* Field Key (read-only) */}
             <div className="space-y-2">
               <Label htmlFor="key" className="text-xs text-muted-foreground">

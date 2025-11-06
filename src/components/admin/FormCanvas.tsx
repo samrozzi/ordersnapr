@@ -37,6 +37,10 @@ export interface Field {
   required: boolean;
   hideLabel?: boolean; // Option to hide label in form display
   
+  // Text/Textarea/Time specific styling
+  boldText?: boolean; // Display text in bold
+  underlineText?: boolean; // Display text with underline
+  
   // Text/Textarea specific
   maxLength?: number;
   default?: string;

@@ -470,7 +470,7 @@ export function FormSubmissionViewer({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold">{schema?.title}</h2>

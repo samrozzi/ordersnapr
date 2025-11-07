@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ordersnaprMobileLight from "@/assets/ordersnapr-mobile-light.png";
 import ordersnaprMobileDark from "@/assets/ordersnapr-mobile-dark.png";
+import { ConnectionBanner } from "@/components/ConnectionBanner";
 
 export function AppLayout() {
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export function AppLayout() {
             {/* Desktop: Empty spacer */}
             <div className="hidden md:flex flex-1" />
           </header>
+          <ConnectionBanner />
           <main className="flex-1 min-h-0 p-2 md:p-4 lg:p-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <Outlet />
           </main>

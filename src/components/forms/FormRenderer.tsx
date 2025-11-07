@@ -16,10 +16,16 @@ import { AddressField, AddressValue } from "./AddressField";
 import { SmartFormImport } from "@/components/SmartFormImport";
 import { FormTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, CloudOff, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { saveFormDataLocally, getFormDataLocally, markFormAsSynced, deleteFormDataLocally } from "@/lib/offline-storage";
+import { addToSyncQueue } from "@/lib/sync-queue";
+import { useOnlineStatus } from "@/hooks/use-online-status";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
 
 interface FormRendererProps {
   template: FormTemplate;
@@ -39,8 +45,12 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [repeatCounts, setRepeatCounts] = useState<Record<string, number>>({});
   const [showEntryLabels, setShowEntryLabels] = useState<Record<string, boolean>>({});
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastSyncedToCloud, setLastSyncedToCloud] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [recoverableData, setRecoverableData] = useState<any>(null);
   
+  const { isOnline, lastOnline } = useOnlineStatus();
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
   const creatingDraftRef = useRef(false);
@@ -81,10 +91,26 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             }
           }
         }
+        
+        // Check for unsaved local data
+        if (!previewMode) {
+          const submissionId = submission?.id || 'pending';
+          const localData = await getFormDataLocally(submissionId);
+          
+          if (localData && !localData.synced) {
+            const localTimestamp = localData.timestamp || 0;
+            const cloudTimestamp = submission?.updated_at ? new Date(submission.updated_at).getTime() : 0;
+            
+            if (localTimestamp > cloudTimestamp) {
+              setRecoverableData(localData);
+              setShowRecoveryDialog(true);
+            }
+          }
+        }
       }
     };
     fetchUser();
-  }, [template.schema]);
+  }, [template.schema, submission, previewMode]);
 
   // Initialize entry label preferences from submission metadata
   useEffect(() => {
@@ -162,7 +188,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     if (!same) setRepeatCounts(next);
   }, [template, answers, repeatCounts]);
 
-  // Auto-save draft every 3 seconds (works for both new forms and existing drafts)
+  // Auto-save with local-first approach
   useEffect(() => {
     if (previewMode) return;
     
@@ -173,18 +199,55 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     if (submission && submission.status !== "draft") return;
     
     const interval = setInterval(async () => {
-      if (currentSubmissionId && Object.keys(answers).length > 0) {
+      if (currentSubmissionId && Object.keys(answers).length > 0 && userId && orgId) {
         setIsSaving(true);
+        
         try {
-          await updateMutation.mutateAsync({
+          // ALWAYS save locally first (instant, never fails)
+          await saveFormDataLocally({
             id: currentSubmissionId,
             answers,
-            signature,
+            signature: signature || undefined,
             metadata: { entryLabelPreferences: showEntryLabels },
+            synced: false,
+            userId,
+            templateId: template.id,
           });
+          
           setLastSaved(new Date());
+          
+          // Try to sync to cloud if online
+          if (isOnline) {
+            try {
+              await updateMutation.mutateAsync({
+                id: currentSubmissionId,
+                answers,
+                signature,
+                metadata: { entryLabelPreferences: showEntryLabels },
+              });
+              
+              // Mark as synced
+              await markFormAsSynced(currentSubmissionId);
+              setLastSyncedToCloud(new Date());
+            } catch (error) {
+              // Add to sync queue for retry
+              await addToSyncQueue({
+                id: `save-${currentSubmissionId}-${Date.now()}`,
+                type: 'save',
+                data: {
+                  submissionId: currentSubmissionId,
+                  answers,
+                  signature,
+                  metadata: { entryLabelPreferences: showEntryLabels },
+                },
+              });
+              
+              console.warn("Cloud sync failed, queued for retry:", error);
+            }
+          }
         } catch (error) {
-          console.error("Auto-save failed:", error);
+          console.error("Local save failed:", error);
+          toast.error("Failed to save changes");
         } finally {
           setIsSaving(false);
         }
@@ -192,7 +255,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [answers, signature, submission, draftSubmission, showEntryLabels, previewMode]);
+  }, [answers, signature, submission, draftSubmission, showEntryLabels, previewMode, isOnline, userId, orgId, template.id]);
 
   // Helper function to generate className string for field formatting
   const getFieldClasses = (field: any) => {
@@ -1023,22 +1086,80 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     }
   };
 
+  const handleRestoreLocalData = () => {
+    if (recoverableData) {
+      setAnswers(recoverableData.answers || {});
+      setSignature(recoverableData.signature || null);
+      setShowEntryLabels(recoverableData.metadata?.entryLabelPreferences || {});
+      toast.success("Unsaved changes restored");
+    }
+    setShowRecoveryDialog(false);
+  };
+
+  const handleDiscardLocalData = async () => {
+    if (recoverableData) {
+      await deleteFormDataLocally(recoverableData.id);
+    }
+    setShowRecoveryDialog(false);
+  };
+
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
+      {/* Connection status banner */}
+      {!isOnline && (
+        <Alert variant="default" className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
+          <CloudOff className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+          <AlertTitle className="text-yellow-800 dark:text-yellow-400">Working Offline</AlertTitle>
+          <AlertDescription className="text-yellow-700 dark:text-yellow-500">
+            Your changes are being saved locally and will sync when connection returns.
+            {lastOnline && ` Last online: ${formatDistanceToNow(lastOnline, { addSuffix: true })}`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Recovery dialog */}
+      <AlertDialog open={showRecoveryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              We found local changes from {recoverableData?.timestamp ? formatDistanceToNow(recoverableData.timestamp, { addSuffix: true }) : 'recently'} 
+              that weren't synced to the cloud. Would you like to restore them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardLocalData}>Discard</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreLocalData}>Restore</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div>
         <h2 className="text-2xl font-bold">{template.schema.title}</h2>
         <p className="text-muted-foreground">{template.schema.description}</p>
         {!previewMode && (submission?.id || draftSubmission?.id) && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-2 flex items-center gap-2 text-xs">
             {isSaving ? (
               <>
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Saving...</span>
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">Saving...</span>
               </>
             ) : lastSaved ? (
-              <span>Last saved at {lastSaved.toLocaleTimeString()}</span>
+              <>
+                {isOnline && lastSyncedToCloud ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    <span className="text-green-600">Saved to cloud at {lastSyncedToCloud.toLocaleTimeString()}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 text-yellow-600" />
+                    <span className="text-yellow-600">Saved locally at {lastSaved.toLocaleTimeString()} (will sync when online)</span>
+                  </>
+                )}
+              </>
             ) : null}
           </div>
         )}

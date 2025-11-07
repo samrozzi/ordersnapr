@@ -205,202 +205,277 @@ export default function Forms() {
         <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 md:gap-2 mb-4 md:mb-6">
-        <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10 text-xs md:text-sm">
-          <Plus className="md:mr-2 h-4 w-4" />
-          <span className="hidden md:inline">New Submission</span>
-        </Button>
-        
-        {isMobileOrTablet ? (
-          <Carousel
-            opts={{
-              align: "start",
-              loop: false,
-              dragFree: true,
-              containScroll: "trimSnaps"
-            }}
-            className="w-full max-w-[calc(100vw-200px)] md:max-w-[500px]"
-          >
-            <CarouselContent className="-ml-2">
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('all')}
-                  className="text-xs md:text-sm"
-                >
-                  All
-                </Button>
-              </CarouselItem>
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'mine' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('mine')}
-                  className="text-xs md:text-sm"
-                >
-                  Mine
-                </Button>
-              </CarouselItem>
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'drafts' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('drafts')}
-                  className="text-xs md:text-sm"
-                >
-                  Drafts
-                </Button>
-              </CarouselItem>
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'submitted' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('submitted')}
-                  className="text-xs md:text-sm"
-                >
-                  Submitted
-                </Button>
-              </CarouselItem>
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'logged' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('logged')}
-                  className="text-xs md:text-sm"
-                >
-                  Logged
-                </Button>
-              </CarouselItem>
-              <CarouselItem className="basis-auto pl-2">
-                <Button
-                  variant={activeTab === 'templates' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('templates')}
-                  className="text-xs md:text-sm"
-                >
-                  Templates
-                </Button>
-              </CarouselItem>
-            </CarouselContent>
-          </Carousel>
-        ) : (
-          <div className="flex items-center gap-2 md:gap-1">
-            <Button
-              variant={activeTab === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('all')}
-              className="text-sm"
+      <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
+        {/* Row 1: New Submission + Tab Navigation */}
+        <div className="flex items-center gap-3 md:gap-2">
+          <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
+            <Plus className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">New Submission</span>
+          </Button>
+          
+          {isMobileOrTablet ? (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: false,
+                dragFree: true,
+                containScroll: "trimSnaps"
+              }}
+              className="flex-1 max-w-full"
             >
-              All
-            </Button>
-            <Button
-              variant={activeTab === 'mine' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('mine')}
-              className="text-sm"
-            >
-              Mine
-            </Button>
-            <Button
-              variant={activeTab === 'drafts' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('drafts')}
-              className="text-sm"
-            >
-              Drafts
-            </Button>
-            <Button
-              variant={activeTab === 'submitted' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('submitted')}
-              className="text-sm"
-            >
-              Submitted
-            </Button>
-            <Button
-              variant={activeTab === 'logged' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('logged')}
-              className="text-sm"
-            >
-              Logged
-            </Button>
-            <Button
-              variant={activeTab === 'templates' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab('templates')}
-              className="text-sm"
-            >
-              Templates
-            </Button>
-          </div>
-        )}
-
-        {activeTab !== 'templates' && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="default" className="gap-2 h-10 px-4 min-w-[100px] text-sm md:text-base">
-                <Filter className="h-4 w-4" />
-                Filters
-                {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
-                
-                <div className="space-y-2">
-                  <label className="text-xs md:text-sm font-medium">Form Type</label>
-                  <select
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={formTypeFilter}
-                    onChange={(e) => setFormTypeFilter(e.target.value)}
-                  >
-                    <option value="">All Forms</option>
-                    {availableFormTypes.map((formType) => (
-                      <option key={formType} value={formType}>
-                        {formType}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs md:text-sm font-medium">Date</label>
-                  <Input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    placeholder="Filter by date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs md:text-sm font-medium">Time</label>
-                  <Input
-                    type="time"
-                    value={timeFilter}
-                    onChange={(e) => setTimeFilter(e.target.value)}
-                    placeholder="Filter by time"
-                  />
-                </div>
-                {(dateFilter || timeFilter || formTypeFilter) && (
+              <CarouselContent className="-ml-2">
+                <CarouselItem className="basis-auto pl-2">
                   <Button
-                    variant="outline"
+                    variant={activeTab === 'all' ? 'default' : 'outline'}
                     size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      setDateFilter("");
-                      setTimeFilter("");
-                      setFormTypeFilter("");
-                    }}
+                    onClick={() => setActiveTab('all')}
+                    className="text-xs md:text-sm"
                   >
-                    Clear Filters
+                    All
                   </Button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+                </CarouselItem>
+                <CarouselItem className="basis-auto pl-2">
+                  <Button
+                    variant={activeTab === 'mine' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab('mine')}
+                    className="text-xs md:text-sm"
+                  >
+                    Mine
+                  </Button>
+                </CarouselItem>
+                <CarouselItem className="basis-auto pl-2">
+                  <Button
+                    variant={activeTab === 'drafts' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab('drafts')}
+                    className="text-xs md:text-sm"
+                  >
+                    Drafts
+                  </Button>
+                </CarouselItem>
+                <CarouselItem className="basis-auto pl-2">
+                  <Button
+                    variant={activeTab === 'submitted' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab('submitted')}
+                    className="text-xs md:text-sm"
+                  >
+                    Submitted
+                  </Button>
+                </CarouselItem>
+                <CarouselItem className="basis-auto pl-2">
+                  <Button
+                    variant={activeTab === 'logged' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab('logged')}
+                    className="text-xs md:text-sm"
+                  >
+                    Logged
+                  </Button>
+                </CarouselItem>
+                <CarouselItem className="basis-auto pl-2">
+                  <Button
+                    variant={activeTab === 'templates' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab('templates')}
+                    className="text-xs md:text-sm"
+                  >
+                    Templates
+                  </Button>
+                </CarouselItem>
+              </CarouselContent>
+            </Carousel>
+          ) : (
+            <div className="flex items-center gap-2 md:gap-1">
+              <Button
+                variant={activeTab === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('all')}
+                className="text-sm"
+              >
+                All
+              </Button>
+              <Button
+                variant={activeTab === 'mine' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('mine')}
+                className="text-sm"
+              >
+                Mine
+              </Button>
+              <Button
+                variant={activeTab === 'drafts' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('drafts')}
+                className="text-sm"
+              >
+                Drafts
+              </Button>
+              <Button
+                variant={activeTab === 'submitted' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('submitted')}
+                className="text-sm"
+              >
+                Submitted
+              </Button>
+              <Button
+                variant={activeTab === 'logged' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('logged')}
+                className="text-sm"
+              >
+                Logged
+              </Button>
+              <Button
+                variant={activeTab === 'templates' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('templates')}
+                className="text-sm"
+              >
+                Templates
+              </Button>
+            </div>
+          )}
+
+          {/* Desktop Filter Button (inline with tabs) */}
+          {activeTab !== 'templates' && (
+            <div className="hidden md:flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="default" className="gap-2 h-10 px-4 min-w-[100px] text-sm md:text-base">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-background">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs md:text-sm font-medium">Form Type</label>
+                      <select
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={formTypeFilter}
+                        onChange={(e) => setFormTypeFilter(e.target.value)}
+                      >
+                        <option value="">All Forms</option>
+                        {availableFormTypes.map((formType) => (
+                          <option key={formType} value={formType}>
+                            {formType}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs md:text-sm font-medium">Date</label>
+                      <Input
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        placeholder="Filter by date"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs md:text-sm font-medium">Time</label>
+                      <Input
+                        type="time"
+                        value={timeFilter}
+                        onChange={(e) => setTimeFilter(e.target.value)}
+                        placeholder="Filter by time"
+                      />
+                    </div>
+                    {(dateFilter || timeFilter || formTypeFilter) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setDateFilter("");
+                          setTimeFilter("");
+                          setFormTypeFilter("");
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
+        {/* Row 2 (mobile/tablet only): Filter Button - Full width and clearly visible */}
+        {activeTab !== 'templates' && (
+          <div className="md:hidden">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="default" className="w-full gap-2 h-10 px-4 text-sm">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 bg-background">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs md:text-sm font-medium">Form Type</label>
+                    <select
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      value={formTypeFilter}
+                      onChange={(e) => setFormTypeFilter(e.target.value)}
+                    >
+                      <option value="">All Forms</option>
+                      {availableFormTypes.map((formType) => (
+                        <option key={formType} value={formType}>
+                          {formType}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs md:text-sm font-medium">Date</label>
+                    <Input
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      placeholder="Filter by date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs md:text-sm font-medium">Time</label>
+                    <Input
+                      type="time"
+                      value={timeFilter}
+                      onChange={(e) => setTimeFilter(e.target.value)}
+                      placeholder="Filter by time"
+                    />
+                  </div>
+                  {(dateFilter || timeFilter || formTypeFilter) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setDateFilter("");
+                        setTimeFilter("");
+                        setFormTypeFilter("");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
       </div>
 

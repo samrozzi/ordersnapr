@@ -37,7 +37,8 @@ export const useOrgFeatures = (orgId: string | null) => {
       return data as OrgFeature[];
     },
     enabled: !!orgId,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 10 * 60 * 1000, // 10 min - features don't change often
+    gcTime: 30 * 60 * 1000, // 30 min
   });
 };
 

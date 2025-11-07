@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import type { jsPDF } from "jspdf";
 
 interface JobAuditPDFData {
   technicianName?: string;
@@ -20,6 +20,8 @@ interface JobAuditPDFData {
 }
 
 export const generateJobAuditPDF = async (data: JobAuditPDFData): Promise<jsPDF> => {
+  // Lazy load jsPDF only when needed
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   let yPos = 20;
   const lineHeight = 7;

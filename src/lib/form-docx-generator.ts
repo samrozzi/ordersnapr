@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, ImageRun } from "docx";
+import type { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, ImageRun } from "docx";
 import { FormSubmission } from "@/hooks/use-form-submissions";
 import { getMutedColorHex } from "./color-utils";
 
@@ -20,6 +20,10 @@ export const generateFormDOCX = async (
   submission: FormSubmission,
   options: DOCXOptions = { includePhotos: true, includeSignature: true }
 ): Promise<Blob> => {
+  // Lazy load docx library only when needed
+  const docx = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, BorderStyle, ImageRun } = docx;
+  
   const sections: any[] = [];
 
   // Document title

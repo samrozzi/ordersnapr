@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -76,36 +76,39 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
     );
   };
 
-  const sortedOrders = [...workOrders].sort((a, b) => {
-    if (!sortField) return 0;
+  // Memoize sorting to prevent recalculation on every render
+  const sortedOrders = useMemo(() => {
+    return [...workOrders].sort((a, b) => {
+      if (!sortField) return 0;
 
-    let aValue: string | number | null = a[sortField];
-    let bValue: string | number | null = b[sortField];
+      let aValue: string | number | null = a[sortField];
+      let bValue: string | number | null = b[sortField];
 
-    // Handle null values
-    if (aValue === null && bValue === null) return 0;
-    if (aValue === null) return sortDirection === "asc" ? 1 : -1;
-    if (bValue === null) return sortDirection === "asc" ? -1 : 1;
+      // Handle null values
+      if (aValue === null && bValue === null) return 0;
+      if (aValue === null) return sortDirection === "asc" ? 1 : -1;
+      if (bValue === null) return sortDirection === "asc" ? -1 : 1;
 
-    // Convert to comparable values
-    if (sortField === "scheduled_date") {
-      // Combine date and time for proper chronological sorting
-      const aDateTime = `${aValue}T${a.scheduled_time || '00:00:00'}`;
-      const bDateTime = `${bValue}T${b.scheduled_time || '00:00:00'}`;
-      aValue = parseISO(aDateTime).getTime();
-      bValue = parseISO(bDateTime).getTime();
-    } else if (sortField === "created_at") {
-      aValue = parseISO(aValue as string).getTime();
-      bValue = parseISO(bValue as string).getTime();
-    } else {
-      aValue = (aValue as string).toLowerCase();
-      bValue = (bValue as string).toLowerCase();
-    }
+      // Convert to comparable values
+      if (sortField === "scheduled_date") {
+        // Combine date and time for proper chronological sorting
+        const aDateTime = `${aValue}T${a.scheduled_time || '00:00:00'}`;
+        const bDateTime = `${bValue}T${b.scheduled_time || '00:00:00'}`;
+        aValue = parseISO(aDateTime).getTime();
+        bValue = parseISO(bDateTime).getTime();
+      } else if (sortField === "created_at") {
+        aValue = parseISO(aValue as string).getTime();
+        bValue = parseISO(bValue as string).getTime();
+      } else {
+        aValue = (aValue as string).toLowerCase();
+        bValue = (bValue as string).toLowerCase();
+      }
 
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [workOrders, sortField, sortDirection]);
 
   const handleComplete = async () => {
     if (!selectedOrder) return;

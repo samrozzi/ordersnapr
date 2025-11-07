@@ -40,7 +40,7 @@ export const AppHeader = ({
             className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             aria-label="Go to home page"
           >
-            <img src={ordersnaprLogo} alt="ordersnapr" className="h-20 sm:h-24 relative z-10" />
+            <img src={ordersnaprLogo} alt="ordersnapr" className="h-20 sm:h-24 relative z-10" loading="lazy" decoding="async" />
           </button>
           {orgLogoUrl && (
             <button
@@ -52,6 +52,8 @@ export const AppHeader = ({
                 src={orgLogoUrl} 
                 alt="Organization logo" 
                 className="h-auto max-h-12 sm:max-h-16 max-w-[120px] sm:max-w-[200px] object-contain"
+                loading="lazy"
+                decoding="async"
               />
             </button>
           )}

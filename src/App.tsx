@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,23 +12,37 @@ import { WorkOrderDialogProvider } from "@/contexts/WorkOrderDialogContext";
 import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
 import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Admin from "./pages/Admin";
-import OrgAdmin from "./pages/OrgAdmin";
 import PendingApproval from "./pages/PendingApproval";
-import Profile from "./pages/Profile";
-import JobAudit from "./pages/JobAudit";
-import RideAlong from "./pages/RideAlong";
-import Dashboard from "./pages/Dashboard";
-import WorkOrders from "./pages/WorkOrders";
-import PropertyInfo from "./pages/PropertyInfo";
-import Forms from "./pages/Forms";
-import CalendarPage from "./pages/CalendarPage";
-import HealthData from "./pages/HealthData";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy load heavy page components
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Admin = lazy(() => import("./pages/Admin"));
+const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
+const Profile = lazy(() => import("./pages/Profile"));
+const JobAudit = lazy(() => import("./pages/JobAudit"));
+const RideAlong = lazy(() => import("./pages/RideAlong"));
+const WorkOrders = lazy(() => import("./pages/WorkOrders"));
+const PropertyInfo = lazy(() => import("./pages/PropertyInfo"));
+const Forms = lazy(() => import("./pages/Forms"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const HealthData = lazy(() => import("./pages/HealthData"));
+
+// Optimized React Query configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      retry: 1,
+    },
+  },
+});
 
 const AppContent = () => {
   useOrgTheme();
@@ -38,28 +53,30 @@ const AppContent = () => {
       <Sonner />
       <BrowserRouter>
         <FeatureProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/pending-approval" element={<PendingApproval />} />
-            
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="admin" element={<Admin />} />
-              <Route path="org-admin" element={<OrgAdmin />} />
-              <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
-              <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
-              <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
-              <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
-              <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
-              <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
-              <Route path="health-data" element={<HealthData />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageSkeleton />}>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
+              
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="admin" element={<Admin />} />
+                <Route path="org-admin" element={<OrgAdmin />} />
+                <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
+                <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
+                <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
+                <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
+                <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
+                <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+                <Route path="health-data" element={<HealthData />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </FeatureProvider>
       </BrowserRouter>
     </>

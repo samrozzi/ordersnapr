@@ -1,5 +1,4 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import type { jsPDF } from "jspdf";
 import { FormSubmission } from "@/hooks/use-form-submissions";
 import { hexToRGB, getMutedColorRGB } from "./color-utils";
 
@@ -14,6 +13,16 @@ export const generateFormPDF = async (
   options: PDFOptions = { includePhotos: true, includeSignature: true }
 ): Promise<jsPDF> => {
   console.log('[PDF] Generating PDF with options:', options);
+  
+  // Lazy load jsPDF and autoTable only when needed
+  const [{ jsPDF }, autoTableModule] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable')
+  ]);
+  
+  // Access autoTable from the imported module
+  const autoTable = (autoTableModule as any).default;
+  
   const pdf = new jsPDF();
   let yPos = 20;
   const pageHeight = pdf.internal.pageSize.getHeight();

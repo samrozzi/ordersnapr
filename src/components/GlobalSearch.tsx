@@ -71,21 +71,24 @@ export function GlobalSearch() {
       const searchResults: SearchResult[] = [];
 
       try {
-        const searchTerm = `%${search}%`;
+        // Use * wildcards for .or() queries, % for direct .ilike()
+        const orSearchTerm = `*${search}*`;
+        const ilikeSearchTerm = `%${search}%`;
 
         // Search work orders (RLS will filter by org automatically)
-        console.log("🔍 Searching work orders...");
+        console.log("🔍 Searching work orders for:", search);
         const { data: workOrders, error: woError } = await supabase
           .from("work_orders")
           .select("id, customer_name, job_id, status, notes")
-          .or(`customer_name.ilike.${searchTerm},job_id.ilike.${searchTerm},notes.ilike.${searchTerm}`)
+          .or(`customer_name.ilike.${orSearchTerm},job_id.ilike.${orSearchTerm},notes.ilike.${orSearchTerm}`)
           .limit(5);
 
         if (woError) {
-          console.error("Work orders search error:", woError);
+          console.error("❌ Work orders search error:", woError);
         } else {
           console.log("✅ Found work orders:", workOrders?.length || 0);
-          if (workOrders) {
+          if (workOrders && workOrders.length > 0) {
+            console.log("📋 Work order data sample:", workOrders[0]);
             workOrders.forEach((wo: any) => {
               searchResults.push({
                 id: wo.id,
@@ -104,7 +107,7 @@ export function GlobalSearch() {
         const { data: properties, error: propError } = await supabase
           .from("properties")
           .select("id, property_name, address")
-          .or(`property_name.ilike.${searchTerm},address.ilike.${searchTerm}`)
+          .or(`property_name.ilike.${orSearchTerm},address.ilike.${orSearchTerm}`)
           .limit(5);
 
         if (propError) {
@@ -130,7 +133,7 @@ export function GlobalSearch() {
         const { data: forms, error: formError } = await supabase
           .from("form_templates")
           .select("id, name")
-          .ilike("name", searchTerm)
+          .ilike("name", ilikeSearchTerm)
           .limit(5);
 
         if (formError) {
@@ -156,7 +159,7 @@ export function GlobalSearch() {
         const { data: events, error: eventError } = await supabase
           .from("calendar_events")
           .select("id, title, event_date")
-          .ilike("title", searchTerm)
+          .ilike("title", ilikeSearchTerm)
           .limit(5);
 
         if (eventError) {
@@ -182,7 +185,7 @@ export function GlobalSearch() {
         const { data: customers, error: customerError } = await supabase
           .from("profiles")
           .select("id, full_name, email")
-          .or(`full_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
+          .or(`full_name.ilike.${orSearchTerm},email.ilike.${orSearchTerm}`)
           .limit(5);
 
         if (customerError) {

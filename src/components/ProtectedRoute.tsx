@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approved, setApproved] = useState(false);
@@ -50,17 +51,26 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           navigate("/onboarding");
           setLoading(false);
           return;
-        } else if (hasOrg) {
-          // Org user who completed onboarding but isn't approved yet
-          navigate("/pending-approval");
-          setLoading(false);
-          return;
-        } else {
-          // Free tier user who completed onboarding - allow access to free workspace
+        }
+
+        if (!hasOrg) {
+          // Free-tier user (no organization)
+          if (location.pathname === "/dashboard" || location.pathname === "/") {
+            // Allow access to the dashboard page
+            setApproved(true);
+            setLoading(false);
+            return;
+          }
+          // For other protected pages, send to free workspace
           navigate("/free-workspace");
           setLoading(false);
           return;
         }
+
+        // Org user who completed onboarding but isn't approved yet
+        navigate("/pending-approval");
+        setLoading(false);
+        return;
       }
 
       // Approved or admin users can access protected routes
@@ -80,7 +90,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   if (loading) {
     return (

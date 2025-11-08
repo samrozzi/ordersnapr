@@ -86,19 +86,11 @@ export function CustomizeQuickAdd() {
         description: "Quick Add preferences saved successfully",
       });
     } catch (error: any) {
-      if (error.message === "MIGRATION_REQUIRED") {
-        toast({
-          title: "Feature Not Available Yet",
-          description: "This feature will be available after the next deployment. Quick Add still works with all features!",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to save preferences",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save preferences",
+        variant: "destructive",
+      });
     }
   };
 

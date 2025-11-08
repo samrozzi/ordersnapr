@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -55,10 +56,27 @@ export function OnboardingWizard() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     // Mark onboarding as complete in localStorage
     localStorage.setItem(`onboarding_completed_${user?.id}`, "true");
-    navigate("/dashboard");
+
+    // Check if user is approved
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("approval_status")
+        .eq("id", user.id)
+        .single();
+
+      // If approved, go to dashboard, otherwise go to free workspace
+      if (profile?.approval_status === "approved") {
+        navigate("/dashboard");
+      } else {
+        navigate("/free-workspace");
+      }
+    } else {
+      navigate("/free-workspace");
+    }
   };
 
   const updateData = (updates: Partial<OnboardingData>) => {

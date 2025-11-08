@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useOrgTheme } from "@/hooks/use-org-theme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FreeRoute } from "@/components/FreeRoute";
 import { FeatureProvider } from "@/contexts/FeatureContext";
 import { WorkOrderDialogProvider } from "@/contexts/WorkOrderDialogContext";
 import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
@@ -31,6 +32,7 @@ const Forms = lazy(() => import("./pages/Forms"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
 
 // Optimized React Query configuration
 const queryClient = new QueryClient({
@@ -59,8 +61,12 @@ const AppContent = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
-              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
+              {/* Free Tier Routes - No approval required */}
+              <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />
+              <Route path="/free-workspace" element={<FreeRoute><FreeTierWorkspace /></FreeRoute>} />
+
+              {/* Protected Routes - Require approval */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />

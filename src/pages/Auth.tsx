@@ -19,17 +19,52 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session) {
-        navigate("/");
+        // Check if user has completed onboarding
+        const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
+
+        // Check approval status
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approval_status")
+          .eq("id", session.user.id)
+          .single();
+
+        // If approved, go to dashboard
+        if (profile?.approval_status === "approved") {
+          navigate("/dashboard");
+        }
+        // If not approved and onboarding not complete, go to onboarding
+        else if (!onboardingComplete) {
+          navigate("/onboarding");
+        }
+        // If not approved but onboarding complete, go to free workspace
+        else {
+          navigate("/free-workspace");
+        }
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
-        navigate("/");
+        const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approval_status")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile?.approval_status === "approved") {
+          navigate("/dashboard");
+        } else if (!onboardingComplete) {
+          navigate("/onboarding");
+        } else {
+          navigate("/free-workspace");
+        }
       }
     });
 

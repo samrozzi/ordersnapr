@@ -25,6 +25,7 @@ export default function FreeTierWorkspace() {
   const { usage, limits, loading: limitsLoading } = useFreeTierLimits();
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasOrg, setHasOrg] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -33,12 +34,12 @@ export default function FreeTierWorkspace() {
       // Check approval status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, organization_id")
         .eq("id", user.id)
         .single();
 
       setApprovalStatus(profile?.approval_status || null);
-
+      setHasOrg(!!profile?.organization_id);
       // Check if admin
       const { data: roles } = await supabase
         .from("user_roles")
@@ -113,16 +114,29 @@ export default function FreeTierWorkspace() {
         </div>
 
         {/* Status Alert */}
-        <Alert className="border-primary/50 bg-primary/5">
-          <Clock className="h-4 w-4 text-primary" />
-          <AlertDescription className="text-base">
-            <strong>Account Status:</strong> {approvalStatus === "pending" ? "Pending Admin Approval" : "Waiting for Approval"}
-            <br />
-            <span className="text-sm text-muted-foreground">
-              You'll receive an email notification when your account is approved. In the meantime, explore the platform below!
-            </span>
-          </AlertDescription>
-        </Alert>
+        {hasOrg ? (
+          <Alert className="border-primary/50 bg-primary/5">
+            <Clock className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-base">
+              <strong>Account Status:</strong> Pending Admin Approval
+              <br />
+              <span className="text-sm text-muted-foreground">
+                You'll receive an email notification when your account is approved. In the meantime, explore the platform below!
+              </span>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-primary/50 bg-primary/5">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-base">
+              <strong>Free Tier Active:</strong> No approval needed.
+              <br />
+              <span className="text-sm text-muted-foreground">
+                You can use all free features below. Upgrade anytime to unlock more.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

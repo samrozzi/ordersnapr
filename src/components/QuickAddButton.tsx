@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { FeatureModule } from "@/hooks/use-features";
 import {
   DropdownMenu,
@@ -49,9 +51,17 @@ const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; d
 export function QuickAddButton() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
+  const { data: preferences } = useUserPreferences(user?.id || null);
 
-  const actions: QuickAction[] = features
+  // Check if Quick Add is disabled by user
+  if (preferences?.quick_add_enabled === false) {
+    return null;
+  }
+
+  // Build actions from all enabled features
+  let actions: QuickAction[] = features
     .filter(feature => feature.enabled && FEATURE_CONFIG[feature.module as FeatureModule])
     .map(feature => {
       const featureModule = feature.module as FeatureModule;
@@ -65,6 +75,13 @@ export function QuickAddButton() {
         feature: featureModule,
       };
     });
+
+  // Filter based on user preferences if they've customized it
+  if (preferences?.quick_add_items && preferences.quick_add_items.length > 0) {
+    actions = actions.filter(action =>
+      preferences.quick_add_items.includes(action.feature)
+    );
+  }
 
   const handleSelect = (path: string) => {
     setOpen(false);

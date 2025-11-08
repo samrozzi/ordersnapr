@@ -176,8 +176,8 @@ export function PersonalSettings() {
                   key={feature.id}
                   className={`p-4 ${isEnabled ? "border-primary bg-primary/5" : ""}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div
                         className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
                           isEnabled
@@ -188,21 +188,21 @@ export function PersonalSettings() {
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Label className="font-semibold cursor-pointer">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label className="font-semibold cursor-pointer break-words">
                             {feature.name}
                           </Label>
                           {isPremium && (
-                            <Badge variant={hasAccess ? "default" : "secondary"} className="gap-1">
+                            <Badge variant={hasAccess ? "default" : "secondary"} className="gap-1 flex-shrink-0">
                               <Crown className="h-3 w-3" />
                               Premium
                             </Badge>
                           )}
                           {!isPremium && (
-                            <Badge variant="outline">Free</Badge>
+                            <Badge variant="outline" className="flex-shrink-0">Free</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-1 break-words">
                           {feature.description}
                         </p>
                       </div>
@@ -210,6 +210,7 @@ export function PersonalSettings() {
                     <Switch
                       checked={isEnabled}
                       onCheckedChange={() => toggleFeature(feature.id)}
+                      className="flex-shrink-0"
                     />
                   </div>
                 </Card>

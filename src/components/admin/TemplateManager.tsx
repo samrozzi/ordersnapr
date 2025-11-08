@@ -13,6 +13,7 @@ import { FormTemplate } from "@/hooks/use-form-templates";
 import { format } from "date-fns";
 import { useUserPermissions } from "@/hooks/use-user-permissions";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { FreeTierGuard } from "@/components/FreeTierGuard";
 
 interface TemplateManagerProps {
   orgId: string | null;
@@ -72,10 +73,14 @@ export function TemplateManager({ orgId }: TemplateManagerProps) {
           <h2 className="text-2xl font-bold">Form Templates</h2>
           <p className="text-muted-foreground">Create and manage form templates</p>
         </div>
-        <Button onClick={() => setSheetMode("create")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Template
-        </Button>
+        <FreeTierGuard resource="forms" onAllowed={() => setSheetMode("create")}>
+          {({ onClick, disabled }) => (
+            <Button onClick={onClick} disabled={disabled || isLoading}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Template
+            </Button>
+          )}
+        </FreeTierGuard>
       </div>
 
       <div className="border rounded-lg overflow-x-auto touch-pan-x">

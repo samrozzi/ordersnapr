@@ -77,25 +77,26 @@ export function CustomizeQuickAdd() {
     }
   }, [user, features]);
 
-  // Initialize state from preferences - only once
+  // Initialize selectedItems from preferences or intelligent defaults
   useEffect(() => {
-    // Only initialize if we haven't already and we have the necessary data
+    if (isLoading || !user) return;
     if (initializedRef.current || !userFeatureModules.length) return;
 
     if (preferences) {
-      setQuickAddEnabled(preferences.quick_add_enabled ?? true);
-      setSelectedItems(preferences.quick_add_items || []);
+      // Hydrate from existing preferences
+      setQuickAddEnabled(preferences.quick_add_enabled ?? false);
+      setSelectedItems(preferences.quick_add_items as FeatureModule[] || []);
       initializedRef.current = true;
-    } else if (userFeatureModules.length > 0 && !isLoading) {
-      // Default: first 2 enabled features for free tier, all for premium
-      const defaultItems = hasPremiumAccess()
-        ? userFeatureModules
+    } else if (userFeatureModules.length > 0) {
+      // First time: seed defaults
+      const defaults = hasPremiumAccess() 
+        ? userFeatureModules.slice(0, 4) 
         : userFeatureModules.slice(0, 2);
-      setQuickAddEnabled(true);
-      setSelectedItems(defaultItems);
+      setQuickAddEnabled(false);
+      setSelectedItems(defaults);
       initializedRef.current = true;
     }
-  }, [preferences, userFeatureModules, hasPremiumAccess, isLoading]);
+  }, [preferences, isLoading, user, hasPremiumAccess, userFeatureModules]);
 
   const handleToggleItem = (feature: FeatureModule) => {
     setSelectedItems(prev => {
@@ -118,7 +119,7 @@ export function CustomizeQuickAdd() {
   };
 
   const handleSave = async () => {
-    if (!user?.id) return;
+    if (!user) return;
 
     try {
       await updatePreferences.mutateAsync({
@@ -126,18 +127,15 @@ export function CustomizeQuickAdd() {
         quickAddEnabled,
         quickAddItems: selectedItems,
       });
-
-      // Reset initialized flag so that any server changes get picked up
-      initializedRef.current = false;
-
       toast({
         title: "Success",
-        description: "Quick Add preferences saved successfully",
+        description: "Quick Add preferences saved",
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Failed to save preferences:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save preferences",
+        description: "Failed to save preferences",
         variant: "destructive",
       });
     }

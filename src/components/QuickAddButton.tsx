@@ -96,12 +96,13 @@ export function QuickAddButton() {
     })
     .map((module) => {
       const config = FEATURE_CONFIG[module];
-      // Get custom label from navigation or feature config
+      // Get custom label from navigation or feature config  
+      const featureConfig = getFeatureConfig(module);
       const navItem = enabledNavItems.find(item => item.module === module);
-      const customLabel = navItem?.label || config.defaultLabel;
+      const label = navItem?.label || featureConfig?.display_name || config.defaultLabel;
       
       return {
-        label: customLabel,
+        label,
         path: config.path,
         icon: config.icon,
         feature: module,
@@ -136,6 +137,8 @@ export function QuickAddButton() {
             const Icon = action.icon;
             const config = FEATURE_CONFIG[action.feature];
             const limitResource = config.limitResource;
+            // Don't show badge for "forms" since the quick action creates submissions, not templates
+            const showBadge = limitResource && action.feature !== 'forms';
 
             return (
               <DropdownMenuItem
@@ -147,8 +150,8 @@ export function QuickAddButton() {
                   <Icon className="mr-2 h-4 w-4" />
                   {action.label}
                 </div>
-                {limitResource && (
-                  <FreeTierBadge resource={limitResource} className="ml-2" />
+                {showBadge && (
+                  <FreeTierBadge resource={limitResource!} className="ml-2" />
                 )}
               </DropdownMenuItem>
             );

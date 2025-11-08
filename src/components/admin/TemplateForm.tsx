@@ -12,6 +12,8 @@ import { TemplateBuilderV2 } from "./TemplateBuilderV2";
 import { FormImporter } from "./FormImporter";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
+import { FreeTierLimitModal } from "@/components/FreeTierLimitModal";
 
 interface TemplateFormProps {
   template?: FormTemplate;
@@ -36,9 +38,11 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const [userId, setUserId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const createMutation = useCreateTemplate();
   const updateMutation = useUpdateTemplate();
+  const { canCreate, limits } = useFreeTierLimits();
 
   useEffect(() => {
     const fetchUserRoles = async () => {
@@ -75,6 +79,12 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Pre-submit check for free tier limits (only for new templates)
+    if (!template && !canCreate("forms")) {
+      setShowLimitModal(true);
+      return;
+    }
 
     let finalSchema = schema;
     
@@ -117,7 +127,14 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      <FreeTierLimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        resource="forms"
+        limit={limits.forms}
+      />
+      <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Template Name *</Label>
@@ -238,5 +255,6 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
         </Button>
       </div>
     </form>
+    </>
   );
 }

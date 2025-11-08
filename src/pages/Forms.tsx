@@ -34,6 +34,7 @@ export default function Forms() {
     return localStorage.getItem("formsActiveTab") || "all";
   });
   const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | "edit-template" | null>(null);
+  const [isFreeUser, setIsFreeUser] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -67,9 +68,11 @@ export default function Forms() {
         setUserId(user.id);
         const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin, is_super_admin").eq("id", user.id).single();
         if (profile) {
-          setOrgId(profile.organization_id || null);
+          const userOrgId = profile.organization_id || null;
+          setOrgId(userOrgId);
           setIsOrgAdmin(profile.is_org_admin || false);
           setIsSuperAdmin(profile.is_super_admin || false);
+          setIsFreeUser(userOrgId === null);
         }
       }
     };
@@ -207,17 +210,27 @@ export default function Forms() {
         <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
+      {/* Free user banner */}
+      {isFreeUser && (
+        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm mb-4">
+          <p className="text-muted-foreground">
+            <strong>Free tier:</strong> You can create up to 2 personal templates. Submissions are unlimited.
+          </p>
+        </div>
+      )}
+
         <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
         {/* Row 1: New Submission + Tab Navigation */}
         <div className="flex items-center gap-3 md:gap-2">
-          <FreeTierGuard resource="forms" onAllowed={() => setSheetMode('select-template')}>
-            {({ onClick, disabled }) => (
-              <Button onClick={onClick} disabled={disabled || submissionsLoading} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
-                <Plus className="md:mr-2 h-4 w-4" />
-                <span className="hidden md:inline">New Submission</span>
-              </Button>
-            )}
-          </FreeTierGuard>
+          <Button 
+            onClick={() => setSheetMode('select-template')} 
+            disabled={submissionsLoading} 
+            size="sm" 
+            className="md:h-10 text-xs md:text-sm flex-shrink-0"
+          >
+            <Plus className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">New Submission</span>
+          </Button>
           
           {isMobileOrTablet ? (
             <Carousel

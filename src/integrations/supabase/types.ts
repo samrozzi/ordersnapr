@@ -863,7 +863,7 @@ export type Database = {
           job_id: string | null
           linked_invoice_id: string | null
           notes: string | null
-          organization_id: string
+          organization_id: string | null
           package: string | null
           photos: string[] | null
           scheduled_date: string | null
@@ -892,7 +892,7 @@ export type Database = {
           job_id?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string | null
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null

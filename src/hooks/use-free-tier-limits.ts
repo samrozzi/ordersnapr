@@ -45,7 +45,7 @@ export function useFreeTierLimits() {
       // Check if user is approved
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, organization_id")
         .eq("id", user.id)
         .single();
 
@@ -58,43 +58,57 @@ export function useFreeTierLimits() {
         return;
       }
 
-      // Get user's organization
-      const { data: membership } = await supabase
-        .from("org_memberships")
-        .select("org_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!membership) {
-        setLoading(false);
-        return;
-      }
-
-      const orgId = membership.org_id;
+      // For free tier users (no organization), count by user_id
+      // For org users (pending approval), count by organization_id
+      const hasOrg = !!profile?.organization_id;
 
       // Count work orders
-      const { count: workOrderCount } = await supabase
+      const workOrderQuery = supabase
         .from("work_orders")
-        .select("*", { count: "exact", head: true })
-        .eq("org_id", orgId);
+        .select("*", { count: "exact", head: true });
+
+      if (hasOrg) {
+        workOrderQuery.eq("organization_id", profile.organization_id);
+      } else {
+        workOrderQuery.eq("user_id", user.id).is("organization_id", null);
+      }
+      const { count: workOrderCount } = await workOrderQuery;
 
       // Count properties
-      const { count: propertyCount } = await supabase
+      const propertyQuery = supabase
         .from("properties")
-        .select("*", { count: "exact", head: true })
-        .eq("org_id", orgId);
+        .select("*", { count: "exact", head: true });
+
+      if (hasOrg) {
+        propertyQuery.eq("organization_id", profile.organization_id);
+      } else {
+        propertyQuery.eq("user_id", user.id).is("organization_id", null);
+      }
+      const { count: propertyCount } = await propertyQuery;
 
       // Count forms
-      const { count: formCount } = await supabase
+      const formQuery = supabase
         .from("form_templates")
-        .select("*", { count: "exact", head: true })
-        .eq("org_id", orgId);
+        .select("*", { count: "exact", head: true });
+
+      if (hasOrg) {
+        formQuery.eq("organization_id", profile.organization_id);
+      } else {
+        formQuery.eq("user_id", user.id).is("organization_id", null);
+      }
+      const { count: formCount } = await formQuery;
 
       // Count calendar events
-      const { count: eventCount } = await supabase
+      const eventQuery = supabase
         .from("calendar_events")
-        .select("*", { count: "exact", head: true })
-        .eq("org_id", orgId);
+        .select("*", { count: "exact", head: true });
+
+      if (hasOrg) {
+        eventQuery.eq("organization_id", profile.organization_id);
+      } else {
+        eventQuery.eq("user_id", user.id).is("organization_id", null);
+      }
+      const { count: eventCount } = await eventQuery;
 
       setUsage({
         work_orders: workOrderCount || 0,

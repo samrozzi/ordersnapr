@@ -57,32 +57,63 @@ export function OnboardingWizard() {
   };
 
   const handleComplete = async () => {
-    // Mark onboarding as complete in localStorage
-    localStorage.setItem(`onboarding_completed_${user?.id}`, "true");
-
-    // Save user's selected features to localStorage for free tier users
-    if (user && onboardingData.selectedFeatures.length > 0) {
-      localStorage.setItem(
-        `user_features_${user.id}`,
-        JSON.stringify(onboardingData.selectedFeatures)
-      );
+    if (!user) {
+      navigate("/free-workspace");
+      return;
     }
 
-    // Check if user is approved
-    if (user) {
+    try {
+      // Save onboarding completion and data to database
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          onboarding_completed: true,
+          onboarding_data: {
+            selectedFeatures: onboardingData.selectedFeatures,
+            primaryColor: onboardingData.primaryColor,
+            secondaryColor: onboardingData.secondaryColor,
+            logoUrl: onboardingData.logoUrl,
+            includeSampleData: onboardingData.includeSampleData,
+            sampleDataTypes: onboardingData.sampleDataTypes,
+            completedAt: new Date().toISOString(),
+          },
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Error saving onboarding data:", error);
+        // Fall back to localStorage on error
+        localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+        if (onboardingData.selectedFeatures.length > 0) {
+          localStorage.setItem(
+            `user_features_${user.id}`,
+            JSON.stringify(onboardingData.selectedFeatures)
+          );
+        }
+      }
+
+      // Get user's profile to check approval status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, organization_id")
         .eq("id", user.id)
         .single();
 
-      // If approved, go to dashboard, otherwise go to free workspace
-      if (profile?.approval_status === "approved") {
-        navigate("/dashboard");
+      // Free tier users (no organization) should be auto-approved and go to free workspace
+      // Organization users go to dashboard if approved, otherwise pending approval
+      if (profile?.organization_id) {
+        // User is part of an organization
+        if (profile.approval_status === "approved") {
+          navigate("/dashboard");
+        } else {
+          navigate("/pending-approval");
+        }
       } else {
+        // Free tier user - always go to free workspace
         navigate("/free-workspace");
       }
-    } else {
+    } catch (error) {
+      console.error("Error in handleComplete:", error);
       navigate("/free-workspace");
     }
   };

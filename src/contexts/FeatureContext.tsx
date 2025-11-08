@@ -53,8 +53,17 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return feature?.enabled || false;
     }
 
-    // For users without org (free tier/standalone), check localStorage preferences
+    // For users without org (free tier/standalone), always enable free tier features
     if (!orgId && userId) {
+      // Define free tier features that are always available
+      const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar"];
+
+      // Always allow free tier features
+      if (FREE_TIER_FEATURES.includes(module)) {
+        return true;
+      }
+
+      // For other features, check localStorage preferences
       const userFeaturesJson = localStorage.getItem(`user_features_${userId}`);
       if (userFeaturesJson) {
         try {

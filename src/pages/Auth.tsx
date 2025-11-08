@@ -22,26 +22,29 @@ const Auth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session) {
-        // Check if user has completed onboarding
-        const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
-
-        // Check approval status
+        // Check user profile for onboarding status and approval
         const { data: profile } = await supabase
           .from("profiles")
-          .select("approval_status")
+          .select("approval_status, onboarding_completed, organization_id")
           .eq("id", session.user.id)
           .single();
 
-        // If approved, go to dashboard
-        if (profile?.approval_status === "approved") {
-          navigate("/dashboard");
-        }
-        // If not approved and onboarding not complete, go to onboarding
-        else if (!onboardingComplete) {
+        // If onboarding not completed, redirect to onboarding
+        if (!profile?.onboarding_completed) {
           navigate("/onboarding");
+          return;
         }
-        // If not approved but onboarding complete, go to free workspace
-        else {
+
+        // If user has an organization
+        if (profile.organization_id) {
+          // Organization users need approval
+          if (profile.approval_status === "approved") {
+            navigate("/dashboard");
+          } else {
+            navigate("/pending-approval");
+          }
+        } else {
+          // Free tier users (no organization) go to free workspace
           navigate("/free-workspace");
         }
       }
@@ -50,19 +53,29 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
-        const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
-
+        // Check user profile for onboarding status and approval
         const { data: profile } = await supabase
           .from("profiles")
-          .select("approval_status")
+          .select("approval_status, onboarding_completed, organization_id")
           .eq("id", session.user.id)
           .single();
 
-        if (profile?.approval_status === "approved") {
-          navigate("/dashboard");
-        } else if (!onboardingComplete) {
+        // If onboarding not completed, redirect to onboarding
+        if (!profile?.onboarding_completed) {
           navigate("/onboarding");
+          return;
+        }
+
+        // If user has an organization
+        if (profile.organization_id) {
+          // Organization users need approval
+          if (profile.approval_status === "approved") {
+            navigate("/dashboard");
+          } else {
+            navigate("/pending-approval");
+          }
         } else {
+          // Free tier users (no organization) go to free workspace
           navigate("/free-workspace");
         }
       }

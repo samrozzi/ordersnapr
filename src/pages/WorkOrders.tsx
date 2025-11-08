@@ -13,6 +13,8 @@ import { CalendarView } from "@/components/CalendarView";
 import { JobKanbanBoard } from "@/components/JobKanbanBoard";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
+import { ExportButton } from "@/components/ExportButton";
+import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
 
 interface WorkOrder {
   id: string;
@@ -174,6 +176,36 @@ const WorkOrders = () => {
   const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
   const completedOrders = workOrders.filter((order) => order.status === "completed");
 
+  // Export columns definition
+  const exportColumns: ExportColumn<WorkOrder>[] = [
+    { key: "job_number", label: "Job #" },
+    { key: "title", label: "Title" },
+    { key: "customer_name", label: "Customer" },
+    { key: "address", label: "Address" },
+    { key: "status", label: "Status" },
+    { key: "type", label: "Type" },
+    {
+      key: "creator.full_name",
+      label: "Created By",
+      format: (val, row) => row.creator?.full_name || row.creator?.email || "N/A",
+    },
+    {
+      key: "assignee.full_name",
+      label: "Assigned To",
+      format: (val, row) => row.assignee?.full_name || row.assignee?.email || "Unassigned",
+    },
+    {
+      key: "scheduled_date",
+      label: "Scheduled Date",
+      format: (val) => val ? new Date(val as string).toLocaleDateString() : "",
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      format: formatDateForExport,
+    },
+  ];
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="mb-4">
@@ -229,6 +261,16 @@ const WorkOrders = () => {
             <LayoutGrid className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">Kanban</span>
           </Button>
+        </div>
+
+        <div className="ml-auto">
+          <ExportButton
+            data={viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders}
+            columns={exportColumns}
+            filename={`work-orders-${listTab}`}
+            variant="outline"
+            size="sm"
+          />
         </div>
       </div>
 

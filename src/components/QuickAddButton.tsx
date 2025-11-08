@@ -37,44 +37,27 @@ export function QuickAddButton() {
   const actions: QuickAction[] = [
     {
       label: "Work Order",
-      path: "/work-orders/new",
+      path: "/work-orders",
       icon: Briefcase,
       feature: "work_orders",
     },
     {
       label: "Property",
-      path: "/property-info/new",
+      path: "/property-info",
       icon: Home,
       feature: "properties",
     },
     {
-      label: "Form Submission",
-      path: "/forms/new",
+      label: "Form",
+      path: "/forms",
       icon: FileText,
       feature: "forms",
     },
     {
       label: "Calendar Event",
-      path: "/calendar/new",
+      path: "/calendar",
       icon: Calendar,
       feature: "calendar",
-    },
-    {
-      label: "Invoice",
-      path: "/invoices/new",
-      icon: DollarSign,
-      feature: "invoices",
-    },
-    {
-      label: "Appointment",
-      path: "/appointments/new",
-      icon: Calendar,
-      feature: "appointments",
-    },
-    {
-      label: "Customer",
-      path: "/customers/new",
-      icon: Users,
     },
   ];
 

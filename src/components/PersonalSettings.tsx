@@ -156,7 +156,7 @@ export function PersonalSettings() {
           <CardDescription>
             Choose which pages appear in your sidebar navigation. {!hasPremiumAccess() && (
               <span className="text-orange-600 dark:text-orange-400 font-medium">
-                Premium features will be locked until you get approval.
+                Premium features will be locked until you upgrade your account or join/create an organization.
               </span>
             )}
           </CardDescription>
@@ -240,7 +240,7 @@ export function PersonalSettings() {
             </CardTitle>
             <CardDescription>
               You're currently on a free account with limited access. Premium features in your sidebar
-              will be locked until you request approval or join an organization.
+              will be locked until you upgrade your account or join/create an organization.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -248,7 +248,7 @@ export function PersonalSettings() {
               Free tier includes: Work Orders (3), Properties (2), Forms (2), Calendar (5 events)
             </p>
             <Button>
-              Request Approval
+              Upgrade
             </Button>
           </CardContent>
         </Card>

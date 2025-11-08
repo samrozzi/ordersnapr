@@ -83,6 +83,7 @@ export function useFreeTierLimits() {
       const { count: propertyCount } = await propertyQuery;
 
       // Count forms (form_templates uses org_id, not organization_id)
+      // For free users, only count user-scoped templates
       const formQuery = supabase
         .from("form_templates")
         .select("*", { count: "exact", head: true });
@@ -90,7 +91,7 @@ export function useFreeTierLimits() {
       if (hasOrg) {
         formQuery.eq("org_id", profile.organization_id);
       } else {
-        formQuery.eq("created_by", user.id).is("org_id", null);
+        formQuery.eq("created_by", user.id).is("org_id", null).eq("scope", "user");
       }
       const { count: formCount } = await formQuery;
 

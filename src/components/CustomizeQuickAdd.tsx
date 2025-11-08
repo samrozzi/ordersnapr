@@ -83,18 +83,19 @@ export function CustomizeQuickAdd() {
     if (initializedRef.current || !userFeatureModules.length) return;
 
     if (preferences) {
-      setQuickAddEnabled(preferences.quick_add_enabled);
+      setQuickAddEnabled(preferences.quick_add_enabled ?? true);
       setSelectedItems(preferences.quick_add_items || []);
       initializedRef.current = true;
-    } else if (userFeatureModules.length > 0) {
-      // Default: all enabled features (up to 2 for free tier)
+    } else if (userFeatureModules.length > 0 && !isLoading) {
+      // Default: first 2 enabled features for free tier, all for premium
       const defaultItems = hasPremiumAccess()
         ? userFeatureModules
         : userFeatureModules.slice(0, 2);
+      setQuickAddEnabled(true);
       setSelectedItems(defaultItems);
       initializedRef.current = true;
     }
-  }, [preferences, userFeatureModules, hasPremiumAccess]);
+  }, [preferences, userFeatureModules, hasPremiumAccess, isLoading]);
 
   const handleToggleItem = (feature: FeatureModule) => {
     setSelectedItems(prev => {

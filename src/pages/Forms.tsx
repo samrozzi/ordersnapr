@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { FreeTierGuard } from "@/components/FreeTierGuard";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -209,10 +210,14 @@ export default function Forms() {
       <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
         {/* Row 1: New Submission + Tab Navigation */}
         <div className="flex items-center gap-3 md:gap-2">
-          <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
-            <Plus className="md:mr-2 h-4 w-4" />
-            <span className="hidden md:inline">New Submission</span>
-          </Button>
+          <FreeTierGuard resource="forms" onAllowed={() => setSheetMode('select-template')}>
+            {({ onClick, disabled, remaining }) => (
+              <Button onClick={onClick} disabled={disabled} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
+                <Plus className="md:mr-2 h-4 w-4" />
+                <span className="hidden md:inline">New Submission</span>
+              </Button>
+            )}
+          </FreeTierGuard>
           
           {isMobileOrTablet ? (
             <Carousel

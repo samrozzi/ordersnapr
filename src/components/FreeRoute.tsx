@@ -62,13 +62,23 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
           setLoading(false);
           return;
         }
-        // Free tier user accessing free workspace - must have completed onboarding
+        
+        // Free tier user accessing free workspace
         if (!onboardingComplete) {
           navigate("/onboarding");
           setLoading(false);
           return;
         }
-        // All good - allow access
+        
+        // Check if user has already seen the free workspace page
+        const hasSeenWorkspace = localStorage.getItem(`free_workspace_seen_${session.user.id}`) === "true";
+        if (hasSeenWorkspace) {
+          // Redirect to dashboard if they've already seen it
+          navigate("/dashboard");
+          setLoading(false);
+          return;
+        }
+        // All good - allow first-time access
       }
 
       setLoading(false);

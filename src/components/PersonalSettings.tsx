@@ -250,7 +250,7 @@ export function PersonalSettings() {
               Free tier includes: Work Orders (3), Properties (2), Forms (2), Calendar (5 events)
             </p>
             <Button onClick={() => setShowPricingModal(true)}>
-              Upgrade
+              View Upgrade Options
             </Button>
           </CardContent>
         </Card>

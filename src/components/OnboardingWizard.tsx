@@ -118,8 +118,11 @@ export function OnboardingWizard() {
           navigate("/pending-approval");
         }
       } else {
-        // Free tier user - always go to free workspace
-        navigate("/free-workspace");
+        // Free tier user - go to dashboard and mark workspace as seen
+        if (user?.id) {
+          localStorage.setItem(`free_workspace_seen_${user.id}`, "true");
+        }
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Error in handleComplete:", error);

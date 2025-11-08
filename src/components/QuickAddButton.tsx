@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
+import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { FreeTierBadge } from "@/components/FreeTierBadge";
 import { FeatureModule } from "@/hooks/use-features";
 import {
@@ -55,10 +56,12 @@ export function QuickAddButton() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
-  const { data: preferences } = useUserPreferences(user?.id || null);
+  const { data: userPreferences } = useUserPreferences(user?.id || null);
+  const { isAtLimit } = useFreeTierLimits();
+  const { enabledNavItems } = useFeatureNavigation();
 
   // Check if Quick Add is disabled by user
-  if (preferences?.quick_add_enabled === false) {
+  if (userPreferences?.quick_add_enabled === false) {
     return null;
   }
 
@@ -82,27 +85,29 @@ export function QuickAddButton() {
     }
   }
 
-  // Build actions from enabled features
-  let actions: QuickAction[] = userFeatureModules
-    .filter(featureModule => FEATURE_CONFIG[featureModule])
-    .map(featureModule => {
-      const config = FEATURE_CONFIG[featureModule];
-      const orgConfig = getFeatureConfig(featureModule);
-
+  // Build actions array from user's enabled features and preferences
+  const actions: QuickAction[] = userFeatureModules
+    .filter((module) => {
+      // If user has specific preferences, respect them; otherwise show all enabled features
+      if (userPreferences?.quick_add_items && userPreferences.quick_add_items.length > 0) {
+        return userPreferences.quick_add_items.includes(module);
+      }
+      return true;
+    })
+    .map((module) => {
+      const config = FEATURE_CONFIG[module];
+      // Get custom label from navigation or feature config
+      const navItem = enabledNavItems.find(item => item.module === module);
+      const customLabel = navItem?.label || config.defaultLabel;
+      
       return {
-        label: orgConfig?.display_name || config.defaultLabel,
+        label: customLabel,
         path: config.path,
         icon: config.icon,
-        feature: featureModule,
+        feature: module,
       };
-    });
-
-  // Filter based on user preferences if they've customized it
-  if (preferences?.quick_add_items && preferences.quick_add_items.length > 0) {
-    actions = actions.filter(action =>
-      preferences.quick_add_items.includes(action.feature)
-    );
-  }
+    })
+    .filter((action): action is QuickAction => action !== null);
 
   const handleSelect = (path: string) => {
     setOpen(false);

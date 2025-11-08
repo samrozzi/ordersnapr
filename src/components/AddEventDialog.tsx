@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
+import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
+import { FreeTierLimitModal } from "./FreeTierLimitModal";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required").max(100),
@@ -43,7 +45,9 @@ interface AddEventDialogProps {
 export const AddEventDialog = ({ onEventAdded }: AddEventDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const { toast } = useToast();
+  const { canCreate, limits } = useFreeTierLimits();
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -68,6 +72,14 @@ export const AddEventDialog = ({ onEventAdded }: AddEventDialogProps) => {
         throw new Error("Not authenticated");
       }
 
+      // Check free tier limits before creating
+      if (!canCreate("calendar_events")) {
+        setLoading(false);
+        setOpen(false);
+        setShowLimitModal(true);
+        return;
+      }
+
       // Get user's organization
       const { data: profile } = await supabase
         .from("profiles")
@@ -75,13 +87,9 @@ export const AddEventDialog = ({ onEventAdded }: AddEventDialogProps) => {
         .eq("id", user.id)
         .single();
 
-      if (!profile?.organization_id) {
-        throw new Error("No organization found");
-      }
-
-      // Create the event
+      // Create the event (for free users, organization_id will be null)
       const { error } = await supabase.from("calendar_events").insert({
-        organization_id: profile.organization_id,
+        organization_id: profile?.organization_id || null,
         created_by: user.id,
         title: data.title,
         description: data.description || null,
@@ -219,6 +227,13 @@ export const AddEventDialog = ({ onEventAdded }: AddEventDialogProps) => {
           </form>
         </Form>
       </DialogContent>
+      
+      <FreeTierLimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        resource="calendar_events"
+        limit={limits.calendar_events}
+      />
     </Dialog>
   );
 };

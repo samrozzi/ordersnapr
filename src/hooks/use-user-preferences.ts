@@ -54,8 +54,12 @@ export const useUserPreferences = (userId: string | null) => {
         .single();
 
       if (error) {
+        // If no row found (PGRST116), return null to allow first insert
+        if (error.code === "PGRST116") {
+          return null;
+        }
         // If table doesn't exist, use localStorage fallback
-        if (error.message?.includes("user_preferences") || error.code === "PGRST116") {
+        if (error.message?.includes("user_preferences")) {
           return getLocalPreferences(userId);
         }
         throw error;

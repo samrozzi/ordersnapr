@@ -5,6 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
+import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { PropertyTable } from "@/components/PropertyTable";
 import { Plus, MapPin, MapPinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -143,13 +144,15 @@ const PropertyInfo = () => {
       <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
       <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="md:h-10">
-              <Plus className="md:mr-2 h-4 w-4" />
-              <span className="hidden md:inline">New Property</span>
-            </Button>
-          </DialogTrigger>
+        <FreeTierGuard resource="properties" onAllowed={() => setIsDialogOpen(true)}>
+          {({ onClick, disabled, remaining }) => (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled}>
+                  <Plus className="md:mr-2 h-4 w-4" />
+                  <span className="hidden md:inline">New Property</span>
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Property</DialogTitle>
@@ -161,7 +164,9 @@ const PropertyInfo = () => {
               }}
             />
           </DialogContent>
-        </Dialog>
+            </Dialog>
+          )}
+        </FreeTierGuard>
         <Button
           variant="outline"
           size="sm"

@@ -71,7 +71,7 @@ export function QuickAddButton() {
       const orgConfig = getFeatureConfig(featureModule);
 
       return {
-        label: orgConfig?.display_name?.replace(/s$/, '') || config.defaultLabel,
+        label: orgConfig?.display_name || config.defaultLabel,
         path: config.path,
         icon: config.icon,
         feature: featureModule,

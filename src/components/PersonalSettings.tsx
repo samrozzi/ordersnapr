@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { PricingModal } from "@/components/PricingModal";
 import {
   Briefcase,
   Home,
@@ -100,6 +101,7 @@ export function PersonalSettings() {
   const { toast } = useToast();
   const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   useEffect(() => {
     // Load user's enabled features from localStorage
@@ -247,12 +249,14 @@ export function PersonalSettings() {
             <p className="text-sm text-muted-foreground mb-4">
               Free tier includes: Work Orders (3), Properties (2), Forms (2), Calendar (5 events)
             </p>
-            <Button>
+            <Button onClick={() => setShowPricingModal(true)}>
               Upgrade
             </Button>
           </CardContent>
         </Card>
       )}
+
+      <PricingModal open={showPricingModal} onClose={() => setShowPricingModal(false)} />
     </div>
   );
 }

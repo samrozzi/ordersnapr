@@ -51,17 +51,19 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
       }
 
       // If approved user tries to access free workspace, redirect to dashboard
-      if (location.pathname === "/free-workspace" && isApproved) {
-        navigate("/dashboard");
-        setLoading(false);
-        return;
-      }
-
-      // If not completed onboarding and not already on onboarding page, redirect
-      if (!onboardingComplete && location.pathname !== "/onboarding") {
-        navigate("/onboarding");
-        setLoading(false);
-        return;
+      if (location.pathname === "/free-workspace") {
+        if (isApproved) {
+          navigate("/dashboard");
+          setLoading(false);
+          return;
+        }
+        // Free tier user accessing free workspace - must have completed onboarding
+        if (!onboardingComplete) {
+          navigate("/onboarding");
+          setLoading(false);
+          return;
+        }
+        // All good - allow access
       }
 
       setLoading(false);

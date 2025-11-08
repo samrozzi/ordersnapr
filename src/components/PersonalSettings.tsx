@@ -112,7 +112,14 @@ export function PersonalSettings() {
           setEnabledFeatures(JSON.parse(savedFeatures));
         } catch (e) {
           console.error("Error parsing user features:", e);
+          // On error, set free tier defaults
+          const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
+          setEnabledFeatures(defaults);
         }
+      } else {
+        // No saved preferences - initialize with free tier defaults
+        const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
+        setEnabledFeatures(defaults);
       }
     }
   }, [user]);

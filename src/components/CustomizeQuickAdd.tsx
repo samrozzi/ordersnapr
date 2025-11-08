@@ -80,7 +80,7 @@ export function CustomizeQuickAdd() {
   // Initialize selectedItems from preferences or intelligent defaults
   useEffect(() => {
     if (isLoading || !user) return;
-    if (initializedRef.current || !userFeatureModules.length) return;
+    if (initializedRef.current) return;
 
     if (preferences) {
       // Hydrate from existing preferences

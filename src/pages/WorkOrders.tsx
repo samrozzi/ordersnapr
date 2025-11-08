@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 interface WorkOrder {
   id: string;
@@ -212,6 +213,8 @@ const WorkOrders = () => {
       <div className="mb-4">
         <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
       </div>
+
+      <FreeTierUsageBanner only={["work_orders"]} />
 
       {/* Action buttons row */}
       <div className="flex flex-wrap items-center gap-2 mb-4">

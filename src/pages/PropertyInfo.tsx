@@ -9,6 +9,7 @@ import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { PropertyTable } from "@/components/PropertyTable";
 import { Plus, MapPin, MapPinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 interface Property {
   id: string;
@@ -143,6 +144,8 @@ const PropertyInfo = () => {
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
+      <FreeTierUsageBanner only={["properties"]} />
+
       <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
         <FreeTierGuard resource="properties" onAllowed={() => setIsDialogOpen(true)}>
           {({ onClick, disabled }) => (

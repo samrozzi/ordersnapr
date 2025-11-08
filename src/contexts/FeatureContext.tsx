@@ -28,11 +28,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("organization_id")
+        .select("organization_id, active_org_id")
         .eq("id", session.user.id)
         .single();
 
-      setOrgId(profile?.organization_id || null);
+      // Use active_org_id first (multi-org support), fallback to organization_id
+      setOrgId(profile?.active_org_id || profile?.organization_id || null);
     };
 
     fetchOrgId();
@@ -53,17 +54,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return feature?.enabled || false;
     }
 
-    // For users without org (free tier/standalone), always enable free tier features
+    // For users without org (free tier/personal workspace)
     if (!orgId && userId) {
-      // Define free tier features that are always available
-      const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar"];
-
-      // Always allow free tier features
-      if (FREE_TIER_FEATURES.includes(module)) {
-        return true;
-      }
-
-      // For other features, check localStorage preferences
+      // Check localStorage for user preferences (respects toggles)
       const userFeaturesJson = localStorage.getItem(`user_features_${userId}`);
       if (userFeaturesJson) {
         try {
@@ -73,6 +66,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.error("Error parsing user features:", e);
         }
       }
+      
+      // Default free tier features if no localStorage exists
+      const FREE_TIER_DEFAULTS = ["work_orders", "forms", "calendar"];
+      return FREE_TIER_DEFAULTS.includes(module);
     }
 
     return false;

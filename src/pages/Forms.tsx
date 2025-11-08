@@ -13,6 +13,7 @@ import { FormRenderer } from "@/components/forms/FormRenderer";
 import { FormSubmissionViewer } from "@/components/forms/FormSubmissionViewer";
 import { TemplateForm } from "@/components/admin/TemplateForm";
 import { TemplateManager } from "@/components/admin/TemplateManager";
+import { TemplateSelector } from "@/components/forms/TemplateSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -24,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { FreeTierGuard } from "@/components/FreeTierGuard";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -210,14 +212,7 @@ export default function Forms() {
         <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
-      {/* Free user banner */}
-      {isFreeUser && (
-        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm mb-4">
-          <p className="text-muted-foreground">
-            <strong>Free tier:</strong> You can create up to 2 personal templates. Submissions are unlimited.
-          </p>
-        </div>
-      )}
+      <FreeTierUsageBanner only={["forms"]} />
 
         <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
         {/* Row 1: New Submission + Tab Navigation */}
@@ -505,41 +500,29 @@ export default function Forms() {
             <SheetTitle>Select a Template</SheetTitle>
           </SheetHeader>
           <div className="mt-6 space-y-4">
-            <Button 
-              onClick={() => setSheetMode('create-template')} 
-              variant="outline" 
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Template
-            </Button>
+            <FreeTierGuard resource="forms" onAllowed={() => setSheetMode('create-template')}>
+              {({ onClick, disabled }) => (
+                <Button 
+                  onClick={onClick}
+                  disabled={disabled}
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Template
+                </Button>
+              )}
+            </FreeTierGuard>
             
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Or select an existing template:</p>
-              {templates.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">
-                  No templates available. Create one to get started.
-                </p>
-              ) : (
-                templates.map((template) => (
-                  <div key={template.id} className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 justify-start"
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        setSheetMode('create-submission');
-                      }}
-                    >
-                      {template.name}
-                    </Button>
-                    <FavoriteButton
-                      entityType="form_template"
-                      entityId={template.id}
-                    />
-                  </div>
-                ))
-              )}
+              <TemplateSelector
+                templates={templates}
+                onSelect={(template) => {
+                  setSelectedTemplate(template);
+                  setSheetMode('create-submission');
+                }}
+              />
             </div>
           </div>
         </SheetContent>

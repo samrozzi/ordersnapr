@@ -76,7 +76,7 @@ export default function FreeTierDashboard() {
     workOrders: 3,
     properties: 2,
     forms: 2,
-    calendarEvents: 10,
+    calendarEvents: 5,
   };
 
   const usageItems = [

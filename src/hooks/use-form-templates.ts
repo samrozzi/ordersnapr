@@ -14,6 +14,8 @@ export interface FormTemplate {
   version: number;
   created_at: string;
   updated_at: string;
+  created_by: string | null;
+  scope: 'user' | 'organization' | 'global';
 }
 
 export const useFormTemplates = (orgId: string | null) => {

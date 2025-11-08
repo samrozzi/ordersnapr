@@ -36,6 +36,7 @@ import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
 import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
+import { OrgSwitcher } from "./OrgSwitcher";
 
 const iconMap: Record<string, React.ElementType> = {
   clipboard: ClipboardList,
@@ -214,9 +215,14 @@ export function AppSidebar() {
       <SidebarFooter>
         <Separator className="mb-2" />
         {state !== "collapsed" && (
-          <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-            Powered by OrderSnapr
-          </div>
+          <>
+            <div className="px-3 pb-2">
+              <OrgSwitcher />
+            </div>
+            <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+              Powered by OrderSnapr
+            </div>
+          </>
         )}
         <SidebarMenu>
           {!featuresLoading && hasFeature("calendar") && (

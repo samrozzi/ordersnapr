@@ -380,6 +380,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                 version: 1,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
+                created_by: null,
+                scope: 'user',
                 schema: {
                   sections: sections.map((s) => ({
                     id: s.id,

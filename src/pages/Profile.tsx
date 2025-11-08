@@ -97,7 +97,7 @@ const Profile = () => {
         approval_status,
         organization_id,
         full_name,
-        organizations (
+        organizations!organization_id (
           id,
           name
         )

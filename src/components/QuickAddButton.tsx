@@ -137,8 +137,6 @@ export function QuickAddButton() {
             const Icon = action.icon;
             const config = FEATURE_CONFIG[action.feature];
             const limitResource = config.limitResource;
-            // Don't show badge for "forms" since the quick action creates submissions, not templates
-            const showBadge = limitResource && action.feature !== 'forms';
 
             return (
               <DropdownMenuItem
@@ -146,12 +144,12 @@ export function QuickAddButton() {
                 onClick={() => handleSelect(action.path)}
                 className="flex items-center justify-between"
               >
-                <div className="flex items-center">
-                  <Icon className="mr-2 h-4 w-4" />
-                  {action.label}
+                <div className="flex items-center gap-2">
+                  {action.icon && <Icon className="h-4 w-4" />}
+                  <span>{action.label}</span>
                 </div>
-                {showBadge && (
-                  <FreeTierBadge resource={limitResource!} className="ml-2" />
+                {limitResource && (
+                  <FreeTierBadge resource={limitResource} />
                 )}
               </DropdownMenuItem>
             );

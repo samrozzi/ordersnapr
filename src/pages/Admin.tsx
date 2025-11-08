@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 import { TemplateManager } from "@/components/admin/TemplateManager";
+import { Navigate } from "react-router-dom";
+import { usePremiumAccess } from "@/hooks/use-premium-access";
 
 interface UserProfile {
   id: string;
@@ -45,6 +47,7 @@ const Admin = () => {
   const [newOrgName, setNewOrgName] = useState("");
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const { hasPremiumAccess } = usePremiumAccess();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -331,10 +334,28 @@ const Admin = () => {
     }
   };
 
-  if (loading || !isAdmin) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Free tier users redirect to free tier dashboard
+  if (!hasPremiumAccess() && !isAdmin) {
+    return <Navigate to="/free-tier-dashboard" replace />;
+  }
+
+  // Premium users without admin access
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Shield className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You need super admin privileges to access this page.</p>
+        </div>
       </div>
     );
   }

@@ -714,6 +714,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_org_id: string | null
           approval_status: Database["public"]["Enums"]["approval_status"]
           created_at: string | null
           email: string | null
@@ -727,6 +728,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          active_org_id?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           created_at?: string | null
           email?: string | null
@@ -740,6 +742,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          active_org_id?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           created_at?: string | null
           email?: string | null
@@ -753,6 +756,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_active_org_id_fkey"
+            columns: ["active_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_organization_id_fkey"
             columns: ["organization_id"]

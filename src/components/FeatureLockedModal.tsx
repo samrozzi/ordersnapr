@@ -8,6 +8,7 @@ interface FeatureLockedModalProps {
   onClose: () => void;
   featureName?: string;
   message?: string;
+  onUpgrade?: () => void;
 }
 
 // Minimal line art character SVG - whimsical style
@@ -103,6 +104,7 @@ export function FeatureLockedModal({
   onClose,
   featureName = "this feature",
   message,
+  onUpgrade,
 }: FeatureLockedModalProps) {
   const navigate = useNavigate();
 
@@ -110,6 +112,16 @@ export function FeatureLockedModal({
   const greeting = WHIMSICAL_MESSAGES[Math.floor(Math.random() * WHIMSICAL_MESSAGES.length)];
 
   const defaultMessage = message || `You're using a free account, which doesn't include access to ${featureName}.`;
+
+  const handleUpgradeClick = () => {
+    onClose();
+    if (onUpgrade) {
+      onUpgrade();
+    } else {
+      // Default behavior: navigate to profile preferences
+      navigate("/profile?tab=preferences");
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -141,14 +153,11 @@ export function FeatureLockedModal({
 
         <div className="space-y-2 pt-4">
           <Button
-            onClick={() => {
-              onClose();
-              navigate("/profile");
-            }}
+            onClick={handleUpgradeClick}
             className="w-full"
             size="lg"
           >
-            Request Approval to Unlock
+            Upgrade to Unlock
           </Button>
 
           <Button

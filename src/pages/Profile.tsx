@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut } from "lucide-react";
+import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -408,7 +408,10 @@ const Profile = () => {
         <Tabs defaultValue="settings" className="w-full">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
             <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
+            <TabsTrigger value="preferences">
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Preferences
+            </TabsTrigger>
             <TabsTrigger value="activity">My Activity</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>

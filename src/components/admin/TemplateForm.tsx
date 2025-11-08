@@ -76,11 +76,6 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!orgId) {
-      toast.error("Organization required");
-      return;
-    }
-
     let finalSchema = schema;
     
     // If in JSON mode, parse the JSON
@@ -141,7 +136,7 @@ export function TemplateForm({ template, orgId, onSuccess, onCancel }: TemplateF
             id="category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="e.g. AT&T"
+            placeholder="What kind of form? (e.g. Quality Control, Training)"
           />
         </div>
 

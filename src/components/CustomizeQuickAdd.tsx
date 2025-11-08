@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
+import { usePremiumAccess } from "@/hooks/use-premium-access";
 import { FeatureModule } from "@/hooks/use-features";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -45,9 +46,35 @@ export function CustomizeQuickAdd() {
   const { data: preferences, isLoading } = useUserPreferences(user?.id || null);
   const updatePreferences = useUpdateUserPreferences();
   const { toast } = useToast();
+  const { hasPremiumAccess } = usePremiumAccess();
 
   const [quickAddEnabled, setQuickAddEnabled] = useState(true);
   const [selectedItems, setSelectedItems] = useState<FeatureModule[]>([]);
+  const [userFeatureModules, setUserFeatureModules] = useState<FeatureModule[]>([]);
+
+  // Get user's enabled features (from org or localStorage)
+  useEffect(() => {
+    if (!user) return;
+
+    // If user has org features, use those
+    if (features && features.length > 0) {
+      const enabledFeatures = features
+        .filter(f => f.enabled)
+        .map(f => f.module as FeatureModule);
+      setUserFeatureModules(enabledFeatures);
+    } else {
+      // Free tier user - check localStorage
+      const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
+      if (userFeaturesJson) {
+        try {
+          const userFeatures: string[] = JSON.parse(userFeaturesJson);
+          setUserFeatureModules(userFeatures as FeatureModule[]);
+        } catch (e) {
+          console.error("Error parsing user features:", e);
+        }
+      }
+    }
+  }, [user, features]);
 
   // Initialize state from preferences
   useEffect(() => {
@@ -55,20 +82,32 @@ export function CustomizeQuickAdd() {
       setQuickAddEnabled(preferences.quick_add_enabled);
       setSelectedItems(preferences.quick_add_items || []);
     } else {
-      // Default: all enabled features
-      const enabledFeatures = features
-        .filter(f => f.enabled)
-        .map(f => f.module as FeatureModule);
-      setSelectedItems(enabledFeatures);
+      // Default: all enabled features (up to 2 for free tier)
+      const defaultItems = hasPremiumAccess()
+        ? userFeatureModules
+        : userFeatureModules.slice(0, 2);
+      setSelectedItems(defaultItems);
     }
-  }, [preferences, features]);
+  }, [preferences, userFeatureModules, hasPremiumAccess]);
 
   const handleToggleItem = (feature: FeatureModule) => {
-    setSelectedItems(prev =>
-      prev.includes(feature)
-        ? prev.filter(f => f !== feature)
-        : [...prev, feature]
-    );
+    setSelectedItems(prev => {
+      if (prev.includes(feature)) {
+        // Removing item
+        return prev.filter(f => f !== feature);
+      } else {
+        // Adding item - check free tier limit
+        if (!hasPremiumAccess() && prev.length >= 2) {
+          toast({
+            title: "Free Tier Limit",
+            description: "Free accounts can only have 2 Quick Add items. Upgrade for unlimited access!",
+            variant: "default",
+          });
+          return prev;
+        }
+        return [...prev, feature];
+      }
+    });
   };
 
   const handleSave = async () => {
@@ -94,11 +133,11 @@ export function CustomizeQuickAdd() {
     }
   };
 
-  const enabledFeatures = features.filter(f => f.enabled);
-
   if (isLoading) {
     return <div>Loading preferences...</div>;
   }
+
+  const isPremium = hasPremiumAccess();
 
   return (
     <Card>
@@ -106,6 +145,11 @@ export function CustomizeQuickAdd() {
         <CardTitle>Customize Quick Add Button</CardTitle>
         <CardDescription>
           Control which items appear in the Quick Add floating button
+          {!isPremium && (
+            <span className="text-orange-600 dark:text-orange-400 block mt-1">
+              (Free tier: Maximum 2 items)
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -134,34 +178,43 @@ export function CustomizeQuickAdd() {
               Choose which features appear in the Quick Add menu
             </p>
 
-            <div className="space-y-2">
-              {enabledFeatures.map(feature => {
-                const featureModule = feature.module as FeatureModule;
-                const config = getFeatureConfig(featureModule);
-                const Icon = FEATURE_ICONS[featureModule] || Plus;
-                const label = config?.display_name || feature.module;
+            {userFeatureModules.length === 0 ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No features available</AlertTitle>
+                <AlertDescription>
+                  You haven't selected any features yet. Go to Profile → Preferences to select which pages you want to use.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-2">
+                {userFeatureModules.map(featureModule => {
+                  const config = getFeatureConfig(featureModule);
+                  const Icon = FEATURE_ICONS[featureModule] || Plus;
+                  const label = config?.display_name || featureModule.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-                return (
-                  <div
-                    key={feature.id}
-                    className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-                  >
-                    <Switch
-                      id={`feature-${feature.id}`}
-                      checked={selectedItems.includes(featureModule)}
-                      onCheckedChange={() => handleToggleItem(featureModule)}
-                    />
-                    <Label
-                      htmlFor={`feature-${feature.id}`}
-                      className="flex items-center gap-2 cursor-pointer flex-1"
+                  return (
+                    <div
+                      key={featureModule}
+                      className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent transition-colors"
                     >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </Label>
-                  </div>
-                );
-              })}
-            </div>
+                      <Switch
+                        id={`feature-${featureModule}`}
+                        checked={selectedItems.includes(featureModule)}
+                        onCheckedChange={() => handleToggleItem(featureModule)}
+                      />
+                      <Label
+                        htmlFor={`feature-${featureModule}`}
+                        className="flex items-center gap-2 cursor-pointer flex-1"
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {selectedItems.length === 0 && quickAddEnabled && (
               <p className="text-sm text-orange-600 dark:text-orange-400">

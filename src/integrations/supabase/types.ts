@@ -117,7 +117,7 @@ export type Database = {
           event_date: string
           event_time: string | null
           id: string
-          organization_id: string
+          organization_id: string | null
           title: string
           updated_at: string | null
         }
@@ -129,7 +129,7 @@ export type Database = {
           event_date: string
           event_time?: string | null
           id?: string
-          organization_id: string
+          organization_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -141,7 +141,7 @@ export type Database = {
           event_date?: string
           event_time?: string | null
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -311,7 +311,7 @@ export type Database = {
           id: string
           job_id: string | null
           metadata: Json | null
-          org_id: string
+          org_id: string | null
           signature: Json | null
           status: string | null
           submitted_at: string | null
@@ -326,7 +326,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           metadata?: Json | null
-          org_id: string
+          org_id?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -341,7 +341,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           metadata?: Json | null
-          org_id?: string
+          org_id?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -896,7 +896,7 @@ export type Database = {
           job_id: string | null
           linked_invoice_id: string | null
           notes: string | null
-          organization_id: string
+          organization_id: string | null
           package: string | null
           photos: string[] | null
           scheduled_date: string | null
@@ -925,7 +925,7 @@ export type Database = {
           job_id?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string | null
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null
@@ -954,7 +954,7 @@ export type Database = {
           job_id?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
-          organization_id?: string
+          organization_id?: string | null
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null

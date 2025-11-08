@@ -90,6 +90,15 @@ export function OnboardingWizard() {
             JSON.stringify(onboardingData.selectedFeatures)
           );
         }
+      } else {
+        // Also set localStorage on success for sync
+        localStorage.setItem(`onboarding_completed_${user.id}`, "true");
+        if (onboardingData.selectedFeatures.length > 0) {
+          localStorage.setItem(
+            `user_features_${user.id}`,
+            JSON.stringify(onboardingData.selectedFeatures)
+          );
+        }
       }
 
       // Get user's profile to check approval status

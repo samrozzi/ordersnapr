@@ -33,19 +33,17 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
         return;
       }
 
-      // Check if user is approved
+      // Check if user is approved and onboarding status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, onboarding_completed")
         .eq("id", session.user.id)
         .single();
 
       if (!isMounted) return;
 
       const isApproved = profile?.approval_status === "approved";
-
-      // Check if user has completed onboarding
-      const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
+      const onboardingComplete = profile?.onboarding_completed === true;
 
       // Protect onboarding route - only for new users who haven't completed it
       if (location.pathname === "/onboarding") {

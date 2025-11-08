@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       // Check if user is approved or is an admin
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, onboarding_completed, organization_id")
         .eq("id", session.user.id)
         .single();
 
@@ -40,22 +40,30 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
       const isAdmin = !!roles;
       const isApproved = profile?.approval_status === "approved";
+      const onboardingComplete = profile?.onboarding_completed === true;
+      const hasOrg = !!profile?.organization_id;
 
-      // Check if user has completed onboarding
-      const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
-
-      // If not approved and not admin, check if they've completed onboarding
+      // If not approved and not admin, route based on onboarding and org status
       if (!isApproved && !isAdmin) {
-        // If they haven't completed onboarding, send to onboarding or pending
         if (!onboardingComplete) {
+          // New user needs to complete onboarding first
+          navigate("/onboarding");
+          setLoading(false);
+          return;
+        } else if (hasOrg) {
+          // Org user who completed onboarding but isn't approved yet
           navigate("/pending-approval");
           setLoading(false);
           return;
+        } else {
+          // Free tier user who completed onboarding - allow access to free workspace
+          navigate("/free-workspace");
+          setLoading(false);
+          return;
         }
-        // If they have completed onboarding, allow access with free tier limits
-        // They'll be able to use the app with restrictions
       }
 
+      // Approved or admin users can access protected routes
       setApproved(true);
       setLoading(false);
     };

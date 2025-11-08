@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
+import { useWorkOrderDialog } from "@/contexts/WorkOrderDialogContext";
 import {
   CommandDialog,
   CommandEmpty,
@@ -28,6 +29,7 @@ interface SearchResult {
   type: "work_order" | "property" | "form" | "calendar_event" | "customer";
   icon: typeof FileText;
   path: string;
+  itemId?: string; // The actual item ID for opening dialogs/sheets
 }
 
 export function GlobalSearch() {
@@ -38,6 +40,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { getFeatureConfig } = useFeatureContext();
+  const { openWorkOrderDialog } = useWorkOrderDialog();
 
   // Get custom display names from org feature configs
   const workOrdersConfig = getFeatureConfig('work_orders');
@@ -97,6 +100,7 @@ export function GlobalSearch() {
                 type: "work_order",
                 icon: Briefcase,
                 path: `/work-orders`,
+                itemId: wo.id, // For opening the dialog
               });
             });
           }
@@ -122,7 +126,8 @@ export function GlobalSearch() {
                 subtitle: prop.address || undefined,
                 type: "property",
                 icon: Home,
-                path: `/property-info`,
+                path: `/property-info?property=${prop.id}`,
+                itemId: prop.id,
               });
             });
           }
@@ -148,7 +153,8 @@ export function GlobalSearch() {
                 subtitle: undefined,
                 type: "form",
                 icon: FileText,
-                path: `/forms`,
+                path: `/forms?template=${form.id}`,
+                itemId: form.id,
               });
             });
           }
@@ -174,7 +180,8 @@ export function GlobalSearch() {
                 subtitle: event.event_date ? new Date(event.event_date).toLocaleDateString() : undefined,
                 type: "calendar_event",
                 icon: Calendar,
-                path: `/calendar`,
+                path: `/calendar?event=${event.id}`,
+                itemId: event.id,
               });
             });
           }
@@ -219,7 +226,23 @@ export function GlobalSearch() {
     return () => clearTimeout(debounce);
   }, [search]);
 
-  const handleSelect = (path: string) => {
+  const handleSelect = (result: SearchResult) => {
+    setOpen(false);
+    setSearch("");
+
+    // Navigate to the page
+    navigate(result.path);
+
+    // For work orders, open the dialog
+    if (result.type === "work_order" && result.itemId) {
+      // Small delay to ensure navigation completes first
+      setTimeout(() => {
+        openWorkOrderDialog(result.itemId!);
+      }, 100);
+    }
+  };
+
+  const handleQuickAction = (path: string) => {
     setOpen(false);
     setSearch("");
     navigate(path);
@@ -265,7 +288,7 @@ export function GlobalSearch() {
                 return (
                   <CommandItem
                     key={action.path}
-                    onSelect={() => handleSelect(action.path)}
+                    onSelect={() => handleQuickAction(action.path)}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     {action.label}
@@ -287,7 +310,7 @@ export function GlobalSearch() {
                       return (
                         <CommandItem
                           key={result.id}
-                          onSelect={() => handleSelect(result.path)}
+                          onSelect={() => handleSelect(result)}
                         >
                           <Icon className="mr-2 h-4 w-4" />
                           <div className="flex flex-col">
@@ -313,7 +336,7 @@ export function GlobalSearch() {
                       return (
                         <CommandItem
                           key={result.id}
-                          onSelect={() => handleSelect(result.path)}
+                          onSelect={() => handleSelect(result)}
                         >
                           <Icon className="mr-2 h-4 w-4" />
                           <div className="flex flex-col">
@@ -339,7 +362,7 @@ export function GlobalSearch() {
                       return (
                         <CommandItem
                           key={result.id}
-                          onSelect={() => handleSelect(result.path)}
+                          onSelect={() => handleSelect(result)}
                         >
                           <Icon className="mr-2 h-4 w-4" />
                           <div className="flex flex-col">
@@ -365,7 +388,7 @@ export function GlobalSearch() {
                       return (
                         <CommandItem
                           key={result.id}
-                          onSelect={() => handleSelect(result.path)}
+                          onSelect={() => handleSelect(result)}
                         >
                           <Icon className="mr-2 h-4 w-4" />
                           <div className="flex flex-col">
@@ -391,7 +414,7 @@ export function GlobalSearch() {
                       return (
                         <CommandItem
                           key={result.id}
-                          onSelect={() => handleSelect(result.path)}
+                          onSelect={() => handleSelect(result)}
                         >
                           <Icon className="mr-2 h-4 w-4" />
                           <div className="flex flex-col">

@@ -71,43 +71,14 @@ export function GlobalSearch() {
       const searchResults: SearchResult[] = [];
 
       try {
-        // Get user's org_id
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) {
-          console.error("No user found");
-          setLoading(false);
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("organization_id")
-          .eq("id", currentUser.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          setLoading(false);
-          return;
-        }
-
-        if (!profile?.organization_id) {
-          console.error("No organization_id found for user");
-          setLoading(false);
-          return;
-        }
-
-        console.log("✅ Found org_id:", profile.organization_id);
-
         const searchTerm = `%${search}%`;
 
-        // Search work orders
+        // Search work orders (RLS will filter by org automatically)
         console.log("🔍 Searching work orders...");
         const { data: workOrders, error: woError } = await supabase
           .from("work_orders")
-          .select("id, title, status, job_number, customer_name, organization_id")
-          .eq("organization_id", profile.organization_id)
-          .or(`title.ilike.${searchTerm},job_number.ilike.${searchTerm},description.ilike.${searchTerm},customer_name.ilike.${searchTerm}`)
+          .select("id, customer_name, job_id, status, notes")
+          .or(`customer_name.ilike.${searchTerm},job_id.ilike.${searchTerm},notes.ilike.${searchTerm}`)
           .limit(5);
 
         if (woError) {
@@ -118,8 +89,8 @@ export function GlobalSearch() {
             workOrders.forEach((wo: any) => {
               searchResults.push({
                 id: wo.id,
-                title: wo.title || wo.customer_name || `Job #${wo.job_number}`,
-                subtitle: wo.customer_name ? `${wo.customer_name} - ${wo.status}` : `Status: ${wo.status}`,
+                title: wo.customer_name || `Job ${wo.job_id || wo.id.substring(0, 8)}`,
+                subtitle: `Status: ${wo.status}`,
                 type: "work_order",
                 icon: Briefcase,
                 path: `/work-orders`,
@@ -128,12 +99,11 @@ export function GlobalSearch() {
           }
         }
 
-        // Search properties
+        // Search properties (RLS will filter by org automatically)
         console.log("🔍 Searching properties...");
         const { data: properties, error: propError } = await supabase
           .from("properties")
-          .select("id, property_name, address, organization_id")
-          .eq("organization_id", profile.organization_id)
+          .select("id, property_name, address")
           .or(`property_name.ilike.${searchTerm},address.ilike.${searchTerm}`)
           .limit(5);
 
@@ -142,7 +112,7 @@ export function GlobalSearch() {
         } else {
           console.log("✅ Found properties:", properties?.length || 0);
           if (properties) {
-            properties.forEach((prop) => {
+            properties.forEach((prop: any) => {
               searchResults.push({
                 id: prop.id,
                 title: prop.property_name || "Unnamed Property",
@@ -155,12 +125,11 @@ export function GlobalSearch() {
           }
         }
 
-        // Search form templates (can be org-scoped or global)
+        // Search form templates (RLS will filter by org automatically)
         console.log("🔍 Searching forms...");
         const { data: forms, error: formError } = await supabase
           .from("form_templates")
-          .select("id, name, description, organization_id")
-          .or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
+          .select("id, name")
           .ilike("name", searchTerm)
           .limit(5);
 
@@ -169,11 +138,11 @@ export function GlobalSearch() {
         } else {
           console.log("✅ Found forms:", forms?.length || 0);
           if (forms) {
-            forms.forEach((form) => {
+            forms.forEach((form: any) => {
               searchResults.push({
                 id: form.id,
                 title: form.name,
-                subtitle: form.description || undefined,
+                subtitle: undefined,
                 type: "form",
                 icon: FileText,
                 path: `/forms`,
@@ -182,12 +151,11 @@ export function GlobalSearch() {
           }
         }
 
-        // Search calendar events
+        // Search calendar events (RLS will filter by org automatically)
         console.log("🔍 Searching calendar events...");
         const { data: events, error: eventError } = await supabase
           .from("calendar_events")
-          .select("id, title, event_type, start_time, organization_id")
-          .eq("organization_id", profile.organization_id)
+          .select("id, title, event_date")
           .ilike("title", searchTerm)
           .limit(5);
 
@@ -196,11 +164,11 @@ export function GlobalSearch() {
         } else {
           console.log("✅ Found events:", events?.length || 0);
           if (events) {
-            events.forEach((event) => {
+            events.forEach((event: any) => {
               searchResults.push({
                 id: event.id,
                 title: event.title,
-                subtitle: `${event.event_type} - ${new Date(event.start_time).toLocaleDateString()}`,
+                subtitle: event.event_date ? new Date(event.event_date).toLocaleDateString() : undefined,
                 type: "calendar_event",
                 icon: Calendar,
                 path: `/calendar`,
@@ -209,12 +177,11 @@ export function GlobalSearch() {
           }
         }
 
-        // Search profiles (users in same org)
+        // Search profiles (RLS will filter by org automatically)
         console.log("🔍 Searching profiles...");
         const { data: customers, error: customerError } = await supabase
           .from("profiles")
-          .select("id, full_name, email, organization_id")
-          .eq("organization_id", profile.organization_id)
+          .select("id, full_name, email")
           .or(`full_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
           .limit(5);
 
@@ -223,7 +190,7 @@ export function GlobalSearch() {
         } else {
           console.log("✅ Found profiles:", customers?.length || 0);
           if (customers) {
-            customers.forEach((customer) => {
+            customers.forEach((customer: any) => {
               searchResults.push({
                 id: customer.id,
                 title: customer.full_name || customer.email || "Unknown User",

@@ -20,26 +20,33 @@ export const useFormTemplates = (orgId: string | null) => {
   return useQuery({
     queryKey: ["form-templates", orgId],
     queryFn: async () => {
-      if (!orgId) return [];
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
       // Fetch templates based on scope:
       // - Global templates (scope = 'global')
-      // - Organization templates in user's org (scope = 'organization' AND org_id matches)
+      // - Organization templates in user's org (scope = 'organization' AND org_id matches) if orgId exists
       // - Personal templates created by user (scope = 'user' AND created_by matches)
+      
+      let orConditions: string;
+      if (orgId) {
+        // Org user: global + org templates + personal templates
+        orConditions = `scope.eq.global,and(scope.eq.organization,org_id.eq.${orgId}),and(scope.eq.user,created_by.eq.${user.id})`;
+      } else {
+        // Free tier user: global + personal templates only
+        orConditions = `scope.eq.global,and(scope.eq.user,created_by.eq.${user.id},org_id.is.null)`;
+      }
+      
       const { data, error } = await supabase
         .from("form_templates")
         .select("*")
         .eq("is_active", true)
-        .or(`scope.eq.global,and(scope.eq.organization,org_id.eq.${orgId}),and(scope.eq.user,created_by.eq.${user.id})`)
+        .or(orConditions)
         .order("name");
 
       if (error) throw error;
       return data as FormTemplate[];
     },
-    enabled: !!orgId,
   });
 };
 

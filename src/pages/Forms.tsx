@@ -66,7 +66,7 @@ export default function Forms() {
         setUserId(user.id);
         const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin, is_super_admin").eq("id", user.id).single();
         if (profile) {
-          setOrgId(profile.organization_id);
+          setOrgId(profile.organization_id || null);
           setIsOrgAdmin(profile.is_org_admin || false);
           setIsSuperAdmin(profile.is_super_admin || false);
         }
@@ -75,6 +75,7 @@ export default function Forms() {
     fetchUser();
   }, []);
 
+  // Pass orgId even if null (for free users) - the hooks will handle it
   const { data: templates = [] } = useFormTemplates(orgId);
   const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : activeTab === "logged" ? { status: "logged" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { PricingModal } from "@/components/PricingModal";
 import {
   Sparkles,
   Lock,
@@ -16,7 +17,8 @@ import {
   Shield,
   Users,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  LayoutDashboard
 } from "lucide-react";
 
 export default function FreeTierWorkspace() {
@@ -26,6 +28,7 @@ export default function FreeTierWorkspace() {
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasOrg, setHasOrg] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -113,6 +116,20 @@ export default function FreeTierWorkspace() {
           </p>
         </div>
 
+        {/* "Go to Dashboard" Button for Free Users */}
+        {!hasOrg && (
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => navigate("/dashboard")} 
+              size="lg" 
+              className="w-full md:w-auto"
+            >
+              <LayoutDashboard className="mr-2 h-5 w-5" />
+              Go to Dashboard
+            </Button>
+          </div>
+        )}
+
         {/* Status Alert */}
         {hasOrg ? (
           <Alert className="border-primary/50 bg-primary/5">
@@ -129,10 +146,10 @@ export default function FreeTierWorkspace() {
           <Alert className="border-primary/50 bg-primary/5">
             <Sparkles className="h-4 w-4 text-primary" />
             <AlertDescription className="text-base">
-              <strong>Free Tier Active:</strong> No approval needed.
+              <strong>Free Tier Active:</strong> Click "Go to Dashboard" above to start using OrderSnapr with limited features.
               <br />
               <span className="text-sm text-muted-foreground">
-                You can use all free features below. Upgrade anytime to unlock more.
+                Upgrade anytime to unlock unlimited access.
               </span>
             </AlertDescription>
           </Alert>
@@ -253,10 +270,7 @@ export default function FreeTierWorkspace() {
 
             <div className="pt-4 space-y-3">
               <Button 
-                onClick={() => {
-                  const pricingCard = document.querySelector('[data-pricing]');
-                  pricingCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }} 
+                onClick={() => setPricingModalOpen(true)} 
                 size="lg" 
                 className="w-full"
               >
@@ -304,6 +318,9 @@ export default function FreeTierWorkspace() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal open={pricingModalOpen} onClose={() => setPricingModalOpen(false)} />
     </div>
   );
 }

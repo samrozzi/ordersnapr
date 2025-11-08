@@ -35,7 +35,8 @@ export const useFormSubmissions = (orgId: string | null, filter?: {
   return useQuery({
     queryKey: ["form-submissions", orgId, filter],
     queryFn: async () => {
-      if (!orgId) return [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       
       let query = supabase
         .from("form_submissions")
@@ -43,8 +44,15 @@ export const useFormSubmissions = (orgId: string | null, filter?: {
           *,
           form_templates (name, schema)
         `)
-        .eq("org_id", orgId)
         .order("created_at", { ascending: false });
+
+      // Handle org vs free tier users
+      if (orgId) {
+        query = query.eq("org_id", orgId);
+      } else {
+        // Free tier user - get their personal submissions
+        query = query.eq("created_by", user.id).is("org_id", null);
+      }
 
       if (filter?.status) {
         query = query.eq("status", filter.status);
@@ -76,7 +84,6 @@ export const useFormSubmissions = (orgId: string | null, filter?: {
       
       return data as FormSubmission[];
     },
-    enabled: !!orgId,
   });
 };
 

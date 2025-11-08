@@ -1,19 +1,23 @@
-# Manual Migration Application
+# ⚠️ DATABASE MIGRATION REQUIRED
 
-## Quick Add Customization Feature
+## You're Getting This Error?
+```
+Error: Could not find the table 'public.user_preferences' in the schema cache
+```
 
-The Quick Add customization feature requires a new database table. This migration will be **automatically applied** when you deploy to Lovable.
+**This is expected!** The table doesn't exist yet. Here's how to fix it:
 
-However, if you want to test it **immediately** without deploying:
+---
 
-### Option 1: Wait for Deployment (Recommended)
-- Merge the PR to main
-- Lovable will automatically apply the migration
-- Feature will work immediately after deploy
+## 🚀 FASTEST FIX (Do This Now)
 
-### Option 2: Manual Application (For Immediate Testing)
+1. Open your **Supabase Dashboard**
+2. Go to **SQL Editor**
+3. Copy and paste the SQL below
+4. Click **Run**
+5. ✅ Error will disappear immediately!
 
-Go to your Supabase Dashboard → SQL Editor and run this:
+### The SQL to Run:
 
 ```sql
 -- Create user_preferences table for storing Quick Add customization and other user settings

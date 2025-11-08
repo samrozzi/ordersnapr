@@ -30,6 +30,7 @@ const PropertyInfo = lazy(() => import("./pages/PropertyInfo"));
 const Forms = lazy(() => import("./pages/Forms"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const HealthData = lazy(() => import("./pages/HealthData"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 // Optimized React Query configuration
 const queryClient = new QueryClient({
@@ -58,7 +59,8 @@ const AppContent = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
-              
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />

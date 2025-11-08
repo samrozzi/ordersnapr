@@ -181,14 +181,10 @@ export function UnifiedPreferences() {
       localStorage.setItem(`user_features_${user.id}`, JSON.stringify(enabledFeatures));
       toast({
         title: "Sidebar Preferences Saved",
-        description: "Your sidebar has been updated. Refresh the page to see changes.",
+        description: "Please refresh the page or navigate to another page to see your changes.",
+        duration: 5000,
       });
       setSidebarHasChanges(false);
-
-      // Trigger a page reload to refresh sidebar
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     }
   };
 

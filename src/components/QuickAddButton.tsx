@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFeatureContext } from "@/contexts/FeatureContext";
-import { useAuth } from "@/hooks/use-auth";
-import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { FeatureModule } from "@/hooks/use-features";
 import {
   DropdownMenu,
@@ -21,7 +19,6 @@ import {
   Calendar,
   Users,
   Package,
-  FileSignature,
   DollarSign,
   FolderOpen,
   ShoppingCart,
@@ -35,7 +32,6 @@ interface QuickAction {
   feature: FeatureModule;
 }
 
-// Feature configuration mapping
 const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; defaultLabel: string }> = {
   work_orders: { icon: Briefcase, path: "/work-orders", defaultLabel: "Work Order" },
   properties: { icon: Home, path: "/property-info", defaultLabel: "Property" },
@@ -53,17 +49,9 @@ const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; d
 export function QuickAddButton() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { features, hasFeature, getFeatureConfig } = useFeatureContext();
-  const { data: preferences } = useUserPreferences(user?.id || null);
+  const { features, getFeatureConfig } = useFeatureContext();
 
-  // Check if Quick Add is disabled by user
-  if (preferences?.quick_add_enabled === false) {
-    return null;
-  }
-
-  // Build actions from all enabled features
-  let actions: QuickAction[] = features
+  const actions: QuickAction[] = features
     .filter(feature => feature.enabled && FEATURE_CONFIG[feature.module as FeatureModule])
     .map(feature => {
       const featureModule = feature.module as FeatureModule;
@@ -78,20 +66,13 @@ export function QuickAddButton() {
       };
     });
 
-  // Filter based on user preferences if they've customized it
-  if (preferences?.quick_add_items && preferences.quick_add_items.length > 0) {
-    actions = actions.filter(action =>
-      preferences.quick_add_items.includes(action.feature)
-    );
-  }
-
   const handleSelect = (path: string) => {
     setOpen(false);
     navigate(path);
   };
 
   if (actions.length === 0) {
-    return null; // Don't show button if no features enabled
+    return null;
   }
 
   return (

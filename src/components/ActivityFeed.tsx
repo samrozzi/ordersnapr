@@ -105,30 +105,22 @@ export function ActivityFeed({ limit = 10 }: { limit?: number }) {
           id,
           status,
           created_at,
-          form_templates(name),
-          creator:profiles!form_submissions_user_id_fkey(full_name, email)
+          created_by,
+          form_templates(name)
         `)
-        .eq("organization_id", profile.organization_id)
+        .eq("org_id", profile.organization_id)
         .order("created_at", { ascending: false })
         .limit(limit);
 
       if (formSubmissions) {
         formSubmissions.forEach((fs: any) => {
-          const name = fs.creator?.full_name || fs.creator?.email || "Unknown";
-          const initials = name
-            .split(" ")
-            .map((n: string) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
-
           activities.push({
             id: `fs-${fs.id}`,
             type: "form_submission",
             action: "submitted",
             title: fs.form_templates?.name || "Form",
-            user_name: name,
-            user_initials: initials,
+            user_name: "User",
+            user_initials: "U",
             created_at: fs.created_at,
             entity_id: fs.id,
           });
@@ -141,9 +133,8 @@ export function ActivityFeed({ limit = 10 }: { limit?: number }) {
         .select(`
           id,
           title,
-          event_type,
           created_at,
-          creator:profiles!calendar_events_user_id_fkey(full_name, email)
+          created_by
         `)
         .eq("organization_id", profile.organization_id)
         .order("created_at", { ascending: false })
@@ -151,21 +142,13 @@ export function ActivityFeed({ limit = 10 }: { limit?: number }) {
 
       if (events) {
         events.forEach((event: any) => {
-          const name = event.creator?.full_name || event.creator?.email || "Unknown";
-          const initials = name
-            .split(" ")
-            .map((n: string) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
-
           activities.push({
             id: `event-${event.id}`,
             type: "calendar_event",
             action: "created",
             title: event.title || "Event",
-            user_name: name,
-            user_initials: initials,
+            user_name: "User",
+            user_initials: "U",
             created_at: event.created_at,
             entity_id: event.id,
           });

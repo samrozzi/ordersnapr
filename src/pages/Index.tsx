@@ -11,6 +11,7 @@ import WorkOrders from "./WorkOrders";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Index = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+  const { orgLogoUrl } = useActiveOrg();
   
   // Enforce 6-hour session timeout
   useSessionTimeout(session);

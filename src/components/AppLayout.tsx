@@ -2,8 +2,8 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useActiveOrg } from "@/hooks/use-active-org";
+//
 import ordersnaprMobileLight from "@/assets/ordersnapr-mobile-light.png";
 import ordersnaprMobileDark from "@/assets/ordersnapr-mobile-dark.png";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
@@ -12,35 +12,9 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { QuickAddButton } from "@/components/QuickAddButton";
 
 export function AppLayout() {
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
   const { theme } = useTheme();
+  const { orgLogoUrl } = useActiveOrg();
 
-  useEffect(() => {
-    const fetchOrgLogo = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
-        
-      if (profile?.organization_id) {
-        const { data: orgSettings } = await supabase
-          .from("organization_settings")
-          .select("logo_url")
-          .eq("organization_id", profile.organization_id)
-          .single();
-          
-        if (orgSettings?.logo_url) {
-          setOrgLogoUrl(orgSettings.logo_url);
-        }
-      }
-    };
-    
-    fetchOrgLogo();
-  }, []);
 
   return (
     <SidebarProvider defaultOpen>

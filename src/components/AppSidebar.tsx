@@ -37,6 +37,7 @@ import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
 import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
 import { OrgSwitcher } from "./OrgSwitcher";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 const iconMap: Record<string, React.ElementType> = {
   clipboard: ClipboardList,
@@ -57,8 +58,8 @@ export function AppSidebar() {
   const { hasFeature } = useFeatureContext();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
-  const [orgName, setOrgName] = useState<string>("");
+  const { activeOrg, orgLogoUrl } = useActiveOrg();
+  const orgName = activeOrg?.name || "";
 
   useEffect(() => {
     fetchUserData();
@@ -78,33 +79,8 @@ export function AppSidebar() {
       setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
       setIsOrgAdmin(!!rolesData?.some(r => r.role === "org_admin"));
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
+      // Organization context (logo and name) now provided by useActiveOrg hook; no manual fetch needed.
 
-      if (profileData?.organization_id) {
-        const { data: orgSettings } = await supabase
-          .from("organization_settings")
-          .select("logo_url")
-          .eq("organization_id", profileData.organization_id)
-          .maybeSingle();
-
-        if (orgSettings?.logo_url) {
-          setOrgLogoUrl(orgSettings.logo_url);
-        }
-
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("name")
-          .eq("id", profileData.organization_id)
-          .maybeSingle();
-
-        if (orgData?.name) {
-          setOrgName(orgData.name);
-        }
-      }
     } catch (error) {
       console.error("Error fetching user data:", error);
     }

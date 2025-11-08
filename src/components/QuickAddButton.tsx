@@ -62,11 +62,30 @@ export function QuickAddButton() {
     return null;
   }
 
-  // Build actions from all enabled features
-  let actions: QuickAction[] = features
-    .filter(feature => feature.enabled && FEATURE_CONFIG[feature.module as FeatureModule])
-    .map(feature => {
-      const featureModule = feature.module as FeatureModule;
+  // Get user's enabled features (from org or localStorage for free tier)
+  let userFeatureModules: FeatureModule[] = [];
+
+  if (features && features.length > 0) {
+    // Org user - use features from database
+    userFeatureModules = features
+      .filter(f => f.enabled)
+      .map(f => f.module as FeatureModule);
+  } else if (user) {
+    // Free tier user - check localStorage
+    const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
+    if (userFeaturesJson) {
+      try {
+        userFeatureModules = JSON.parse(userFeaturesJson) as FeatureModule[];
+      } catch (e) {
+        console.error("Error parsing user features:", e);
+      }
+    }
+  }
+
+  // Build actions from enabled features
+  let actions: QuickAction[] = userFeatureModules
+    .filter(featureModule => FEATURE_CONFIG[featureModule])
+    .map(featureModule => {
       const config = FEATURE_CONFIG[featureModule];
       const orgConfig = getFeatureConfig(featureModule);
 

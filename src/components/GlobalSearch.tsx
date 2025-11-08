@@ -10,7 +10,6 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
 import {
   FileText,
@@ -20,9 +19,7 @@ import {
   Users,
   Search,
   Plus,
-  Star,
 } from "lucide-react";
-import { useFavorites } from "@/hooks/use-favorites";
 
 interface SearchResult {
   id: string;
@@ -40,7 +37,6 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { favorites } = useFavorites("work_order", "");
   const { getFeatureConfig } = useFeatureContext();
 
   // Get custom display names from org feature configs
@@ -70,6 +66,7 @@ export function GlobalSearch() {
     }
 
     const performSearch = async () => {
+      console.log("🔍 Starting search for:", search);
       setLoading(true);
       const searchResults: SearchResult[] = [];
 
@@ -77,131 +74,172 @@ export function GlobalSearch() {
         // Get user's org_id
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (!currentUser) {
+          console.error("No user found");
           setLoading(false);
           return;
         }
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("organization_id")
           .eq("id", currentUser.id)
           .single();
 
-        if (!profile?.organization_id) {
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
           setLoading(false);
           return;
         }
 
+        if (!profile?.organization_id) {
+          console.error("No organization_id found for user");
+          setLoading(false);
+          return;
+        }
+
+        console.log("✅ Found org_id:", profile.organization_id);
+
         const searchTerm = `%${search}%`;
 
         // Search work orders
-        const { data: workOrders } = await supabase
+        console.log("🔍 Searching work orders...");
+        const { data: workOrders, error: woError } = await supabase
           .from("work_orders")
           .select("id, title, status, job_number, customer_name, organization_id")
           .eq("organization_id", profile.organization_id)
           .or(`title.ilike.${searchTerm},job_number.ilike.${searchTerm},description.ilike.${searchTerm},customer_name.ilike.${searchTerm}`)
           .limit(5);
 
-        if (workOrders) {
-          workOrders.forEach((wo: any) => {
-            searchResults.push({
-              id: wo.id,
-              title: wo.title || wo.customer_name || `Job #${wo.job_number}`,
-              subtitle: wo.customer_name ? `${wo.customer_name} - ${wo.status}` : `Status: ${wo.status}`,
-              type: "work_order",
-              icon: Briefcase,
-              path: `/work-orders`,
+        if (woError) {
+          console.error("Work orders search error:", woError);
+        } else {
+          console.log("✅ Found work orders:", workOrders?.length || 0);
+          if (workOrders) {
+            workOrders.forEach((wo: any) => {
+              searchResults.push({
+                id: wo.id,
+                title: wo.title || wo.customer_name || `Job #${wo.job_number}`,
+                subtitle: wo.customer_name ? `${wo.customer_name} - ${wo.status}` : `Status: ${wo.status}`,
+                type: "work_order",
+                icon: Briefcase,
+                path: `/work-orders`,
+              });
             });
-          });
+          }
         }
 
         // Search properties
-        const { data: properties } = await supabase
+        console.log("🔍 Searching properties...");
+        const { data: properties, error: propError } = await supabase
           .from("properties")
           .select("id, property_name, address, organization_id")
           .eq("organization_id", profile.organization_id)
           .or(`property_name.ilike.${searchTerm},address.ilike.${searchTerm}`)
           .limit(5);
 
-        if (properties) {
-          properties.forEach((prop) => {
-            searchResults.push({
-              id: prop.id,
-              title: prop.property_name || "Unnamed Property",
-              subtitle: prop.address || undefined,
-              type: "property",
-              icon: Home,
-              path: `/property-info`,
+        if (propError) {
+          console.error("Properties search error:", propError);
+        } else {
+          console.log("✅ Found properties:", properties?.length || 0);
+          if (properties) {
+            properties.forEach((prop) => {
+              searchResults.push({
+                id: prop.id,
+                title: prop.property_name || "Unnamed Property",
+                subtitle: prop.address || undefined,
+                type: "property",
+                icon: Home,
+                path: `/property-info`,
+              });
             });
-          });
+          }
         }
 
         // Search form templates (can be org-scoped or global)
-        const { data: forms } = await supabase
+        console.log("🔍 Searching forms...");
+        const { data: forms, error: formError } = await supabase
           .from("form_templates")
           .select("id, name, description, organization_id")
           .or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
           .ilike("name", searchTerm)
           .limit(5);
 
-        if (forms) {
-          forms.forEach((form) => {
-            searchResults.push({
-              id: form.id,
-              title: form.name,
-              subtitle: form.description || undefined,
-              type: "form",
-              icon: FileText,
-              path: `/forms`,
+        if (formError) {
+          console.error("Forms search error:", formError);
+        } else {
+          console.log("✅ Found forms:", forms?.length || 0);
+          if (forms) {
+            forms.forEach((form) => {
+              searchResults.push({
+                id: form.id,
+                title: form.name,
+                subtitle: form.description || undefined,
+                type: "form",
+                icon: FileText,
+                path: `/forms`,
+              });
             });
-          });
+          }
         }
 
         // Search calendar events
-        const { data: events } = await supabase
+        console.log("🔍 Searching calendar events...");
+        const { data: events, error: eventError } = await supabase
           .from("calendar_events")
           .select("id, title, event_type, start_time, organization_id")
           .eq("organization_id", profile.organization_id)
           .ilike("title", searchTerm)
           .limit(5);
 
-        if (events) {
-          events.forEach((event) => {
-            searchResults.push({
-              id: event.id,
-              title: event.title,
-              subtitle: `${event.event_type} - ${new Date(event.start_time).toLocaleDateString()}`,
-              type: "calendar_event",
-              icon: Calendar,
-              path: `/calendar`,
+        if (eventError) {
+          console.error("Calendar events search error:", eventError);
+        } else {
+          console.log("✅ Found events:", events?.length || 0);
+          if (events) {
+            events.forEach((event) => {
+              searchResults.push({
+                id: event.id,
+                title: event.title,
+                subtitle: `${event.event_type} - ${new Date(event.start_time).toLocaleDateString()}`,
+                type: "calendar_event",
+                icon: Calendar,
+                path: `/calendar`,
+              });
             });
-          });
+          }
         }
 
         // Search profiles (users in same org)
-        const { data: customers } = await supabase
+        console.log("🔍 Searching profiles...");
+        const { data: customers, error: customerError } = await supabase
           .from("profiles")
           .select("id, full_name, email, organization_id")
           .eq("organization_id", profile.organization_id)
           .or(`full_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
           .limit(5);
 
-        if (customers) {
-          customers.forEach((customer) => {
-            searchResults.push({
-              id: customer.id,
-              title: customer.full_name || customer.email || "Unknown User",
-              subtitle: customer.email || undefined,
-              type: "customer",
-              icon: Users,
-              path: `/profile`,
+        if (customerError) {
+          console.error("Profiles search error:", customerError);
+        } else {
+          console.log("✅ Found profiles:", customers?.length || 0);
+          if (customers) {
+            customers.forEach((customer) => {
+              searchResults.push({
+                id: customer.id,
+                title: customer.full_name || customer.email || "Unknown User",
+                subtitle: customer.email || undefined,
+                type: "customer",
+                icon: Users,
+                path: `/profile`,
+              });
             });
-          });
+          }
         }
 
+        console.log("📊 Total results:", searchResults.length);
         setResults(searchResults);
       } catch (error) {
-        console.error("Search error:", error);
+        console.error("❌ Search error:", error);
       } finally {
         setLoading(false);
       }
@@ -267,29 +305,11 @@ export function GlobalSearch() {
             </CommandGroup>
           )}
 
-          {/* Favorites */}
-          {!search && favorites && favorites.length > 0 && (
-            <>
-              <CommandSeparator />
-              <CommandGroup heading="Favorites">
-                {favorites.slice(0, 5).map((fav) => (
-                  <CommandItem
-                    key={fav.id}
-                    onSelect={() => handleSelect(`/work-orders/${fav.entity_id}`)}
-                  >
-                    <Star className="mr-2 h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    Favorite Item
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </>
-          )}
-
           {/* Search Results */}
           {results.length > 0 && (
             <>
               {results.filter((r) => r.type === "work_order").length > 0 && (
-                <CommandGroup heading="Work Orders">
+                <CommandGroup heading={workOrdersConfig?.display_name || "Work Orders"}>
                   {results
                     .filter((r) => r.type === "work_order")
                     .map((result) => {
@@ -315,7 +335,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "property").length > 0 && (
-                <CommandGroup heading="Properties">
+                <CommandGroup heading={propertiesConfig?.display_name || "Properties"}>
                   {results
                     .filter((r) => r.type === "property")
                     .map((result) => {
@@ -341,7 +361,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "form").length > 0 && (
-                <CommandGroup heading="Forms">
+                <CommandGroup heading={formsConfig?.display_name || "Forms"}>
                   {results
                     .filter((r) => r.type === "form")
                     .map((result) => {
@@ -367,7 +387,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "calendar_event").length > 0 && (
-                <CommandGroup heading="Calendar">
+                <CommandGroup heading={calendarConfig?.display_name || "Calendar"}>
                   {results
                     .filter((r) => r.type === "calendar_event")
                     .map((result) => {

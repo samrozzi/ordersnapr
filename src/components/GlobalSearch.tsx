@@ -20,6 +20,11 @@ import {
   Users,
   Search,
   Plus,
+  Package,
+  DollarSign,
+  FolderOpen,
+  ShoppingCart,
+  BarChart3,
 } from "lucide-react";
 
 interface SearchResult {
@@ -39,14 +44,23 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getFeatureConfig } = useFeatureContext();
+  const { features, getFeatureConfig } = useFeatureContext();
   const { openWorkOrderDialog } = useWorkOrderDialog();
 
-  // Get custom display names from org feature configs
-  const workOrdersConfig = getFeatureConfig('work_orders');
-  const propertiesConfig = getFeatureConfig('properties');
-  const formsConfig = getFeatureConfig('forms');
-  const calendarConfig = getFeatureConfig('calendar');
+  // Feature configuration mapping
+  const FEATURE_CONFIG: Record<string, { icon: typeof Plus; path: string; defaultLabel: string }> = {
+    work_orders: { icon: Briefcase, path: "/work-orders", defaultLabel: "Work Order" },
+    properties: { icon: Home, path: "/property-info", defaultLabel: "Property" },
+    forms: { icon: FileText, path: "/forms", defaultLabel: "Form" },
+    calendar: { icon: Calendar, path: "/calendar", defaultLabel: "Event" },
+    appointments: { icon: Users, path: "/appointments", defaultLabel: "Appointment" },
+    inventory: { icon: Package, path: "/inventory", defaultLabel: "Inventory Item" },
+    invoicing: { icon: DollarSign, path: "/invoices", defaultLabel: "Invoice" },
+    reports: { icon: BarChart3, path: "/reports", defaultLabel: "Report" },
+    files: { icon: FolderOpen, path: "/files", defaultLabel: "File" },
+    customer_portal: { icon: Users, path: "/portal", defaultLabel: "Portal Access" },
+    pos: { icon: ShoppingCart, path: "/pos", defaultLabel: "Sale" },
+  };
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -248,12 +262,19 @@ export function GlobalSearch() {
     navigate(path);
   };
 
-  const quickActions = [
-    { label: `New ${workOrdersConfig?.display_name?.replace(/s$/, '') || "Work Order"}`, path: "/work-orders", icon: Briefcase },
-    { label: `New ${propertiesConfig?.display_name?.replace(/s$/, '') || "Property"}`, path: "/property-info", icon: Home },
-    { label: `New ${formsConfig?.display_name?.replace(/s$/, '') || "Form"}`, path: "/forms", icon: FileText },
-    { label: `New ${calendarConfig?.display_name?.replace(/s$/, '') || "Event"}`, path: "/calendar", icon: Calendar },
-  ];
+  // Build quick actions from all enabled features
+  const quickActions = features
+    .filter(feature => feature.enabled && FEATURE_CONFIG[feature.module])
+    .map(feature => {
+      const config = FEATURE_CONFIG[feature.module];
+      const orgConfig = getFeatureConfig(feature.module as any);
+
+      return {
+        label: `New ${orgConfig?.display_name?.replace(/s$/, '') || config.defaultLabel}`,
+        path: config.path,
+        icon: config.icon,
+      };
+    });
 
   return (
     <>

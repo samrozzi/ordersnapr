@@ -51,11 +51,16 @@ Fixed **three critical bugs** that made search completely broken:
 - Auto-cleanup of old read notifications (30 days)
 - Ready for automation triggers
 
-### 4. Quick Add Button (+ FAB)
+### 4. Quick Add Button (+ FAB) - Now Fully Customizable!
 - Floating action button (bottom-right)
+- **Shows ALL enabled org features** (not just 4 hardcoded items)
+- **User customization in Profile page:**
+  - Toggle Quick Add button on/off completely
+  - Select which features appear in the menu
+  - Preferences saved per-user in database
 - Respects org's custom feature names
 - Fixed routes (no more 404s)
-- Quick access to create work orders, properties, forms, events
+- Supports all 11 feature types (work orders, properties, forms, calendar, appointments, inventory, invoicing, reports, files, portal, POS)
 
 ### 5. Activity Feed
 - Component created and ready to integrate
@@ -71,7 +76,7 @@ Fixed **three critical bugs** that made search completely broken:
 
 ## 📦 What's Included
 
-**17 commits:**
+**19 commits:**
 - SaaS Audit & Roadmap documents
 - Quick Wins features (Search, Export, Notifications, Quick Add, Activity Feed)
 - Search fixes:
@@ -79,6 +84,11 @@ Fixed **three critical bugs** that made search completely broken:
   - Fixed wildcard syntax (`*` for .or(), `%` for .ilike())
   - Fixed cmdk client-side filtering
   - **Search now opens specific items (not just pages)**
+- Quick Add customization:
+  - Shows ALL enabled org features (dynamic, not hardcoded)
+  - User preferences system (toggle on/off, select items)
+  - Database migration for user_preferences table
+  - Profile page customization UI
 - Route fixes (Quick Add 404s)
 - Export integration (Work Orders page)
 - Custom naming support (Quick Add + Search)
@@ -101,11 +111,19 @@ Fixed **three critical bugs** that made search completely broken:
    - Choose CSV or Excel
    - ✅ File should download with all work order data
 
-3. **Quick Add:**
+3. **Quick Add - Fully Customizable:**
    - Click the `+` button (bottom-right)
+   - ✅ Should show ALL enabled org features (not just 4)
    - ✅ Should show custom org names (e.g., "Job" instead of "Work Order")
    - Click an action
    - ✅ Should navigate to correct page (no 404s)
+   - **Customize it:**
+     - Go to Profile → Settings tab
+     - Scroll to "Customize Quick Add Button" card
+     - ✅ Toggle "Show Quick Add Button" to hide/show the `+` button
+     - ✅ Check/uncheck features to customize what appears
+     - Click "Save Preferences"
+     - ✅ Quick Add button should reflect your changes
 
 4. **Notifications:**
    - Click bell icon in header
@@ -116,14 +134,18 @@ Fixed **three critical bugs** that made search completely broken:
 
 **Before:**
 - ❌ Search completely broken - returned NO results in UI
+- ❌ Quick Add only showed 4 hardcoded features
 - ❌ Quick Add said "Work Order" even if org renamed it
+- ❌ No way for users to customize Quick Add
 - ❌ Broken favorites showing "Favorite Item" with 404s
 - ❌ No export functionality
 - ❌ No notifications system
 
 **After:**
 - ✅ Search works perfectly - finds customers, forms, everything!
-- ✅ Search results actually appear in UI
+- ✅ Search results open specific items (not just pages)
+- ✅ Quick Add shows ALL enabled org features dynamically
+- ✅ Quick Add fully customizable per-user (toggle on/off, select items)
 - ✅ Quick Add respects org's custom feature names
 - ✅ Export to CSV/Excel from Work Orders
 - ✅ Notification center ready for automation

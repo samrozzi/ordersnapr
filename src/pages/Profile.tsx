@@ -13,6 +13,7 @@ import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 import { CustomizeQuickAdd } from "@/components/CustomizeQuickAdd";
+import { PersonalSettings } from "@/components/PersonalSettings";
 
 interface AuditLog {
   id: string;
@@ -405,8 +406,9 @@ const Profile = () => {
         <h1 className="text-3xl font-bold">Profile Settings</h1>
 
         <Tabs defaultValue="settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
             <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="preferences">Preferences</TabsTrigger>
             <TabsTrigger value="activity">My Activity</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
@@ -637,6 +639,10 @@ const Profile = () => {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="preferences" className="space-y-6">
+            <PersonalSettings />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">

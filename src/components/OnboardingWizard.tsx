@@ -60,6 +60,14 @@ export function OnboardingWizard() {
     // Mark onboarding as complete in localStorage
     localStorage.setItem(`onboarding_completed_${user?.id}`, "true");
 
+    // Save user's selected features to localStorage for free tier users
+    if (user && onboardingData.selectedFeatures.length > 0) {
+      localStorage.setItem(
+        `user_features_${user.id}`,
+        JSON.stringify(onboardingData.selectedFeatures)
+      );
+    }
+
     // Check if user is approved
     if (user) {
       const { data: profile } = await supabase

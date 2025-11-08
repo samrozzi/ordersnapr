@@ -72,7 +72,12 @@ export function CustomizeQuickAdd() {
           setUserFeatureModules(userFeatures as FeatureModule[]);
         } catch (e) {
           console.error("Error parsing user features:", e);
+          // On error, set defaults
+          setUserFeatureModules(["work_orders", "forms", "calendar"] as FeatureModule[]);
         }
+      } else {
+        // No saved preferences - set defaults
+        setUserFeatureModules(["work_orders", "forms", "calendar"] as FeatureModule[]);
       }
     }
   }, [user, features]);

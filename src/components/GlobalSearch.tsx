@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useFeatureContext } from "@/contexts/FeatureContext";
 import {
   CommandDialog,
   CommandEmpty,
@@ -40,6 +41,13 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { favorites } = useFavorites("work_order", "");
+  const { getFeatureConfig } = useFeatureContext();
+
+  // Get custom display names from org feature configs
+  const workOrdersConfig = getFeatureConfig('work_orders');
+  const propertiesConfig = getFeatureConfig('properties');
+  const formsConfig = getFeatureConfig('forms');
+  const calendarConfig = getFeatureConfig('calendar');
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -89,17 +97,17 @@ export function GlobalSearch() {
         // Search work orders
         const { data: workOrders } = await supabase
           .from("work_orders")
-          .select("id, title, status, job_number, organization_id")
+          .select("id, title, status, job_number, customer_name, organization_id")
           .eq("organization_id", profile.organization_id)
-          .or(`title.ilike.${searchTerm},job_number.ilike.${searchTerm},description.ilike.${searchTerm}`)
+          .or(`title.ilike.${searchTerm},job_number.ilike.${searchTerm},description.ilike.${searchTerm},customer_name.ilike.${searchTerm}`)
           .limit(5);
 
         if (workOrders) {
-          workOrders.forEach((wo) => {
+          workOrders.forEach((wo: any) => {
             searchResults.push({
               id: wo.id,
-              title: wo.title || `Job #${wo.job_number}`,
-              subtitle: `Status: ${wo.status}`,
+              title: wo.title || wo.customer_name || `Job #${wo.job_number}`,
+              subtitle: wo.customer_name ? `${wo.customer_name} - ${wo.status}` : `Status: ${wo.status}`,
               type: "work_order",
               icon: Briefcase,
               path: `/work-orders`,
@@ -210,10 +218,10 @@ export function GlobalSearch() {
   };
 
   const quickActions = [
-    { label: "New Work Order", path: "/work-orders", icon: Briefcase },
-    { label: "New Property", path: "/property-info", icon: Home },
-    { label: "New Form", path: "/forms", icon: FileText },
-    { label: "New Event", path: "/calendar", icon: Calendar },
+    { label: `New ${workOrdersConfig?.display_name?.replace(/s$/, '') || "Work Order"}`, path: "/work-orders", icon: Briefcase },
+    { label: `New ${propertiesConfig?.display_name?.replace(/s$/, '') || "Property"}`, path: "/property-info", icon: Home },
+    { label: `New ${formsConfig?.display_name?.replace(/s$/, '') || "Form"}`, path: "/forms", icon: FileText },
+    { label: `New ${calendarConfig?.display_name?.replace(/s$/, '') || "Event"}`, path: "/calendar", icon: Calendar },
   ];
 
   return (

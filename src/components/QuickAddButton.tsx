@@ -32,29 +32,35 @@ interface QuickAction {
 export function QuickAddButton() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { hasFeature } = useFeatureContext();
+  const { hasFeature, getFeatureConfig } = useFeatureContext();
+
+  // Get custom display names from org feature configs
+  const workOrdersConfig = getFeatureConfig('work_orders');
+  const propertiesConfig = getFeatureConfig('properties');
+  const formsConfig = getFeatureConfig('forms');
+  const calendarConfig = getFeatureConfig('calendar');
 
   const actions: QuickAction[] = [
     {
-      label: "Work Order",
+      label: workOrdersConfig?.display_name?.replace(/s$/, '') || "Work Order",
       path: "/work-orders",
       icon: Briefcase,
       feature: "work_orders",
     },
     {
-      label: "Property",
+      label: propertiesConfig?.display_name?.replace(/s$/, '') || "Property",
       path: "/property-info",
       icon: Home,
       feature: "properties",
     },
     {
-      label: "Form",
+      label: formsConfig?.display_name?.replace(/s$/, '') || "Form",
       path: "/forms",
       icon: FileText,
       feature: "forms",
     },
     {
-      label: "Calendar Event",
+      label: calendarConfig?.display_name?.replace(/s$/, '') || "Event",
       path: "/calendar",
       icon: Calendar,
       feature: "calendar",

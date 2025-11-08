@@ -18,8 +18,13 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
       setSession(session);
 
       if (!session) {
@@ -34,6 +39,8 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
         .select("approval_status")
         .eq("id", session.user.id)
         .single();
+
+      if (!isMounted) return;
 
       const isApproved = profile?.approval_status === "approved";
 
@@ -71,17 +78,21 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
 
     checkAuth();
 
-    // Listen for auth changes
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, location.pathname]);
+
+  // Separate effect for auth state changes to avoid re-creating listener
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         navigate("/auth");
-      } else {
-        checkAuth();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   if (loading) {
     return (

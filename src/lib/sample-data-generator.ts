@@ -59,25 +59,21 @@ const SAMPLE_CUSTOMERS = [
     name: "John Smith",
     email: "john.smith@example.com",
     phone: "(555) 123-4567",
-    company: null,
   },
   {
     name: "Sarah Johnson",
     email: "sarah.j@example.com",
     phone: "(555) 234-5678",
-    company: null,
   },
   {
     name: "Mike Anderson",
     email: "mike@example.com",
     phone: "(555) 345-6789",
-    company: "Anderson Corp",
   },
   {
     name: "Emily Davis",
     email: "emily.davis@example.com",
     phone: "(555) 456-7890",
-    company: null,
   },
 ];
 

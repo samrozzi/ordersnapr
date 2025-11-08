@@ -54,15 +54,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }
 
         if (!hasOrg) {
-          // Free-tier user (no organization)
-          if (location.pathname === "/dashboard" || location.pathname === "/") {
-            // Allow access to the dashboard page
-            setApproved(true);
-            setLoading(false);
-            return;
-          }
-          // For other protected pages, send to free workspace
-          navigate("/free-workspace");
+          // Free-tier user (no organization) who completed onboarding - grant full access
+          setApproved(true);
           setLoading(false);
           return;
         }

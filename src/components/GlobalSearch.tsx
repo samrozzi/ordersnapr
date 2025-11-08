@@ -270,7 +270,7 @@ export function GlobalSearch() {
       const orgConfig = getFeatureConfig(feature.module as any);
 
       return {
-        label: `New ${orgConfig?.display_name?.replace(/s$/, '') || config.defaultLabel}`,
+        label: orgConfig?.display_name || config.defaultLabel,
         path: config.path,
         icon: config.icon,
       };
@@ -323,7 +323,7 @@ export function GlobalSearch() {
           {results.length > 0 && (
             <>
               {results.filter((r) => r.type === "work_order").length > 0 && (
-                <CommandGroup heading={workOrdersConfig?.display_name || "Work Orders"}>
+                <CommandGroup heading={getFeatureConfig('work_orders')?.display_name || "Work Orders"}>
                   {results
                     .filter((r) => r.type === "work_order")
                     .map((result) => {
@@ -349,7 +349,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "property").length > 0 && (
-                <CommandGroup heading={propertiesConfig?.display_name || "Properties"}>
+                <CommandGroup heading={getFeatureConfig('properties')?.display_name || "Properties"}>
                   {results
                     .filter((r) => r.type === "property")
                     .map((result) => {
@@ -375,7 +375,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "form").length > 0 && (
-                <CommandGroup heading={formsConfig?.display_name || "Forms"}>
+                <CommandGroup heading={getFeatureConfig('forms')?.display_name || "Forms"}>
                   {results
                     .filter((r) => r.type === "form")
                     .map((result) => {
@@ -401,7 +401,7 @@ export function GlobalSearch() {
               )}
 
               {results.filter((r) => r.type === "calendar_event").length > 0 && (
-                <CommandGroup heading={calendarConfig?.display_name || "Calendar"}>
+                <CommandGroup heading={getFeatureConfig('calendar')?.display_name || "Calendar"}>
                   {results
                     .filter((r) => r.type === "calendar_event")
                     .map((result) => {

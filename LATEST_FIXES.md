@@ -1,6 +1,6 @@
 # Latest Fixes - Search Now Works!
 
-## 🔥 CRITICAL FIX - Search Wildcard Syntax
+## 🔥 CRITICAL FIX #1 - Wildcard Syntax
 
 **The Problem:**
 - Search was completely broken - typing "kie" didn't find "Kierra Boyd"
@@ -12,13 +12,27 @@
 - Direct `.ilike()` calls require `%` wildcards
 - Fixed all search queries to use correct syntax
 
-**What This Fixes:**
+## 🔥 CRITICAL FIX #2 - cmdk Client-Side Filtering
+
+**The Problem:**
+- Even after fixing wildcards, results STILL didn't appear in UI
+- Console logs showed data was found ("✅ Found work orders: 1")
+- But the CommandDialog showed "No results found"
+- Root cause: cmdk library was doing its own client-side filtering
+
+**The Solution:**
+- Added `shouldFilter={false}` to CommandDialog component
+- This disables cmdk's built-in filtering
+- Now our server-side search results display properly
+
+**What These Fixes Do:**
 - ✅ Searching customer names now works ("kie" → "Kierra Boyd")
 - ✅ Searching work order job IDs now works
 - ✅ Searching property names and addresses now works
 - ✅ Searching form names now works
 - ✅ Searching calendar events now works
 - ✅ Searching profiles (people) now works
+- ✅ Search results actually appear in the UI!
 
 ---
 
@@ -135,6 +149,7 @@ Same as before - create a Pull Request:
 - Search fixes:
   - ✅ Fixed database column names (customer_name, job_id, etc.)
   - ✅ Fixed wildcard syntax (* for .or(), % for .ilike())
+  - ✅ Fixed cmdk client-side filtering (shouldFilter={false})
   - ✅ Fixed org filtering (RLS handles it automatically)
   - ✅ Search now actually works!
 - Route fixes (Quick Add 404s)
@@ -142,29 +157,33 @@ Same as before - create a Pull Request:
 - Custom naming support (Quick Add + Search)
 - Removed broken favorites from search
 
-**Total:** 9 commits, ready to merge!
+**Total:** 10 commits, ready to merge!
 
 ---
 
 ## 🎯 Summary
 
 **Before:**
-- ❌ Search completely broken - returned NO results
+- ❌ Search completely broken - returned NO results in UI
+- ❌ Console showed data found, but UI showed "No results"
 - ❌ Quick Add said "Work Order" even if org renamed it
 - ❌ Broken favorites showing "Favorite Item" with 404s
 - ❌ Wrong database column names in queries
 - ❌ Wrong wildcard syntax in search queries
+- ❌ cmdk library filtering out our server-side results
 
 **After:**
-- ✅ **SEARCH WORKS!** - Fixed wildcard syntax (critical fix)
+- ✅ **SEARCH WORKS!** - Fixed TWO critical bugs
 - ✅ Search finds customer names ("kie" → "Kierra Boyd")
 - ✅ Search finds forms, properties, events, people
+- ✅ Results now appear in UI (disabled cmdk filtering)
 - ✅ Quick Add respects org's custom feature names
 - ✅ Removed broken favorites from search
 - ✅ All Quick Wins features working
 - ✅ Extensive debug logging for troubleshooting
 
-**The Root Cause:**
-The search was using `%` wildcards in `.or()` queries, but Supabase requires `*` wildcards for `.or()` and `%` wildcards for direct `.ilike()` calls. This simple syntax error broke ALL searches!
+**The Root Causes:**
+1. **Wildcard Syntax**: Supabase requires `*` wildcards for `.or()` queries and `%` for direct `.ilike()` calls
+2. **cmdk Filtering**: The CommandDialog was doing client-side filtering, hiding our server-side search results. Fixed by adding `shouldFilter={false}`
 
 Ready to deploy! 🚀

@@ -28,8 +28,34 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
         return;
       }
 
+      // Check if user is approved
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("approval_status")
+        .eq("id", session.user.id)
+        .single();
+
+      const isApproved = profile?.approval_status === "approved";
+
       // Check if user has completed onboarding
       const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
+
+      // Protect onboarding route - only for new users who haven't completed it
+      if (location.pathname === "/onboarding") {
+        if (isApproved || onboardingComplete) {
+          // Approved users or users who already completed onboarding should go to dashboard/workspace
+          navigate(isApproved ? "/dashboard" : "/free-workspace");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // If approved user tries to access free workspace, redirect to dashboard
+      if (location.pathname === "/free-workspace" && isApproved) {
+        navigate("/dashboard");
+        setLoading(false);
+        return;
+      }
 
       // If not completed onboarding and not already on onboarding page, redirect
       if (!onboardingComplete && location.pathname !== "/onboarding") {

@@ -41,10 +41,19 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       const isAdmin = !!roles;
       const isApproved = profile?.approval_status === "approved";
 
+      // Check if user has completed onboarding
+      const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
+
+      // If not approved and not admin, check if they've completed onboarding
       if (!isApproved && !isAdmin) {
-        navigate("/pending-approval");
-        setLoading(false);
-        return;
+        // If they haven't completed onboarding, send to onboarding or pending
+        if (!onboardingComplete) {
+          navigate("/pending-approval");
+          setLoading(false);
+          return;
+        }
+        // If they have completed onboarding, allow access with free tier limits
+        // They'll be able to use the app with restrictions
       }
 
       setApproved(true);

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import {
   Sparkles,
   Lock,
@@ -13,12 +15,14 @@ import {
   Zap,
   Shield,
   Users,
-  BarChart3
+  BarChart3,
+  ArrowRight
 } from "lucide-react";
 
 export default function FreeTierWorkspace() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { usage, limits, loading: limitsLoading } = useFreeTierLimits();
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -154,6 +158,53 @@ export default function FreeTierWorkspace() {
           })}
         </div>
 
+        {/* Free Tier Usage */}
+        {!limitsLoading && (
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle>Your Free Tier Usage</CardTitle>
+              <CardDescription>
+                See what you can create with your free account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Work Orders</span>
+                    <span className="text-muted-foreground">{usage.work_orders} / {limits.work_orders}</span>
+                  </div>
+                  <Progress value={(usage.work_orders / limits.work_orders) * 100} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Properties</span>
+                    <span className="text-muted-foreground">{usage.properties} / {limits.properties}</span>
+                  </div>
+                  <Progress value={(usage.properties / limits.properties) * 100} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Forms</span>
+                    <span className="text-muted-foreground">{usage.forms} / {limits.forms}</span>
+                  </div>
+                  <Progress value={(usage.forms / limits.forms) * 100} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Calendar Events</span>
+                    <span className="text-muted-foreground">{usage.calendar_events} / {limits.calendar_events}</span>
+                  </div>
+                  <Progress value={(usage.calendar_events / limits.calendar_events) * 100} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* CTA Section */}
         <Card className="border-2 border-primary/20">
           <CardHeader>
@@ -186,19 +237,22 @@ export default function FreeTierWorkspace() {
               </li>
             </ul>
 
-            <div className="pt-4 flex gap-4">
-              <Button onClick={() => navigate("/onboarding")} variant="outline">
-                Revisit Onboarding
+            <div className="pt-4 space-y-3">
+              <Button onClick={() => navigate("/dashboard")} size="lg" className="w-full">
+                <ArrowRight className="mr-2 h-5 w-5" />
+                Go to Dashboard (Explore Free Tier)
               </Button>
-              <Button onClick={() => navigate("/profile")} variant="outline">
-                Edit Profile
-              </Button>
+              <div className="flex gap-4">
+                <Button onClick={() => navigate("/profile")} variant="outline" className="flex-1">
+                  Edit Profile
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Pricing Tiers Teaser */}
-        <Card>
+        <Card data-pricing>
           <CardHeader>
             <CardTitle>Upgrade When You're Ready</CardTitle>
             <CardDescription>

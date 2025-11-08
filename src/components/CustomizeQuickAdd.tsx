@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
@@ -51,6 +51,7 @@ export function CustomizeQuickAdd() {
   const [quickAddEnabled, setQuickAddEnabled] = useState(true);
   const [selectedItems, setSelectedItems] = useState<FeatureModule[]>([]);
   const [userFeatureModules, setUserFeatureModules] = useState<FeatureModule[]>([]);
+  const initializedRef = useRef(false);
 
   // Get user's enabled features (from org or localStorage)
   useEffect(() => {
@@ -76,17 +77,22 @@ export function CustomizeQuickAdd() {
     }
   }, [user, features]);
 
-  // Initialize state from preferences
+  // Initialize state from preferences - only once
   useEffect(() => {
+    // Only initialize if we haven't already and we have the necessary data
+    if (initializedRef.current || !userFeatureModules.length) return;
+
     if (preferences) {
       setQuickAddEnabled(preferences.quick_add_enabled);
       setSelectedItems(preferences.quick_add_items || []);
-    } else {
+      initializedRef.current = true;
+    } else if (userFeatureModules.length > 0) {
       // Default: all enabled features (up to 2 for free tier)
       const defaultItems = hasPremiumAccess()
         ? userFeatureModules
         : userFeatureModules.slice(0, 2);
       setSelectedItems(defaultItems);
+      initializedRef.current = true;
     }
   }, [preferences, userFeatureModules, hasPremiumAccess]);
 
@@ -119,6 +125,9 @@ export function CustomizeQuickAdd() {
         quickAddEnabled,
         quickAddItems: selectedItems,
       });
+
+      // Reset initialized flag so that any server changes get picked up
+      initializedRef.current = false;
 
       toast({
         title: "Success",

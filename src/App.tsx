@@ -14,6 +14,7 @@ import { FeatureRouteGuard } from "@/components/FeatureRouteGuard";
 import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import { PageSkeleton } from "@/components/PageSkeleton";
+import { MigrationChecker } from "@/components/MigrationChecker";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
@@ -56,6 +57,7 @@ const AppContent = () => {
       <Sonner />
       <BrowserRouter>
         <FeatureProvider>
+          <MigrationChecker />
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />

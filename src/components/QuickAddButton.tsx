@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
+import { FreeTierBadge } from "@/components/FreeTierBadge";
 import { FeatureModule } from "@/hooks/use-features";
 import {
   DropdownMenu,
@@ -34,11 +36,11 @@ interface QuickAction {
   feature: FeatureModule;
 }
 
-const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; defaultLabel: string }> = {
-  work_orders: { icon: Briefcase, path: "/work-orders", defaultLabel: "Work Order" },
-  properties: { icon: Home, path: "/property-info", defaultLabel: "Property" },
-  forms: { icon: FileText, path: "/forms", defaultLabel: "Form" },
-  calendar: { icon: Calendar, path: "/calendar", defaultLabel: "Event" },
+const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; defaultLabel: string; limitResource?: "work_orders" | "properties" | "forms" | "calendar_events" }> = {
+  work_orders: { icon: Briefcase, path: "/work-orders", defaultLabel: "Work Order", limitResource: "work_orders" },
+  properties: { icon: Home, path: "/property-info", defaultLabel: "Property", limitResource: "properties" },
+  forms: { icon: FileText, path: "/forms", defaultLabel: "Form", limitResource: "forms" },
+  calendar: { icon: Calendar, path: "/calendar", defaultLabel: "Event", limitResource: "calendar_events" },
   appointments: { icon: Users, path: "/appointments", defaultLabel: "Appointment" },
   inventory: { icon: Package, path: "/inventory", defaultLabel: "Inventory Item" },
   invoicing: { icon: DollarSign, path: "/invoices", defaultLabel: "Invoice" },
@@ -108,13 +110,22 @@ export function QuickAddButton() {
           <DropdownMenuSeparator />
           {actions.map((action) => {
             const Icon = action.icon;
+            const config = FEATURE_CONFIG[action.feature];
+            const limitResource = config.limitResource;
+
             return (
               <DropdownMenuItem
                 key={action.path}
                 onClick={() => handleSelect(action.path)}
+                className="flex items-center justify-between"
               >
-                <Icon className="mr-2 h-4 w-4" />
-                {action.label}
+                <div className="flex items-center">
+                  <Icon className="mr-2 h-4 w-4" />
+                  {action.label}
+                </div>
+                {limitResource && (
+                  <FreeTierBadge resource={limitResource} className="ml-2" />
+                )}
               </DropdownMenuItem>
             );
           })}

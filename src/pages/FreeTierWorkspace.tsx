@@ -238,9 +238,16 @@ export default function FreeTierWorkspace() {
             </ul>
 
             <div className="pt-4 space-y-3">
-              <Button onClick={() => navigate("/dashboard")} size="lg" className="w-full">
+              <Button 
+                onClick={() => {
+                  const pricingCard = document.querySelector('[data-pricing]');
+                  pricingCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }} 
+                size="lg" 
+                className="w-full"
+              >
                 <ArrowRight className="mr-2 h-5 w-5" />
-                Go to Dashboard (Explore Free Tier)
+                View Upgrade Options
               </Button>
               <div className="flex gap-4">
                 <Button onClick={() => navigate("/profile")} variant="outline" className="flex-1">

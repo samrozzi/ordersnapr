@@ -1,19 +1,48 @@
-# Deployment Notes: Free Tier Implementation
+# Deployment Notes: Free Tier Implementation & Onboarding Fixes
 
 ## Migration Auto-Deployment
 
-✅ **The database migration is already included in the GitHub PR** and will be applied automatically when Lovable deploys.
+✅ **The database migrations are already included in the GitHub PR** and will be applied automatically when Lovable deploys.
 
-**Migration File:** `/supabase/migrations/20251108000000_support_free_tier_users.sql`
+**Migration Files:**
+- `/supabase/migrations/20251108000000_support_free_tier_users.sql` - Makes organization_id nullable, updates RLS policies for free tier
+- `/supabase/migrations/20251108000001_free_tier_auto_approve_and_onboarding.sql` - Auto-approves free tier users, adds onboarding tracking
 
 When Lovable deploys your PR, it will:
-1. Detect the new migration file
-2. Apply it to your Supabase database automatically
+1. Detect the new migration files
+2. Apply them to your Supabase database automatically
 3. All free tier features will work immediately
+4. Free tier users will no longer need admin approval
+5. Onboarding will persist across sessions
 
-## What the Migration Fixes
+## What the Migrations Fix
 
-Once deployed, the migration will fix ALL of these issues:
+Once deployed, the migrations will fix ALL of these issues:
+
+### ✅ Onboarding & Admin Approval
+**Before Migration:**
+- ❌ Onboarding stored in localStorage - lost on re-login
+- ❌ All users require admin approval (including free tier)
+- ❌ Users have to re-onboard every time they log in
+- ❌ Onboarding preferences (branding, features) not persisted
+
+**After Migration:**
+- ✅ Onboarding stored in database - persists across sessions
+- ✅ Free tier users auto-approved (no admin needed)
+- ✅ Organization users still require admin approval
+- ✅ User preferences saved to database
+- ✅ One-time onboarding experience
+
+### ✅ Calendar & Forms Access
+**Before Migration:**
+- ❌ Calendar blocked for free users
+- ❌ Forms page blocked for free users
+- ❌ Features not showing in sidebar
+
+**After Migration:**
+- ✅ Calendar accessible to all free users
+- ✅ Forms accessible to all free users
+- ✅ Free tier features always enabled (work_orders, properties, forms, calendar)
 
 ### ✅ Work Orders
 **Before Migration:**

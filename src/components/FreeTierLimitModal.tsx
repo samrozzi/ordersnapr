@@ -7,8 +7,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Sparkles, Zap, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { CheckCircle2, Sparkles, Zap } from "lucide-react";
+import { useState } from "react";
+import { PricingModal } from "./PricingModal";
 
 interface FreeTierLimitModalProps {
   open: boolean;
@@ -57,24 +58,9 @@ export function FreeTierLimitModal({
   resource,
   limit,
 }: FreeTierLimitModalProps) {
-  const navigate = useNavigate();
+  const [showPricing, setShowPricing] = useState(false);
   const resourceLabel = RESOURCE_LABELS[resource];
   const benefits = RESOURCE_BENEFITS[resource];
-
-  const handleRequestApproval = () => {
-    onClose();
-    navigate("/free-workspace");
-  };
-
-  const handleViewPricing = () => {
-    onClose();
-    navigate("/free-workspace");
-    // Scroll to pricing section
-    setTimeout(() => {
-      const pricingSection = document.querySelector("[data-pricing]");
-      pricingSection?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -113,13 +99,13 @@ export function FreeTierLimitModal({
           </div>
 
           <div className="pt-4 space-y-2">
-            <Button onClick={handleRequestApproval} className="w-full" size="lg">
-              Request Admin Approval
-            </Button>
-            <Button
-              onClick={handleViewPricing}
-              variant="outline"
-              className="w-full"
+            <Button 
+              onClick={() => {
+                onClose();
+                setShowPricing(true);
+              }} 
+              className="w-full" 
+              size="lg"
             >
               View Pricing Plans
             </Button>
@@ -129,6 +115,8 @@ export function FreeTierLimitModal({
           </div>
         </div>
       </DialogContent>
+
+      <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
     </Dialog>
   );
 }

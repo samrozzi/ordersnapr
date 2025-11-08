@@ -207,12 +207,12 @@ export default function Forms() {
         <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
-      <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
+        <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
         {/* Row 1: New Submission + Tab Navigation */}
         <div className="flex items-center gap-3 md:gap-2">
           <FreeTierGuard resource="forms" onAllowed={() => setSheetMode('select-template')}>
-            {({ onClick, disabled, remaining }) => (
-              <Button onClick={onClick} disabled={disabled} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
+            {({ onClick, disabled }) => (
+              <Button onClick={onClick} disabled={disabled || submissionsLoading} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
                 <Plus className="md:mr-2 h-4 w-4" />
                 <span className="hidden md:inline">New Submission</span>
               </Button>

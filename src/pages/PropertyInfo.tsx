@@ -145,14 +145,17 @@ const PropertyInfo = () => {
       
       <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
         <FreeTierGuard resource="properties" onAllowed={() => setIsDialogOpen(true)}>
-          {({ onClick, disabled, remaining }) => (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled}>
-                  <Plus className="md:mr-2 h-4 w-4" />
-                  <span className="hidden md:inline">New Property</span>
-                </Button>
-              </DialogTrigger>
+          {({ onClick, disabled }) => (
+            <>
+              <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled || loading}>
+                <Plus className="md:mr-2 h-4 w-4" />
+                <span className="hidden md:inline">New Property</span>
+              </Button>
+            </>
+          )}
+        </FreeTierGuard>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Property</DialogTitle>
@@ -164,9 +167,7 @@ const PropertyInfo = () => {
               }}
             />
           </DialogContent>
-            </Dialog>
-          )}
-        </FreeTierGuard>
+        </Dialog>
         <Button
           variant="outline"
           size="sm"

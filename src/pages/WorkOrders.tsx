@@ -216,14 +216,20 @@ const WorkOrders = () => {
       {/* Action buttons row */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <FreeTierGuard resource="work_orders" onAllowed={() => setIsDrawerOpen(true)}>
-          {({ onClick, disabled, remaining }) => (
-            <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-              <SheetTrigger asChild>
-                <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled}>
-                  <Plus className="md:mr-2 h-4 w-4" />
-                  <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
-                </Button>
-              </SheetTrigger>
+          {({ onClick, disabled }) => (
+            <>
+              <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled || loading}>
+                <Plus className="md:mr-2 h-4 w-4" />
+                <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
+              </Button>
+            </>
+          )}
+        </FreeTierGuard>
+
+        <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <SheetTrigger asChild>
+            <span></span>
+          </SheetTrigger>
           <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
@@ -237,9 +243,7 @@ const WorkOrders = () => {
               />
             </div>
           </SheetContent>
-            </Sheet>
-          )}
-        </FreeTierGuard>
+        </Sheet>
 
         <div className="flex items-center gap-1">
           <Button

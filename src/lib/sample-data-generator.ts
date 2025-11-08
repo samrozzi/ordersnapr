@@ -113,7 +113,12 @@ export async function generateSampleData(types: string[]): Promise<void> {
     .eq("user_id", user.id)
     .single();
 
-  if (!membership) throw new Error("User not in an organization");
+  if (!membership) {
+    // User not in an organization yet - skip sample data generation
+    // This is OK for new users who haven't been assigned to an org yet
+    console.log("User not in an organization - skipping sample data generation");
+    return;
+  }
 
   const orgId = membership.org_id;
 

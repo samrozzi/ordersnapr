@@ -77,6 +77,7 @@ const WorkOrders = () => {
   const [listTab, setListTab] = useState<ListTab>('pending');
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [viewingOrderDetails, setViewingOrderDetails] = useState<WorkOrder | null>(null);
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
 
   const config = getFeatureConfig('work_orders');
   const displayName = config?.display_name || 'Jobs';
@@ -103,38 +104,66 @@ const WorkOrders = () => {
   const fetchWorkOrders = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('🔍 Fetching work orders for user:', {
+      if (!user) return;
+
+      // Fetch user's active org context
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      const currentActiveOrgId = profile?.active_org_id || null;
+      setActiveOrgId(currentActiveOrgId);
+
+      console.log('🔍 Fetching work orders:', {
         email: user?.email,
-        id: user?.id?.substring(0, 8)
+        activeOrgId: currentActiveOrgId,
+        isPersonal: currentActiveOrgId === null
       });
 
-      const { data, error } = await supabase
+      // Build query with org filtering
+      let query = supabase
         .from("work_orders")
         .select(`
           *,
           creator:profiles!work_orders_user_id_fkey(full_name, email),
           assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
-        `)
-        .order("created_at", { ascending: false });
+        `);
+
+      if (currentActiveOrgId === null) {
+        // Personal workspace: user's own work orders with no organization
+        query = query.eq("user_id", user.id).is("organization_id", null);
+      } else {
+        // Organization workspace: all work orders for that org
+        query = query.eq("organization_id", currentActiveOrgId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) {
         console.error('❌ Work orders query error:', error);
         throw error;
       }
 
-      const { count } = await supabase
+      // Count query with same filters
+      let countQuery = supabase
         .from("work_orders")
         .select("*", { count: 'exact', head: true });
+
+      if (currentActiveOrgId === null) {
+        countQuery = countQuery.eq("user_id", user.id).is("organization_id", null);
+      } else {
+        countQuery = countQuery.eq("organization_id", currentActiveOrgId);
+      }
+
+      const { count } = await countQuery;
 
       console.log('✅ Work orders fetched:', {
         dataLength: data?.length || 0,
         count: count || 0,
-        hasToken: !!(await supabase.auth.getSession()).data.session?.access_token
+        workspace: currentActiveOrgId ? 'organization' : 'personal'
       });
-
-      if (data?.length === 0 && user) {
-        console.warn('⚠️ Token present but 0 rows returned - possible PWA storage issue');
-      }
 
       setWorkOrders(data || []);
     } catch (error) {
@@ -153,7 +182,7 @@ const WorkOrders = () => {
     if (session) {
       fetchWorkOrders();
     }
-  }, [session]);
+  }, [session, activeOrgId]);
 
   // Handle opening work order from URL parameter (e.g., from favorites)
   useEffect(() => {

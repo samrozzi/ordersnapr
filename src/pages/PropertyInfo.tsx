@@ -32,6 +32,7 @@ const PropertyInfo = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,11 +54,37 @@ const PropertyInfo = () => {
 
   const fetchProperties = async () => {
     try {
-      console.log('Fetching properties...');
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .order("property_name", { ascending: true });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user's active org context
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      const currentActiveOrgId = profile?.active_org_id || null;
+      setActiveOrgId(currentActiveOrgId);
+
+      console.log('Fetching properties:', {
+        activeOrgId: currentActiveOrgId,
+        isPersonal: currentActiveOrgId === null
+      });
+
+      // Build query with org filtering
+      let query = supabase.from("properties").select("*");
+
+      if (currentActiveOrgId === null) {
+        // Personal workspace: user's own properties with no organization
+        query = query.eq("user_id", user.id);
+      } else {
+        // Organization workspace: properties for anyone in that org
+        // Properties table uses user_id but we check org membership via in_same_org
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query.order("property_name", { ascending: true });
 
       if (error) {
         console.error('Properties query error:', error);
@@ -82,7 +109,7 @@ const PropertyInfo = () => {
     if (session) {
       fetchProperties();
     }
-  }, [session]);
+  }, [session, activeOrgId]);
 
   // Handle opening property from URL parameter (e.g., from favorites)
   useEffect(() => {

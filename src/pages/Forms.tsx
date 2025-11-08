@@ -68,9 +68,9 @@ export default function Forms() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin, is_super_admin").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("active_org_id, is_org_admin, is_super_admin").eq("id", user.id).single();
         if (profile) {
-          const userOrgId = profile.organization_id || null;
+          const userOrgId = profile.active_org_id || null;
           setOrgId(userOrgId);
           setIsOrgAdmin(profile.is_org_admin || false);
           setIsSuperAdmin(profile.is_super_admin || false);

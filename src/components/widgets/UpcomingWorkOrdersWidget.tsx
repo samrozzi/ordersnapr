@@ -4,6 +4,7 @@ import { Calendar, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 // Helper to parse date strings in local timezone (avoids UTC conversion issues)
 const parseLocalDate = (dateStr: string): Date => {
@@ -23,6 +24,7 @@ interface WorkOrder {
 type FilterMode = "day" | "week" | "month";
 
 export const UpcomingWorkOrdersWidget = memo(() => {
+  const { activeOrgId } = useActiveOrg();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<FilterMode>("week");
@@ -30,10 +32,13 @@ export const UpcomingWorkOrdersWidget = memo(() => {
 
   useEffect(() => {
     fetchWorkOrders();
-  }, [filterMode]);
+  }, [filterMode, activeOrgId]);
 
   const fetchWorkOrders = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const today = new Date();
       let endDate = new Date();
 
@@ -45,13 +50,24 @@ export const UpcomingWorkOrdersWidget = memo(() => {
         endDate.setMonth(today.getMonth() + 1);
       }
 
-      const { data, error } = await supabase
+      // Build query with org filtering
+      let query = supabase
         .from("work_orders")
         .select("id, customer_name, scheduled_date, scheduled_time, status, address")
         .not("scheduled_date", "is", null)
         .gte("scheduled_date", today.toISOString().split("T")[0])
         .lte("scheduled_date", endDate.toISOString().split("T")[0])
-        .in("status", ["pending", "scheduled"])
+        .in("status", ["pending", "scheduled"]);
+
+      if (activeOrgId === null) {
+        // Personal workspace: user's own work orders with no organization
+        query = query.eq("user_id", user.id).is("organization_id", null);
+      } else {
+        // Organization workspace: all work orders for that org
+        query = query.eq("organization_id", activeOrgId);
+      }
+
+      const { data, error } = await query
         .order("scheduled_date", { ascending: true })
         .limit(5);
 

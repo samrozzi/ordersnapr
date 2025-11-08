@@ -70,12 +70,12 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
 
         const { data: profile, error } = await supabase
           .from("profiles")
-          .select("organization_id")
+          .select("active_org_id")
           .eq("id", user.id)
           .single();
 
         if (error) throw error;
-        setOrgId(profile?.organization_id || null);
+        setOrgId(profile?.active_org_id || null);
       } catch (error: any) {
         console.error("Error fetching user data:", error);
       }

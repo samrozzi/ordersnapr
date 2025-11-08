@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
+import { CustomizeQuickAdd } from "@/components/CustomizeQuickAdd";
 
 interface AuditLog {
   id: string;
@@ -612,6 +613,8 @@ const Profile = () => {
                 </RadioGroup>
               </CardContent>
             </Card>
+
+            <CustomizeQuickAdd />
 
             <Card>
               <CardHeader>

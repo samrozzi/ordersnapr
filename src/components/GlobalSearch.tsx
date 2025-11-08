@@ -66,12 +66,31 @@ export function GlobalSearch() {
       const searchResults: SearchResult[] = [];
 
       try {
+        // Get user's org_id
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          setLoading(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (!profile?.organization_id) {
+          setLoading(false);
+          return;
+        }
+
         const searchTerm = `%${search}%`;
 
         // Search work orders
         const { data: workOrders } = await supabase
           .from("work_orders")
-          .select("id, title, status, job_number")
+          .select("id, title, status, job_number, organization_id")
+          .eq("organization_id", profile.organization_id)
           .or(`title.ilike.${searchTerm},job_number.ilike.${searchTerm},description.ilike.${searchTerm}`)
           .limit(5);
 
@@ -83,7 +102,7 @@ export function GlobalSearch() {
               subtitle: `Status: ${wo.status}`,
               type: "work_order",
               icon: Briefcase,
-              path: `/work-orders/${wo.id}`,
+              path: `/work-orders`,
             });
           });
         }
@@ -91,7 +110,8 @@ export function GlobalSearch() {
         // Search properties
         const { data: properties } = await supabase
           .from("properties")
-          .select("id, property_name, address")
+          .select("id, property_name, address, organization_id")
+          .eq("organization_id", profile.organization_id)
           .or(`property_name.ilike.${searchTerm},address.ilike.${searchTerm}`)
           .limit(5);
 
@@ -103,15 +123,16 @@ export function GlobalSearch() {
               subtitle: prop.address || undefined,
               type: "property",
               icon: Home,
-              path: `/property-info/${prop.id}`,
+              path: `/property-info`,
             });
           });
         }
 
-        // Search form templates
+        // Search form templates (can be org-scoped or global)
         const { data: forms } = await supabase
           .from("form_templates")
-          .select("id, name, description")
+          .select("id, name, description, organization_id")
+          .or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
           .ilike("name", searchTerm)
           .limit(5);
 
@@ -123,7 +144,7 @@ export function GlobalSearch() {
               subtitle: form.description || undefined,
               type: "form",
               icon: FileText,
-              path: `/forms/template/${form.id}`,
+              path: `/forms`,
             });
           });
         }
@@ -131,7 +152,8 @@ export function GlobalSearch() {
         // Search calendar events
         const { data: events } = await supabase
           .from("calendar_events")
-          .select("id, title, event_type, start_time")
+          .select("id, title, event_type, start_time, organization_id")
+          .eq("organization_id", profile.organization_id)
           .ilike("title", searchTerm)
           .limit(5);
 
@@ -143,15 +165,16 @@ export function GlobalSearch() {
               subtitle: `${event.event_type} - ${new Date(event.start_time).toLocaleDateString()}`,
               type: "calendar_event",
               icon: Calendar,
-              path: `/calendar?event=${event.id}`,
+              path: `/calendar`,
             });
           });
         }
 
-        // Search customers/profiles
+        // Search profiles (users in same org)
         const { data: customers } = await supabase
           .from("profiles")
-          .select("id, full_name, email")
+          .select("id, full_name, email, organization_id")
+          .eq("organization_id", profile.organization_id)
           .or(`full_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
           .limit(5);
 
@@ -163,7 +186,7 @@ export function GlobalSearch() {
               subtitle: customer.email || undefined,
               type: "customer",
               icon: Users,
-              path: `/profile/${customer.id}`,
+              path: `/profile`,
             });
           });
         }
@@ -187,10 +210,10 @@ export function GlobalSearch() {
   };
 
   const quickActions = [
-    { label: "New Work Order", path: "/work-orders/new", icon: Briefcase },
-    { label: "New Property", path: "/property-info/new", icon: Home },
-    { label: "New Form", path: "/forms/new", icon: FileText },
-    { label: "New Event", path: "/calendar/new", icon: Calendar },
+    { label: "New Work Order", path: "/work-orders", icon: Briefcase },
+    { label: "New Property", path: "/property-info", icon: Home },
+    { label: "New Form", path: "/forms", icon: FileText },
+    { label: "New Event", path: "/calendar", icon: Calendar },
   ];
 
   return (

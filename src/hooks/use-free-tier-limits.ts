@@ -74,27 +74,23 @@ export function useFreeTierLimits() {
       }
       const { count: workOrderCount } = await workOrderQuery;
 
-      // Count properties
+      // Count properties (properties table only has user_id, not organization_id)
       const propertyQuery = supabase
         .from("properties")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-      if (hasOrg) {
-        propertyQuery.eq("organization_id", profile.organization_id);
-      } else {
-        propertyQuery.eq("user_id", user.id).is("organization_id", null);
-      }
       const { count: propertyCount } = await propertyQuery;
 
-      // Count forms
+      // Count forms (form_templates uses org_id, not organization_id)
       const formQuery = supabase
         .from("form_templates")
         .select("*", { count: "exact", head: true });
 
       if (hasOrg) {
-        formQuery.eq("organization_id", profile.organization_id);
+        formQuery.eq("org_id", profile.organization_id);
       } else {
-        formQuery.eq("user_id", user.id).is("organization_id", null);
+        formQuery.eq("created_by", user.id).is("org_id", null);
       }
       const { count: formCount } = await formQuery;
 
@@ -106,7 +102,7 @@ export function useFreeTierLimits() {
       if (hasOrg) {
         eventQuery.eq("organization_id", profile.organization_id);
       } else {
-        eventQuery.eq("user_id", user.id).is("organization_id", null);
+        eventQuery.eq("created_by", user.id).is("organization_id", null);
       }
       const { count: eventCount } = await eventQuery;
 

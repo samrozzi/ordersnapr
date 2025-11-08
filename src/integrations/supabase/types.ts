@@ -721,6 +721,8 @@ export type Database = {
           id: string
           is_org_admin: boolean | null
           is_super_admin: boolean | null
+          onboarding_completed: boolean | null
+          onboarding_data: Json | null
           organization_id: string | null
           updated_at: string | null
         }
@@ -732,6 +734,8 @@ export type Database = {
           id: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           organization_id?: string | null
           updated_at?: string | null
         }
@@ -743,6 +747,8 @@ export type Database = {
           id?: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           organization_id?: string | null
           updated_at?: string | null
         }
@@ -822,6 +828,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          quick_add_enabled: boolean | null
+          quick_add_items: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          quick_add_enabled?: boolean | null
+          quick_add_items?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          quick_add_enabled?: boolean | null
+          quick_add_items?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -863,7 +896,7 @@ export type Database = {
           job_id: string | null
           linked_invoice_id: string | null
           notes: string | null
-          organization_id: string | null
+          organization_id: string
           package: string | null
           photos: string[] | null
           scheduled_date: string | null
@@ -892,7 +925,7 @@ export type Database = {
           job_id?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
-          organization_id?: string | null
+          organization_id: string
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null

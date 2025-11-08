@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Briefcase,
   Home,
@@ -20,6 +21,7 @@ import {
   ShoppingCart,
   BarChart3,
   Plus,
+  Info,
 } from "lucide-react";
 
 // Feature icons mapping
@@ -84,11 +86,19 @@ export function CustomizeQuickAdd() {
         description: "Quick Add preferences saved successfully",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save preferences",
-        variant: "destructive",
-      });
+      if (error.message === "MIGRATION_REQUIRED") {
+        toast({
+          title: "Feature Not Available Yet",
+          description: "This feature will be available after the next deployment. Quick Add still works with all features!",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to save preferences",
+          variant: "destructive",
+        });
+      }
     }
   };
 

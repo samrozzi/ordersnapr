@@ -26,12 +26,15 @@ export const useUserPreferences = (userId: string | null) => {
       if (error) {
         // If no preferences exist, return null (we'll create them when saving)
         if (error.code === "PGRST116") return null;
+        // If table doesn't exist yet (migration not applied), return null
+        if (error.message?.includes("user_preferences")) return null;
         throw error;
       }
 
       return data as UserPreferences;
     },
     enabled: !!userId,
+    retry: false, // Don't retry if table doesn't exist
   });
 };
 
@@ -49,11 +52,16 @@ export const useUpdateUserPreferences = () => {
       quickAddItems: FeatureModule[];
     }) => {
       // First, check if preferences exist
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from("user_preferences")
         .select("id")
         .eq("user_id", userId)
         .single();
+
+      // If table doesn't exist, throw helpful error
+      if (checkError && checkError.message?.includes("user_preferences")) {
+        throw new Error("MIGRATION_REQUIRED");
+      }
 
       if (existing) {
         // Update existing
@@ -67,7 +75,12 @@ export const useUpdateUserPreferences = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes("user_preferences")) {
+            throw new Error("MIGRATION_REQUIRED");
+          }
+          throw error;
+        }
         return data;
       } else {
         // Insert new
@@ -81,7 +94,12 @@ export const useUpdateUserPreferences = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes("user_preferences")) {
+            throw new Error("MIGRATION_REQUIRED");
+          }
+          throw error;
+        }
         return data;
       }
     },

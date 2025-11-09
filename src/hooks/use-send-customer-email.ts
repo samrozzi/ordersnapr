@@ -14,6 +14,7 @@ interface SendInvoiceEmailParams {
   };
   portalToken?: string;
   organizationName?: string;
+  pdfBase64?: string;
 }
 
 interface SendPortalLinkEmailParams {

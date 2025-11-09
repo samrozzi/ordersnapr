@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSendCustomerEmail } from "@/hooks/use-send-customer-email";
 import { useCustomerPortalTokens } from "@/hooks/use-customer-portal";
+import { useInvoicePDF } from "@/hooks/use-invoice-pdf";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +46,7 @@ export function SendInvoiceEmailButton({
   const { generateToken, getPortalUrl, tokens } = useCustomerPortalTokens(
     invoice.customer_id
   );
+  const { getPDFBase64, isGenerating } = useInvoicePDF();
 
   // Load org name
   useState(() => {
@@ -100,6 +102,9 @@ export function SendInvoiceEmailButton({
         }
       }
 
+      // Generate PDF and convert to base64
+      const pdfBase64 = await getPDFBase64(invoice);
+
       await sendInvoiceEmail({
         recipientEmail,
         recipientName,
@@ -112,6 +117,7 @@ export function SendInvoiceEmailButton({
         },
         portalToken,
         organizationName: orgName,
+        pdfBase64,
       });
 
       setIsOpen(false);
@@ -205,6 +211,7 @@ export function SendInvoiceEmailButton({
               <li>Invoice number: {invoice.number || "Draft"}</li>
               <li>Amount: ${(invoice.total_cents / 100).toFixed(2)}</li>
               <li>Issue date and due date</li>
+              <li>PDF invoice attachment</li>
               {includePortalLink && <li>Secure portal link to view invoice</li>}
             </ul>
           </div>
@@ -216,12 +223,12 @@ export function SendInvoiceEmailButton({
           </Button>
           <Button
             onClick={handleSendEmail}
-            disabled={isSendingInvoice || !recipientEmail || !recipientName}
+            disabled={isSendingInvoice || isGenerating || !recipientEmail || !recipientName}
           >
-            {isSendingInvoice ? (
+            {isSendingInvoice || isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Sending...
+                {isGenerating ? "Generating PDF..." : "Sending..."}
               </>
             ) : (
               <>

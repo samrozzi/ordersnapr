@@ -123,7 +123,9 @@ export function OrganizationManagement({ orgId, onClose }: OrganizationManagemen
         config: {},
       }));
 
-      const { error } = await supabase.from("org_features").upsert(upserts);
+      const { error } = await supabase
+        .from("org_features")
+        .upsert(upserts, { onConflict: 'org_id,module' });
       if (error) throw error;
     },
     onSuccess: () => {

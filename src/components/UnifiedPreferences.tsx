@@ -151,9 +151,11 @@ export function UnifiedPreferences() {
     if (initializedRef.current) return;
 
     if (preferences) {
-      // Hydrate from existing preferences
+      // Hydrate from existing preferences, but filter to only enabled features
+      const savedItems = (preferences.quick_add_items as FeatureModule[] || []);
+      const validItems = savedItems.filter(item => userFeatureModules.includes(item));
       setQuickAddEnabled(preferences.quick_add_enabled ?? false);
-      setSelectedQuickAddItems(preferences.quick_add_items as FeatureModule[] || []);
+      setSelectedQuickAddItems(validItems);
       initializedRef.current = true;
     } else if (userFeatureModules.length > 0) {
       // First time: seed defaults
@@ -409,6 +411,16 @@ export function UnifiedPreferences() {
                 </div>
               )}
 
+              {!isPremium && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Free Tier Limit</AlertTitle>
+                  <AlertDescription>
+                    Free accounts can only have 2 Quick Add items. Upgrade for unlimited access!
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               {selectedQuickAddItems.length === 0 && quickAddEnabled && (
                 <p className="text-sm text-orange-600 dark:text-orange-400">
                   Warning: You must select at least one item, or the Quick Add button will not appear.

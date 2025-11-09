@@ -19,6 +19,7 @@ import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab"
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 import { TemplateManager } from "@/components/admin/TemplateManager";
 import { UserFeaturesManagement } from "@/components/admin/UserFeaturesManagement";
+import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { Navigate } from "react-router-dom";
 import { usePremiumAccess } from "@/hooks/use-premium-access";
 import { useUserOrgMemberships, useAddOrgMembership, useRemoveOrgMembership, useUpdateOrgMembershipRole } from "@/hooks/use-org-memberships";
@@ -56,6 +57,7 @@ const Admin = () => {
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [managingOrgId, setManagingOrgId] = useState<string | null>(null);
   const [addingOrgRole, setAddingOrgRole] = useState<string>("staff");
   const { hasPremiumAccess } = usePremiumAccess();
   
@@ -968,14 +970,23 @@ const Admin = () => {
                             {new Date(org.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteOrganization(org.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => setManagingOrgId(org.id)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteOrganization(org.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -985,6 +996,22 @@ const Admin = () => {
               )}
             </CardContent>
           </Card>
+
+          <Dialog open={!!managingOrgId} onOpenChange={(open) => {
+            if (!open) setManagingOrgId(null);
+          }}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              {managingOrgId && (
+                <OrganizationManagement
+                  orgId={managingOrgId}
+                  onClose={() => {
+                    setManagingOrgId(null);
+                    fetchOrganizations();
+                  }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="features">

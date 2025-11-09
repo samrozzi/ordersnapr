@@ -109,7 +109,8 @@ export function PortalLinkManager({ customerId, customerName }: PortalLinkManage
               Manage portal links for {customerName}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+        </div>
+        <div className="flex gap-2 mt-4">
             {customerEmail && (
               <SendPortalLinkEmailButton
                 customerId={customerId}

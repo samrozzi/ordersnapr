@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Download, Send, Check, Eye } from "lucide-react";
+import { Edit, Download, Send, Check, Eye, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { SharePortalLinkButton } from "@/components/SharePortalLinkButton";
 import { SendInvoiceEmailButton } from "@/components/SendInvoiceEmailButton";
 import { useInvoicePDF } from "@/hooks/use-invoice-pdf";
+import { PaymentStatusBadge } from "@/components/PaymentStatusBadge";
+import { PaymentHistory } from "@/components/PaymentHistory";
+import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -16,6 +20,7 @@ interface InvoiceDetailsProps {
 
 export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps) {
   const { downloadPDF, previewPDF, isGenerating } = useInvoicePDF();
+  const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -55,6 +60,9 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
         </div>
         <div className="flex gap-2">
           {getStatusBadge(invoice.status)}
+          {invoice.payment_status && (
+            <PaymentStatusBadge status={invoice.payment_status} />
+          )}
           {isOverdue() && (
             <Badge variant="destructive">Overdue</Badge>
           )}
@@ -197,6 +205,25 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
         </Card>
       )}
 
+      {/* Payment History */}
+      {invoice.status !== 'draft' && invoice.status !== 'void' && invoice.status !== 'cancelled' && (
+        <>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Payments</h3>
+            {invoice.payment_status !== 'paid' && invoice.payment_status !== 'refunded' && (
+              <Button onClick={() => setRecordPaymentOpen(true)} size="sm">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Record Payment
+              </Button>
+            )}
+          </div>
+          <PaymentHistory
+            invoiceId={invoice.id}
+            invoiceTotalCents={invoice.total_cents || 0}
+          />
+        </>
+      )}
+
       {/* Actions */}
       <div className="flex justify-between pt-4 border-t">
         <div className="flex gap-2">
@@ -248,6 +275,13 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
           )}
         </div>
       </div>
+
+      {/* Record Payment Dialog */}
+      <RecordPaymentDialog
+        open={recordPaymentOpen}
+        onOpenChange={setRecordPaymentOpen}
+        invoice={invoice}
+      />
     </div>
   );
 }

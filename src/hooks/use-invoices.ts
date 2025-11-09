@@ -18,6 +18,7 @@ export interface Invoice {
   customer_id: string | null;
   customer_name: string | null;
   number: string | null;
+  invoice_number?: string; // Add for compatibility
   issue_date: string;
   due_date: string | null;
   line_items: InvoiceLineItem[];
@@ -25,9 +26,14 @@ export interface Invoice {
   tax_cents: number;
   discount_cents: number;
   total_cents: number;
+  total_amount?: number; // Add for compatibility
   paid_amount_cents: number;
   currency: string | null;
   status: 'draft' | 'sent' | 'paid' | 'void' | 'cancelled';
+  payment_status?: 'unpaid' | 'partial' | 'paid' | 'refunded' | 'failed';
+  payment_due_date?: string | null;
+  last_payment_reminder_sent_at?: string | null;
+  stripe_invoice_id?: string | null;
   notes: string | null;
   terms: string | null;
   paid_at: string | null;

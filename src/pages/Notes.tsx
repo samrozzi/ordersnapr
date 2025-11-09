@@ -79,7 +79,7 @@ const Notes = () => {
         title: "Untitled Note",
         content: { blocks: [{ id: `block-${Date.now()}`, type: 'paragraph', content: '' }] },
       });
-      setSelectedNote(newNote as Note);
+      setSelectedNote(newNote as unknown as Note);
       setShowTemplatePicker(false);
     } catch (error) {
       // Error already handled by hook
@@ -93,7 +93,7 @@ const Notes = () => {
         content: { blocks: template.default_blocks },
         template_id: template.id,
       });
-      setSelectedNote(newNote as Note);
+      setSelectedNote(newNote as unknown as Note);
       setShowTemplatePicker(false);
     } catch (error) {
       // Error already handled by hook

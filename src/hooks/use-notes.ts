@@ -96,7 +96,7 @@ export function useNotes() {
         throw error;
       }
 
-      return data as Note[];
+      return data as unknown as Note[];
     },
     enabled: !!user,
   });
@@ -118,7 +118,7 @@ export function useNotes() {
         throw error;
       }
 
-      return data as UserNotesPreferences | null;
+      return data as unknown as UserNotesPreferences | null;
     },
     enabled: !!user,
   });
@@ -138,7 +138,7 @@ export function useNotes() {
         throw error;
       }
 
-      return data as NoteTemplate[];
+      return data as unknown as NoteTemplate[];
     },
   });
 
@@ -163,7 +163,7 @@ export function useNotes() {
           {
             ...noteData,
             user_id: user.id,
-            content: noteData.content || { blocks: [] },
+            content: (noteData.content || { blocks: [] }) as any,
           },
         ])
         .select()
@@ -187,7 +187,7 @@ export function useNotes() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Note> }) => {
       const { data, error } = await supabase
         .from("notes")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id)
         .eq("user_id", user!.id)
         .select()

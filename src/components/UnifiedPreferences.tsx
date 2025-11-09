@@ -308,6 +308,7 @@ export function UnifiedPreferences() {
                                 Locked
                               </>
                             )}
+                          </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 break-words">
                           {feature.description}

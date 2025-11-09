@@ -74,7 +74,7 @@ const Invoices = () => {
   }
 
   return (
-    <PremiumFeatureGuard feature="invoicing">
+    <PremiumFeatureGuard feature="invoicing" featureName="Invoicing">
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">

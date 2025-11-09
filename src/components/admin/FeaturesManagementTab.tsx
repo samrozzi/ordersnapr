@@ -39,6 +39,7 @@ const MODULE_LABELS: Record<FeatureModule, string> = {
   customer_portal: "Customer Portal",
   pos: "Point of Sale",
   files: "Files",
+  customers: "Customers",
 };
 
 export const FeaturesManagementTab = () => {

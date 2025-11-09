@@ -49,6 +49,7 @@ const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; d
   files: { icon: FolderOpen, path: "/files", defaultLabel: "File" },
   customer_portal: { icon: Users, path: "/portal", defaultLabel: "Portal Access" },
   pos: { icon: ShoppingCart, path: "/pos", defaultLabel: "Sale" },
+  customers: { icon: Users, path: "/customers", defaultLabel: "Customer" },
 };
 
 export function QuickAddButton() {

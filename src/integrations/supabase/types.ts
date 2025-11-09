@@ -155,6 +155,50 @@ export type Database = {
           },
         ]
       }
+      customer_portal_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_accessed_at: string | null
+          meta: Json | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_accessed_at?: string | null
+          meta?: Json | null
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_accessed_at?: string | null
+          meta?: Json | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_tokens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: Json | null
@@ -437,6 +481,7 @@ export type Database = {
           id: string
           number: string | null
           org_id: string
+          paid_amount_cents: number | null
           status: string | null
           total_cents: number
           updated_at: string | null
@@ -451,6 +496,7 @@ export type Database = {
           id?: string
           number?: string | null
           org_id: string
+          paid_amount_cents?: number | null
           status?: string | null
           total_cents?: number
           updated_at?: string | null
@@ -465,6 +511,7 @@ export type Database = {
           id?: string
           number?: string | null
           org_id?: string
+          paid_amount_cents?: number | null
           status?: string | null
           total_cents?: number
           updated_at?: string | null

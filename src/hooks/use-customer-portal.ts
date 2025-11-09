@@ -196,16 +196,15 @@ export function useCustomerPortalAccess(token?: string) {
       if (customerError) throw customerError;
 
       // Fetch work orders for this customer
-      const { data: workOrders, error: workOrdersError } = await supabase
+      // @ts-ignore - Suppress deep type instantiation error
+      const workOrdersQuery = await supabase
         .from("work_orders")
-        .select(`
-          *,
-          profiles:completed_by(full_name, email)
-        `)
+        .select("*")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false });
 
-      if (workOrdersError) throw workOrdersError;
+      const workOrders: any[] = workOrdersQuery.data || [];
+      if (workOrdersQuery.error) throw workOrdersQuery.error;
 
       // Fetch invoices for this customer
       const { data: invoices, error: invoicesError } = await supabase

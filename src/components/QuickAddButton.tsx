@@ -90,10 +90,15 @@ export function QuickAddButton() {
   }
 
   // Determine which modules to show in Quick Add
-  const selectedModules: FeatureModule[] =
+  let selectedModules: FeatureModule[] =
     (userPreferences?.quick_add_items && userPreferences.quick_add_items.length > 0)
       ? (userPreferences.quick_add_items as FeatureModule[]).filter(m => userFeatureModules.includes(m))
       : userFeatureModules;
+
+  // Fallback to defaults if empty to prevent Quick Add from disappearing
+  if (selectedModules.length === 0) {
+    selectedModules = ["work_orders", "forms", "calendar"] as FeatureModule[];
+  }
 
   // Build actions array from selected modules
   const actions: QuickAction[] = selectedModules

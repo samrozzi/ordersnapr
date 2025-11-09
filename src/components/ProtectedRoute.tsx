@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -13,6 +13,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approved, setApproved] = useState(false);
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -25,25 +26,38 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         return;
       }
 
-      // Check onboarding status - all users are auto-approved now
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", session.user.id)
-        .single();
+      try {
+        // Check onboarding status
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", session.user.id)
+          .single();
 
-      const onboardingComplete = profile?.onboarding_completed === true;
+        const onboardingComplete = profile?.onboarding_completed === true;
 
-      // Only check if onboarding is complete
-      if (!onboardingComplete) {
-        navigate("/onboarding");
+        // Only redirect to onboarding once if incomplete
+        if (!onboardingComplete) {
+          if (!redirectedRef.current && location.pathname !== "/onboarding") {
+            redirectedRef.current = true;
+            navigate("/onboarding", { replace: true });
+          }
+          setLoading(false);
+          return;
+        }
+
+        // All users who completed onboarding have access
+        setApproved(true);
         setLoading(false);
-        return;
+      } catch (error) {
+        console.error("Error checking profile:", error);
+        // On error, assume onboarding incomplete and redirect once
+        if (!redirectedRef.current && location.pathname !== "/onboarding") {
+          redirectedRef.current = true;
+          navigate("/onboarding", { replace: true });
+        }
+        setLoading(false);
       }
-
-      // All users who completed onboarding have access
-      setApproved(true);
-      setLoading(false);
     };
 
     checkAccess();

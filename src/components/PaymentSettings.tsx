@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePaymentSettings } from "@/hooks/use-payments";
 import { StripeConnectOnboarding } from "./StripeConnectOnboarding";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Bell } from "lucide-react";
 
 export function PaymentSettings() {
   const { settings, updateSettings } = usePaymentSettings();
@@ -23,6 +25,7 @@ export function PaymentSettings() {
   const [lateFeeEnabled, setLateFeeEnabled] = useState(settings?.late_fee_enabled ?? false);
   const [lateFeePercentage, setLateFeePercentage] = useState(settings?.late_fee_percentage ?? 0);
   const [paymentInstructions, setPaymentInstructions] = useState(settings?.payment_instructions ?? '');
+  const [autoRemindersEnabled, setAutoRemindersEnabled] = useState((settings as any)?.auto_reminders_enabled ?? false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -37,7 +40,8 @@ export function PaymentSettings() {
         late_fee_enabled: lateFeeEnabled,
         late_fee_percentage: lateFeePercentage,
         payment_instructions: paymentInstructions || null,
-      });
+        auto_reminders_enabled: autoRemindersEnabled,
+      } as any);
     } catch (error) {
       console.error("Error saving payment settings:", error);
     } finally {
@@ -224,6 +228,65 @@ export function PaymentSettings() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   This fee will be added to invoices that are past due
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Reminders */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Reminders</CardTitle>
+          <CardDescription>
+            Automatically send payment reminders to customers
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <Bell className="h-4 w-4" />
+            <AlertDescription>
+              Payment reminders help you get paid faster by automatically notifying customers
+              about upcoming and overdue payments. You can also send manual reminders from individual invoices.
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Automatic Reminders</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically send reminders for unpaid invoices
+              </p>
+            </div>
+            <Switch
+              checked={autoRemindersEnabled}
+              onCheckedChange={setAutoRemindersEnabled}
+            />
+          </div>
+
+          {autoRemindersEnabled && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Reminder Schedule</div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>3 days before due date</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                    <span>On due date</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span>7 days after due date (if still unpaid)</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground pt-2">
+                  In production, these would be sent automatically via email with payment links.
+                  You can also send manual reminders at any time from the invoice details page.
                 </p>
               </div>
             </>

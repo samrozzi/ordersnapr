@@ -11,6 +11,7 @@ import { useInvoicePDF } from "@/hooks/use-invoice-pdf";
 import { PaymentStatusBadge } from "@/components/PaymentStatusBadge";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
+import { SendPaymentReminderButton } from "@/components/SendPaymentReminderButton";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -260,6 +261,14 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
                 variant="outline"
                 size="sm"
               />
+              {/* Payment Reminder - Only for unpaid/partial invoices */}
+              {(invoice.payment_status === 'unpaid' || invoice.payment_status === 'partial') && (
+                <SendPaymentReminderButton
+                  invoice={invoice}
+                  variant="outline"
+                  size="sm"
+                />
+              )}
             </>
           )}
         </div>

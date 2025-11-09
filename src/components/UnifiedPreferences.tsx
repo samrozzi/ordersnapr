@@ -28,6 +28,8 @@ import {
   Plus,
   Sparkles,
   Sidebar as SidebarIcon,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
 const AVAILABLE_FEATURES = [
@@ -291,15 +293,21 @@ export function UnifiedPreferences() {
                           <Label className="font-semibold cursor-pointer break-words">
                             {feature.name}
                           </Label>
-                          {isFeaturePremium && (
-                            <Badge variant={hasAccess ? "default" : "secondary"} className="gap-1 flex-shrink-0">
-                              <Crown className="h-3 w-3" />
-                              Premium
-                            </Badge>
-                          )}
-                          {!isFeaturePremium && (
-                            <Badge variant="outline" className="flex-shrink-0">Free</Badge>
-                          )}
+                          <Badge 
+                            variant={hasAccess ? "default" : "secondary"} 
+                            className="gap-1 flex-shrink-0"
+                          >
+                            {hasAccess ? (
+                              <>
+                                <Unlock className="h-3 w-3" />
+                                Unlocked
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3 w-3" />
+                                Locked
+                              </>
+                            )}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 break-words">
                           {feature.description}

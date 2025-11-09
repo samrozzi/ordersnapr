@@ -7,6 +7,7 @@ interface FeatureContextType {
   features: OrgFeature[];
   isLoading: boolean;
   hasFeature: (module: FeatureModule) => boolean;
+  canAccessFeature: (module: FeatureModule) => boolean;
   getFeatureConfig: (module: FeatureModule) => Record<string, any>;
   refresh: () => void;
   orgId: string | null;
@@ -48,31 +49,44 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { data: features = [], isLoading } = useOrgFeatures(orgId);
 
   const hasFeature = (module: FeatureModule): boolean => {
-    // If user has org features, use those
-    if (features && features.length > 0) {
-      const feature = features.find((f) => f.module === module);
-      return feature?.enabled || false;
-    }
-
-    // For users without org (free tier/personal workspace)
-    if (!orgId && userId) {
-      // Check localStorage for user preferences (respects toggles)
+    // ALWAYS check user preferences from localStorage FIRST
+    if (userId) {
       const userFeaturesJson = localStorage.getItem(`user_features_${userId}`);
       if (userFeaturesJson) {
         try {
           const userFeatures: string[] = JSON.parse(userFeaturesJson);
+          // User explicitly chose what to show - respect it
           return userFeatures.includes(module);
         } catch (e) {
           console.error("Error parsing user features:", e);
         }
       }
-      
-      // Default free tier features if no localStorage exists
-      const FREE_TIER_DEFAULTS = ["work_orders", "forms", "calendar"];
-      return FREE_TIER_DEFAULTS.includes(module);
     }
 
-    return false;
+    // No localStorage - use defaults based on org/free tier
+    if (features && features.length > 0 && orgId) {
+      // Org user without localStorage - show enabled org features
+      const feature = features.find((f) => f.module === module);
+      return feature?.enabled || false;
+    }
+
+    // Free tier user without localStorage - show defaults
+    const FREE_TIER_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
+    return FREE_TIER_DEFAULTS.includes(module);
+  };
+
+  const canAccessFeature = (module: FeatureModule): boolean => {
+    // Check if user has actual access (for locked/unlocked status)
+    
+    // Org users: check org_features
+    if (features && features.length > 0 && orgId) {
+      const feature = features.find((f) => f.module === module);
+      return feature?.enabled || false;
+    }
+    
+    // Free tier users: check if it's a free feature
+    const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar"];
+    return FREE_TIER_FEATURES.includes(module);
   };
 
   const getFeatureConfig = (module: FeatureModule): Record<string, any> => {
@@ -91,6 +105,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
         features,
         isLoading,
         hasFeature,
+        canAccessFeature,
         getFeatureConfig,
         refresh,
         orgId,

@@ -15,6 +15,7 @@ import {
   Shield,
   User,
   LogOut,
+  Lock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import { FeatureLockedModal } from "./FeatureLockedModal";
 
 const iconMap: Record<string, React.ElementType> = {
   clipboard: ClipboardList,
@@ -60,6 +62,7 @@ export function AppSidebar() {
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const { activeOrg, orgLogoUrl } = useActiveOrg();
   const orgName = activeOrg?.name || "";
+  const [lockedFeatureName, setLockedFeatureName] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUserData();
@@ -172,6 +175,29 @@ export function AppSidebar() {
 
               {!featuresLoading && enabledNavItems.map((item) => {
                 const Icon = item.icon ? iconMap[item.icon] : ClipboardList;
+                
+                if (item.isLocked) {
+                  // Locked feature - show in sidebar but intercept click
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setLockedFeatureName(item.label);
+                        }}
+                        isActive={isActive(item.path)}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          <Lock className="h-3 w-3 text-muted-foreground" />
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                
+                // Unlocked feature - normal nav
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
@@ -240,6 +266,12 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <FeatureLockedModal
+        open={!!lockedFeatureName}
+        onClose={() => setLockedFeatureName(null)}
+        featureName={lockedFeatureName || ""}
+      />
     </Sidebar>
   );
 }

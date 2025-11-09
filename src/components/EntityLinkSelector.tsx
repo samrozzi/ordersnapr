@@ -63,19 +63,19 @@ export function EntityLinkSelector({
         } else if (entityType === 'work_order') {
           const { data } = await supabase
             .from('work_orders')
-            .select('id, title, org_id')
-            .ilike('title', `%${searchQuery}%`)
-            .eq('org_id', noteOrgId || '')
+            .select('id, customer_name, organization_id')
+            .ilike('customer_name', `%${searchQuery}%`)
+            .eq('organization_id', noteOrgId || '')
             .limit(10);
-          results = (data || []).map(wo => ({ ...wo, name: wo.title }));
+          results = (data || []).map(wo => ({ ...wo, name: wo.customer_name, org_id: wo.organization_id }));
         } else if (entityType === 'invoice') {
           const { data } = await supabase
             .from('invoices')
-            .select('id, invoice_number, org_id')
-            .ilike('invoice_number', `%${searchQuery}%`)
+            .select('id, number, org_id')
+            .ilike('number', `%${searchQuery}%`)
             .eq('org_id', noteOrgId || '')
             .limit(10);
-          results = (data || []).map(inv => ({ ...inv, name: `Invoice #${inv.invoice_number}` }));
+          results = (data || []).map(inv => ({ ...inv, name: `Invoice #${inv.number}` }));
         }
 
         setSearchResults(results);

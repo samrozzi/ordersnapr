@@ -541,6 +541,113 @@ export type Database = {
           },
         ]
       }
+      note_templates: {
+        Row: {
+          category: string
+          created_at: string
+          default_blocks: Json
+          default_title: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_blocks?: Json
+          default_title: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_blocks?: Json
+          default_title?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          background_color: string | null
+          banner_image: string | null
+          content: Json
+          created_at: string
+          id: string
+          is_favorite: boolean
+          is_pinned: boolean
+          kanban_column: string | null
+          kanban_position: number | null
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          org_id: string | null
+          template_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          view_mode: string
+        }
+        Insert: {
+          background_color?: string | null
+          banner_image?: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          is_pinned?: boolean
+          kanban_column?: string | null
+          kanban_position?: number | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          org_id?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+          view_mode?: string
+        }
+        Update: {
+          background_color?: string | null
+          banner_image?: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          is_pinned?: boolean
+          kanban_column?: string | null
+          kanban_position?: number | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          org_id?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_features: {
         Row: {
           config: Json | null
@@ -906,6 +1013,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_notes_preferences: {
+        Row: {
+          created_at: string
+          default_view: string
+          id: string
+          kanban_columns: Json
+          list_sort_by: string
+          list_sort_order: string
+          sidebar_dropdown_open: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_view?: string
+          id?: string
+          kanban_columns?: Json
+          list_sort_by?: string
+          list_sort_order?: string
+          sidebar_dropdown_open?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_view?: string
+          id?: string
+          kanban_columns?: Json
+          list_sort_by?: string
+          list_sort_order?: string
+          sidebar_dropdown_open?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {

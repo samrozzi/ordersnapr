@@ -397,21 +397,24 @@ export function useNotes() {
       } else if (note.linked_entity_type === 'work_order') {
         const result = await supabase
           .from("work_orders")
-          .select("id, title, org_id")
+          .select("id, customer_name, organization_id")
           .eq("id", note.linked_entity_id)
-          .single();
+          .maybeSingle();
         data = result.data;
         error = result.error;
-        if (data) data.name = data.title;
+        if (data) {
+          data.name = data.customer_name;
+          data.org_id = data.organization_id;
+        }
       } else if (note.linked_entity_type === 'invoice') {
         const result = await supabase
           .from("invoices")
-          .select("id, invoice_number, org_id")
+          .select("id, number, org_id")
           .eq("id", note.linked_entity_id)
-          .single();
+          .maybeSingle();
         data = result.data;
         error = result.error;
-        if (data) data.name = `Invoice #${data.invoice_number}`;
+        if (data) data.name = `Invoice #${data.number}`;
       }
 
       if (error) {

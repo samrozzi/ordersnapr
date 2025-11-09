@@ -120,6 +120,7 @@ export function UnifiedPreferences() {
   const [selectedQuickAddItems, setSelectedQuickAddItems] = useState<FeatureModule[]>([]);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const initializedRef = useRef(false);
+  const [featuresReady, setFeaturesReady] = useState(false);
 
   // Load sidebar preferences from localStorage
   useEffect(() => {
@@ -139,6 +140,7 @@ export function UnifiedPreferences() {
         const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
         setEnabledFeatures(defaults);
       }
+      setFeaturesReady(true);
     }
   }, [user]);
 
@@ -148,13 +150,14 @@ export function UnifiedPreferences() {
   // Initialize Quick Add preferences
   useEffect(() => {
     if (isLoading || !user) return;
+    if (!featuresReady) return; // wait until sidebar features are loaded
     if (initializedRef.current) return;
 
     if (preferences) {
       // Hydrate from existing preferences, but filter to only enabled features
       const savedItems = (preferences.quick_add_items as FeatureModule[] || []);
       const validItems = savedItems.filter(item => userFeatureModules.includes(item));
-      setQuickAddEnabled(preferences.quick_add_enabled ?? false);
+      setQuickAddEnabled(preferences.quick_add_enabled ?? true);
       setSelectedQuickAddItems(validItems);
       initializedRef.current = true;
     } else if (userFeatureModules.length > 0) {
@@ -162,11 +165,11 @@ export function UnifiedPreferences() {
       const defaults = hasPremiumAccess() 
         ? userFeatureModules.slice(0, 4) 
         : userFeatureModules.slice(0, 2);
-      setQuickAddEnabled(false);
+      setQuickAddEnabled(true);
       setSelectedQuickAddItems(defaults);
       initializedRef.current = true;
     }
-  }, [preferences, isLoading, user, hasPremiumAccess, userFeatureModules]);
+  }, [preferences, isLoading, user, hasPremiumAccess, userFeatureModules, featuresReady]);
 
   const toggleSidebarFeature = (featureId: string) => {
     setEnabledFeatures((prev) => {
@@ -230,11 +233,6 @@ export function UnifiedPreferences() {
         title: "Quick Add Preferences Saved",
         description: "Your Quick Add button has been updated",
       });
-      
-      // Force a small delay then reload to ensure QuickAddButton re-renders
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (error) {
       console.error("Failed to save preferences:", error);
       toast({

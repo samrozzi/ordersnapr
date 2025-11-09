@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Pin, Palette, Image as ImageIcon, Save, X } from "lucide-react";
-import { useNotes, type Note } from "@/hooks/use-notes";
+import { useNotes, type Note, type NoteBlock, type LinkedEntity } from "@/hooks/use-notes";
+import { RichBlockEditor } from "@/components/RichBlockEditor";
+import { EntityLinkSelector } from "@/components/EntityLinkSelector";
 import {
   Select,
   SelectContent,
@@ -29,28 +31,30 @@ const BACKGROUND_COLORS = [
 ];
 
 export function NoteEditor({ note, onClose }: NoteEditorProps) {
-  const { updateNote, toggleFavorite, togglePin } = useNotes();
+  const { updateNote, toggleFavorite, togglePin, linkEntity, unlinkEntity, fetchLinkedEntity } = useNotes();
   const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(
-    note.content.blocks
-      .filter(block => block.type === 'paragraph' || block.type === 'heading')
-      .map(block => block.content || '')
-      .join('\n\n')
+  const [blocks, setBlocks] = useState<NoteBlock[]>(
+    note.content.blocks.length > 0
+      ? note.content.blocks
+      : [{ id: `block-${Date.now()}`, type: 'paragraph', content: '' }]
   );
   const [backgroundColor, setBackgroundColor] = useState(note.background_color || null);
   const [bannerImage, setBannerImage] = useState(note.banner_image || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [linkedEntity, setLinkedEntity] = useState<LinkedEntity | null>(null);
+
+  // Fetch linked entity on mount
+  useEffect(() => {
+    const loadLinkedEntity = async () => {
+      const entity = await fetchLinkedEntity(note);
+      setLinkedEntity(entity);
+    };
+    loadLinkedEntity();
+  }, [note.linked_entity_id, note.linked_entity_type]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Convert text content to blocks
-      const blocks = content.split('\n\n').map((text, index) => ({
-        id: `block-${index}`,
-        type: 'paragraph' as const,
-        content: text,
-      }));
-
       await updateNote({
         id: note.id,
         updates: {
@@ -77,11 +81,30 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
     await togglePin(note.id);
   };
 
+  const handleLinkEntity = async (entityType: 'customer' | 'work_order' | 'invoice', entityId: string) => {
+    try {
+      await linkEntity({ noteId: note.id, entityType, entityId });
+      const entity = await fetchLinkedEntity({ ...note, linked_entity_type: entityType, linked_entity_id: entityId });
+      setLinkedEntity(entity);
+    } catch (error) {
+      console.error("Error linking entity:", error);
+    }
+  };
+
+  const handleUnlinkEntity = async () => {
+    try {
+      await unlinkEntity(note.id);
+      setLinkedEntity(null);
+    } catch (error) {
+      console.error("Error unlinking entity:", error);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
             size="sm"
@@ -119,6 +142,13 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
               ))}
             </SelectContent>
           </Select>
+
+          <EntityLinkSelector
+            currentEntity={linkedEntity}
+            noteOrgId={note.org_id}
+            onLink={handleLinkEntity}
+            onUnlink={handleUnlinkEntity}
+          />
         </div>
 
         <div className="flex gap-2">
@@ -162,17 +192,10 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
           className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 px-0 mb-4"
         />
 
-        {/* Content */}
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Start writing your note...
-
-You can write paragraphs separated by empty lines.
-
-This is a basic editor - rich features coming soon!"
-          className="min-h-[400px] border-none shadow-none focus-visible:ring-0 px-0 resize-none text-base leading-relaxed"
-        />
+        {/* Content - Rich Block Editor */}
+        <div className="my-6">
+          <RichBlockEditor blocks={blocks} onChange={setBlocks} />
+        </div>
 
         {/* Info */}
         <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">

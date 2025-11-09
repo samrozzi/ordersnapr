@@ -16,6 +16,9 @@ import {
   User,
   LogOut,
   Lock,
+  StickyNote,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
+import { useNotes } from "@/hooks/use-notes";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
@@ -63,10 +67,25 @@ export function AppSidebar() {
   const { activeOrg, orgLogoUrl } = useActiveOrg();
   const orgName = activeOrg?.name || "";
   const [lockedFeatureName, setLockedFeatureName] = useState<string | null>(null);
+  const { pinnedNotes, preferences, updatePreferences } = useNotes();
+  const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
 
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  // Sync notes dropdown state with preferences
+  useEffect(() => {
+    if (preferences) {
+      setNotesDropdownOpen(preferences.sidebar_dropdown_open);
+    }
+  }, [preferences]);
+
+  const toggleNotesDropdown = async () => {
+    const newState = !notesDropdownOpen;
+    setNotesDropdownOpen(newState);
+    await updatePreferences({ sidebar_dropdown_open: newState });
+  };
 
   const fetchUserData = async () => {
     try {
@@ -237,6 +256,53 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+
+          {/* Notes with Pinned Dropdown */}
+          <SidebarMenuItem>
+            <div className="flex flex-col">
+              <div className="flex items-center">
+                <SidebarMenuButton asChild isActive={isActive("/notes")} className="flex-1">
+                  <NavLink to="/notes" end onClick={handleNavClick}>
+                    <StickyNote className="h-5 w-5" />
+                    <span>Notes</span>
+                  </NavLink>
+                </SidebarMenuButton>
+                {pinnedNotes.length > 0 && state !== "collapsed" && (
+                  <button
+                    onClick={toggleNotesDropdown}
+                    className="px-2 py-2 hover:bg-accent rounded-md"
+                  >
+                    {notesDropdownOpen ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Pinned Notes Dropdown */}
+              {pinnedNotes.length > 0 && notesDropdownOpen && state !== "collapsed" && (
+                <div className="ml-6 mt-1 space-y-1">
+                  {pinnedNotes.map((note) => (
+                    <SidebarMenuButton
+                      key={note.id}
+                      asChild
+                      size="sm"
+                      className="text-sm"
+                    >
+                      <NavLink
+                        to={`/notes?id=${note.id}`}
+                        onClick={handleNavClick}
+                      >
+                        <span className="truncate">{note.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SidebarMenuItem>
 
           {(isAdmin || isOrgAdmin) && (
             <SidebarMenuItem>

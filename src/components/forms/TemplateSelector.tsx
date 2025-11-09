@@ -10,6 +10,7 @@ import { useUserPermissions } from "@/hooks/use-user-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,6 +116,7 @@ export function TemplateSelector({ templates, onSelect }: TemplateSelectorProps)
                       {template.category}
                     </Badge>
                   )}
+                  <FavoriteButton entityType="form_template" entityId={template.id} />
                   {canDeleteTemplate(template) && (
                     <Button
                       variant="ghost"

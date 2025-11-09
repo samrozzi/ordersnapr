@@ -74,7 +74,7 @@ export function QuickAddButton() {
       .filter(f => f.enabled)
       .map(f => f.module as FeatureModule);
   } else if (user) {
-    // Free tier user - check localStorage
+    // Free tier user - check localStorage, fallback to sensible defaults
     const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
     if (userFeaturesJson) {
       try {
@@ -83,19 +83,23 @@ export function QuickAddButton() {
         console.error("Error parsing user features:", e);
       }
     }
+    // Fallback defaults if nothing stored or parsing failed
+    if (!userFeaturesJson || userFeatureModules.length === 0) {
+      userFeatureModules = ["work_orders", "forms", "calendar"] as FeatureModule[];
+    }
   }
 
-  // Build actions array from user's enabled features and preferences
-  const actions: QuickAction[] = userFeatureModules
-    .filter((module) => {
-      // If user has specific preferences, respect them; otherwise show all enabled features
-      if (userPreferences?.quick_add_items && userPreferences.quick_add_items.length > 0) {
-        return userPreferences.quick_add_items.includes(module);
-      }
-      return true;
-    })
+  // Determine which modules to show in Quick Add
+  const selectedModules: FeatureModule[] =
+    (userPreferences?.quick_add_items && userPreferences.quick_add_items.length > 0)
+      ? (userPreferences.quick_add_items as FeatureModule[]).filter(m => userFeatureModules.includes(m))
+      : userFeatureModules;
+
+  // Build actions array from selected modules
+  const actions: QuickAction[] = selectedModules
     .map((module) => {
       const config = FEATURE_CONFIG[module];
+      if (!config) return null;
       // Get custom label from navigation or feature config  
       const featureConfig = getFeatureConfig(module);
       const navItem = enabledNavItems.find(item => item.module === module);

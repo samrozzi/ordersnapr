@@ -47,12 +47,14 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
 
       // Protect onboarding route - only for new users who haven't completed it
       if (location.pathname === "/onboarding") {
-        if (isApproved || onboardingComplete) {
-          // Approved users or users who already completed onboarding should go to dashboard/workspace
+        // Only redirect away if onboarding is already complete
+        if (onboardingComplete) {
+          // Approved users who completed onboarding go to dashboard, others to free workspace
           navigate(isApproved ? "/dashboard" : "/free-workspace");
           setLoading(false);
           return;
         }
+        // Allow users who haven't completed onboarding to stay on this page
       }
 
       // If approved user tries to access free workspace, redirect to dashboard

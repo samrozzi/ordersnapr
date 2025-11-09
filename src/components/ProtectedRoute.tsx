@@ -30,11 +30,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         // Check onboarding status
         const { data: profile } = await supabase
           .from("profiles")
-          .select("onboarding_completed")
+          .select("onboarding_completed, approval_status")
           .eq("id", session.user.id)
           .single();
 
-        const onboardingComplete = profile?.onboarding_completed === true;
+        // Treat approved users as having completed onboarding (fallback for legacy users)
+        const onboardingComplete = profile?.onboarding_completed === true || profile?.approval_status === 'approved';
 
         // Only redirect to onboarding once if incomplete
         if (!onboardingComplete) {

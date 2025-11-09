@@ -25,48 +25,23 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         return;
       }
 
-      // Check if user is approved or is an admin
+      // Check onboarding status - all users are auto-approved now
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, onboarding_completed, organization_id")
+        .select("onboarding_completed")
         .eq("id", session.user.id)
         .single();
 
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      const isAdmin = !!roles;
-      const isApproved = profile?.approval_status === "approved";
       const onboardingComplete = profile?.onboarding_completed === true;
-      const hasOrg = !!profile?.organization_id;
 
-      // If not approved and not admin, route based on onboarding and org status
-      if (!isApproved && !isAdmin) {
-        if (!onboardingComplete) {
-          // New user needs to complete onboarding first
-          navigate("/onboarding");
-          setLoading(false);
-          return;
-        }
-
-        if (!hasOrg) {
-          // Free-tier user (no organization) who completed onboarding - grant full access
-          setApproved(true);
-          setLoading(false);
-          return;
-        }
-
-        // Org user who completed onboarding but isn't approved yet
-        navigate("/pending-approval");
+      // Only check if onboarding is complete
+      if (!onboardingComplete) {
+        navigate("/onboarding");
         setLoading(false);
         return;
       }
 
-      // Approved or admin users can access protected routes
+      // All users who completed onboarding have access
       setApproved(true);
       setLoading(false);
     };

@@ -7,26 +7,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown, Settings, Layers } from "lucide-react";
+import { Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown, Settings, Layers } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 import { TemplateManager } from "@/components/admin/TemplateManager";
 import { Navigate } from "react-router-dom";
 import { usePremiumAccess } from "@/hooks/use-premium-access";
+import { useUserOrgMemberships, useAddOrgMembership, useRemoveOrgMembership, useUpdateOrgMembershipRole } from "@/hooks/use-org-memberships";
 
 interface UserProfile {
   id: string;
   email: string | null;
   full_name: string | null;
-  approval_status: 'pending' | 'approved' | 'rejected';
   created_at: string;
-  organization_id: string | null;
-  is_org_admin?: boolean;
+  is_super_admin: boolean;
+  memberships?: Array<{
+    id: string;
+    org_id: string;
+    role: string;
+    organization: { id: string; name: string; };
+  }>;
 }
 
 interface Organization {
@@ -47,7 +53,13 @@ const Admin = () => {
   const [newOrgName, setNewOrgName] = useState("");
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [addingOrgRole, setAddingOrgRole] = useState<string>("staff");
   const { hasPremiumAccess } = usePremiumAccess();
+
+  const addMembership = useAddOrgMembership();
+  const removeMembership = useRemoveOrgMembership();
+  const updateRole = useUpdateOrgMembershipRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,26 +113,31 @@ const Admin = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, email, full_name, created_at, is_super_admin")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
 
-      // Fetch org_admin roles for all users
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .eq("role", "org_admin");
+      // Fetch all memberships for all users
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("org_memberships")
+        .select(`
+          id,
+          user_id,
+          org_id,
+          role,
+          organization:organizations(id, name)
+        `);
 
-      if (rolesError) throw rolesError;
+      if (membershipsError) throw membershipsError;
 
-      // Map org_admin status to users
-      const usersWithRoles = (profilesData || []).map(user => ({
+      // Map memberships to users
+      const usersWithMemberships = (profilesData || []).map(user => ({
         ...user,
-        is_org_admin: rolesData?.some(role => role.user_id === user.id) || false
+        memberships: (membershipsData || []).filter(m => m.user_id === user.id) as any
       }));
 
-      setUsers(usersWithRoles);
+      setUsers(usersWithMemberships);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -170,59 +187,86 @@ const Admin = () => {
       if (!session?.user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("organization_id")
+        .select("active_org_id")
         .eq("id", session.user.id)
         .single();
-      if (data) setCurrentOrgId(data.organization_id);
+      if (data) setCurrentOrgId(data.active_org_id);
     };
     fetchCurrentUserOrg();
   }, [session]);
 
-  const handleApproval = async (userId: string, status: 'approved' | 'rejected') => {
+  const handleToggleSuperAdmin = async (userId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ approval_status: status })
+        .update({ is_super_admin: !currentStatus })
         .eq("id", userId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `User ${status === 'approved' ? 'approved' : 'rejected'} successfully`,
+        description: `Super Admin status ${!currentStatus ? 'granted' : 'revoked'}`,
       });
 
       fetchUsers();
     } catch (error) {
-      console.error("Error updating approval status:", error);
+      console.error("Error toggling super admin:", error);
       toast({
         title: "Error",
-        description: "Failed to update user status",
+        description: "Failed to update super admin status",
         variant: "destructive",
       });
     }
   };
 
-  const handleOrganizationAssignment = async (userId: string, organizationId: string | null) => {
+  const handleAddToOrg = async (userId: string, orgId: string, role: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ organization_id: organizationId === "none" ? null : organizationId })
-        .eq("id", userId);
-
-      if (error) throw error;
-
+      await addMembership.mutateAsync({ userId, orgId, role });
       toast({
         title: "Success",
-        description: "Organization assignment updated",
+        description: "User added to organization",
       });
-
       fetchUsers();
-    } catch (error) {
-      console.error("Error updating organization:", error);
+      setManagingUserId(null);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update organization",
+        description: error.message || "Failed to add user to organization",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveFromOrg = async (membershipId: string) => {
+    try {
+      await removeMembership.mutateAsync(membershipId);
+      toast({
+        title: "Success",
+        description: "User removed from organization",
+      });
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove user from organization",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateRole = async (membershipId: string, newRole: string) => {
+    try {
+      await updateRole.mutateAsync({ membershipId, role: newRole });
+      toast({
+        title: "Success",
+        description: "Role updated successfully",
+      });
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update role",
         variant: "destructive",
       });
     }
@@ -264,7 +308,7 @@ const Admin = () => {
   };
 
   const handleDeleteOrganization = async (orgId: string) => {
-    if (!confirm("Are you sure you want to delete this organization? Users will be unassigned.")) {
+    if (!confirm("Are you sure you want to delete this organization? All memberships will be removed.")) {
       return;
     }
 
@@ -288,47 +332,6 @@ const Admin = () => {
       toast({
         title: "Error",
         description: "Failed to delete organization",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleToggleOrgAdmin = async (userId: string, currentStatus: boolean) => {
-    try {
-      if (currentStatus) {
-        // Remove org_admin role
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", userId)
-          .eq("role", "org_admin");
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Org Admin role removed",
-        });
-      } else {
-        // Add org_admin role
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ user_id: userId, role: "org_admin" });
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "User designated as Org Admin",
-        });
-      }
-
-      fetchUsers();
-    } catch (error) {
-      console.error("Error toggling org admin:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update org admin status",
         variant: "destructive",
       });
     }
@@ -360,18 +363,10 @@ const Admin = () => {
     );
   }
 
-  const pendingUsers = users.filter(u => u.approval_status === 'pending');
-  const approvedUsers = users.filter(u => u.approval_status === 'approved');
-  const rejectedUsers = users.filter(u => u.approval_status === 'rejected');
-
-  const getUserOrgName = (orgId: string | null) => {
-    if (!orgId) return "None";
-    const org = organizations.find(o => o.id === orgId);
-    return org?.name || "Unknown";
-  };
-
   const getOrgMemberCount = (orgId: string) => {
-    return users.filter(u => u.organization_id === orgId).length;
+    return users.reduce((count, user) => {
+      return count + (user.memberships?.filter(m => m.org_id === orgId).length || 0);
+    }, 0);
   };
 
   return (
@@ -412,232 +407,136 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending Approvals ({pendingUsers.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pendingUsers.length === 0 ? (
-              <p className="text-muted-foreground">No pending approvals</p>
-            ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
-                <Table className="min-w-max">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Registration Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                      <TableHead className="w-16" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.email || '-'}</TableCell>
-                        <TableCell>{user.full_name || '-'}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={user.organization_id || "none"}
-                            onValueChange={(value) => handleOrganizationAssignment(user.id, value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {organizations.map(org => (
-                                <SelectItem key={org.id} value={org.id}>
-                                  {org.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleApproval(user.id, 'approved')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleApproval(user.id, 'rejected')}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-16"></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Approved Users ({approvedUsers.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {approvedUsers.length === 0 ? (
-              <p className="text-muted-foreground">No approved users</p>
-            ) : (
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
-                <Table className="min-w-max">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[200px]">Email</TableHead>
-                      <TableHead className="min-w-[150px]">Name</TableHead>
-                      <TableHead className="min-w-[180px]">Organization</TableHead>
-                      <TableHead className="min-w-[120px]">Role</TableHead>
-                      <TableHead className="min-w-[100px]">Status</TableHead>
-                      <TableHead className="w-[150px] pr-4">Actions</TableHead>
-                      <TableHead className="w-16" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {approvedUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.email || '-'}</TableCell>
-                        <TableCell>{user.full_name || '-'}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={user.organization_id || "none"}
-                            onValueChange={(value) => handleOrganizationAssignment(user.id, value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {organizations.map(org => (
-                                <SelectItem key={org.id} value={org.id}>
-                                  {org.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          {user.is_org_admin && (
-                            <Badge className="bg-purple-100 text-purple-800 flex items-center gap-1 w-fit">
-                              <Crown className="h-3 w-3" />
-                              Org Admin
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-100 text-green-800">
-                            Approved
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {user.organization_id && (
-                              <Button
-                                size="sm"
-                                variant={user.is_org_admin ? "default" : "outline"}
-                                onClick={() => handleToggleOrgAdmin(user.id, user.is_org_admin || false)}
-                              >
-                                <Crown className="h-4 w-4 mr-1" />
-                                {user.is_org_admin ? "Remove Admin" : "Make Admin"}
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleApproval(user.id, 'rejected')}
-                            >
-                              Revoke Access
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-16"></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {rejectedUsers.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Rejected Users ({rejectedUsers.length})</CardTitle>
+              <CardTitle>All Users ({users.length})</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
-                <Table className="min-w-max">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[200px]">Email</TableHead>
-                      <TableHead className="min-w-[150px]">Name</TableHead>
-                      <TableHead className="min-w-[180px]">Organization</TableHead>
-                      <TableHead className="min-w-[120px]">Status</TableHead>
-                      <TableHead className="w-[180px] pr-4">Actions</TableHead>
-                      <TableHead className="w-16" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rejectedUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.email || '-'}</TableCell>
-                        <TableCell>{user.full_name || '-'}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={user.organization_id || "none"}
-                            onValueChange={(value) => handleOrganizationAssignment(user.id, value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {organizations.map(org => (
-                                <SelectItem key={org.id} value={org.id}>
-                                  {org.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="destructive">Rejected</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproval(user.id, 'approved')}
-                          >
-                            Approve
-                          </Button>
-                        </TableCell>
-                        <TableCell className="w-16"></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              {users.length === 0 ? (
+                <p className="text-muted-foreground">No users found</p>
+              ) : (
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <Card key={user.id} className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{user.email}</span>
+                            {user.is_super_admin && (
+                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                                <Crown className="h-3 w-3 mr-1" />
+                                Super Admin
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-sm text-muted-foreground">{user.full_name || 'No name'}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={user.is_super_admin ? "default" : "outline"}
+                          onClick={() => handleToggleSuperAdmin(user.id, user.is_super_admin)}
+                        >
+                          <Crown className="h-4 w-4 mr-1" />
+                          {user.is_super_admin ? "Revoke Super Admin" : "Make Super Admin"}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Organizations:</span>
+                          <Dialog open={managingUserId === user.id} onOpenChange={(open) => !open && setManagingUserId(null)}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" onClick={() => setManagingUserId(user.id)}>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add to Organization
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Add to Organization</DialogTitle>
+                                <DialogDescription>
+                                  Select an organization and role for {user.email}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <Label>Organization</Label>
+                                  <Select onValueChange={(orgId) => {
+                                    handleAddToOrg(user.id, orgId, addingOrgRole);
+                                  }}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select organization" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {organizations
+                                        .filter(org => !user.memberships?.some(m => m.org_id === org.id))
+                                        .map(org => (
+                                          <SelectItem key={org.id} value={org.id}>
+                                            {org.name}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Role</Label>
+                                  <Select value={addingOrgRole} onValueChange={setAddingOrgRole}>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="staff">Staff</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                      <SelectItem value="manager">Manager</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+
+                        {user.memberships && user.memberships.length > 0 ? (
+                          <div className="space-y-2">
+                            {user.memberships.map((membership) => (
+                              <div key={membership.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm">{membership.organization.name}</span>
+                                  <Select
+                                    value={membership.role}
+                                    onValueChange={(newRole) => handleUpdateRole(membership.id, newRole)}
+                                  >
+                                    <SelectTrigger className="h-7 w-24">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="staff">Staff</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                      <SelectItem value="manager">Manager</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveFromOrg(membership.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground pl-2">Personal Workspace only</p>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
         </TabsContent>
 
         <TabsContent value="organizations" className="space-y-6">
@@ -682,7 +581,7 @@ const Admin = () => {
               {organizations.length === 0 ? (
                 <p className="text-muted-foreground">No organizations created yet</p>
               ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x">
+                <div className="rounded-md border overflow-x-auto touch-pan-x">
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow>
@@ -708,72 +607,12 @@ const Admin = () => {
                             >
                               <Trash2 className="h-4 w-4 mr-1" />
                               Delete
-                          </Button>
-                        </TableCell>
-                        <TableCell className="w-20 sm:w-24"></TableCell>
-                      </TableRow>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Members</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {organizations.length === 0 ? (
-                <p className="text-muted-foreground">Create an organization first</p>
-              ) : (
-                <div className="space-y-6">
-                  {organizations.map((org) => {
-                    const orgMembers = users.filter(u => u.organization_id === org.id);
-                    if (orgMembers.length === 0) return null;
-                    
-                    return (
-                      <div key={org.id} className="space-y-2">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Building2 className="h-5 w-5" />
-                          {org.name}
-                        </h3>
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {orgMembers.map((user) => (
-                                <TableRow key={user.id}>
-                                  <TableCell>{user.email || '-'}</TableCell>
-                                  <TableCell>{user.full_name || '-'}</TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      className={
-                                        user.approval_status === 'approved'
-                                          ? 'bg-green-100 text-green-800'
-                                          : user.approval_status === 'rejected'
-                                          ? 'bg-red-100 text-red-800'
-                                          : 'bg-yellow-100 text-yellow-800'
-                                      }
-                                    >
-                                      {user.approval_status}
-                                    </Badge>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
             </CardContent>

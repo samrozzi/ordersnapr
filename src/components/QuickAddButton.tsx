@@ -98,21 +98,23 @@ export function QuickAddButton() {
   const allowedModules = enabledNavItems.map(item => item.module);
 
   // Determine which modules to show in Quick Add
+  // ONLY show items that are:
+  // 1. In the user's saved quick_add_items (from database)
+  // 2. AND in the user's sidebar preferences (from localStorage or org features)
   let selectedModules: FeatureModule[];
   
-  if (userPreferences) {
-    // If preferences exist, use ONLY saved quick_add_items (even if empty)
-    selectedModules = (userPreferences.quick_add_items || []) as FeatureModule[];
+  if (userPreferences && userPreferences.quick_add_items && userPreferences.quick_add_items.length > 0) {
+    // User has saved Quick Add preferences - use them
+    // But filter to only show items that are ALSO in their sidebar
+    selectedModules = (userPreferences.quick_add_items as FeatureModule[])
+      .filter(m => userFeatureModules.includes(m));
   } else {
-    // No preferences saved yet (first-time user), use feature modules
+    // No Quick Add preferences saved yet - show all enabled sidebar features
     selectedModules = userFeatureModules;
   }
 
-  // Filter by allowed modules (enabled in navigation)
-  selectedModules = selectedModules.filter(m => allowedModules.includes(m));
-
-  // Final fallback only for first-time users with no preferences and empty result
-  if (!userPreferences && selectedModules.length === 0) {
+  // Final fallback if nothing is selected
+  if (selectedModules.length === 0) {
     selectedModules = ["work_orders", "properties", "forms", "calendar"] as FeatureModule[];
   }
 

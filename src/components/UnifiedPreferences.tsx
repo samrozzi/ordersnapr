@@ -7,6 +7,7 @@ import { FeatureModule } from "@/hooks/use-features";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,7 +31,10 @@ import {
   Sidebar as SidebarIcon,
   Lock,
   Unlock,
+  Palette,
+  Upload,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AVAILABLE_FEATURES = [
   {
@@ -112,6 +116,7 @@ export function UnifiedPreferences() {
   const updatePreferences = useUpdateUserPreferences();
   const { toast } = useToast();
   const { hasPremiumAccess } = usePremiumAccess();
+  const isPremium = hasPremiumAccess();
   
   // Sidebar preferences state
   const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
@@ -123,6 +128,12 @@ export function UnifiedPreferences() {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const initializedRef = useRef(false);
   const [featuresReady, setFeaturesReady] = useState(false);
+  
+  // Branding state (for premium users)
+  const [brandPrimaryColor, setBrandPrimaryColor] = useState("#3b82f6");
+  const [brandSecondaryColor, setBrandSecondaryColor] = useState("#8b5cf6");
+  const [brandLogoUrl, setBrandLogoUrl] = useState("");
+  const [brandingHasChanges, setBrandingHasChanges] = useState(false);
 
   // Load sidebar preferences from localStorage
   useEffect(() => {
@@ -145,6 +156,28 @@ export function UnifiedPreferences() {
       setFeaturesReady(true);
     }
   }, [user]);
+
+  // Load branding preferences from database (for premium users)
+  useEffect(() => {
+    const loadBranding = async () => {
+      if (!user || !isPremium) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_data")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.onboarding_data) {
+        const data = profile.onboarding_data as any;
+        if (data.primaryColor) setBrandPrimaryColor(data.primaryColor);
+        if (data.secondaryColor) setBrandSecondaryColor(data.secondaryColor);
+        if (data.logoUrl) setBrandLogoUrl(data.logoUrl);
+      }
+    };
+
+    loadBranding();
+  }, [user, isPremium]);
 
   // Get user's enabled features for Quick Add (from org or localStorage)
   const userFeatureModules = enabledFeatures as FeatureModule[];
@@ -202,6 +235,38 @@ export function UnifiedPreferences() {
     setSidebarHasChanges(true);
   };
 
+  const handleSaveBranding = async () => {
+    if (!user || !isPremium) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          onboarding_data: {
+            primaryColor: brandPrimaryColor,
+            secondaryColor: brandSecondaryColor,
+            logoUrl: brandLogoUrl,
+          }
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Branding Saved",
+        description: "Your brand customization has been updated",
+      });
+      setBrandingHasChanges(false);
+    } catch (error) {
+      console.error("Failed to save branding:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save branding preferences",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleToggleQuickAddItem = (feature: FeatureModule) => {
     setSelectedQuickAddItems(prev => {
       if (prev.includes(feature)) {
@@ -245,10 +310,145 @@ export function UnifiedPreferences() {
     }
   };
 
-  const isPremium = hasPremiumAccess();
-
   return (
     <div className="space-y-6">
+      {/* Branding Customization - Premium Only */}
+      {isPremium && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Make It Your Own
+            </CardTitle>
+            <CardDescription>
+              Customize OrderSnapr with your brand colors and logo
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Colors Section */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brand-primary-color">Primary Color</Label>
+                  <div className="flex gap-2">
+                    <div
+                      className="w-12 h-10 rounded border"
+                      style={{ backgroundColor: brandPrimaryColor }}
+                    />
+                    <Input
+                      id="brand-primary-color"
+                      type="color"
+                      value={brandPrimaryColor}
+                      onChange={(e) => {
+                        setBrandPrimaryColor(e.target.value);
+                        setBrandingHasChanges(true);
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="brand-secondary-color">Secondary Color</Label>
+                  <div className="flex gap-2">
+                    <div
+                      className="w-12 h-10 rounded border"
+                      style={{ backgroundColor: brandSecondaryColor }}
+                    />
+                    <Input
+                      id="brand-secondary-color"
+                      type="color"
+                      value={brandSecondaryColor}
+                      onChange={(e) => {
+                        setBrandSecondaryColor(e.target.value);
+                        setBrandingHasChanges(true);
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Logo Section */}
+              <div className="space-y-4">
+                <Label>Company Logo</Label>
+                <Card className="p-4 border-2 border-dashed">
+                  <div className="text-center space-y-3">
+                    {brandLogoUrl ? (
+                      <div className="space-y-3">
+                        <img
+                          src={brandLogoUrl}
+                          alt="Company logo"
+                          className="max-h-24 mx-auto"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setBrandLogoUrl("");
+                            setBrandingHasChanges(true);
+                          }}
+                        >
+                          Remove Logo
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Upload your logo</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PNG, JPG, or SVG up to 2MB
+                          </p>
+                        </div>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="cursor-pointer text-sm"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const result = reader.result as string;
+                                setBrandLogoUrl(result);
+                                setBrandingHasChanges(true);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Preview */}
+                <div className="space-y-2">
+                  <Label>Preview</Label>
+                  <Card className="p-3" style={{ backgroundColor: brandPrimaryColor }}>
+                    <div className="flex items-center gap-2">
+                      {brandLogoUrl && (
+                        <img src={brandLogoUrl} alt="Logo" className="h-6 object-contain" />
+                      )}
+                      <div className="text-white font-semibold text-sm">
+                        Your Brand Here
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-4 border-t">
+              <Button onClick={handleSaveBranding} disabled={!brandingHasChanges}>
+                Save Branding
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sidebar Customization */}
       <Card>
         <CardHeader>

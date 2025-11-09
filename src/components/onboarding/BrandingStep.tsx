@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Palette, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Palette, Upload, Lock, Crown, Sparkles } from "lucide-react";
+import { usePremiumAccess } from "@/hooks/use-premium-access";
 
 interface BrandingStepProps {
   primaryColor: string;
@@ -31,6 +33,8 @@ export function BrandingStep({
   onNext,
   onBack,
 }: BrandingStepProps) {
+  const { hasPremiumAccess } = usePremiumAccess();
+  const isPremium = hasPremiumAccess();
   const [localPrimary, setLocalPrimary] = useState(primaryColor);
   const [localSecondary, setLocalSecondary] = useState(secondaryColor);
   const [localLogo, setLocalLogo] = useState(logoUrl);
@@ -44,26 +48,57 @@ export function BrandingStep({
   return (
     <div className="space-y-6 py-4">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">Customize Your Brand</h2>
+        <div className="flex items-center justify-center gap-2">
+          <h2 className="text-2xl font-bold">Customize Your Brand</h2>
+          {!isPremium && (
+            <Badge variant="secondary" className="gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground">
-          Make OrderSnapr look and feel like your own with custom colors and logo
+          {isPremium 
+            ? "Make OrderSnapr look and feel like your own with custom colors and logo"
+            : "See what you can unlock with a premium account"
+          }
         </p>
       </div>
+
+      {!isPremium && (
+        <Card className="p-4 border-2 border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+          <div className="flex items-start gap-3">
+            <Lock className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-orange-900 dark:text-orange-100">
+                Premium Feature Preview
+              </p>
+              <p className="text-sm text-orange-800 dark:text-orange-200">
+                Custom branding is available when you upgrade your account. Free accounts use default styling with white and black colors. You can customize your brand later in Preferences after upgrading!
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Color Presets */}
         <div className="space-y-4">
-          <Label className="text-base font-semibold">Color Presets</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            Color Presets
+            {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
+          </Label>
+          <div className="grid grid-cols-3 gap-2 relative">
             {PRESET_COLORS.map((preset) => (
               <button
                 key={preset.name}
-                onClick={() => applyPreset(preset)}
+                onClick={() => isPremium && applyPreset(preset)}
+                disabled={!isPremium}
                 className={`p-3 rounded-lg border-2 transition-all ${
                   localPrimary === preset.primary
                     ? "border-primary shadow-md"
                     : "border-transparent hover:border-muted"
-                }`}
+                } ${!isPremium ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 <div className="flex gap-1 mb-2">
                   <div
@@ -83,7 +118,10 @@ export function BrandingStep({
           {/* Custom Colors */}
           <div className="space-y-3 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="primary-color">Primary Color</Label>
+              <Label htmlFor="primary-color" className="flex items-center gap-2">
+                Primary Color
+                {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
+              </Label>
               <div className="flex gap-2">
                 <div
                   className="w-12 h-10 rounded border"
@@ -94,16 +132,22 @@ export function BrandingStep({
                   type="color"
                   value={localPrimary}
                   onChange={(e) => {
-                    setLocalPrimary(e.target.value);
-                    onUpdate({ primaryColor: e.target.value });
+                    if (isPremium) {
+                      setLocalPrimary(e.target.value);
+                      onUpdate({ primaryColor: e.target.value });
+                    }
                   }}
+                  disabled={!isPremium}
                   className="flex-1"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="secondary-color">Secondary Color</Label>
+              <Label htmlFor="secondary-color" className="flex items-center gap-2">
+                Secondary Color
+                {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
+              </Label>
               <div className="flex gap-2">
                 <div
                   className="w-12 h-10 rounded border"
@@ -114,9 +158,12 @@ export function BrandingStep({
                   type="color"
                   value={localSecondary}
                   onChange={(e) => {
-                    setLocalSecondary(e.target.value);
-                    onUpdate({ secondaryColor: e.target.value });
+                    if (isPremium) {
+                      setLocalSecondary(e.target.value);
+                      onUpdate({ secondaryColor: e.target.value });
+                    }
                   }}
+                  disabled={!isPremium}
                   className="flex-1"
                 />
               </div>
@@ -126,10 +173,13 @@ export function BrandingStep({
 
         {/* Logo Upload & Preview */}
         <div className="space-y-4">
-          <Label className="text-base font-semibold">Company Logo (Optional)</Label>
-          <Card className="p-6 border-2 border-dashed">
+          <Label className="text-base font-semibold flex items-center gap-2">
+            Company Logo (Optional)
+            {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
+          </Label>
+          <Card className={`p-6 border-2 border-dashed ${!isPremium ? "opacity-60" : ""}`}>
             <div className="text-center space-y-4">
-              {localLogo ? (
+              {localLogo && isPremium ? (
                 <div className="space-y-4">
                   <img
                     src={localLogo}
@@ -160,7 +210,9 @@ export function BrandingStep({
                     type="file"
                     accept="image/*"
                     className="cursor-pointer"
+                    disabled={!isPremium}
                     onChange={(e) => {
+                      if (!isPremium) return;
                       const file = e.target.files?.[0];
                       if (file) {
                         const reader = new FileReader();
@@ -174,7 +226,10 @@ export function BrandingStep({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    You can also skip this and add it later
+                    {isPremium 
+                      ? "You can also skip this and add it later"
+                      : "Available after upgrade - customize in Preferences"
+                    }
                   </p>
                 </>
               )}
@@ -203,7 +258,7 @@ export function BrandingStep({
           Back
         </Button>
         <Button onClick={onNext}>
-          Next
+          {isPremium ? "Next" : "Continue with Defaults"}
         </Button>
       </div>
     </div>

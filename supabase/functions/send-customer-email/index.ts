@@ -28,6 +28,7 @@ interface SendInvoiceEmailRequest {
   };
   portalToken?: string;
   organizationName?: string;
+  pdfBase64?: string;
 }
 
 interface SendPortalLinkRequest {
@@ -132,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
       </p>
 
       <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.6; color: #4a4a4a;">
-        ${data.organizationName ? escapeHtml(data.organizationName) : 'We'} ${data.invoiceData.status === 'sent' ? 'have' : 'has'} sent you an invoice. Please find the details below:
+        ${data.organizationName ? escapeHtml(data.organizationName) : 'We'} ${data.invoiceData.status === 'sent' ? 'have' : 'has'} sent you an invoice. Please find the details below${data.pdfBase64 ? ' and the PDF invoice attached to this email' : ''}:
       </p>
 
       <!-- Invoice Details Card -->
@@ -298,6 +299,24 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
+    // Prepare email payload
+    const emailPayload: any = {
+      from: fromEmail,
+      to: [to],
+      subject: subject,
+      html: htmlBody,
+    };
+
+    // Add PDF attachment for invoice emails if provided
+    if (requestData.type === "invoice" && requestData.data.pdfBase64) {
+      emailPayload.attachments = [
+        {
+          filename: `invoice-${requestData.data.invoiceNumber}.pdf`,
+          content: requestData.data.pdfBase64,
+        },
+      ];
+    }
+
     // Send email via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -305,12 +324,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Authorization": `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [to],
-        subject: subject,
-        html: htmlBody,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     if (!resendResponse.ok) {

@@ -33,8 +33,31 @@ export interface Note {
   kanban_position: number | null;
   kanban_column: string | null;
   view_mode: 'note' | 'checklist' | 'canvas' | 'table';
+  linked_entity_type: 'customer' | 'work_order' | 'invoice' | null;
+  linked_entity_id: string | null;
+  template_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface NoteTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  category: 'work' | 'personal';
+  icon: string | null;
+  default_title: string;
+  default_blocks: NoteBlock[];
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LinkedEntity {
+  id: string;
+  type: 'customer' | 'work_order' | 'invoice';
+  name: string;
+  org_id: string | null;
 }
 
 export interface UserNotesPreferences {
@@ -98,6 +121,25 @@ export function useNotes() {
       return data as UserNotesPreferences | null;
     },
     enabled: !!user,
+  });
+
+  // Fetch note templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ["note-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("note_templates")
+        .select("*")
+        .order("category", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching templates:", error);
+        throw error;
+      }
+
+      return data as NoteTemplate[];
+    },
   });
 
   // Check if user can create more notes
@@ -284,6 +326,113 @@ export function useNotes() {
     },
   });
 
+  // Link entity to note
+  const linkEntity = useMutation({
+    mutationFn: async ({
+      noteId,
+      entityType,
+      entityId
+    }: {
+      noteId: string;
+      entityType: 'customer' | 'work_order' | 'invoice';
+      entityId: string;
+    }) => {
+      const { error } = await supabase
+        .from("notes")
+        .update({
+          linked_entity_type: entityType,
+          linked_entity_id: entityId,
+        })
+        .eq("id", noteId)
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      toast.success("Entity linked successfully");
+    },
+    onError: (error: any) => {
+      console.error("Error linking entity:", error);
+      toast.error(error.message || "Failed to link entity. Make sure the entity belongs to the same organization.");
+    },
+  });
+
+  // Unlink entity from note
+  const unlinkEntity = useMutation({
+    mutationFn: async (noteId: string) => {
+      const { error } = await supabase
+        .from("notes")
+        .update({
+          linked_entity_type: null,
+          linked_entity_id: null,
+        })
+        .eq("id", noteId)
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      toast.success("Entity unlinked");
+    },
+  });
+
+  // Fetch linked entity details
+  const fetchLinkedEntity = async (note: Note): Promise<LinkedEntity | null> => {
+    if (!note.linked_entity_id || !note.linked_entity_type) return null;
+
+    try {
+      let data: any = null;
+      let error: any = null;
+
+      if (note.linked_entity_type === 'customer') {
+        const result = await supabase
+          .from("customers")
+          .select("id, name, org_id")
+          .eq("id", note.linked_entity_id)
+          .single();
+        data = result.data;
+        error = result.error;
+      } else if (note.linked_entity_type === 'work_order') {
+        const result = await supabase
+          .from("work_orders")
+          .select("id, title, org_id")
+          .eq("id", note.linked_entity_id)
+          .single();
+        data = result.data;
+        error = result.error;
+        if (data) data.name = data.title;
+      } else if (note.linked_entity_type === 'invoice') {
+        const result = await supabase
+          .from("invoices")
+          .select("id, invoice_number, org_id")
+          .eq("id", note.linked_entity_id)
+          .single();
+        data = result.data;
+        error = result.error;
+        if (data) data.name = `Invoice #${data.invoice_number}`;
+      }
+
+      if (error) {
+        console.error("Error fetching linked entity:", error);
+        return null;
+      }
+
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        type: note.linked_entity_type,
+        name: data.name,
+        org_id: data.org_id,
+      };
+    } catch (error) {
+      console.error("Error fetching linked entity:", error);
+      return null;
+    }
+  };
+
   // Get pinned notes for sidebar
   const pinnedNotes = notes.filter(note => note.is_pinned);
 
@@ -292,6 +441,7 @@ export function useNotes() {
     pinnedNotes,
     isLoading,
     preferences,
+    templates,
     canCreateNote: canCreateNote(),
     notesRemaining: hasPremiumAccess ? Infinity : FREE_TIER_NOTE_LIMIT - notes.length,
     createNote: createNote.mutateAsync,
@@ -301,5 +451,8 @@ export function useNotes() {
     togglePin: togglePin.mutateAsync,
     updateKanbanPosition: updateKanbanPosition.mutateAsync,
     updatePreferences: updatePreferences.mutateAsync,
+    linkEntity: linkEntity.mutateAsync,
+    unlinkEntity: unlinkEntity.mutateAsync,
+    fetchLinkedEntity,
   };
 }

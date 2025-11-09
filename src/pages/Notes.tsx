@@ -18,17 +18,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NoteEditor } from "@/components/NoteEditor";
 import { NoteCard } from "@/components/NoteCard";
 import { KanbanBoard } from "@/components/KanbanBoard";
-import type { Note } from "@/hooks/use-notes";
+import { TemplatePickerDialog } from "@/components/TemplatePickerDialog";
+import type { Note, NoteTemplate } from "@/hooks/use-notes";
 import { format } from "date-fns";
 
 const Notes = () => {
-  const { notes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences } = useNotes();
+  const { notes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences, templates } = useNotes();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState(preferences?.list_sort_by || "updated_at");
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>(preferences?.default_view || 'list');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   // Open note from query parameter (for pinned notes in sidebar)
   useEffect(() => {
@@ -65,18 +66,35 @@ const Notes = () => {
   const favoriteNotes = sortedNotes.filter(n => n.is_favorite);
   const regularNotes = sortedNotes.filter(n => !n.is_favorite && !n.is_pinned);
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = () => {
     if (!canCreateNote) {
       return;
     }
+    setShowTemplatePicker(true);
+  };
 
+  const handleCreateBlankNote = async () => {
     try {
       const newNote = await createNote({
         title: "Untitled Note",
-        content: { blocks: [] },
+        content: { blocks: [{ id: `block-${Date.now()}`, type: 'paragraph', content: '' }] },
       });
       setSelectedNote(newNote as Note);
-      setIsCreatingNote(false);
+      setShowTemplatePicker(false);
+    } catch (error) {
+      // Error already handled by hook
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: NoteTemplate) => {
+    try {
+      const newNote = await createNote({
+        title: template.default_title,
+        content: { blocks: template.default_blocks },
+        template_id: template.id,
+      });
+      setSelectedNote(newNote as Note);
+      setShowTemplatePicker(false);
     } catch (error) {
       // Error already handled by hook
     }
@@ -283,6 +301,15 @@ const Notes = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Template Picker Dialog */}
+      <TemplatePickerDialog
+        open={showTemplatePicker}
+        onOpenChange={setShowTemplatePicker}
+        templates={templates}
+        onSelectTemplate={handleCreateFromTemplate}
+        onCreateBlank={handleCreateBlankNote}
+      />
 
       {/* Note Editor Dialog */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>

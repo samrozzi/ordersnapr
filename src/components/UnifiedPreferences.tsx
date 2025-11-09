@@ -3,6 +3,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
 import { usePremiumAccess } from "@/hooks/use-premium-access";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { useUserOrgMemberships } from "@/hooks/use-org-memberships";
 import { FeatureModule } from "@/hooks/use-features";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -109,6 +111,18 @@ const AVAILABLE_FEATURES = [
   },
 ];
 
+const BRAND_PRESET_COLORS = [
+  { name: "Blue", primary: "#3b82f6", secondary: "#8b5cf6" },
+  { name: "Green", primary: "#10b981", secondary: "#14b8a6" },
+  { name: "Orange", primary: "#f97316", secondary: "#f59e0b" },
+  { name: "Pink", primary: "#ec4899", secondary: "#a855f7" },
+  { name: "Indigo", primary: "#6366f1", secondary: "#8b5cf6" },
+  { name: "Red", primary: "#ef4444", secondary: "#f97316" },
+  { name: "Purple", primary: "#a855f7", secondary: "#ec4899" },
+  { name: "Teal", primary: "#14b8a6", secondary: "#06b6d4" },
+  { name: "Amber", primary: "#f59e0b", secondary: "#eab308" },
+];
+
 export function UnifiedPreferences() {
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
@@ -117,6 +131,13 @@ export function UnifiedPreferences() {
   const { toast } = useToast();
   const { hasPremiumAccess } = usePremiumAccess();
   const isPremium = hasPremiumAccess();
+  const { activeOrgId } = useActiveOrg();
+  const { data: orgMemberships } = useUserOrgMemberships(user?.id || null);
+  
+  // Check if user can edit branding (premium + either no org or is org admin)
+  const canEditBranding = isPremium && (!activeOrgId || orgMemberships?.some(
+    m => m.org_id === activeOrgId && (m.role === 'admin' || m.role === 'owner')
+  ));
   
   // Sidebar preferences state
   const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
@@ -129,9 +150,9 @@ export function UnifiedPreferences() {
   const initializedRef = useRef(false);
   const [featuresReady, setFeaturesReady] = useState(false);
   
-  // Branding state (for premium users)
-  const [brandPrimaryColor, setBrandPrimaryColor] = useState("#3b82f6");
-  const [brandSecondaryColor, setBrandSecondaryColor] = useState("#8b5cf6");
+  // Branding state (defaults to white/black for free users)
+  const [brandPrimaryColor, setBrandPrimaryColor] = useState(isPremium ? "#3b82f6" : "#ffffff");
+  const [brandSecondaryColor, setBrandSecondaryColor] = useState(isPremium ? "#8b5cf6" : "#000000");
   const [brandLogoUrl, setBrandLogoUrl] = useState("");
   const [brandingHasChanges, setBrandingHasChanges] = useState(false);
 
@@ -235,8 +256,15 @@ export function UnifiedPreferences() {
     setSidebarHasChanges(true);
   };
 
+  const applyBrandPreset = (preset: typeof BRAND_PRESET_COLORS[0]) => {
+    if (!canEditBranding) return;
+    setBrandPrimaryColor(preset.primary);
+    setBrandSecondaryColor(preset.secondary);
+    setBrandingHasChanges(true);
+  };
+
   const handleSaveBranding = async () => {
-    if (!user || !isPremium) return;
+    if (!user || !canEditBranding) return;
 
     try {
       const { error } = await supabase
@@ -312,142 +340,222 @@ export function UnifiedPreferences() {
 
   return (
     <div className="space-y-6">
-      {/* Branding Customization - Premium Only */}
-      {isPremium && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Make It Your Own
-            </CardTitle>
-            <CardDescription>
-              Customize OrderSnapr with your brand colors and logo
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Colors Section */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="brand-primary-color">Primary Color</Label>
-                  <div className="flex gap-2">
-                    <div
-                      className="w-12 h-10 rounded border"
-                      style={{ backgroundColor: brandPrimaryColor }}
-                    />
-                    <Input
-                      id="brand-primary-color"
-                      type="color"
-                      value={brandPrimaryColor}
-                      onChange={(e) => {
-                        setBrandPrimaryColor(e.target.value);
-                        setBrandingHasChanges(true);
-                      }}
-                      className="flex-1"
-                    />
+      {/* Branding Customization - Show for all, but lock for free users and non-admins */}
+      <Card className={!isPremium || (activeOrgId && !canEditBranding) ? "relative overflow-hidden" : ""}>
+        {!isPremium && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex items-center justify-center">
+            <Card className="max-w-md mx-4 shadow-lg border-2">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <Crown className="h-8 w-8 text-primary" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Upgrade to Customize Your Brand</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Free accounts use default black and white styling. Upgrade to unlock custom brand colors and logo.
+                    </p>
+                  </div>
+                  <Button className="w-full">
+                    Upgrade Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        {activeOrgId && !canEditBranding && isPremium && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex items-center justify-center">
+            <Card className="max-w-md mx-4 shadow-lg border-2">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="bg-destructive/10 p-3 rounded-full">
+                      <Lock className="h-8 w-8 text-destructive" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Admin Access Required</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Only organization admins can customize brand colors and logo. Contact your organization admin to make changes.
+                    </p>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="brand-secondary-color">Secondary Color</Label>
-                  <div className="flex gap-2">
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Make It Your Own
+            {!isPremium && <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" />Premium</Badge>}
+            {activeOrgId && !canEditBranding && isPremium && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />Admin Only</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Customize OrderSnapr with your brand colors and logo
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Color Presets */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Color Presets</Label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+              {BRAND_PRESET_COLORS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => applyBrandPreset(preset)}
+                  disabled={!canEditBranding}
+                  className={`p-2 rounded-lg border-2 transition-all ${
+                    brandPrimaryColor === preset.primary
+                      ? "border-primary shadow-md"
+                      : "border-transparent hover:border-muted"
+                  } ${!canEditBranding ? "opacity-60 cursor-not-allowed" : ""}`}
+                >
+                  <div className="flex gap-1 mb-1">
                     <div
-                      className="w-12 h-10 rounded border"
-                      style={{ backgroundColor: brandSecondaryColor }}
+                      className="w-6 h-6 rounded"
+                      style={{ backgroundColor: preset.primary }}
                     />
-                    <Input
-                      id="brand-secondary-color"
-                      type="color"
-                      value={brandSecondaryColor}
-                      onChange={(e) => {
-                        setBrandSecondaryColor(e.target.value);
-                        setBrandingHasChanges(true);
-                      }}
-                      className="flex-1"
+                    <div
+                      className="w-6 h-6 rounded"
+                      style={{ backgroundColor: preset.secondary }}
                     />
                   </div>
+                  <span className="text-xs font-medium">{preset.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Colors Section */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="brand-primary-color">Primary Color</Label>
+                <div className="flex gap-2">
+                  <div
+                    className="w-12 h-10 rounded border"
+                    style={{ backgroundColor: brandPrimaryColor }}
+                  />
+                  <Input
+                    id="brand-primary-color"
+                    type="color"
+                    value={brandPrimaryColor}
+                    onChange={(e) => {
+                      setBrandPrimaryColor(e.target.value);
+                      setBrandingHasChanges(true);
+                    }}
+                    disabled={!canEditBranding}
+                    className="flex-1"
+                  />
                 </div>
               </div>
 
-              {/* Logo Section */}
-              <div className="space-y-4">
-                <Label>Company Logo</Label>
-                <Card className="p-4 border-2 border-dashed">
-                  <div className="text-center space-y-3">
-                    {brandLogoUrl ? (
-                      <div className="space-y-3">
-                        <img
-                          src={brandLogoUrl}
-                          alt="Company logo"
-                          className="max-h-24 mx-auto"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setBrandLogoUrl("");
-                            setBrandingHasChanges(true);
-                          }}
-                        >
-                          Remove Logo
-                        </Button>
+              <div className="space-y-2">
+                <Label htmlFor="brand-secondary-color">Secondary Color</Label>
+                <div className="flex gap-2">
+                  <div
+                    className="w-12 h-10 rounded border"
+                    style={{ backgroundColor: brandSecondaryColor }}
+                  />
+                  <Input
+                    id="brand-secondary-color"
+                    type="color"
+                    value={brandSecondaryColor}
+                    onChange={(e) => {
+                      setBrandSecondaryColor(e.target.value);
+                      setBrandingHasChanges(true);
+                    }}
+                    disabled={!canEditBranding}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Logo Section */}
+            <div className="space-y-4">
+              <Label>Company Logo</Label>
+              <Card className="p-4 border-2 border-dashed">
+                <div className="text-center space-y-3">
+                  {brandLogoUrl ? (
+                    <div className="space-y-3">
+                      <img
+                        src={brandLogoUrl}
+                        alt="Company logo"
+                        className="max-h-24 mx-auto"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setBrandLogoUrl("");
+                          setBrandingHasChanges(true);
+                        }}
+                        disabled={!canEditBranding}
+                      >
+                        Remove Logo
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Upload your logo</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG, or SVG up to 2MB
+                        </p>
                       </div>
-                    ) : (
-                      <>
-                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Upload your logo</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            PNG, JPG, or SVG up to 2MB
-                          </p>
-                        </div>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          className="cursor-pointer text-sm"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const result = reader.result as string;
-                                setBrandLogoUrl(result);
-                                setBrandingHasChanges(true);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="cursor-pointer text-sm"
+                        disabled={!canEditBranding}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const result = reader.result as string;
+                              setBrandLogoUrl(result);
+                              setBrandingHasChanges(true);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              </Card>
+
+              {/* Preview */}
+              <div className="space-y-2">
+                <Label>Preview</Label>
+                <Card className="p-3" style={{ backgroundColor: brandPrimaryColor }}>
+                  <div className="flex items-center gap-2">
+                    {brandLogoUrl && (
+                      <img src={brandLogoUrl} alt="Logo" className="h-6 object-contain" />
                     )}
+                    <div className="text-white font-semibold text-sm">
+                      Your Brand Here
+                    </div>
                   </div>
                 </Card>
-
-                {/* Preview */}
-                <div className="space-y-2">
-                  <Label>Preview</Label>
-                  <Card className="p-3" style={{ backgroundColor: brandPrimaryColor }}>
-                    <div className="flex items-center gap-2">
-                      {brandLogoUrl && (
-                        <img src={brandLogoUrl} alt="Logo" className="h-6 object-contain" />
-                      )}
-                      <div className="text-white font-semibold text-sm">
-                        Your Brand Here
-                      </div>
-                    </div>
-                  </Card>
-                </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center justify-end pt-4 border-t">
-              <Button onClick={handleSaveBranding} disabled={!brandingHasChanges}>
-                Save Branding
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <div className="flex items-center justify-end pt-4 border-t">
+            <Button onClick={handleSaveBranding} disabled={!brandingHasChanges || !canEditBranding}>
+              Save Branding
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Sidebar Customization */}
       <Card>

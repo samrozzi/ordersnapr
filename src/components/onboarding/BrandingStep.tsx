@@ -23,6 +23,9 @@ const PRESET_COLORS = [
   { name: "Pink", primary: "#ec4899", secondary: "#a855f7" },
   { name: "Indigo", primary: "#6366f1", secondary: "#8b5cf6" },
   { name: "Red", primary: "#ef4444", secondary: "#f97316" },
+  { name: "Purple", primary: "#a855f7", secondary: "#ec4899" },
+  { name: "Teal", primary: "#14b8a6", secondary: "#06b6d4" },
+  { name: "Amber", primary: "#f59e0b", secondary: "#eab308" },
 ];
 
 export function BrandingStep({
@@ -35,8 +38,9 @@ export function BrandingStep({
 }: BrandingStepProps) {
   const { hasPremiumAccess } = usePremiumAccess();
   const isPremium = hasPremiumAccess();
-  const [localPrimary, setLocalPrimary] = useState(primaryColor);
-  const [localSecondary, setLocalSecondary] = useState(secondaryColor);
+  // Free users default to white/black, premium users can customize
+  const [localPrimary, setLocalPrimary] = useState(isPremium ? primaryColor : "#ffffff");
+  const [localSecondary, setLocalSecondary] = useState(isPremium ? secondaryColor : "#000000");
   const [localLogo, setLocalLogo] = useState(logoUrl);
 
   const applyPreset = (preset: typeof PRESET_COLORS[0]) => {
@@ -49,7 +53,9 @@ export function BrandingStep({
     <div className="space-y-6 py-4">
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">
-          <h2 className="text-2xl font-bold">Customize Your Brand</h2>
+          <h2 className="text-2xl font-bold">
+            {isPremium ? "Customize Your Brand" : "Unlock Premium Branding"}
+          </h2>
           {!isPremium && (
             <Badge variant="secondary" className="gap-1">
               <Crown className="h-3 w-3" />
@@ -60,21 +66,22 @@ export function BrandingStep({
         <p className="text-muted-foreground">
           {isPremium 
             ? "Make OrderSnapr look and feel like your own with custom colors and logo"
-            : "See what you can unlock with a premium account"
+            : "Upgrade to customize OrderSnapr with your brand colors and logo"
           }
         </p>
       </div>
 
       {!isPremium && (
-        <Card className="p-4 border-2 border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
+        <Card className="p-4 border-2 border-primary/20 bg-primary/5">
           <div className="flex items-start gap-3">
-            <Lock className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-semibold text-orange-900 dark:text-orange-100">
-                Premium Feature Preview
+              <p className="font-semibold flex items-center gap-2">
+                Preview Premium Features
+                <Crown className="h-4 w-4 text-primary" />
               </p>
-              <p className="text-sm text-orange-800 dark:text-orange-200">
-                Custom branding is available when you upgrade your account. Free accounts use default styling with white and black colors. You can customize your brand later in Preferences after upgrading!
+              <p className="text-sm text-muted-foreground">
+                Free accounts use default black and white styling. Upgrade to unlock custom brand colors and logo - you can customize these in Preferences after upgrading!
               </p>
             </div>
           </div>

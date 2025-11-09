@@ -17,6 +17,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NoteEditor } from "@/components/NoteEditor";
 import { NoteCard } from "@/components/NoteCard";
+import { KanbanBoard } from "@/components/KanbanBoard";
 import type { Note } from "@/hooks/use-notes";
 import { format } from "date-fns";
 
@@ -227,44 +228,59 @@ const Notes = () => {
               )}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              Kanban view coming soon...
-            </div>
+            <KanbanBoard
+              notes={sortedNotes}
+              onNoteClick={(note) => setSelectedNote(note)}
+            />
           )}
         </TabsContent>
 
         <TabsContent value="pinned" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pinnedNotes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onClick={() => setSelectedNote(note)}
-              />
-            ))}
-            {pinnedNotes.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                No pinned notes. Pin notes to see them here and in the sidebar.
-              </div>
-            )}
-          </div>
+          {viewMode === 'list' ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pinnedNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onClick={() => setSelectedNote(note)}
+                />
+              ))}
+              {pinnedNotes.length === 0 && (
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  No pinned notes. Pin notes to see them here and in the sidebar.
+                </div>
+              )}
+            </div>
+          ) : (
+            <KanbanBoard
+              notes={pinnedNotes}
+              onNoteClick={(note) => setSelectedNote(note)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="favorites" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {favoriteNotes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onClick={() => setSelectedNote(note)}
-              />
-            ))}
-            {favoriteNotes.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                No favorite notes. Mark notes as favorites to see them here.
-              </div>
-            )}
-          </div>
+          {viewMode === 'list' ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {favoriteNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onClick={() => setSelectedNote(note)}
+                />
+              ))}
+              {favoriteNotes.length === 0 && (
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  No favorite notes. Mark notes as favorites to see them here.
+                </div>
+              )}
+            </div>
+          ) : (
+            <KanbanBoard
+              notes={favoriteNotes}
+              onNoteClick={(note) => setSelectedNote(note)}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

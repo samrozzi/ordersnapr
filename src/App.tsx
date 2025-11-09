@@ -35,6 +35,7 @@ const Invoices = lazy(() => import("./pages/Invoices"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
+const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 
 // Optimized React Query configuration
 const queryClient = new QueryClient({
@@ -64,6 +65,9 @@ const AppContent = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
+
+              {/* Customer Portal - Public route (token-based access) */}
+              <Route path="/portal/:token" element={<CustomerPortal />} />
 
               {/* Free Tier Routes - No approval required */}
               <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />

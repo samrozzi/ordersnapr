@@ -17,7 +17,7 @@ const MODULE_NAV_MAP: NavItem[] = [
   { module: "inventory", label: "Inventory", path: "/inventory", icon: "package" },
   { module: "reports", label: "Reports", path: "/reports", icon: "bar-chart" },
   { module: "files", label: "Files", path: "/files", icon: "folder" },
-  { module: "customer_portal", label: "Portal", path: "/portal", icon: "users" },
+  // Note: customer_portal feature exists but has no nav item (accessed via token links in invoices/work orders)
 ];
 
 export const useFeatureNavigation = () => {

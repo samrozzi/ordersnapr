@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Edit, Download, Send, Check } from "lucide-react";
 import { format } from "date-fns";
+import { SharePortalLinkButton } from "@/components/SharePortalLinkButton";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -193,17 +194,26 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onClose}>
-          Close
-        </Button>
-        {invoice.status === 'draft' && (
-          <Button onClick={onEdit}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
+      <div className="flex justify-between pt-4 border-t">
+        <div>
+          {invoice.customer_id && (
+            <SharePortalLinkButton
+              customerId={invoice.customer_id}
+              variant="outline"
+            />
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Close
           </Button>
-        )}
-        {/* Future: Add PDF download and email buttons */}
+          {invoice.status === 'draft' && (
+            <Button onClick={onEdit}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

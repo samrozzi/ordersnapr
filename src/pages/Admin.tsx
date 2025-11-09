@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 import { TemplateManager } from "@/components/admin/TemplateManager";
+import { UserFeaturesManagement } from "@/components/admin/UserFeaturesManagement";
 import { Navigate } from "react-router-dom";
 import { usePremiumAccess } from "@/hooks/use-premium-access";
 import { useUserOrgMemberships, useAddOrgMembership, useRemoveOrgMembership, useUpdateOrgMembershipRole } from "@/hooks/use-org-memberships";
@@ -65,6 +66,7 @@ const Admin = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({ email: "", full_name: "" });
+  const [managingUserFeatures, setManagingUserFeatures] = useState<string | null>(null);
 
   const addMembership = useAddOrgMembership();
   const removeMembership = useRemoveOrgMembership();
@@ -657,6 +659,14 @@ const Admin = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => setManagingUserFeatures(user.id)}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            Features
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => setChangingPasswordUserId(user.id)}
                           >
                             Change Password
@@ -881,6 +891,18 @@ const Admin = () => {
                   Update Password
                 </Button>
               </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* User Features Management Dialog */}
+          <Dialog open={!!managingUserFeatures} onOpenChange={(open) => {
+            if (!open) setManagingUserFeatures(null);
+          }}>
+            <DialogContent className="max-w-3xl">
+              <UserFeaturesManagement
+                userId={managingUserFeatures || ""}
+                onClose={() => setManagingUserFeatures(null)}
+              />
             </DialogContent>
           </Dialog>
         </TabsContent>

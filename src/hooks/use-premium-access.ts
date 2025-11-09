@@ -27,6 +27,7 @@ export function usePremiumAccess() {
   const { user } = useAuth();
   const [isApproved, setIsApproved] = useState(false);
   const [hasOrg, setHasOrg] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,18 +38,20 @@ export function usePremiumAccess() {
       }
 
       try {
-        // Check approval status
+        // Check approval status and super admin
         const { data: profile } = await supabase
           .from("profiles")
-          .select("approval_status, organization_id")
+          .select("approval_status, organization_id, is_super_admin")
           .eq("id", user.id)
           .single();
 
         const approved = profile?.approval_status === "approved";
         const inOrg = !!profile?.organization_id;
+        const superAdmin = profile?.is_super_admin || false;
 
         setIsApproved(approved);
         setHasOrg(inOrg);
+        setIsSuperAdmin(superAdmin);
       } catch (error) {
         console.error("Error checking premium access:", error);
       } finally {
@@ -61,10 +64,16 @@ export function usePremiumAccess() {
 
   /**
    * Check if a feature is accessible for the current user
+   * Super admins get everything
    * Free tier users can access FREE_TIER_FEATURES with usage limits
    * Premium users (approved/in org) can access all features
    */
   const canAccessFeature = (feature: string): boolean => {
+    // Super admins get everything
+    if (isSuperAdmin) {
+      return true;
+    }
+
     // Premium users get everything
     if (isApproved || hasOrg) {
       return true;
@@ -92,6 +101,7 @@ export function usePremiumAccess() {
   return {
     isApproved,
     hasOrg,
+    isSuperAdmin,
     loading,
     canAccessFeature,
     isPremiumOnly,

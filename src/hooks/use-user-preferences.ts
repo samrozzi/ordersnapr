@@ -67,8 +67,10 @@ export const useUpdateUserPreferences = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
+    onSuccess: async (_, variables) => {
+      // Invalidate and refetch the query immediately
+      await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
+      await queryClient.refetchQueries({ queryKey: ["user-preferences", variables.userId] });
     },
   });
 };

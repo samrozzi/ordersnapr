@@ -818,6 +818,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: string
+          org_id: string | null
           user_id: string
         }
         Insert: {
@@ -826,6 +827,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: string
+          org_id?: string | null
           user_id: string
         }
         Update: {
@@ -834,9 +836,18 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: string
+          org_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_preferences: {
         Row: {

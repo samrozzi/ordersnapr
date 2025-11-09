@@ -230,6 +230,11 @@ export function UnifiedPreferences() {
         title: "Quick Add Preferences Saved",
         description: "Your Quick Add button has been updated",
       });
+      
+      // Force a small delay then reload to ensure QuickAddButton re-renders
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Failed to save preferences:", error);
       toast({

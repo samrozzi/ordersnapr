@@ -49,33 +49,27 @@ export function BrandingStep({
     onUpdate({ primaryColor: preset.primary, secondaryColor: preset.secondary });
   };
 
-  return (
-    <div className="space-y-6 py-4">
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2">
-          <h2 className="text-2xl font-bold">
-            {isPremium ? "Customize Your Brand" : "Unlock Premium Branding"}
-          </h2>
-          {!isPremium && (
+  // Free users see locked preview only
+  if (!isPremium) {
+    return (
+      <div className="space-y-6 py-4">
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-2xl font-bold">Unlock Premium Branding</h2>
             <Badge variant="secondary" className="gap-1">
               <Crown className="h-3 w-3" />
               Premium
             </Badge>
-          )}
+          </div>
+          <p className="text-muted-foreground">
+            Upgrade to customize OrderSnapr with your brand colors and logo
+          </p>
         </div>
-        <p className="text-muted-foreground">
-          {isPremium 
-            ? "Make OrderSnapr look and feel like your own with custom colors and logo"
-            : "Upgrade to customize OrderSnapr with your brand colors and logo"
-          }
-        </p>
-      </div>
 
-      {!isPremium && (
-        <Card className="p-4 border-2 border-primary/20 bg-primary/5">
+        <Card className="p-6 border-2 border-primary/20 bg-primary/5">
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="font-semibold flex items-center gap-2">
                 Preview Premium Features
                 <Crown className="h-4 w-4 text-primary" />
@@ -83,29 +77,60 @@ export function BrandingStep({
               <p className="text-sm text-muted-foreground">
                 Free accounts use default black and white styling. Upgrade to unlock custom brand colors and logo - you can customize these in Preferences after upgrading!
               </p>
+              <ul className="text-sm text-muted-foreground space-y-1 mt-3">
+                <li className="flex items-center gap-2">
+                  <Palette className="h-4 w-4" />
+                  Custom primary and secondary colors
+                </li>
+                <li className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload your company logo
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Multiple color preset themes
+                </li>
+              </ul>
             </div>
           </div>
         </Card>
-      )}
+
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button onClick={onNext}>
+            Continue with Defaults
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Premium users see full customization
+  return (
+    <div className="space-y-6 py-4">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold">Customize Your Brand</h2>
+        <p className="text-muted-foreground">
+          Make OrderSnapr look and feel like your own with custom colors and logo
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Color Presets */}
         <div className="space-y-4">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            Color Presets
-            {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
-          </Label>
-          <div className="grid grid-cols-3 gap-2 relative">
+          <Label className="text-base font-semibold">Color Presets</Label>
+          <div className="grid grid-cols-3 gap-2">
             {PRESET_COLORS.map((preset) => (
               <button
                 key={preset.name}
-                onClick={() => isPremium && applyPreset(preset)}
-                disabled={!isPremium}
+                onClick={() => applyPreset(preset)}
                 className={`p-3 rounded-lg border-2 transition-all ${
                   localPrimary === preset.primary
                     ? "border-primary shadow-md"
                     : "border-transparent hover:border-muted"
-                } ${!isPremium ? "opacity-60 cursor-not-allowed" : ""}`}
+                }`}
               >
                 <div className="flex gap-1 mb-2">
                   <div
@@ -125,10 +150,7 @@ export function BrandingStep({
           {/* Custom Colors */}
           <div className="space-y-3 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="primary-color" className="flex items-center gap-2">
-                Primary Color
-                {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
-              </Label>
+              <Label htmlFor="primary-color">Primary Color</Label>
               <div className="flex gap-2">
                 <div
                   className="w-12 h-10 rounded border"
@@ -139,22 +161,16 @@ export function BrandingStep({
                   type="color"
                   value={localPrimary}
                   onChange={(e) => {
-                    if (isPremium) {
-                      setLocalPrimary(e.target.value);
-                      onUpdate({ primaryColor: e.target.value });
-                    }
+                    setLocalPrimary(e.target.value);
+                    onUpdate({ primaryColor: e.target.value });
                   }}
-                  disabled={!isPremium}
                   className="flex-1"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="secondary-color" className="flex items-center gap-2">
-                Secondary Color
-                {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
-              </Label>
+              <Label htmlFor="secondary-color">Secondary Color</Label>
               <div className="flex gap-2">
                 <div
                   className="w-12 h-10 rounded border"
@@ -165,12 +181,9 @@ export function BrandingStep({
                   type="color"
                   value={localSecondary}
                   onChange={(e) => {
-                    if (isPremium) {
-                      setLocalSecondary(e.target.value);
-                      onUpdate({ secondaryColor: e.target.value });
-                    }
+                    setLocalSecondary(e.target.value);
+                    onUpdate({ secondaryColor: e.target.value });
                   }}
-                  disabled={!isPremium}
                   className="flex-1"
                 />
               </div>
@@ -180,13 +193,10 @@ export function BrandingStep({
 
         {/* Logo Upload & Preview */}
         <div className="space-y-4">
-          <Label className="text-base font-semibold flex items-center gap-2">
-            Company Logo (Optional)
-            {!isPremium && <Lock className="h-4 w-4 text-muted-foreground" />}
-          </Label>
-          <Card className={`p-6 border-2 border-dashed ${!isPremium ? "opacity-60" : ""}`}>
+          <Label className="text-base font-semibold">Company Logo (Optional)</Label>
+          <Card className="p-6 border-2 border-dashed">
             <div className="text-center space-y-4">
-              {localLogo && isPremium ? (
+              {localLogo ? (
                 <div className="space-y-4">
                   <img
                     src={localLogo}
@@ -217,9 +227,7 @@ export function BrandingStep({
                     type="file"
                     accept="image/*"
                     className="cursor-pointer"
-                    disabled={!isPremium}
                     onChange={(e) => {
-                      if (!isPremium) return;
                       const file = e.target.files?.[0];
                       if (file) {
                         const reader = new FileReader();
@@ -233,10 +241,7 @@ export function BrandingStep({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {isPremium 
-                      ? "You can also skip this and add it later"
-                      : "Available after upgrade - customize in Preferences"
-                    }
+                    You can also skip this and add it later
                   </p>
                 </>
               )}
@@ -265,7 +270,7 @@ export function BrandingStep({
           Back
         </Button>
         <Button onClick={onNext}>
-          {isPremium ? "Next" : "Continue with Defaults"}
+          Next
         </Button>
       </div>
     </div>

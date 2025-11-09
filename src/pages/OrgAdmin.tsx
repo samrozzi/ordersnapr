@@ -371,20 +371,16 @@ const OrgAdmin = () => {
 
   const handleDeleteMember = async (membershipId: string, userId: string, email: string) => {
     try {
-      // First remove from organization
-      await removeMembership.mutateAsync(membershipId);
-      
-      // Note: This deletes the profile. The actual auth.users entry requires admin API
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { action: 'delete_user', userId }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Success",
-        description: `User ${email} has been removed and deleted`,
+        description: `User ${email} has been deleted`,
       });
 
       fetchAdminOrgs();
@@ -393,6 +389,41 @@ const OrgAdmin = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [changingPasswordUserId, setChangingPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUserId || !newPassword) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { 
+          action: 'change_password', 
+          userId: changingPasswordUserId,
+          password: newPassword
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+
+      setChangingPasswordUserId(null);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
         variant: "destructive",
       });
     }
@@ -685,13 +716,20 @@ const OrgAdmin = () => {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-wrap">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleEditMember(member)}
                                 >
                                   <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setChangingPasswordUserId(member.user_id)}
+                                >
+                                  Password
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -701,9 +739,9 @@ const OrgAdmin = () => {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Remove & Delete Member</AlertDialogTitle>
+                                      <AlertDialogTitle>Delete Member</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to remove and delete {member.profiles?.email}? This will remove them from the organization and delete their account. This action cannot be undone.
+                                        Are you sure you want to delete {member.profiles?.email}? This will permanently delete their account and all associated data. This action cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -712,7 +750,7 @@ const OrgAdmin = () => {
                                         onClick={() => handleDeleteMember(member.id, member.user_id, member.profiles?.email || "this user")}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        Remove & Delete
+                                        Delete
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -734,7 +772,7 @@ const OrgAdmin = () => {
                 <DialogHeader>
                   <DialogTitle>Edit Member Details</DialogTitle>
                   <DialogDescription>
-                    Update member information. Note: Password changes require users to use the password reset flow.
+                    Update member information. Use the Password button separately to change passwords.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -764,6 +802,53 @@ const OrgAdmin = () => {
                   </Button>
                   <Button onClick={handleSaveMemberEdit}>
                     Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Change Password Dialog */}
+            <Dialog open={!!changingPasswordUserId} onOpenChange={(open) => {
+              if (!open) {
+                setChangingPasswordUserId(null);
+                setNewPassword("");
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Change Member Password</DialogTitle>
+                  <DialogDescription>
+                    Enter a new password for this member. Minimum 6 characters required.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      minLength={6}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setChangingPasswordUserId(null);
+                    setNewPassword("");
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleChangePassword}
+                    disabled={!newPassword || newPassword.length < 6}
+                  >
+                    Update Password
                   </Button>
                 </DialogFooter>
               </DialogContent>

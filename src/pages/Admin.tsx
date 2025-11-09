@@ -387,13 +387,12 @@ const Admin = () => {
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     try {
-      // Note: This deletes the profile. The actual auth.users entry requires admin API
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { action: 'delete_user', userId }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Success",
@@ -406,6 +405,41 @@ const Admin = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [changingPasswordUserId, setChangingPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUserId || !newPassword) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { 
+          action: 'change_password', 
+          userId: changingPasswordUserId,
+          password: newPassword
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+
+      setChangingPasswordUserId(null);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
         variant: "destructive",
       });
     }
@@ -611,7 +645,7 @@ const Admin = () => {
                             Joined {new Date(user.created_at).toLocaleDateString()}
                           </div>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex gap-2 flex-shrink-0 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
@@ -619,6 +653,13 @@ const Admin = () => {
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setChangingPasswordUserId(user.id)}
+                          >
+                            Change Password
                           </Button>
                           <Button
                             size="sm"
@@ -641,7 +682,7 @@ const Admin = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete User</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete {user.email}? This action cannot be undone.
+                                  Are you sure you want to delete {user.email}? This will permanently delete their account and all associated data. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -761,7 +802,7 @@ const Admin = () => {
               <DialogHeader>
                 <DialogTitle>Edit User Details</DialogTitle>
                 <DialogDescription>
-                  Update user information. Note: Password changes require users to use the password reset flow.
+                  Update user information. Use the Change Password button separately to update passwords.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -791,6 +832,53 @@ const Admin = () => {
                 </Button>
                 <Button onClick={handleSaveUserEdit}>
                   Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Change Password Dialog */}
+          <Dialog open={!!changingPasswordUserId} onOpenChange={(open) => {
+            if (!open) {
+              setChangingPasswordUserId(null);
+              setNewPassword("");
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change User Password</DialogTitle>
+                <DialogDescription>
+                  Enter a new password for this user. Minimum 6 characters required.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    minLength={6}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 6 characters long
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setChangingPasswordUserId(null);
+                  setNewPassword("");
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleChangePassword}
+                  disabled={!newPassword || newPassword.length < 6}
+                >
+                  Update Password
                 </Button>
               </DialogFooter>
             </DialogContent>

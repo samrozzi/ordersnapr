@@ -33,8 +33,8 @@ export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     selectedFeatures: [],
-    primaryColor: "#3b82f6",
-    secondaryColor: "#8b5cf6",
+    primaryColor: "#000000",
+    secondaryColor: "#ffffff",
     logoUrl: "",
     includeSampleData: true,
     sampleDataTypes: ["work_orders", "properties", "customers"],
@@ -63,20 +63,34 @@ export function OnboardingWizard() {
     }
 
     try {
+      // Get user's profile to check organization membership
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("approval_status, organization_id")
+        .eq("id", user.id)
+        .single();
+
+      // Build onboarding data - only include branding for org users
+      const onboardingDataToSave: any = {
+        selectedFeatures: onboardingData.selectedFeatures,
+        includeSampleData: onboardingData.includeSampleData,
+        sampleDataTypes: onboardingData.sampleDataTypes,
+        completedAt: new Date().toISOString(),
+      };
+
+      // Only save branding if user is in an organization
+      if (profile?.organization_id) {
+        onboardingDataToSave.primaryColor = onboardingData.primaryColor;
+        onboardingDataToSave.secondaryColor = onboardingData.secondaryColor;
+        onboardingDataToSave.logoUrl = onboardingData.logoUrl;
+      }
+
       // Save onboarding completion and data to database
       const { error } = await supabase
         .from("profiles")
         .update({
           onboarding_completed: true,
-          onboarding_data: {
-            selectedFeatures: onboardingData.selectedFeatures,
-            primaryColor: onboardingData.primaryColor,
-            secondaryColor: onboardingData.secondaryColor,
-            logoUrl: onboardingData.logoUrl,
-            includeSampleData: onboardingData.includeSampleData,
-            sampleDataTypes: onboardingData.sampleDataTypes,
-            completedAt: new Date().toISOString(),
-          },
+          onboarding_data: onboardingDataToSave,
         })
         .eq("id", user.id);
 
@@ -100,13 +114,6 @@ export function OnboardingWizard() {
           );
         }
       }
-
-      // Get user's profile to check approval status
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("approval_status, organization_id")
-        .eq("id", user.id)
-        .single();
 
       // Free tier users (no organization) should be auto-approved and go to free workspace
       // Organization users go to dashboard if approved, otherwise pending approval
@@ -181,7 +188,7 @@ export function OnboardingWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">

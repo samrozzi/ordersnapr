@@ -35,45 +35,47 @@ export const useOrgTheme = () => {
         let primaryColor: string | null = null;
         let secondaryColor: string | null = null;
 
-        // Check if user has premium access (approved or has org)
-        const hasPremiumAccess = profileData?.approval_status === "approved" || profileData?.organization_id;
+        // Only users in an organization can use custom branding
+        const canUseBranding = !!profileData?.organization_id;
 
-        // If user has premium access and personal branding, use that first
-        if (hasPremiumAccess && profileData?.onboarding_data) {
-          const brandingData = profileData.onboarding_data as any;
-          primaryColor = brandingData.primaryColor;
-          secondaryColor = brandingData.secondaryColor;
-        }
-
-        // If in an org and no personal branding, check org settings
-        if (!primaryColor && profileData?.organization_id) {
-          const { data: settingsData } = await supabase
-            .from("organization_settings")
-            .select("custom_theme_color, logo_url")
-            .eq("organization_id", profileData.organization_id)
-            .maybeSingle();
-
-          if (settingsData?.custom_theme_color) {
-            primaryColor = settingsData.custom_theme_color;
+        if (canUseBranding) {
+          // If user has personal branding, use that first
+          if (profileData?.onboarding_data) {
+            const brandingData = profileData.onboarding_data as any;
+            primaryColor = brandingData.primaryColor;
+            secondaryColor = brandingData.secondaryColor;
           }
-        }
 
-        // Apply primary color if we have one
-        if (primaryColor) {
-          const hsl = hexToHSL(primaryColor);
-          document.documentElement.style.setProperty("--primary", hsl);
-          localStorage.setItem("org_theme_color", hsl);
+          // If no personal branding, check org settings
+          if (!primaryColor && profileData?.organization_id) {
+            const { data: settingsData } = await supabase
+              .from("organization_settings")
+              .select("custom_theme_color, logo_url")
+              .eq("organization_id", profileData.organization_id)
+              .maybeSingle();
+
+            if (settingsData?.custom_theme_color) {
+              primaryColor = settingsData.custom_theme_color;
+            }
+          }
+
+          // Apply colors for org users
+          if (primaryColor) {
+            const hsl = hexToHSL(primaryColor);
+            document.documentElement.style.setProperty("--primary", hsl);
+            localStorage.setItem("org_theme_color", hsl);
+          }
+
+          if (secondaryColor) {
+            const hsl = hexToHSL(secondaryColor);
+            document.documentElement.style.setProperty("--secondary-brand", hsl);
+            localStorage.setItem("org_secondary_color", hsl);
+          }
         } else {
-          // Free users get default black
+          // Free users get default black primary
           document.documentElement.style.setProperty("--primary", "0 0% 0%");
           localStorage.removeItem("org_theme_color");
-        }
-
-        // Apply secondary color if available (for accents, buttons, etc)
-        if (secondaryColor) {
-          const hsl = hexToHSL(secondaryColor);
-          document.documentElement.style.setProperty("--secondary-brand", hsl);
-          localStorage.setItem("org_secondary_color", hsl);
+          localStorage.removeItem("org_secondary_color");
         }
       } catch (error) {
         console.error("Error applying theme:", error);

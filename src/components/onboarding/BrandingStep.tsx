@@ -36,7 +36,7 @@ export function BrandingStep({
   onNext,
   onBack,
 }: BrandingStepProps) {
-  const { hasPremiumAccess } = usePremiumAccess();
+  const { loading, hasPremiumAccess } = usePremiumAccess();
   const isPremium = hasPremiumAccess();
   // Free users default to black/white, premium users can customize
   const [localPrimary, setLocalPrimary] = useState(isPremium ? primaryColor : "#000000");
@@ -49,8 +49,8 @@ export function BrandingStep({
     onUpdate({ primaryColor: preset.primary, secondaryColor: preset.secondary });
   };
 
-  // Free users see locked preview only
-  if (!isPremium) {
+  // Show locked preview while loading to prevent flicker, or for free users
+  if (loading || !isPremium) {
     return (
       <div className="space-y-6 py-4">
         <div className="text-center space-y-2">

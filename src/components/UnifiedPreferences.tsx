@@ -113,6 +113,7 @@ const AVAILABLE_FEATURES = [
 ];
 
 const BRAND_PRESET_COLORS = [
+  { name: "Default", primary: "#000000", secondary: "#ffffff" },
   { name: "Blue", primary: "#3b82f6", secondary: "#8b5cf6" },
   { name: "Green", primary: "#10b981", secondary: "#14b8a6" },
   { name: "Orange", primary: "#f97316", secondary: "#f59e0b" },

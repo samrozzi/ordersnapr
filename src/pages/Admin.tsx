@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown, Settings, Layers } from "lucide-react";
+import { Shield, ArrowLeft, Building2, Users, Plus, Trash2, Crown, Settings, Layers, Search, Filter, Edit, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
@@ -56,6 +57,14 @@ const Admin = () => {
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
   const [addingOrgRole, setAddingOrgRole] = useState<string>("staff");
   const { hasPremiumAccess } = usePremiumAccess();
+  
+  // User management enhancements
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterOrg, setFilterOrg] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "date">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState({ email: "", full_name: "" });
 
   const addMembership = useAddOrgMembership();
   const removeMembership = useRemoveOrgMembership();
@@ -337,6 +346,121 @@ const Admin = () => {
     }
   };
 
+  const handleEditUser = (user: UserProfile) => {
+    setEditingUser(user);
+    setEditForm({
+      email: user.email || "",
+      full_name: user.full_name || "",
+    });
+  };
+
+  const handleSaveUserEdit = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          email: editForm.email.trim(),
+          full_name: editForm.full_name.trim(),
+        })
+        .eq("id", editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "User details updated successfully",
+      });
+
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    try {
+      // Note: This deletes the profile. The actual auth.users entry requires admin API
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User ${userEmail} has been deleted`,
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filtered and sorted users
+  const filteredAndSortedUsers = useMemo(() => {
+    let filtered = users;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.email?.toLowerCase().includes(query) ||
+          user.full_name?.toLowerCase().includes(query)
+      );
+    }
+
+    // Organization filter
+    if (filterOrg !== "all") {
+      if (filterOrg === "personal") {
+        filtered = filtered.filter(
+          (user) => !user.memberships || user.memberships.length === 0
+        );
+      } else {
+        filtered = filtered.filter((user) =>
+          user.memberships?.some((m) => m.org_id === filterOrg)
+        );
+      }
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case "name":
+          comparison = (a.full_name || "").localeCompare(b.full_name || "");
+          break;
+        case "email":
+          comparison = (a.email || "").localeCompare(b.email || "");
+          break;
+        case "date":
+          comparison =
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [users, searchQuery, filterOrg, sortBy, sortOrder]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -409,36 +533,129 @@ const Admin = () => {
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>All Users ({users.length})</CardTitle>
+              <CardTitle>All Users ({filteredAndSortedUsers.length} of {users.length})</CardTitle>
             </CardHeader>
-            <CardContent>
-              {users.length === 0 ? (
-                <p className="text-muted-foreground">No users found</p>
+            <CardContent className="space-y-4">
+              {/* Search and Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={filterOrg} onValueChange={setFilterOrg}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Organizations</SelectItem>
+                    <SelectItem value="personal">Personal Workspace</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={`${sortBy}-${sortOrder}`}
+                  onValueChange={(value) => {
+                    const [newSortBy, newSortOrder] = value.split("-") as [
+                      "name" | "email" | "date",
+                      "asc" | "desc"
+                    ];
+                    setSortBy(newSortBy);
+                    setSortOrder(newSortOrder);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-desc">Newest First</SelectItem>
+                    <SelectItem value="date-asc">Oldest First</SelectItem>
+                    <SelectItem value="name-asc">Name A-Z</SelectItem>
+                    <SelectItem value="name-desc">Name Z-A</SelectItem>
+                    <SelectItem value="email-asc">Email A-Z</SelectItem>
+                    <SelectItem value="email-desc">Email Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* User List */}
+              {filteredAndSortedUsers.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No users found</p>
               ) : (
                 <div className="space-y-4">
-                  {users.map((user) => (
+                  {filteredAndSortedUsers.map((user) => (
                     <Card key={user.id} className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{user.email}</span>
+                      <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold break-all">{user.email}</span>
                             {user.is_super_admin && (
-                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white flex-shrink-0">
                                 <Crown className="h-3 w-3 mr-1" />
                                 Super Admin
                               </Badge>
                             )}
                           </div>
-                          <span className="text-sm text-muted-foreground">{user.full_name || 'No name'}</span>
+                          <span className="text-sm text-muted-foreground break-words">{user.full_name || 'No name'}</span>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Joined {new Date(user.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant={user.is_super_admin ? "default" : "outline"}
-                          onClick={() => handleToggleSuperAdmin(user.id, user.is_super_admin)}
-                        >
-                          <Crown className="h-4 w-4 mr-1" />
-                          {user.is_super_admin ? "Revoke Super Admin" : "Make Super Admin"}
-                        </Button>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={user.is_super_admin ? "default" : "outline"}
+                            onClick={() => handleToggleSuperAdmin(user.id, user.is_super_admin)}
+                          >
+                            <Crown className="h-4 w-4 mr-1" />
+                            {user.is_super_admin ? "Revoke" : "Make Admin"}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {user.email}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(user.id, user.email || "this user")}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -532,11 +749,52 @@ const Admin = () => {
                         )}
                       </div>
                     </Card>
-                  ))}
+                ))}
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Edit User Dialog */}
+          <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit User Details</DialogTitle>
+                <DialogDescription>
+                  Update user information. Note: Password changes require users to use the password reset flow.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingUser(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveUserEdit}>
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="organizations" className="space-y-6">

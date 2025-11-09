@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Palette, Trash2, Plus, Mail } from "lucide-react";
+import { ArrowLeft, Users, Palette, Trash2, Plus, Mail, Search, ArrowUpDown, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,13 @@ const OrgAdmin = () => {
   const [addingMemberEmail, setAddingMemberEmail] = useState("");
   const [addingMemberRole, setAddingMemberRole] = useState("staff");
   const [isAddingMember, setIsAddingMember] = useState(false);
+  
+  // User management enhancements
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ email: "", full_name: "" });
 
   const addMembership = useAddOrgMembership();
   const removeMembership = useRemoveOrgMembership();
@@ -323,6 +330,117 @@ const OrgAdmin = () => {
     }
   };
 
+  const handleEditMember = (member: any) => {
+    setEditingMember(member);
+    setEditForm({
+      email: member.profiles?.email || "",
+      full_name: member.profiles?.full_name || "",
+    });
+  };
+
+  const handleSaveMemberEdit = async () => {
+    if (!editingMember) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          email: editForm.email.trim(),
+          full_name: editForm.full_name.trim(),
+        })
+        .eq("id", editingMember.user_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Member details updated successfully",
+      });
+
+      setEditingMember(null);
+      fetchAdminOrgs();
+    } catch (error: any) {
+      console.error("Error updating member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update member details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteMember = async (membershipId: string, userId: string, email: string) => {
+    try {
+      // First remove from organization
+      await removeMembership.mutateAsync(membershipId);
+      
+      // Note: This deletes the profile. The actual auth.users entry requires admin API
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User ${email} has been removed and deleted`,
+      });
+
+      fetchAdminOrgs();
+    } catch (error: any) {
+      console.error("Error deleting member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filtered and sorted members
+  const filteredAndSortedMembers = useMemo(() => {
+    if (!selectedOrg) return [];
+    
+    let filtered = [...selectedOrg.members];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (member) =>
+          member.profiles?.email?.toLowerCase().includes(query) ||
+          member.profiles?.full_name?.toLowerCase().includes(query) ||
+          member.role.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case "name":
+          comparison = (a.profiles?.full_name || "").localeCompare(
+            b.profiles?.full_name || ""
+          );
+          break;
+        case "email":
+          comparison = (a.profiles?.email || "").localeCompare(
+            b.profiles?.email || ""
+          );
+          break;
+        case "role":
+          comparison = a.role.localeCompare(b.role);
+          break;
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [selectedOrg, searchQuery, sortBy, sortOrder]);
+
   const handleSaveTheme = async () => {
     if (!selectedOrg) return;
 
@@ -439,7 +557,7 @@ const OrgAdmin = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle>Organization Members ({selectedOrg.members.length})</CardTitle>
+                  <CardTitle>Organization Members ({filteredAndSortedMembers.length} of {selectedOrg.members.length})</CardTitle>
                   <CardDescription>Manage members and their roles</CardDescription>
                 </div>
                 <Dialog open={isAddingMember} onOpenChange={setIsAddingMember}>
@@ -493,9 +611,48 @@ const OrgAdmin = () => {
                   </DialogContent>
                 </Dialog>
               </CardHeader>
-              <CardContent>
-                {selectedOrg.members.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No members yet. Add your first member above.</p>
+              <CardContent className="space-y-4">
+                {/* Search and Sort Controls */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or role..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select
+                    value={`${sortBy}-${sortOrder}`}
+                    onValueChange={(value) => {
+                      const [newSortBy, newSortOrder] = value.split("-") as [
+                        "name" | "email" | "role",
+                        "asc" | "desc"
+                      ];
+                      setSortBy(newSortBy);
+                      setSortOrder(newSortOrder);
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name-asc">Name A-Z</SelectItem>
+                      <SelectItem value="name-desc">Name Z-A</SelectItem>
+                      <SelectItem value="email-asc">Email A-Z</SelectItem>
+                      <SelectItem value="email-desc">Email Z-A</SelectItem>
+                      <SelectItem value="role-asc">Role A-Z</SelectItem>
+                      <SelectItem value="role-desc">Role Z-A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {filteredAndSortedMembers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    {searchQuery ? "No members match your search" : "No members yet. Add your first member above."}
+                  </p>
                 ) : (
                   <div className="rounded-md border overflow-x-auto touch-pan-x">
                     <Table className="w-full">
@@ -508,10 +665,10 @@ const OrgAdmin = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {selectedOrg.members.map((member) => (
+                        {filteredAndSortedMembers.map((member) => (
                           <TableRow key={member.id}>
-                            <TableCell>{member.profiles?.email || '-'}</TableCell>
-                            <TableCell>{member.profiles?.full_name || '-'}</TableCell>
+                            <TableCell className="break-all">{member.profiles?.email || '-'}</TableCell>
+                            <TableCell className="break-words">{member.profiles?.full_name || '-'}</TableCell>
                             <TableCell>
                               <Select
                                 value={member.role}
@@ -528,31 +685,39 @@ const OrgAdmin = () => {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="outline">
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Remove
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Remove Member?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will remove {member.profiles?.email} from {selectedOrg.name}. 
-                                      They will lose access to organization resources.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleRemoveMember(member.id)}
-                                    >
-                                      Remove
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditMember(member)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Remove & Delete Member</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to remove and delete {member.profiles?.email}? This will remove them from the organization and delete their account. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteMember(member.id, member.user_id, member.profiles?.email || "this user")}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Remove & Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -562,6 +727,47 @@ const OrgAdmin = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Edit Member Dialog */}
+            <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Member Details</DialogTitle>
+                  <DialogDescription>
+                    Update member information. Note: Password changes require users to use the password reset flow.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-name">Full Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditingMember(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveMemberEdit}>
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="theme" className="space-y-6">

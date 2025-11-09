@@ -38,10 +38,10 @@ export function BrandingStep({
 }: BrandingStepProps) {
   const { hasPremiumAccess } = usePremiumAccess();
   const isPremium = hasPremiumAccess();
-  // Free users default to white/black, premium users can customize
-  const [localPrimary, setLocalPrimary] = useState(isPremium ? primaryColor : "#ffffff");
-  const [localSecondary, setLocalSecondary] = useState(isPremium ? secondaryColor : "#000000");
-  const [localLogo, setLocalLogo] = useState(logoUrl);
+  // Free users default to black/white, premium users can customize
+  const [localPrimary, setLocalPrimary] = useState(isPremium ? primaryColor : "#000000");
+  const [localSecondary, setLocalSecondary] = useState(isPremium ? secondaryColor : "#ffffff");
+  const [localLogo, setLocalLogo] = useState(isPremium ? logoUrl : "");
 
   const applyPreset = (preset: typeof PRESET_COLORS[0]) => {
     setLocalPrimary(preset.primary);

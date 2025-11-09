@@ -25,28 +25,55 @@ export const useOrgTheme = () => {
 
     const applyTheme = async () => {
       try {
-        // Get user's organization
+        // Get user's profile with organization and branding data
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("organization_id")
+          .select("organization_id, onboarding_data, approval_status")
           .eq("id", session.user.id)
           .single();
 
-        if (!profileData?.organization_id) return;
+        let primaryColor: string | null = null;
+        let secondaryColor: string | null = null;
 
-        // Get organization settings
-        const { data: settingsData } = await supabase
-          .from("organization_settings")
-          .select("custom_theme_color, logo_url")
-          .eq("organization_id", profileData.organization_id)
-          .maybeSingle();
+        // Check if user has premium access (approved or has org)
+        const hasPremiumAccess = profileData?.approval_status === "approved" || profileData?.organization_id;
 
-        if (settingsData?.custom_theme_color) {
-          const hsl = hexToHSL(settingsData.custom_theme_color);
+        // If user has premium access and personal branding, use that first
+        if (hasPremiumAccess && profileData?.onboarding_data) {
+          const brandingData = profileData.onboarding_data as any;
+          primaryColor = brandingData.primaryColor;
+          secondaryColor = brandingData.secondaryColor;
+        }
+
+        // If in an org and no personal branding, check org settings
+        if (!primaryColor && profileData?.organization_id) {
+          const { data: settingsData } = await supabase
+            .from("organization_settings")
+            .select("custom_theme_color, logo_url")
+            .eq("organization_id", profileData.organization_id)
+            .maybeSingle();
+
+          if (settingsData?.custom_theme_color) {
+            primaryColor = settingsData.custom_theme_color;
+          }
+        }
+
+        // Apply primary color if we have one
+        if (primaryColor) {
+          const hsl = hexToHSL(primaryColor);
           document.documentElement.style.setProperty("--primary", hsl);
-          
-          // Store in localStorage for instant loading on next visit
           localStorage.setItem("org_theme_color", hsl);
+        } else {
+          // Free users get default black
+          document.documentElement.style.setProperty("--primary", "0 0% 0%");
+          localStorage.removeItem("org_theme_color");
+        }
+
+        // Apply secondary color if available (for accents, buttons, etc)
+        if (secondaryColor) {
+          const hsl = hexToHSL(secondaryColor);
+          document.documentElement.style.setProperty("--secondary-brand", hsl);
+          localStorage.setItem("org_secondary_color", hsl);
         }
       } catch (error) {
         console.error("Error applying theme:", error);
@@ -84,8 +111,12 @@ export const useOrgTheme = () => {
   // Apply cached theme immediately on mount
   useEffect(() => {
     const cachedColor = localStorage.getItem("org_theme_color");
+    const cachedSecondary = localStorage.getItem("org_secondary_color");
     if (cachedColor) {
       document.documentElement.style.setProperty("--primary", cachedColor);
+    }
+    if (cachedSecondary) {
+      document.documentElement.style.setProperty("--secondary-brand", cachedSecondary);
     }
   }, []);
 };

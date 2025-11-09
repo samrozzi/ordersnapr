@@ -37,6 +37,7 @@ import {
   Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { hexToHSL } from "@/lib/color-utils";
 
 const AVAILABLE_FEATURES = [
   {
@@ -181,7 +182,13 @@ export function UnifiedPreferences() {
   // Load branding preferences from database (for premium users)
   useEffect(() => {
     const loadBranding = async () => {
-      if (!user || !isPremium) return;
+      if (!user || !isPremium) {
+        // Free users get black and white defaults
+        setBrandPrimaryColor("#000000");
+        setBrandSecondaryColor("#ffffff");
+        setBrandLogoUrl("");
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -191,9 +198,13 @@ export function UnifiedPreferences() {
 
       if (profile?.onboarding_data) {
         const data = profile.onboarding_data as any;
-        if (data.primaryColor) setBrandPrimaryColor(data.primaryColor);
-        if (data.secondaryColor) setBrandSecondaryColor(data.secondaryColor);
-        if (data.logoUrl) setBrandLogoUrl(data.logoUrl);
+        setBrandPrimaryColor(data.primaryColor || "#000000");
+        setBrandSecondaryColor(data.secondaryColor || "#ffffff");
+        setBrandLogoUrl(data.logoUrl || "");
+      } else {
+        // Premium users start with default black/white until they customize
+        setBrandPrimaryColor("#000000");
+        setBrandSecondaryColor("#ffffff");
       }
     };
 
@@ -267,10 +278,20 @@ export function UnifiedPreferences() {
     if (!user || !canEditBranding) return;
 
     try {
+      // First get existing onboarding_data to preserve other fields
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("onboarding_data")
+        .eq("id", user.id)
+        .single();
+
+      const existingData = (existingProfile?.onboarding_data as any) || {};
+
       const { error } = await supabase
         .from("profiles")
         .update({
           onboarding_data: {
+            ...existingData,
             primaryColor: brandPrimaryColor,
             secondaryColor: brandSecondaryColor,
             logoUrl: brandLogoUrl,
@@ -279,6 +300,15 @@ export function UnifiedPreferences() {
         .eq("id", user.id);
 
       if (error) throw error;
+
+      // Apply theme immediately
+      const hsl = hexToHSL(brandPrimaryColor);
+      document.documentElement.style.setProperty("--primary", hsl);
+      localStorage.setItem("org_theme_color", hsl);
+
+      const secondaryHsl = hexToHSL(brandSecondaryColor);
+      document.documentElement.style.setProperty("--secondary-brand", secondaryHsl);
+      localStorage.setItem("org_secondary_color", secondaryHsl);
 
       toast({
         title: "Branding Saved",

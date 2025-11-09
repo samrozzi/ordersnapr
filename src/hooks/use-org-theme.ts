@@ -25,57 +25,67 @@ export const useOrgTheme = () => {
 
     const applyTheme = async () => {
       try {
-        // Get user's profile with organization and branding data
+        // Get user's profile with active org and branding data
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("organization_id, onboarding_data, approval_status")
+          .select("organization_id, active_org_id, onboarding_data, approval_status")
           .eq("id", session.user.id)
           .single();
 
         let primaryColor: string | null = null;
         let secondaryColor: string | null = null;
 
-        // Only users in an organization can use custom branding
-        const canUseBranding = !!profileData?.organization_id;
+        // Use active_org_id to determine which workspace we're viewing
+        const currentOrgId = profileData?.active_org_id;
+        const userBelongsToOrg = !!profileData?.organization_id;
 
-        if (canUseBranding) {
-          // If user has personal branding, use that first
-          if (profileData?.onboarding_data) {
-            const brandingData = profileData.onboarding_data as any;
-            primaryColor = brandingData.primaryColor;
-            secondaryColor = brandingData.secondaryColor;
+        if (currentOrgId) {
+          // Viewing an org workspace - apply org theme
+          const { data: settingsData } = await supabase
+            .from("organization_settings")
+            .select("custom_theme_color, logo_url")
+            .eq("organization_id", currentOrgId)
+            .maybeSingle();
+
+          if (settingsData?.custom_theme_color) {
+            primaryColor = settingsData.custom_theme_color;
           }
-
-          // If no personal branding, check org settings
-          if (!primaryColor && profileData?.organization_id) {
-            const { data: settingsData } = await supabase
-              .from("organization_settings")
-              .select("custom_theme_color, logo_url")
-              .eq("organization_id", profileData.organization_id)
-              .maybeSingle();
-
-            if (settingsData?.custom_theme_color) {
-              primaryColor = settingsData.custom_theme_color;
-            }
-          }
-
-          // Apply colors for org users
+          
+          // Apply org theme
           if (primaryColor) {
             const hsl = hexToHSL(primaryColor);
             document.documentElement.style.setProperty("--primary", hsl);
             localStorage.setItem("org_theme_color", hsl);
+          } else {
+            // Org has no custom theme, use default
+            document.documentElement.style.setProperty("--primary", "0 0% 0%");
+            localStorage.removeItem("org_theme_color");
           }
-
-          if (secondaryColor) {
-            const hsl = hexToHSL(secondaryColor);
-            document.documentElement.style.setProperty("--secondary-brand", hsl);
-            localStorage.setItem("org_secondary_color", hsl);
-          }
-        } else {
-          // Free users get default black primary
-          document.documentElement.style.setProperty("--primary", "0 0% 0%");
-          localStorage.removeItem("org_theme_color");
           localStorage.removeItem("org_secondary_color");
+        } else {
+          // Personal workspace - use default or user's personal theme
+          if (userBelongsToOrg && profileData?.onboarding_data) {
+            // User has personal branding from onboarding
+            const brandingData = profileData.onboarding_data as any;
+            primaryColor = brandingData.primaryColor;
+            secondaryColor = brandingData.secondaryColor;
+            
+            if (primaryColor) {
+              const hsl = hexToHSL(primaryColor);
+              document.documentElement.style.setProperty("--primary", hsl);
+              localStorage.setItem("org_theme_color", hsl);
+            }
+            if (secondaryColor) {
+              const hsl = hexToHSL(secondaryColor);
+              document.documentElement.style.setProperty("--secondary-brand", hsl);
+              localStorage.setItem("org_secondary_color", hsl);
+            }
+          } else {
+            // Free user / no branding - default black
+            document.documentElement.style.setProperty("--primary", "0 0% 0%");
+            localStorage.removeItem("org_theme_color");
+            localStorage.removeItem("org_secondary_color");
+          }
         }
       } catch (error) {
         console.error("Error applying theme:", error);
@@ -84,8 +94,8 @@ export const useOrgTheme = () => {
 
     applyTheme();
 
-    // Subscribe to realtime changes
-    const channel = supabase
+    // Subscribe to realtime changes for org settings and profile changes
+    const settingsChannel = supabase
       .channel("organization_settings_changes")
       .on(
         "postgres_changes",
@@ -96,17 +106,31 @@ export const useOrgTheme = () => {
         },
         (payload) => {
           console.log("Theme updated:", payload);
-          if (payload.new && (payload.new as any).custom_theme_color) {
-            const hsl = hexToHSL((payload.new as any).custom_theme_color);
-            document.documentElement.style.setProperty("--primary", hsl);
-            localStorage.setItem("org_theme_color", hsl);
-          }
+          applyTheme();
+        }
+      )
+      .subscribe();
+
+    const profileChannel = supabase
+      .channel("profile_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          console.log("Profile updated (active_org_id changed):", payload);
+          applyTheme();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(settingsChannel);
+      supabase.removeChannel(profileChannel);
     };
   }, [session]);
 

@@ -77,11 +77,10 @@ const PropertyInfo = () => {
 
       if (currentActiveOrgId === null) {
         // Personal workspace: user's own properties with no organization
-        query = query.eq("user_id", user.id);
+        query = query.eq("user_id", user.id).is("organization_id", null);
       } else {
-        // Organization workspace: properties for anyone in that org
-        // Properties table uses user_id but we check org membership via in_same_org
-        query = query.eq("user_id", user.id);
+        // Organization workspace: all properties for that org
+        query = query.eq("organization_id", currentActiveOrgId);
       }
 
       const { data, error } = await query.order("property_name", { ascending: true });

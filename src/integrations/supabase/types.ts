@@ -828,6 +828,7 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          organization_id: string | null
           property_name: string
           updated_at: string
           user_id: string
@@ -840,6 +841,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          organization_id?: string | null
           property_name: string
           updated_at?: string
           user_id: string
@@ -852,11 +854,20 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          organization_id?: string | null
           property_name?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_favorites: {
         Row: {

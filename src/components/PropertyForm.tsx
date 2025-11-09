@@ -165,14 +165,17 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         return;
       }
 
+      // Get user's profile to determine active org context
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id, active_org_id, approval_status")
+        .eq("id", user.id)
+        .single();
+
+      const currentActiveOrgId = profile?.active_org_id || null;
+
       // Defensive check for free tier limits (only for new properties)
       if (!property) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("organization_id, active_org_id, approval_status")
-          .eq("id", user.id)
-          .single();
-
         const effectiveOrgId = profile?.active_org_id || profile?.organization_id;
         const isApproved = profile?.approval_status === "approved" && !!effectiveOrgId;
 
@@ -181,7 +184,8 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
           const { count } = await supabase
             .from("properties")
             .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id);
+            .eq("user_id", user.id)
+            .is("organization_id", null);
 
           if (count && count >= 2) {
             toast({
@@ -206,6 +210,7 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         latitude: latitude,
         longitude: longitude,
         user_id: user.id,
+        organization_id: currentActiveOrgId,
       };
 
       if (property) {

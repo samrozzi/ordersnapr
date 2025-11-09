@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCustomerPortalTokens } from "@/hooks/use-customer-portal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,8 @@ import {
 import { ExternalLink, Copy, Plus, Trash2, Ban, Check } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { SendPortalLinkEmailButton } from "@/components/SendPortalLinkEmailButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PortalLinkManagerProps {
   customerId: string;
@@ -42,6 +44,22 @@ export function PortalLinkManager({ customerId, customerName }: PortalLinkManage
     useCustomerPortalTokens(customerId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expirationDays, setExpirationDays] = useState<string>("never");
+  const [customerEmail, setCustomerEmail] = useState<string>("");
+
+  useEffect(() => {
+    const fetchCustomerEmail = async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("email")
+        .eq("id", customerId)
+        .single();
+
+      if (data?.email) {
+        setCustomerEmail(data.email);
+      }
+    };
+    fetchCustomerEmail();
+  }, [customerId]);
 
   const handleGenerateToken = async () => {
     try {
@@ -91,13 +109,22 @@ export function PortalLinkManager({ customerId, customerName }: PortalLinkManage
               Manage portal links for {customerName}
             </CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Generate Link
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            {customerEmail && (
+              <SendPortalLinkEmailButton
+                customerId={customerId}
+                customerName={customerName}
+                customerEmail={customerEmail}
+                size="sm"
+              />
+            )}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Generate Link
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Generate Portal Link</DialogTitle>

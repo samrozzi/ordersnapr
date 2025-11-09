@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Edit, Download, Send, Check } from "lucide-react";
 import { format } from "date-fns";
 import { SharePortalLinkButton } from "@/components/SharePortalLinkButton";
+import { SendInvoiceEmailButton } from "@/components/SendInvoiceEmailButton";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -195,12 +196,18 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
 
       {/* Actions */}
       <div className="flex justify-between pt-4 border-t">
-        <div>
+        <div className="flex gap-2">
           {invoice.customer_id && (
-            <SharePortalLinkButton
-              customerId={invoice.customer_id}
-              variant="outline"
-            />
+            <>
+              <SharePortalLinkButton
+                customerId={invoice.customer_id}
+                variant="outline"
+              />
+              <SendInvoiceEmailButton
+                invoice={invoice}
+                variant="outline"
+              />
+            </>
           )}
         </div>
         <div className="flex gap-2">

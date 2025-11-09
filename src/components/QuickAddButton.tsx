@@ -56,9 +56,14 @@ export function QuickAddButton() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
-  const { data: userPreferences } = useUserPreferences(user?.id || null);
+  const { data: userPreferences, isLoading: prefsLoading } = useUserPreferences(user?.id || null);
   const { isAtLimit } = useFreeTierLimits();
   const { enabledNavItems } = useFeatureNavigation();
+
+  // Don't render until preferences are loaded to prevent flash of wrong items
+  if (prefsLoading) {
+    return null;
+  }
 
   // Check if Quick Add is disabled by user
   if (userPreferences?.quick_add_enabled === false) {
@@ -74,7 +79,7 @@ export function QuickAddButton() {
       .filter(f => f.enabled)
       .map(f => f.module as FeatureModule);
   } else if (user) {
-    // Free tier user - check localStorage, fallback to sensible defaults
+    // Free tier user - check localStorage, fallback to sensible defaults including properties
     const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
     if (userFeaturesJson) {
       try {
@@ -85,19 +90,30 @@ export function QuickAddButton() {
     }
     // Fallback defaults if nothing stored or parsing failed
     if (!userFeaturesJson || userFeatureModules.length === 0) {
-      userFeatureModules = ["work_orders", "forms", "calendar"] as FeatureModule[];
+      userFeatureModules = ["work_orders", "properties", "forms", "calendar"] as FeatureModule[];
     }
   }
 
-  // Determine which modules to show in Quick Add
-  let selectedModules: FeatureModule[] =
-    (userPreferences?.quick_add_items && userPreferences.quick_add_items.length > 0)
-      ? (userPreferences.quick_add_items as FeatureModule[]).filter(m => userFeatureModules.includes(m))
-      : userFeatureModules;
+  // Get allowed modules from enabled navigation items
+  const allowedModules = enabledNavItems.map(item => item.module);
 
-  // Fallback to defaults if empty to prevent Quick Add from disappearing
-  if (selectedModules.length === 0) {
-    selectedModules = ["work_orders", "forms", "calendar"] as FeatureModule[];
+  // Determine which modules to show in Quick Add
+  let selectedModules: FeatureModule[];
+  
+  if (userPreferences) {
+    // If preferences exist, use ONLY saved quick_add_items (even if empty)
+    selectedModules = (userPreferences.quick_add_items || []) as FeatureModule[];
+  } else {
+    // No preferences saved yet (first-time user), use feature modules
+    selectedModules = userFeatureModules;
+  }
+
+  // Filter by allowed modules (enabled in navigation)
+  selectedModules = selectedModules.filter(m => allowedModules.includes(m));
+
+  // Final fallback only for first-time users with no preferences and empty result
+  if (!userPreferences && selectedModules.length === 0) {
+    selectedModules = ["work_orders", "properties", "forms", "calendar"] as FeatureModule[];
   }
 
   // Build actions array from selected modules

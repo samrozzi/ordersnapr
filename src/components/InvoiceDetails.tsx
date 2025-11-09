@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Download, Send, Check } from "lucide-react";
+import { Edit, Download, Send, Check, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { SharePortalLinkButton } from "@/components/SharePortalLinkButton";
 import { SendInvoiceEmailButton } from "@/components/SendInvoiceEmailButton";
+import { useInvoicePDF } from "@/hooks/use-invoice-pdf";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -14,6 +15,8 @@ interface InvoiceDetailsProps {
 }
 
 export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps) {
+  const { downloadPDF, previewPDF, isGenerating } = useInvoicePDF();
+
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -197,15 +200,38 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
       {/* Actions */}
       <div className="flex justify-between pt-4 border-t">
         <div className="flex gap-2">
+          {/* PDF Actions */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => previewPDF(invoice)}
+            disabled={isGenerating}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadPDF(invoice)}
+            disabled={isGenerating}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+
+          {/* Customer Portal Actions */}
           {invoice.customer_id && (
             <>
               <SharePortalLinkButton
                 customerId={invoice.customer_id}
                 variant="outline"
+                size="sm"
               />
               <SendInvoiceEmailButton
                 invoice={invoice}
                 variant="outline"
+                size="sm"
               />
             </>
           )}

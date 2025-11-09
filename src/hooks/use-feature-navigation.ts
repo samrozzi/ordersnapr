@@ -15,6 +15,7 @@ const MODULE_NAV_MAP: NavItem[] = [
   { module: "properties", label: "Property Info", path: "/property-info", icon: "building" },
   { module: "forms", label: "Forms", path: "/forms", icon: "file-text" },
   { module: "invoicing", label: "Invoices", path: "/invoices", icon: "file-invoice" },
+  { module: "customers", label: "Customers", path: "/customers", icon: "users" },
   { module: "inventory", label: "Inventory", path: "/inventory", icon: "package" },
   { module: "reports", label: "Reports", path: "/reports", icon: "bar-chart" },
   { module: "files", label: "Files", path: "/files", icon: "folder" },
@@ -51,6 +52,11 @@ export const useFeatureNavigation = () => {
     // Calendar is checked via feature but not in nav tabs (icon only)
     if (path === "/calendar") {
       return hasFeature("calendar");
+    }
+
+    // Customers route
+    if (path === "/customers") {
+      return hasFeature("customers");
     }
 
     const navItem = MODULE_NAV_MAP.find((item) => item.path === path);

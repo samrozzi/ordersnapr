@@ -9,7 +9,7 @@ export interface OrgFeature {
   config: Record<string, any>;
 }
 
-export type FeatureModule = 
+export type FeatureModule =
   | "work_orders"
   | "calendar"
   | "properties"
@@ -17,6 +17,7 @@ export type FeatureModule =
   | "reports"
   | "appointments"
   | "invoicing"
+  | "customers"
   | "inventory"
   | "customer_portal"
   | "pos"

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import { FileText, Eye, Calendar, DollarSign, Clock } from "lucide-react";
+import { FileText, Eye, Calendar, DollarSign, Clock, Download } from "lucide-react";
+import { useInvoicePDF } from "@/hooks/use-invoice-pdf";
 
 interface Invoice {
   id: string;
@@ -30,6 +31,7 @@ interface CustomerPortalInvoicesProps {
 
 export function CustomerPortalInvoices({ invoices }: CustomerPortalInvoicesProps) {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const { downloadPDF, isGenerating } = useInvoicePDF();
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -305,7 +307,15 @@ export function CustomerPortalInvoices({ invoices }: CustomerPortalInvoicesProps
                 </div>
               )}
 
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-between pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => downloadPDF(selectedInvoice)}
+                  disabled={isGenerating}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
                 <Button variant="outline" onClick={() => setSelectedInvoice(null)}>
                   Close
                 </Button>

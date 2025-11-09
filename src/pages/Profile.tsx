@@ -12,8 +12,7 @@ import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
-import { CustomizeQuickAdd } from "@/components/CustomizeQuickAdd";
-import { PersonalSettings } from "@/components/PersonalSettings";
+import { UnifiedPreferences } from "@/components/UnifiedPreferences";
 
 interface AuditLog {
   id: string;
@@ -97,7 +96,7 @@ const Profile = () => {
         approval_status,
         organization_id,
         full_name,
-        organizations (
+        organizations!organization_id (
           id,
           name
         )
@@ -619,8 +618,6 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            <CustomizeQuickAdd />
-
             <Card>
               <CardHeader>
                 <CardTitle>Account Actions</CardTitle>
@@ -645,7 +642,7 @@ const Profile = () => {
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">
-            <PersonalSettings />
+            <UnifiedPreferences />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">

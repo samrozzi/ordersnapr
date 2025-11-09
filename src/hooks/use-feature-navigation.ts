@@ -7,6 +7,7 @@ export interface NavItem {
   label: string;
   path: string;
   icon?: string;
+  isLocked?: boolean;
 }
 
 const MODULE_NAV_MAP: NavItem[] = [
@@ -21,20 +22,25 @@ const MODULE_NAV_MAP: NavItem[] = [
 ];
 
 export const useFeatureNavigation = () => {
-  const { hasFeature, isLoading, getFeatureConfig } = useFeatureContext();
+  const { hasFeature, canAccessFeature, isLoading, getFeatureConfig } = useFeatureContext();
 
   const enabledNavItems = useMemo(() => {
     if (isLoading) return [];
-    return MODULE_NAV_MAP.filter((item) => hasFeature(item.module)).map((item) => {
-      // Get custom display name from config if available
-      if (item.module === 'work_orders') {
-        const config = getFeatureConfig('work_orders');
-        const displayName = config?.display_name || item.label;
-        return { ...item, label: displayName };
-      }
-      return item;
-    });
-  }, [hasFeature, isLoading, getFeatureConfig]);
+    return MODULE_NAV_MAP
+      .filter((item) => hasFeature(item.module))
+      .map((item) => {
+        const config = getFeatureConfig(item.module);
+        const displayName = item.module === 'work_orders' 
+          ? (config?.display_name || item.label)
+          : item.label;
+        
+        return {
+          ...item,
+          label: displayName,
+          isLocked: !canAccessFeature(item.module),
+        };
+      });
+  }, [hasFeature, canAccessFeature, isLoading, getFeatureConfig]);
 
   const isRouteEnabled = (path: string): boolean => {
     // Dashboard and profile are always enabled

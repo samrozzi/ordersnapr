@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { PricingModal } from "@/components/PricingModal";
 import {
   Sparkles,
   Lock,
@@ -16,7 +17,8 @@ import {
   Shield,
   Users,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  LayoutDashboard
 } from "lucide-react";
 
 export default function FreeTierWorkspace() {
@@ -25,6 +27,8 @@ export default function FreeTierWorkspace() {
   const { usage, limits, loading: limitsLoading } = useFreeTierLimits();
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasOrg, setHasOrg] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -33,12 +37,12 @@ export default function FreeTierWorkspace() {
       // Check approval status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, organization_id")
         .eq("id", user.id)
         .single();
 
       setApprovalStatus(profile?.approval_status || null);
-
+      setHasOrg(!!profile?.organization_id);
       // Check if admin
       const { data: roles } = await supabase
         .from("user_roles")
@@ -112,17 +116,44 @@ export default function FreeTierWorkspace() {
           </p>
         </div>
 
+        {/* "Go to Dashboard" Button for Free Users */}
+        {!hasOrg && (
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => navigate("/dashboard")} 
+              size="lg" 
+              className="w-full md:w-auto"
+            >
+              <LayoutDashboard className="mr-2 h-5 w-5" />
+              Go to Dashboard
+            </Button>
+          </div>
+        )}
+
         {/* Status Alert */}
-        <Alert className="border-primary/50 bg-primary/5">
-          <Clock className="h-4 w-4 text-primary" />
-          <AlertDescription className="text-base">
-            <strong>Account Status:</strong> {approvalStatus === "pending" ? "Pending Admin Approval" : "Waiting for Approval"}
-            <br />
-            <span className="text-sm text-muted-foreground">
-              You'll receive an email notification when your account is approved. In the meantime, explore the platform below!
-            </span>
-          </AlertDescription>
-        </Alert>
+        {hasOrg ? (
+          <Alert className="border-primary/50 bg-primary/5">
+            <Clock className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-base">
+              <strong>Account Status:</strong> Pending Admin Approval
+              <br />
+              <span className="text-sm text-muted-foreground">
+                You'll receive an email notification when your account is approved. In the meantime, explore the platform below!
+              </span>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-primary/50 bg-primary/5">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-base">
+              <strong>Free Tier Active:</strong> Click "Go to Dashboard" above to start using OrderSnapr with limited features.
+              <br />
+              <span className="text-sm text-muted-foreground">
+                Upgrade anytime to unlock unlimited access.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -238,9 +269,13 @@ export default function FreeTierWorkspace() {
             </ul>
 
             <div className="pt-4 space-y-3">
-              <Button onClick={() => navigate("/dashboard")} size="lg" className="w-full">
+              <Button 
+                onClick={() => setPricingModalOpen(true)} 
+                size="lg" 
+                className="w-full"
+              >
                 <ArrowRight className="mr-2 h-5 w-5" />
-                Go to Dashboard (Explore Free Tier)
+                View Upgrade Options
               </Button>
               <div className="flex gap-4">
                 <Button onClick={() => navigate("/profile")} variant="outline" className="flex-1">
@@ -283,6 +318,9 @@ export default function FreeTierWorkspace() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal open={pricingModalOpen} onClose={() => setPricingModalOpen(false)} />
     </div>
   );
 }

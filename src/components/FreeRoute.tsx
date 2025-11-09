@@ -33,28 +33,23 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
         return;
       }
 
-      // Check if user is approved
+      // Check if user is approved and onboarding status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status")
+        .select("approval_status, onboarding_completed")
         .eq("id", session.user.id)
         .single();
 
       if (!isMounted) return;
 
       const isApproved = profile?.approval_status === "approved";
+      const onboardingComplete = profile?.onboarding_completed === true;
 
-      // Check if user has completed onboarding
-      const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
-
-      // Protect onboarding route - only for new users who haven't completed it
+      // Protect onboarding route - let OnboardingWizard handle the single redirect
       if (location.pathname === "/onboarding") {
-        if (isApproved || onboardingComplete) {
-          // Approved users or users who already completed onboarding should go to dashboard/workspace
-          navigate(isApproved ? "/dashboard" : "/free-workspace");
-          setLoading(false);
-          return;
-        }
+        // Never redirect away - OnboardingWizard owns the completion flow
+        setLoading(false);
+        return;
       }
 
       // If approved user tries to access free workspace, redirect to dashboard
@@ -64,13 +59,23 @@ export const FreeRoute = ({ children }: FreeRouteProps) => {
           setLoading(false);
           return;
         }
-        // Free tier user accessing free workspace - must have completed onboarding
+        
+        // Free tier user accessing free workspace
         if (!onboardingComplete) {
           navigate("/onboarding");
           setLoading(false);
           return;
         }
-        // All good - allow access
+        
+        // Check if user has already seen the free workspace page
+        const hasSeenWorkspace = localStorage.getItem(`free_workspace_seen_${session.user.id}`) === "true";
+        if (hasSeenWorkspace) {
+          // Redirect to dashboard if they've already seen it
+          navigate("/dashboard");
+          setLoading(false);
+          return;
+        }
+        // All good - allow first-time access
       }
 
       setLoading(false);

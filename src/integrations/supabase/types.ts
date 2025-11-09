@@ -117,7 +117,7 @@ export type Database = {
           event_date: string
           event_time: string | null
           id: string
-          organization_id: string
+          organization_id: string | null
           title: string
           updated_at: string | null
         }
@@ -129,7 +129,7 @@ export type Database = {
           event_date: string
           event_time?: string | null
           id?: string
-          organization_id: string
+          organization_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -141,7 +141,7 @@ export type Database = {
           event_date?: string
           event_time?: string | null
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -311,7 +311,7 @@ export type Database = {
           id: string
           job_id: string | null
           metadata: Json | null
-          org_id: string
+          org_id: string | null
           signature: Json | null
           status: string | null
           submitted_at: string | null
@@ -326,7 +326,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           metadata?: Json | null
-          org_id: string
+          org_id?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -341,7 +341,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           metadata?: Json | null
-          org_id?: string
+          org_id?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -714,6 +714,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_org_id: string | null
           approval_status: Database["public"]["Enums"]["approval_status"]
           created_at: string | null
           email: string | null
@@ -721,10 +722,13 @@ export type Database = {
           id: string
           is_org_admin: boolean | null
           is_super_admin: boolean | null
+          onboarding_completed: boolean | null
+          onboarding_data: Json | null
           organization_id: string | null
           updated_at: string | null
         }
         Insert: {
+          active_org_id?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           created_at?: string | null
           email?: string | null
@@ -732,10 +736,13 @@ export type Database = {
           id: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           organization_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          active_org_id?: string | null
           approval_status?: Database["public"]["Enums"]["approval_status"]
           created_at?: string | null
           email?: string | null
@@ -743,10 +750,19 @@ export type Database = {
           id?: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           organization_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_active_org_id_fkey"
+            columns: ["active_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_organization_id_fkey"
             columns: ["organization_id"]
@@ -802,6 +818,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: string
+          org_id: string | null
           user_id: string
         }
         Insert: {
@@ -810,6 +827,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: string
+          org_id?: string | null
           user_id: string
         }
         Update: {
@@ -818,6 +836,42 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: string
+          org_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          quick_add_enabled: boolean | null
+          quick_add_items: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          quick_add_enabled?: boolean | null
+          quick_add_items?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          quick_add_enabled?: boolean | null
+          quick_add_items?: Json | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -921,7 +975,7 @@ export type Database = {
           job_id?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
-          organization_id?: string
+          organization_id?: string | null
           package?: string | null
           photos?: string[] | null
           scheduled_date?: string | null

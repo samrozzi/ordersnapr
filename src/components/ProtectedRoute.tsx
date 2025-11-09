@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 
@@ -9,9 +9,11 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [approved, setApproved] = useState(false);
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -24,40 +26,39 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         return;
       }
 
-      // Check if user is approved or is an admin
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("approval_status")
-        .eq("id", session.user.id)
-        .single();
+      try {
+        // Check onboarding status
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed, approval_status")
+          .eq("id", session.user.id)
+          .single();
 
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        // Treat approved users as having completed onboarding (fallback for legacy users)
+        const onboardingComplete = profile?.onboarding_completed === true || profile?.approval_status === 'approved';
 
-      const isAdmin = !!roles;
-      const isApproved = profile?.approval_status === "approved";
-
-      // Check if user has completed onboarding
-      const onboardingComplete = localStorage.getItem(`onboarding_completed_${session.user.id}`);
-
-      // If not approved and not admin, check if they've completed onboarding
-      if (!isApproved && !isAdmin) {
-        // If they haven't completed onboarding, send to onboarding or pending
+        // Only redirect to onboarding once if incomplete
         if (!onboardingComplete) {
-          navigate("/pending-approval");
+          if (!redirectedRef.current && location.pathname !== "/onboarding") {
+            redirectedRef.current = true;
+            navigate("/onboarding", { replace: true });
+          }
           setLoading(false);
           return;
         }
-        // If they have completed onboarding, allow access with free tier limits
-        // They'll be able to use the app with restrictions
-      }
 
-      setApproved(true);
-      setLoading(false);
+        // All users who completed onboarding have access
+        setApproved(true);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error checking profile:", error);
+        // On error, assume onboarding incomplete and redirect once
+        if (!redirectedRef.current && location.pathname !== "/onboarding") {
+          redirectedRef.current = true;
+          navigate("/onboarding", { replace: true });
+        }
+        setLoading(false);
+      }
     };
 
     checkAccess();
@@ -72,7 +73,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   if (loading) {
     return (

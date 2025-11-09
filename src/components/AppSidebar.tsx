@@ -15,6 +15,7 @@ import {
   Shield,
   User,
   LogOut,
+  Lock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,9 @@ import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
 import ordersnaprIconDark from "@/assets/ordersnapr-icon-dark-new.png";
 import { Separator } from "@/components/ui/separator";
+import { OrgSwitcher } from "./OrgSwitcher";
+import { useActiveOrg } from "@/hooks/use-active-org";
+import { FeatureLockedModal } from "./FeatureLockedModal";
 
 const iconMap: Record<string, React.ElementType> = {
   clipboard: ClipboardList,
@@ -56,8 +60,9 @@ export function AppSidebar() {
   const { hasFeature } = useFeatureContext();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
-  const [orgName, setOrgName] = useState<string>("");
+  const { activeOrg, orgLogoUrl } = useActiveOrg();
+  const orgName = activeOrg?.name || "";
+  const [lockedFeatureName, setLockedFeatureName] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUserData();
@@ -77,33 +82,8 @@ export function AppSidebar() {
       setIsAdmin(!!rolesData?.some(r => r.role === "admin"));
       setIsOrgAdmin(!!rolesData?.some(r => r.role === "org_admin"));
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
+      // Organization context (logo and name) now provided by useActiveOrg hook; no manual fetch needed.
 
-      if (profileData?.organization_id) {
-        const { data: orgSettings } = await supabase
-          .from("organization_settings")
-          .select("logo_url")
-          .eq("organization_id", profileData.organization_id)
-          .maybeSingle();
-
-        if (orgSettings?.logo_url) {
-          setOrgLogoUrl(orgSettings.logo_url);
-        }
-
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("name")
-          .eq("id", profileData.organization_id)
-          .maybeSingle();
-
-        if (orgData?.name) {
-          setOrgName(orgData.name);
-        }
-      }
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -195,6 +175,29 @@ export function AppSidebar() {
 
               {!featuresLoading && enabledNavItems.map((item) => {
                 const Icon = item.icon ? iconMap[item.icon] : ClipboardList;
+                
+                if (item.isLocked) {
+                  // Locked feature - show in sidebar but intercept click
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setLockedFeatureName(item.label);
+                        }}
+                        isActive={isActive(item.path)}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          <Lock className="h-3 w-3 text-muted-foreground" />
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                
+                // Unlocked feature - normal nav
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
@@ -214,9 +217,14 @@ export function AppSidebar() {
       <SidebarFooter>
         <Separator className="mb-2" />
         {state !== "collapsed" && (
-          <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-            Powered by OrderSnapr
-          </div>
+          <>
+            <div className="px-3 pb-2">
+              <OrgSwitcher />
+            </div>
+            <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+              Powered by OrderSnapr
+            </div>
+          </>
         )}
         <SidebarMenu>
           {!featuresLoading && hasFeature("calendar") && (
@@ -258,6 +266,12 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <FeatureLockedModal
+        open={!!lockedFeatureName}
+        onClose={() => setLockedFeatureName(null)}
+        featureName={lockedFeatureName || ""}
+      />
     </Sidebar>
   );
 }

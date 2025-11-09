@@ -42,25 +42,26 @@ export function useFreeTierLimits() {
         return;
       }
 
-      // Check if user is approved
+      // Check if user is approved and has an active org
       const { data: profile } = await supabase
         .from("profiles")
-        .select("approval_status, organization_id")
+        .select("approval_status, organization_id, active_org_id")
         .eq("id", user.id)
         .single();
 
-      const approved = profile?.approval_status === "approved";
+      // Use active_org_id for multi-org support, fallback to organization_id
+      const effectiveOrgId = profile?.active_org_id || profile?.organization_id;
+      const hasOrg = !!effectiveOrgId;
+      
+      // Only approved users IN an organization bypass limits
+      const approved = profile?.approval_status === "approved" && hasOrg;
       setIsApproved(approved);
 
-      // If approved, no limits apply
+      // If approved in org, no limits apply
       if (approved) {
         setLoading(false);
         return;
       }
-
-      // For free tier users (no organization), count by user_id
-      // For org users (pending approval), count by organization_id
-      const hasOrg = !!profile?.organization_id;
 
       // Count work orders
       const workOrderQuery = supabase
@@ -68,33 +69,30 @@ export function useFreeTierLimits() {
         .select("*", { count: "exact", head: true });
 
       if (hasOrg) {
-        workOrderQuery.eq("organization_id", profile.organization_id);
+        workOrderQuery.eq("organization_id", effectiveOrgId);
       } else {
         workOrderQuery.eq("user_id", user.id).is("organization_id", null);
       }
       const { count: workOrderCount } = await workOrderQuery;
 
-      // Count properties
+      // Count properties (properties table only has user_id, not organization_id)
       const propertyQuery = supabase
         .from("properties")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-      if (hasOrg) {
-        propertyQuery.eq("organization_id", profile.organization_id);
-      } else {
-        propertyQuery.eq("user_id", user.id).is("organization_id", null);
-      }
       const { count: propertyCount } = await propertyQuery;
 
-      // Count forms
+      // Count forms (form_templates uses org_id, not organization_id)
+      // For free users, only count user-scoped templates
       const formQuery = supabase
         .from("form_templates")
         .select("*", { count: "exact", head: true });
 
       if (hasOrg) {
-        formQuery.eq("organization_id", profile.organization_id);
+        formQuery.eq("org_id", effectiveOrgId).eq("scope", "organization");
       } else {
-        formQuery.eq("user_id", user.id).is("organization_id", null);
+        formQuery.eq("created_by", user.id).is("org_id", null).eq("scope", "user");
       }
       const { count: formCount } = await formQuery;
 
@@ -104,9 +102,9 @@ export function useFreeTierLimits() {
         .select("*", { count: "exact", head: true });
 
       if (hasOrg) {
-        eventQuery.eq("organization_id", profile.organization_id);
+        eventQuery.eq("organization_id", effectiveOrgId);
       } else {
-        eventQuery.eq("user_id", user.id).is("organization_id", null);
+        eventQuery.eq("created_by", user.id).is("organization_id", null);
       }
       const { count: eventCount } = await eventQuery;
 

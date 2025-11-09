@@ -2,55 +2,40 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SAMPLE_WORK_ORDERS = [
   {
-    title: "Fix Leaking Faucet - Kitchen",
-    description: "Customer reports kitchen faucet dripping constantly",
-    status: "open",
-    priority: "medium",
+    customer_name: "John Smith",
+    address: "123 Main Street, Springfield",
+    notes: "Kitchen faucet dripping constantly",
+    type: "Plumbing",
+    status: "pending",
   },
   {
-    title: "HVAC Maintenance - Annual Service",
-    description: "Scheduled annual HVAC system inspection and filter replacement",
+    customer_name: "Sarah Johnson",
+    address: "456 Oak Avenue, Unit A, Springfield",
+    notes: "Annual HVAC system inspection and filter replacement",
+    type: "HVAC",
     status: "in_progress",
-    priority: "low",
   },
   {
-    title: "Electrical Panel Upgrade",
-    description: "Upgrade main electrical panel to 200amp service",
+    customer_name: "Mike Anderson",
+    address: "789 Elm Drive, Springfield",
+    notes: "Upgrade main electrical panel to 200amp service",
+    type: "Electrical",
     status: "completed",
-    priority: "high",
-  },
-  {
-    title: "Roof Inspection After Storm",
-    description: "Inspect roof for damage after recent storm",
-    status: "scheduled",
-    priority: "high",
-  },
-  {
-    title: "Install New Water Heater",
-    description: "Replace 15-year-old water heater with tankless unit",
-    status: "quoted",
-    priority: "medium",
   },
 ];
 
 const SAMPLE_PROPERTIES = [
   {
-    name: "123 Main Street",
+    property_name: "123 Main Street",
     address: "123 Main Street, Springfield",
-    property_type: "residential",
-    notes: "Single family home, built 2005",
+    contact: "John Smith - (555) 123-4567",
+    access_information: "Single family home, built 2005. Key under mat.",
   },
   {
-    name: "456 Oak Avenue - Building A",
+    property_name: "456 Oak Avenue - Building A",
     address: "456 Oak Avenue, Unit A, Springfield",
-    property_type: "commercial",
-    notes: "Office building, 3 stories",
-  },
-  {
-    name: "789 Elm Drive",
-    address: "789 Elm Drive, Springfield",
-    property_type: "residential",
-    notes: "Townhouse, part of HOA",
+    contact: "Sarah Johnson - (555) 234-5678",
+    access_information: "Office building, 3 stories. Front desk access.",
   },
 ];
 
@@ -80,25 +65,16 @@ const SAMPLE_CUSTOMERS = [
 const SAMPLE_FORMS = [
   {
     name: "Service Inspection Checklist",
-    description: "Standard inspection form for service calls",
-    fields: [
-      { type: "text", label: "Technician Name", required: true },
-      { type: "date", label: "Inspection Date", required: true },
-      { type: "checkbox", label: "Equipment Operational", required: true },
-      { type: "textarea", label: "Findings and Notes", required: false },
-      { type: "rating", label: "Condition Rating (1-5)", required: true },
-    ],
-  },
-  {
-    name: "Customer Satisfaction Survey",
-    description: "Post-service customer feedback form",
-    fields: [
-      { type: "rating", label: "Overall Satisfaction", required: true },
-      { type: "rating", label: "Technician Professionalism", required: true },
-      { type: "rating", label: "Timeliness", required: true },
-      { type: "textarea", label: "Additional Comments", required: false },
-      { type: "checkbox", label: "Would Recommend", required: false },
-    ],
+    slug: "service-inspection-checklist",
+    schema: {
+      fields: [
+        { type: "text", label: "Technician Name", required: true },
+        { type: "date", label: "Inspection Date", required: true },
+        { type: "checkbox", label: "Equipment Operational", required: true },
+        { type: "textarea", label: "Findings and Notes", required: false },
+      ],
+    },
+    scope: "organization",
   },
 ];
 
@@ -146,11 +122,12 @@ export async function generateSampleData(types: string[]): Promise<void> {
     const { data: properties, error } = await supabase
       .from("properties")
       .insert(
-        SAMPLE_PROPERTIES.map((property, index) => ({
-          ...property,
-          org_id: orgId,
-          created_by: user.id,
-          customer_id: customerIds[index] || null,
+        SAMPLE_PROPERTIES.map((property) => ({
+          property_name: property.property_name,
+          address: property.address,
+          contact: property.contact,
+          access_information: property.access_information,
+          user_id: user.id,
         }))
       )
       .select("id");
@@ -164,12 +141,14 @@ export async function generateSampleData(types: string[]): Promise<void> {
     const { error } = await supabase
       .from("work_orders")
       .insert(
-        SAMPLE_WORK_ORDERS.map((order, index) => ({
-          ...order,
-          org_id: orgId,
-          created_by: user.id,
-          customer_id: customerIds[index % customerIds.length] || null,
-          property_id: propertyIds[index % propertyIds.length] || null,
+        SAMPLE_WORK_ORDERS.map((order) => ({
+          customer_name: order.customer_name,
+          address: order.address,
+          notes: order.notes,
+          type: order.type,
+          status: order.status,
+          user_id: user.id,
+          organization_id: orgId,
         }))
       );
 
@@ -182,7 +161,10 @@ export async function generateSampleData(types: string[]): Promise<void> {
       .from("form_templates")
       .insert(
         SAMPLE_FORMS.map(form => ({
-          ...form,
+          name: form.name,
+          slug: form.slug,
+          schema: form.schema,
+          scope: form.scope,
           org_id: orgId,
           created_by: user.id,
         }))

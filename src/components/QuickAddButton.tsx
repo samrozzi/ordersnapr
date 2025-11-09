@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
+import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { FreeTierBadge } from "@/components/FreeTierBadge";
 import { FeatureModule } from "@/hooks/use-features";
 import {
@@ -55,10 +56,17 @@ export function QuickAddButton() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
-  const { data: preferences } = useUserPreferences(user?.id || null);
+  const { data: userPreferences, isLoading: prefsLoading } = useUserPreferences(user?.id || null);
+  const { isAtLimit } = useFreeTierLimits();
+  const { enabledNavItems } = useFeatureNavigation();
+
+  // Don't render until preferences are loaded to prevent flash of wrong items
+  if (prefsLoading) {
+    return null;
+  }
 
   // Check if Quick Add is disabled by user
-  if (preferences?.quick_add_enabled === false) {
+  if (userPreferences?.quick_add_enabled === false) {
     return null;
   }
 
@@ -71,7 +79,7 @@ export function QuickAddButton() {
       .filter(f => f.enabled)
       .map(f => f.module as FeatureModule);
   } else if (user) {
-    // Free tier user - check localStorage
+    // Free tier user - check localStorage, fallback to sensible defaults including properties
     const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
     if (userFeaturesJson) {
       try {
@@ -80,29 +88,54 @@ export function QuickAddButton() {
         console.error("Error parsing user features:", e);
       }
     }
+    // Fallback defaults if nothing stored or parsing failed
+    if (!userFeaturesJson || userFeatureModules.length === 0) {
+      userFeatureModules = ["work_orders", "properties", "forms", "calendar"] as FeatureModule[];
+    }
   }
 
-  // Build actions from enabled features
-  let actions: QuickAction[] = userFeatureModules
-    .filter(featureModule => FEATURE_CONFIG[featureModule])
-    .map(featureModule => {
-      const config = FEATURE_CONFIG[featureModule];
-      const orgConfig = getFeatureConfig(featureModule);
+  // Get allowed modules from enabled navigation items
+  const allowedModules = enabledNavItems.map(item => item.module);
 
+  // Determine which modules to show in Quick Add
+  // ONLY show items that are:
+  // 1. In the user's saved quick_add_items (from database)
+  // 2. AND in the user's sidebar preferences (from localStorage or org features)
+  let selectedModules: FeatureModule[];
+  
+  if (userPreferences && userPreferences.quick_add_items && userPreferences.quick_add_items.length > 0) {
+    // User has saved Quick Add preferences - use them
+    // But filter to only show items that are ALSO in their sidebar
+    selectedModules = (userPreferences.quick_add_items as FeatureModule[])
+      .filter(m => userFeatureModules.includes(m));
+  } else {
+    // No Quick Add preferences saved yet - show all enabled sidebar features
+    selectedModules = userFeatureModules;
+  }
+
+  // Final fallback if nothing is selected
+  if (selectedModules.length === 0) {
+    selectedModules = ["work_orders", "properties", "forms", "calendar"] as FeatureModule[];
+  }
+
+  // Build actions array from selected modules
+  const actions: QuickAction[] = selectedModules
+    .map((module) => {
+      const config = FEATURE_CONFIG[module];
+      if (!config) return null;
+      // Get custom label from navigation or feature config  
+      const featureConfig = getFeatureConfig(module);
+      const navItem = enabledNavItems.find(item => item.module === module);
+      const label = navItem?.label || featureConfig?.display_name || config.defaultLabel;
+      
       return {
-        label: orgConfig?.display_name || config.defaultLabel,
+        label,
         path: config.path,
         icon: config.icon,
-        feature: featureModule,
+        feature: module,
       };
-    });
-
-  // Filter based on user preferences if they've customized it
-  if (preferences?.quick_add_items && preferences.quick_add_items.length > 0) {
-    actions = actions.filter(action =>
-      preferences.quick_add_items.includes(action.feature)
-    );
-  }
+    })
+    .filter((action): action is QuickAction => action !== null);
 
   const handleSelect = (path: string) => {
     setOpen(false);
@@ -138,12 +171,12 @@ export function QuickAddButton() {
                 onClick={() => handleSelect(action.path)}
                 className="flex items-center justify-between"
               >
-                <div className="flex items-center">
-                  <Icon className="mr-2 h-4 w-4" />
-                  {action.label}
+                <div className="flex items-center gap-2">
+                  {action.icon && <Icon className="h-4 w-4" />}
+                  <span>{action.label}</span>
                 </div>
                 {limitResource && (
-                  <FreeTierBadge resource={limitResource} className="ml-2" />
+                  <FreeTierBadge resource={limitResource} />
                 )}
               </DropdownMenuItem>
             );

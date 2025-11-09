@@ -165,6 +165,36 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         return;
       }
 
+      // Defensive check for free tier limits (only for new properties)
+      if (!property) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id, active_org_id, approval_status")
+          .eq("id", user.id)
+          .single();
+
+        const effectiveOrgId = profile?.active_org_id || profile?.organization_id;
+        const isApproved = profile?.approval_status === "approved" && !!effectiveOrgId;
+
+        // If personal workspace (no org), enforce limits
+        if (!effectiveOrgId || !isApproved) {
+          const { count } = await supabase
+            .from("properties")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id);
+
+          if (count && count >= 2) {
+            toast({
+              title: "Limit Reached",
+              description: "Free tier allows up to 2 properties. Please upgrade.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const latitude = data.latitude ? parseFloat(data.latitude) : null;
       const longitude = data.longitude ? parseFloat(data.longitude) : null;
 

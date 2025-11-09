@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useWorkOrderDialog } from "@/contexts/WorkOrderDialogContext";
 import {
@@ -44,6 +45,7 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeOrgId, isPersonalWorkspace } = useActiveOrg();
   const { features, getFeatureConfig } = useFeatureContext();
   const { openWorkOrderDialog } = useWorkOrderDialog();
 
@@ -92,13 +94,21 @@ export function GlobalSearch() {
         const orSearchTerm = `*${search}*`;
         const ilikeSearchTerm = `%${search}%`;
 
-        // Search work orders (RLS will filter by org automatically)
-        console.log("🔍 Searching work orders for:", search);
-        const { data: workOrders, error: woError } = await supabase
+        // Search work orders - filter by current org/personal space
+        console.log("🔍 Searching work orders for:", search, "in org:", activeOrgId);
+        let workOrdersQuery = supabase
           .from("work_orders")
-          .select("id, customer_name, job_id, status, notes")
-          .or(`customer_name.ilike.${orSearchTerm},job_id.ilike.${orSearchTerm},notes.ilike.${orSearchTerm}`)
-          .limit(5);
+          .select("id, customer_name, job_id, status, notes, organization_id")
+          .or(`customer_name.ilike.${orSearchTerm},job_id.ilike.${orSearchTerm},notes.ilike.${orSearchTerm}`);
+        
+        // Filter by org context
+        if (isPersonalWorkspace) {
+          workOrdersQuery = workOrdersQuery.is("organization_id", null);
+        } else if (activeOrgId) {
+          workOrdersQuery = workOrdersQuery.eq("organization_id", activeOrgId);
+        }
+        
+        const { data: workOrders, error: woError } = await workOrdersQuery.limit(5);
 
         if (woError) {
           console.error("❌ Work orders search error:", woError);
@@ -120,12 +130,13 @@ export function GlobalSearch() {
           }
         }
 
-        // Search properties (RLS will filter by org automatically)
+        // Search properties - filter by current user (properties are user-based, not org-based)
         console.log("🔍 Searching properties...");
         const { data: properties, error: propError } = await supabase
           .from("properties")
-          .select("id, property_name, address")
+          .select("id, property_name, address, user_id")
           .or(`property_name.ilike.${orSearchTerm},address.ilike.${orSearchTerm}`)
+          .eq("user_id", user?.id || "")
           .limit(5);
 
         if (propError) {
@@ -147,13 +158,21 @@ export function GlobalSearch() {
           }
         }
 
-        // Search form templates (RLS will filter by org automatically)
+        // Search form templates - filter by current org/personal space
         console.log("🔍 Searching forms...");
-        const { data: forms, error: formError } = await supabase
+        let formsQuery = supabase
           .from("form_templates")
-          .select("id, name")
-          .ilike("name", ilikeSearchTerm)
-          .limit(5);
+          .select("id, name, org_id, scope, created_by")
+          .ilike("name", ilikeSearchTerm);
+        
+        // Filter by org context
+        if (isPersonalWorkspace) {
+          formsQuery = formsQuery.or(`scope.eq.user,scope.eq.global`).or(`created_by.eq.${user?.id},scope.eq.global`);
+        } else if (activeOrgId) {
+          formsQuery = formsQuery.or(`org_id.eq.${activeOrgId},scope.eq.global,and(scope.eq.user,created_by.eq.${user?.id})`);
+        }
+        
+        const { data: forms, error: formError } = await formsQuery.limit(5);
 
         if (formError) {
           console.error("Forms search error:", formError);
@@ -174,13 +193,21 @@ export function GlobalSearch() {
           }
         }
 
-        // Search calendar events (RLS will filter by org automatically)
+        // Search calendar events - filter by current org/personal space
         console.log("🔍 Searching calendar events...");
-        const { data: events, error: eventError } = await supabase
+        let eventsQuery = supabase
           .from("calendar_events")
-          .select("id, title, event_date")
-          .ilike("title", ilikeSearchTerm)
-          .limit(5);
+          .select("id, title, event_date, organization_id")
+          .ilike("title", ilikeSearchTerm);
+        
+        // Filter by org context
+        if (isPersonalWorkspace) {
+          eventsQuery = eventsQuery.is("organization_id", null);
+        } else if (activeOrgId) {
+          eventsQuery = eventsQuery.eq("organization_id", activeOrgId);
+        }
+        
+        const { data: events, error: eventError } = await eventsQuery.limit(5);
 
         if (eventError) {
           console.error("Calendar events search error:", eventError);
@@ -201,13 +228,23 @@ export function GlobalSearch() {
           }
         }
 
-        // Search profiles (RLS will filter by org automatically)
+        // Search profiles - filter by current org/personal space
         console.log("🔍 Searching profiles...");
-        const { data: customers, error: customerError } = await supabase
+        let profilesQuery = supabase
           .from("profiles")
-          .select("id, full_name, email")
-          .or(`full_name.ilike.${orSearchTerm},email.ilike.${orSearchTerm}`)
-          .limit(5);
+          .select("id, full_name, email, organization_id, active_org_id")
+          .or(`full_name.ilike.${orSearchTerm},email.ilike.${orSearchTerm}`);
+        
+        // Filter by org context
+        if (isPersonalWorkspace) {
+          // In personal space, only show own profile
+          profilesQuery = profilesQuery.eq("id", user?.id || "");
+        } else if (activeOrgId) {
+          // In org space, show profiles from same org
+          profilesQuery = profilesQuery.eq("organization_id", activeOrgId);
+        }
+        
+        const { data: customers, error: customerError } = await profilesQuery.limit(5);
 
         if (customerError) {
           console.error("Profiles search error:", customerError);

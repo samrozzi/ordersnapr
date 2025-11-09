@@ -44,8 +44,8 @@ const Auth = () => {
             navigate("/pending-approval");
           }
         } else {
-          // Free tier users (no organization) go to free workspace
-          navigate("/free-workspace");
+          // Free tier users (no organization) go to dashboard
+          navigate("/dashboard");
         }
       }
     });
@@ -75,8 +75,8 @@ const Auth = () => {
             navigate("/pending-approval");
           }
         } else {
-          // Free tier users (no organization) go to free workspace
-          navigate("/free-workspace");
+          // Free tier users (no organization) go to dashboard
+          navigate("/dashboard");
         }
       }
     });

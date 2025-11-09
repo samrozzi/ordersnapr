@@ -158,9 +158,34 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       // Get user's organization_id (optional - free tier users may not have one)
       const { data: profile } = await supabase
         .from("profiles")
-        .select("organization_id")
+        .select("organization_id, active_org_id, approval_status")
         .eq("id", user.id)
         .single();
+
+      // Defensive check for free tier limits (only for new work orders)
+      if (!workOrder) {
+        const effectiveOrgId = profile?.active_org_id || profile?.organization_id;
+        const isApproved = profile?.approval_status === "approved" && !!effectiveOrgId;
+        
+        // If personal workspace (no org), enforce limits
+        if (!effectiveOrgId || !isApproved) {
+          const { count } = await supabase
+            .from("work_orders")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .is("organization_id", null);
+          
+          if (count && count >= 3) {
+            toast({
+              title: "Limit Reached",
+              description: "Free tier allows up to 3 work orders. Please upgrade.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
 
       // Upload photos first
       const photoUrls = await uploadPhotos(user.id);

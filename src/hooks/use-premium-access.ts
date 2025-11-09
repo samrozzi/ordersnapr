@@ -82,10 +82,11 @@ export function usePremiumAccess() {
   };
 
   /**
-   * Check if user has premium access (approved or in org)
+   * Check if user has premium access (organization membership only)
+   * TODO: Update this when we add personal paid plans
    */
   const hasPremiumAccess = (): boolean => {
-    return isApproved || hasOrg;
+    return hasOrg;
   };
 
   return {

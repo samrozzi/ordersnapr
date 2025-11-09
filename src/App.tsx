@@ -36,6 +36,7 @@ const HealthData = lazy(() => import("./pages/HealthData"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
+const FreeTierDashboard = lazy(() => import("./pages/FreeTierDashboard"));
 
 // Optimized React Query configuration
 const queryClient = new QueryClient({
@@ -80,6 +81,7 @@ const AppContent = () => {
                 <Route path="profile" element={<Profile />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="org-admin" element={<OrgAdmin />} />
+                <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
                 <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
                 <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
                 <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />

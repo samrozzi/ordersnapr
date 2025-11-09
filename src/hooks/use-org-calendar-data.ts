@@ -52,50 +52,57 @@ export interface CalendarItem {
 
 export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch user's organization_id
+  // Fetch user's organization_id and user_id
   useEffect(() => {
-    const fetchOrgId = async () => {
+    const fetchUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        setUserId(user.id);
+
         const { data: profile, error } = await supabase
           .from("profiles")
-          .select("organization_id")
+          .select("active_org_id")
           .eq("id", user.id)
           .single();
 
         if (error) throw error;
-        if (profile?.organization_id) {
-          setOrgId(profile.organization_id);
-        }
+        setOrgId(profile?.active_org_id || null);
       } catch (error: any) {
-        console.error("Error fetching organization:", error);
+        console.error("Error fetching user data:", error);
       }
     };
 
-    fetchOrgId();
+    fetchUser();
   }, []);
 
-  // Fetch and subscribe to data when orgId is available
+  // Fetch and subscribe to data when user is available
   useEffect(() => {
-    if (!orgId) return;
+    if (!userId) return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Build work orders query
+        // Build work orders query - handle both org and free users
         let workOrdersQuery = supabase
           .from("work_orders")
-          .select("*")
-          .eq("organization_id", orgId);
+          .select("*");
+
+        if (orgId) {
+          workOrdersQuery = workOrdersQuery.eq("organization_id", orgId);
+        } else {
+          // Free tier user - get their personal work orders
+          workOrdersQuery = workOrdersQuery.eq("user_id", userId).is("organization_id", null);
+        }
 
         if (startDate) {
           workOrdersQuery = workOrdersQuery.gte("scheduled_date", startDate.toISOString().split('T')[0]);
@@ -108,11 +115,17 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
 
         if (woError) throw woError;
 
-        // Build calendar events query
+        // Build calendar events query - handle both org and free users
         let eventsQuery = supabase
           .from("calendar_events")
-          .select("*")
-          .eq("organization_id", orgId);
+          .select("*");
+
+        if (orgId) {
+          eventsQuery = eventsQuery.eq("organization_id", orgId);
+        } else {
+          // Free tier user - get their personal events
+          eventsQuery = eventsQuery.eq("created_by", userId).is("organization_id", null);
+        }
 
         if (startDate) {
           eventsQuery = eventsQuery.gte("event_date", startDate.toISOString().split('T')[0]);
@@ -142,15 +155,19 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
     fetchData();
 
     // Subscribe to real-time changes for work orders
+    const workOrdersFilter = orgId 
+      ? `organization_id=eq.${orgId}`
+      : `user_id=eq.${userId}`;
+      
     const workOrdersChannel = supabase
-      .channel(`work_orders-org-${orgId}`)
+      .channel(`work_orders-${orgId || userId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'work_orders',
-          filter: `organization_id=eq.${orgId}`
+          filter: workOrdersFilter
         },
         () => {
           fetchData();
@@ -159,15 +176,19 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
       .subscribe();
 
     // Subscribe to real-time changes for calendar events
+    const eventsFilter = orgId
+      ? `organization_id=eq.${orgId}`
+      : `created_by=eq.${userId}`;
+      
     const eventsChannel = supabase
-      .channel(`calendar_events-org-${orgId}`)
+      .channel(`calendar_events-${orgId || userId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'calendar_events',
-          filter: `organization_id=eq.${orgId}`
+          filter: eventsFilter
         },
         () => {
           fetchData();
@@ -179,7 +200,7 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
       supabase.removeChannel(workOrdersChannel);
       supabase.removeChannel(eventsChannel);
     };
-  }, [orgId, startDate, endDate, toast]);
+  }, [orgId, userId, startDate, endDate, toast]);
 
   // Transform data into unified CalendarItem format
   useEffect(() => {
@@ -209,10 +230,10 @@ export function useOrgCalendarData(startDate?: Date, endDate?: Date) {
   }, [workOrders, calendarEvents]);
 
   const refetch = async () => {
-    if (!orgId) return;
+    if (!userId) return;
     setLoading(true);
     // Trigger re-fetch by updating a dependency
-    setOrgId(orgId);
+    setUserId(userId);
   };
 
   return {

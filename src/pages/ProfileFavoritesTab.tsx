@@ -151,7 +151,7 @@ export const ProfileFavoritesTab = () => {
                 .from("work_orders")
                 .select("customer_name, address")
                 .eq("id", fav.entity_id)
-                .single();
+                .maybeSingle();
               if (data) {
                 title = data.customer_name;
                 subtitle = data.address || "";
@@ -161,10 +161,40 @@ export const ProfileFavoritesTab = () => {
                 .from("calendar_events")
                 .select("title, event_date")
                 .eq("id", fav.entity_id)
-                .single();
+                .maybeSingle();
               if (data) {
                 title = data.title;
                 subtitle = new Date(data.event_date).toLocaleDateString();
+              }
+            } else if (fav.entity_type === "property") {
+              const { data } = await supabase
+                .from("properties")
+                .select("property_name, address")
+                .eq("id", fav.entity_id)
+                .maybeSingle();
+              if (data) {
+                title = data.property_name;
+                subtitle = data.address || "";
+              }
+            } else if (fav.entity_type === "form_draft") {
+              const { data } = await supabase
+                .from("form_drafts")
+                .select("draft_name, form_type")
+                .eq("id", fav.entity_id)
+                .maybeSingle();
+              if (data) {
+                title = data.draft_name || data.form_type;
+                subtitle = data.form_type;
+              }
+            } else if (fav.entity_type === "form_template") {
+              const { data } = await supabase
+                .from("form_templates")
+                .select("name, category")
+                .eq("id", fav.entity_id)
+                .maybeSingle();
+              if (data) {
+                title = data.name;
+                subtitle = data.category || "";
               }
             }
           } catch (error) {

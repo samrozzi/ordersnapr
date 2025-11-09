@@ -13,6 +13,7 @@ import { FormRenderer } from "@/components/forms/FormRenderer";
 import { FormSubmissionViewer } from "@/components/forms/FormSubmissionViewer";
 import { TemplateForm } from "@/components/admin/TemplateForm";
 import { TemplateManager } from "@/components/admin/TemplateManager";
+import { TemplateSelector } from "@/components/forms/TemplateSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -23,6 +24,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { FreeTierGuard } from "@/components/FreeTierGuard";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 export default function Forms() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,6 +36,7 @@ export default function Forms() {
     return localStorage.getItem("formsActiveTab") || "all";
   });
   const [sheetMode, setSheetMode] = useState<"select-template" | "create-submission" | "create-template" | "view" | "edit-submission" | "edit-template" | null>(null);
+  const [isFreeUser, setIsFreeUser] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -64,17 +68,20 @@ export default function Forms() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase.from("profiles").select("organization_id, is_org_admin, is_super_admin").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("active_org_id, is_org_admin, is_super_admin").eq("id", user.id).single();
         if (profile) {
-          setOrgId(profile.organization_id);
+          const userOrgId = profile.active_org_id || null;
+          setOrgId(userOrgId);
           setIsOrgAdmin(profile.is_org_admin || false);
           setIsSuperAdmin(profile.is_super_admin || false);
+          setIsFreeUser(userOrgId === null);
         }
       }
     };
     fetchUser();
   }, []);
 
+  // Pass orgId even if null (for free users) - the hooks will handle it
   const { data: templates = [] } = useFormTemplates(orgId);
   const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : activeTab === "logged" ? { status: "logged" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
@@ -205,10 +212,17 @@ export default function Forms() {
         <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">Forms</h1>
       </div>
 
-      <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
+      <FreeTierUsageBanner only={["forms"]} />
+
+        <div className="space-y-3 md:space-y-0 mb-4 md:mb-6">
         {/* Row 1: New Submission + Tab Navigation */}
         <div className="flex items-center gap-3 md:gap-2">
-          <Button onClick={() => setSheetMode('select-template')} size="sm" className="md:h-10 text-xs md:text-sm flex-shrink-0">
+          <Button 
+            onClick={() => setSheetMode('select-template')} 
+            disabled={submissionsLoading} 
+            size="sm" 
+            className="md:h-10 text-xs md:text-sm flex-shrink-0"
+          >
             <Plus className="md:mr-2 h-4 w-4" />
             <span className="hidden md:inline">New Submission</span>
           </Button>
@@ -486,41 +500,29 @@ export default function Forms() {
             <SheetTitle>Select a Template</SheetTitle>
           </SheetHeader>
           <div className="mt-6 space-y-4">
-            <Button 
-              onClick={() => setSheetMode('create-template')} 
-              variant="outline" 
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Template
-            </Button>
+            <FreeTierGuard resource="forms" onAllowed={() => setSheetMode('create-template')}>
+              {({ onClick, disabled }) => (
+                <Button 
+                  onClick={onClick}
+                  disabled={disabled}
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Template
+                </Button>
+              )}
+            </FreeTierGuard>
             
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Or select an existing template:</p>
-              {templates.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">
-                  No templates available. Create one to get started.
-                </p>
-              ) : (
-                templates.map((template) => (
-                  <div key={template.id} className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 justify-start"
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        setSheetMode('create-submission');
-                      }}
-                    >
-                      {template.name}
-                    </Button>
-                    <FavoriteButton
-                      entityType="form_template"
-                      entityId={template.id}
-                    />
-                  </div>
-                ))
-              )}
+              <TemplateSelector
+                templates={templates}
+                onSelect={(template) => {
+                  setSelectedTemplate(template);
+                  setSheetMode('create-submission');
+                }}
+              />
             </div>
           </div>
         </SheetContent>

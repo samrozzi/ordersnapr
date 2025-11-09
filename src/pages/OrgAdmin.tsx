@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -7,33 +7,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, ArrowLeft, Users, Palette, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, Palette, Trash2, Plus, Mail, Search, ArrowUpDown, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAddOrgMembership, useRemoveOrgMembership, useUpdateOrgMembershipRole } from "@/hooks/use-org-memberships";
 
-interface UserProfile {
+interface OrgWithMembers {
   id: string;
-  email: string | null;
-  full_name: string | null;
-  approval_status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  organization_id: string | null;
-}
-
-interface EmailChangeRequest {
-  id: string;
-  user_id: string;
-  current_email: string;
-  requested_email: string;
-  status: string;
-  requested_at: string;
-  profiles?: {
-    full_name: string | null;
-    email: string | null;
-  };
+  name: string;
+  members: Array<{
+    id: string;
+    user_id: string;
+    role: string;
+    profiles: {
+      email: string | null;
+      full_name: string | null;
+    };
+  }>;
 }
 
 interface OrganizationSettings {
@@ -48,16 +42,28 @@ const OrgAdmin = () => {
   const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [orgName, setOrgName] = useState<string>("");
-  const [members, setMembers] = useState<UserProfile[]>([]);
-  const [emailChangeRequests, setEmailChangeRequests] = useState<EmailChangeRequest[]>([]);
+  const [adminOrgs, setAdminOrgs] = useState<OrgWithMembers[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<OrgWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [customColor, setCustomColor] = useState<string>("#3b82f6");
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [addingMemberEmail, setAddingMemberEmail] = useState("");
+  const [addingMemberRole, setAddingMemberRole] = useState("staff");
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  
+  // User management enhancements
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ email: "", full_name: "" });
+
+  const addMembership = useAddOrgMembership();
+  const removeMembership = useRemoveOrgMembership();
+  const updateRole = useUpdateOrgMembershipRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,118 +83,83 @@ const OrgAdmin = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const checkOrgAdminRole = async () => {
+  const fetchAdminOrgs = async () => {
     if (!session?.user) return;
 
     try {
-      // Check if user has org_admin role
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
+      // Get organizations where user is admin
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("org_memberships")
+        .select(`
+          org_id,
+          role,
+          organization:organizations(id, name)
+        `)
         .eq("user_id", session.user.id)
-        .eq("role", "org_admin")
-        .maybeSingle();
+        .eq("role", "admin");
 
-      if (roleError) throw roleError;
+      if (membershipsError) throw membershipsError;
 
-      if (!roleData) {
+      if (!membershipsData || membershipsData.length === 0) {
         toast({
-          title: "Access Denied",
-          description: "You don't have organization admin privileges",
+          title: "No Admin Access",
+          description: "You don't have admin access to any organizations",
           variant: "destructive",
         });
         navigate("/");
         return;
       }
 
-      // Get user's organization
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("organization_id, organizations(name)")
-        .eq("id", session.user.id)
-        .single();
+      // Fetch members for each org
+      const orgsWithMembers = await Promise.all(
+        membershipsData.map(async (membership: any) => {
+          const org = membership.organization;
+          
+          const { data: membersData, error: membersError } = await supabase
+            .from("org_memberships")
+            .select(`
+              id,
+              user_id,
+              role,
+              profiles(email, full_name)
+            `)
+            .eq("org_id", org.id);
 
-      if (profileError) throw profileError;
+          if (membersError) throw membersError;
 
-      if (!profileData?.organization_id) {
-        toast({
-          title: "Error",
-          description: "You are not assigned to an organization",
-          variant: "destructive",
-        });
-        navigate("/");
-        return;
+          return {
+            id: org.id,
+            name: org.name,
+            members: membersData || []
+          };
+        })
+      );
+
+      setAdminOrgs(orgsWithMembers);
+      if (orgsWithMembers.length > 0) {
+        setSelectedOrg(orgsWithMembers[0]);
+        fetchOrgSettings(orgsWithMembers[0].id);
       }
-
-      setOrganizationId(profileData.organization_id);
-      setOrgName((profileData.organizations as any)?.name || "");
       setIsOrgAdmin(true);
     } catch (error) {
-      console.error("Error checking org admin role:", error);
-      navigate("/");
-    }
-  };
-
-  const fetchMembers = async () => {
-    if (!organizationId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("organization_id", organizationId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setMembers(data || []);
-    } catch (error) {
-      console.error("Error fetching members:", error);
+      console.error("Error fetching admin orgs:", error);
       toast({
         title: "Error",
-        description: "Failed to load members",
+        description: "Failed to load organization data",
         variant: "destructive",
       });
+      navigate("/");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchEmailChangeRequests = async () => {
-    if (!organizationId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("email_change_requests")
-        .select(`
-          *,
-          profiles!email_change_requests_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
-        .eq("status", "pending")
-        .order("requested_at", { ascending: false });
-
-      if (error) throw error;
-      
-      // Filter to only show requests from users in this org
-      const orgMemberIds = members.map(m => m.id);
-      const filteredRequests = (data || []).filter(req => orgMemberIds.includes(req.user_id));
-      
-      setEmailChangeRequests(filteredRequests as any);
-    } catch (error) {
-      console.error("Error fetching email change requests:", error);
-    }
-  };
-
-  const fetchOrgSettings = async () => {
-    if (!organizationId) return;
-
+  const fetchOrgSettings = async (orgId: string) => {
     try {
       const { data, error } = await supabase
         .from("organization_settings")
         .select("*")
-        .eq("organization_id", organizationId)
+        .eq("organization_id", orgId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
@@ -220,13 +191,12 @@ const OrgAdmin = () => {
   };
 
   const handleUploadLogo = async () => {
-    if (!logoFile || !organizationId) return;
+    if (!logoFile || !selectedOrg) return;
 
     setIsUploadingLogo(true);
     try {
-      // Upload to storage
       const fileExt = logoFile.name.split('.').pop();
-      const fileName = `${organizationId}-${Date.now()}.${fileExt}`;
+      const fileName = `${selectedOrg.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -235,12 +205,10 @@ const OrgAdmin = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('organization-logos')
         .getPublicUrl(filePath);
 
-      // Update organization settings
       if (orgSettings) {
         const { error } = await supabase
           .from("organization_settings")
@@ -252,7 +220,7 @@ const OrgAdmin = () => {
         const { error } = await supabase
           .from("organization_settings")
           .insert({
-            organization_id: organizationId,
+            organization_id: selectedOrg.id,
             logo_url: publicUrl
           });
 
@@ -264,7 +232,7 @@ const OrgAdmin = () => {
         description: "Logo uploaded successfully",
       });
 
-      fetchOrgSettings();
+      fetchOrgSettings(selectedOrg.id);
     } catch (error: any) {
       console.error("Error uploading logo:", error);
       toast({
@@ -279,119 +247,235 @@ const OrgAdmin = () => {
 
   useEffect(() => {
     if (session) {
-      checkOrgAdminRole();
+      fetchAdminOrgs();
     }
   }, [session]);
 
-  useEffect(() => {
-    if (isOrgAdmin && organizationId) {
-      fetchMembers();
-      fetchOrgSettings();
-    }
-  }, [isOrgAdmin, organizationId]);
+  const handleAddMember = async () => {
+    if (!addingMemberEmail.trim() || !selectedOrg) return;
 
-  useEffect(() => {
-    if (members.length > 0) {
-      fetchEmailChangeRequests();
-    }
-  }, [members]);
-
-  const handleApproval = async (userId: string, status: 'approved' | 'rejected') => {
     try {
-      const { error } = await supabase
+      // Find user by email
+      const { data: profiles, error: profileError } = await supabase
         .from("profiles")
-        .update({ approval_status: status })
-        .eq("id", userId);
+        .select("id")
+        .eq("email", addingMemberEmail.trim())
+        .maybeSingle();
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      if (!profiles) {
+        toast({
+          title: "User Not Found",
+          description: "No user exists with that email. Ask them to sign up first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await addMembership.mutateAsync({
+        userId: profiles.id,
+        orgId: selectedOrg.id,
+        role: addingMemberRole
+      });
 
       toast({
         title: "Success",
-        description: `User ${status === 'approved' ? 'approved' : 'rejected'} successfully`,
+        description: "Member added to organization",
       });
 
-      fetchMembers();
-    } catch (error) {
-      console.error("Error updating approval status:", error);
+      setAddingMemberEmail("");
+      setIsAddingMember(false);
+      fetchAdminOrgs();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update user status",
+        description: error.message || "Failed to add member. They may already be a member.",
         variant: "destructive",
       });
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
+  const handleRemoveMember = async (membershipId: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ organization_id: null })
-        .eq("id", userId);
-
-      if (error) throw error;
-
+      await removeMembership.mutateAsync(membershipId);
       toast({
         title: "Success",
         description: "Member removed from organization",
       });
-
-      fetchMembers();
-    } catch (error) {
-      console.error("Error removing member:", error);
+      fetchAdminOrgs();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to remove member",
+        description: error.message || "Failed to remove member",
         variant: "destructive",
       });
     }
   };
 
-  const handleEmailChangeApproval = async (requestId: string, userId: string, newEmail: string, approve: boolean) => {
+  const handleUpdateRole = async (membershipId: string, newRole: string) => {
     try {
-      if (approve) {
-        // Update user's email in auth system
-        const { error: authError } = await supabase.auth.admin.updateUserById(
-          userId,
-          { email: newEmail }
-        );
+      await updateRole.mutateAsync({ membershipId, role: newRole });
+      toast({
+        title: "Success",
+        description: "Role updated successfully",
+      });
+      fetchAdminOrgs();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update role",
+        variant: "destructive",
+      });
+    }
+  };
 
-        if (authError) throw authError;
-      }
+  const handleEditMember = (member: any) => {
+    setEditingMember(member);
+    setEditForm({
+      email: member.profiles?.email || "",
+      full_name: member.profiles?.full_name || "",
+    });
+  };
 
-      // Update request status
+  const handleSaveMemberEdit = async () => {
+    if (!editingMember) return;
+
+    try {
       const { error } = await supabase
-        .from("email_change_requests")
+        .from("profiles")
         .update({
-          status: approve ? 'approved' : 'rejected',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: session?.user?.id
+          email: editForm.email.trim(),
+          full_name: editForm.full_name.trim(),
         })
-        .eq("id", requestId);
+        .eq("id", editingMember.user_id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Email change ${approve ? 'approved' : 'rejected'}`,
+        description: "Member details updated successfully",
       });
 
-      fetchEmailChangeRequests();
-      fetchMembers();
+      setEditingMember(null);
+      fetchAdminOrgs();
     } catch (error: any) {
-      console.error("Error processing email change:", error);
+      console.error("Error updating member:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to process email change request",
+        description: error.message || "Failed to update member details",
         variant: "destructive",
       });
     }
   };
 
-  const handleSaveTheme = async () => {
-    if (!organizationId) return;
+  const handleDeleteMember = async (membershipId: string, userId: string, email: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { action: 'delete_user', userId }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Success",
+        description: `User ${email} has been deleted`,
+      });
+
+      fetchAdminOrgs();
+    } catch (error: any) {
+      console.error("Error deleting member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [changingPasswordUserId, setChangingPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUserId || !newPassword) return;
 
     try {
-      // Validate hex color
+      const { data, error } = await supabase.functions.invoke('admin-user-management', {
+        body: { 
+          action: 'change_password', 
+          userId: changingPasswordUserId,
+          password: newPassword
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+
+      setChangingPasswordUserId(null);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filtered and sorted members
+  const filteredAndSortedMembers = useMemo(() => {
+    if (!selectedOrg) return [];
+    
+    let filtered = [...selectedOrg.members];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (member) =>
+          member.profiles?.email?.toLowerCase().includes(query) ||
+          member.profiles?.full_name?.toLowerCase().includes(query) ||
+          member.role.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case "name":
+          comparison = (a.profiles?.full_name || "").localeCompare(
+            b.profiles?.full_name || ""
+          );
+          break;
+        case "email":
+          comparison = (a.profiles?.email || "").localeCompare(
+            b.profiles?.email || ""
+          );
+          break;
+        case "role":
+          comparison = a.role.localeCompare(b.role);
+          break;
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [selectedOrg, searchQuery, sortBy, sortOrder]);
+
+  const handleSaveTheme = async () => {
+    if (!selectedOrg) return;
+
+    try {
       if (!/^#[0-9A-F]{6}$/i.test(customColor)) {
         toast({
           title: "Invalid Color",
@@ -402,7 +486,6 @@ const OrgAdmin = () => {
       }
 
       if (orgSettings) {
-        // Update existing settings
         const { error } = await supabase
           .from("organization_settings")
           .update({ custom_theme_color: customColor })
@@ -410,11 +493,10 @@ const OrgAdmin = () => {
 
         if (error) throw error;
       } else {
-        // Create new settings
         const { error } = await supabase
           .from("organization_settings")
           .insert({
-            organization_id: organizationId,
+            organization_id: selectedOrg.id,
             custom_theme_color: customColor
           });
 
@@ -423,10 +505,10 @@ const OrgAdmin = () => {
 
       toast({
         title: "Success",
-        description: "Theme saved successfully. Members will see the new theme on their next login.",
+        description: "Theme saved successfully",
       });
 
-      fetchOrgSettings();
+      fetchOrgSettings(selectedOrg.id);
     } catch (error: any) {
       console.error("Error saving theme:", error);
       toast({
@@ -445,15 +527,37 @@ const OrgAdmin = () => {
     );
   }
 
-  const pendingMembers = members.filter(m => m.approval_status === 'pending');
-  const approvedMembers = members.filter(m => m.approval_status === 'approved');
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Organization Admin</h1>
-          <p className="text-muted-foreground mt-1">{orgName}</p>
+          {adminOrgs.length > 1 && (
+            <Select
+              value={selectedOrg?.id}
+              onValueChange={(orgId) => {
+                const org = adminOrgs.find(o => o.id === orgId);
+                if (org) {
+                  setSelectedOrg(org);
+                  fetchOrgSettings(org.id);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[250px] mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {adminOrgs.map(org => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {adminOrgs.length === 1 && (
+            <p className="text-muted-foreground mt-1">{selectedOrg?.name}</p>
+          )}
         </div>
         <Button variant="outline" onClick={() => navigate("/")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -461,317 +565,377 @@ const OrgAdmin = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="members" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="members" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Members
-          </TabsTrigger>
-          <TabsTrigger value="theme" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Theme
-          </TabsTrigger>
-        </TabsList>
+      {!selectedOrg ? (
+        <Card>
+          <CardContent className="p-8">
+            <p className="text-muted-foreground text-center">Select an organization to manage</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="members" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="members" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Members
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Theme
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="members" className="space-y-6">
-          {pendingMembers.length > 0 && (
+          <TabsContent value="members" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Pending Approvals ({pendingMembers.length})</CardTitle>
-                <CardDescription>Members waiting for approval</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Organization Members ({filteredAndSortedMembers.length} of {selectedOrg.members.length})</CardTitle>
+                  <CardDescription>Manage members and their roles</CardDescription>
+                </div>
+                <Dialog open={isAddingMember} onOpenChange={setIsAddingMember}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Member to {selectedOrg.name}</DialogTitle>
+                      <DialogDescription>
+                        Enter the email of an existing user to add them to your organization
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="member-email">Email Address</Label>
+                        <Input
+                          id="member-email"
+                          type="email"
+                          value={addingMemberEmail}
+                          onChange={(e) => setAddingMemberEmail(e.target.value)}
+                          placeholder="user@example.com"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Role</Label>
+                        <Select value={addingMemberRole} onValueChange={setAddingMemberRole}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="staff">Staff</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddingMember(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddMember}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Add Member
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-md border overflow-x-auto touch-pan-x">
-                  <Table className="w-full">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="min-w-[200px]">Email</TableHead>
-                        <TableHead className="min-w-[150px]">Name</TableHead>
-                        <TableHead className="min-w-[140px]">Requested</TableHead>
-                        <TableHead className="w-[180px] pr-4">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingMembers.map((member) => (
-                        <TableRow key={member.id}>
-                          <TableCell>{member.email || '-'}</TableCell>
-                          <TableCell>{member.full_name || '-'}</TableCell>
-                          <TableCell>
-                            {new Date(member.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleApproval(member.id, 'approved')}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleApproval(member.id, 'rejected')}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                        </TableCell>
-                      </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {emailChangeRequests.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Change Requests ({emailChangeRequests.length})</CardTitle>
-                <CardDescription>Pending email change requests from members</CardDescription>
-              </CardHeader>
-              <CardContent>
-               <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
-                  <Table className="min-w-max">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="min-w-[150px]">User</TableHead>
-                        <TableHead className="min-w-[180px]">Current Email</TableHead>
-                        <TableHead className="min-w-[180px]">Requested Email</TableHead>
-                        <TableHead className="min-w-[120px]">Requested</TableHead>
-                        <TableHead className="w-[180px] pr-4">Actions</TableHead>
-                        <TableHead className="w-16" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {emailChangeRequests.map((request) => (
-                        <TableRow key={request.id}>
-                          <TableCell>
-                            {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
-                          </TableCell>
-                          <TableCell>{request.current_email}</TableCell>
-                          <TableCell>{request.requested_email}</TableCell>
-                          <TableCell>
-                            {new Date(request.requested_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleEmailChangeApproval(
-                                  request.id,
-                                  request.user_id,
-                                  request.requested_email,
-                                  true
-                                )}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleEmailChangeApproval(
-                                  request.id,
-                                  request.user_id,
-                                  request.requested_email,
-                                  false
-                                )}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-16"></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Members ({approvedMembers.length})</CardTitle>
-              <CardDescription>Approved members in your organization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {approvedMembers.length === 0 ? (
-                <p className="text-muted-foreground">No active members</p>
-              ) : (
-              <div className="rounded-md border overflow-x-auto touch-pan-x pr-16">
-                  <Table className="min-w-max">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="min-w-[200px]">Email</TableHead>
-                        <TableHead className="min-w-[150px]">Name</TableHead>
-                        <TableHead className="min-w-[100px]">Status</TableHead>
-                        <TableHead className="w-[150px] pr-4">Actions</TableHead>
-                        <TableHead className="w-16" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {approvedMembers.map((member) => (
-                        <TableRow key={member.id}>
-                          <TableCell>{member.email || '-'}</TableCell>
-                          <TableCell>{member.full_name || '-'}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-green-100 text-green-800">
-                              Approved
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Remove
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove Member?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will remove {member.email} from your organization. 
-                                    They will lose access to organization resources.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleRemoveMember(member.id)}
-                                  >
-                                    Remove
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                          <TableCell className="w-20 sm:w-24"></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="theme" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Logo</CardTitle>
-              <CardDescription>
-                Upload your organization's logo to display in the header
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="logo-upload">Logo Image</Label>
-                <Input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Recommended: PNG or SVG format, transparent background, max 2MB
-                </p>
-              </div>
-
-              {logoPreview && (
-                <div className="border rounded-lg p-4 bg-muted/30">
-                  <Label className="mb-2 block">Preview</Label>
-                  <img 
-                    src={logoPreview} 
-                    alt="Logo preview" 
-                    className="h-16 object-contain"
-                  />
-                </div>
-              )}
-
-              <Button 
-                onClick={handleUploadLogo} 
-                disabled={!logoFile || isUploadingLogo}
-                size="lg"
-              >
-                {isUploadingLogo ? "Uploading..." : "Upload Logo"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Theme</CardTitle>
-              <CardDescription>
-                Customize the appearance of the application for all members of your organization
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="custom-color">Custom Primary Color</Label>
-                  <div className="flex gap-4 items-center">
+              <CardContent className="space-y-4">
+                {/* Search and Sort Controls */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="custom-color"
-                      type="color"
-                      value={customColor}
-                      onChange={(e) => setCustomColor(e.target.value)}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      type="text"
-                      value={customColor}
-                      onChange={(e) => setCustomColor(e.target.value)}
-                      placeholder="#3b82f6"
-                      className="font-mono"
+                      placeholder="Search by name, email, or role..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
                     />
                   </div>
+                  <Select
+                    value={`${sortBy}-${sortOrder}`}
+                    onValueChange={(value) => {
+                      const [newSortBy, newSortOrder] = value.split("-") as [
+                        "name" | "email" | "role",
+                        "asc" | "desc"
+                      ];
+                      setSortBy(newSortBy);
+                      setSortOrder(newSortOrder);
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name-asc">Name A-Z</SelectItem>
+                      <SelectItem value="name-desc">Name Z-A</SelectItem>
+                      <SelectItem value="email-asc">Email A-Z</SelectItem>
+                      <SelectItem value="email-desc">Email Z-A</SelectItem>
+                      <SelectItem value="role-asc">Role A-Z</SelectItem>
+                      <SelectItem value="role-desc">Role Z-A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {filteredAndSortedMembers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    {searchQuery ? "No members match your search" : "No members yet. Add your first member above."}
+                  </p>
+                ) : (
+                  <div className="rounded-md border overflow-x-auto touch-pan-x">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[200px]">Email</TableHead>
+                          <TableHead className="min-w-[150px]">Name</TableHead>
+                          <TableHead className="min-w-[120px]">Role</TableHead>
+                          <TableHead className="w-[150px] pr-4">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAndSortedMembers.map((member) => (
+                          <TableRow key={member.id}>
+                            <TableCell className="break-all">{member.profiles?.email || '-'}</TableCell>
+                            <TableCell className="break-words">{member.profiles?.full_name || '-'}</TableCell>
+                            <TableCell>
+                              <Select
+                                value={member.role}
+                                onValueChange={(newRole) => handleUpdateRole(member.id, newRole)}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="staff">Staff</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="manager">Manager</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2 flex-wrap">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditMember(member)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setChangingPasswordUserId(member.user_id)}
+                                >
+                                  Password
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Member</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete {member.profiles?.email}? This will permanently delete their account and all associated data. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteMember(member.id, member.user_id, member.profiles?.email || "this user")}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Edit Member Dialog */}
+            <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Member Details</DialogTitle>
+                  <DialogDescription>
+                    Update member information. Use the Password button separately to change passwords.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-name">Full Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditingMember(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveMemberEdit}>
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Change Password Dialog */}
+            <Dialog open={!!changingPasswordUserId} onOpenChange={(open) => {
+              if (!open) {
+                setChangingPasswordUserId(null);
+                setNewPassword("");
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Change Member Password</DialogTitle>
+                  <DialogDescription>
+                    Enter a new password for this member. Minimum 6 characters required.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      minLength={6}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setChangingPasswordUserId(null);
+                    setNewPassword("");
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleChangePassword}
+                    disabled={!newPassword || newPassword.length < 6}
+                  >
+                    Update Password
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+
+          <TabsContent value="theme" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization Logo</CardTitle>
+                <CardDescription>
+                  Upload your organization's logo to display in the header
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="logo-upload">Logo Image</Label>
+                  <Input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                  />
                   <p className="text-sm text-muted-foreground">
-                    Select a color that represents your organization. This will be applied as the primary theme color.
+                    Recommended: PNG or SVG format, transparent background, max 2MB
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Preview</Label>
-                  <div className="border rounded-lg p-6 space-y-4">
-                    <div className="flex gap-3">
-                      <Button style={{ backgroundColor: customColor, borderColor: customColor }}>
-                        Primary Button
-                      </Button>
-                      <Button variant="outline" style={{ borderColor: customColor, color: customColor }}>
-                        Outline Button
-                      </Button>
-                    </div>
-                    <Card style={{ borderColor: customColor }}>
-                      <CardHeader>
-                        <CardTitle style={{ color: customColor }}>Sample Card</CardTitle>
-                        <CardDescription>This is how cards will look with your theme</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">Content goes here...</p>
-                      </CardContent>
-                    </Card>
+                {logoPreview && (
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <Label className="mb-2 block">Preview</Label>
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo preview" 
+                      className="h-16 object-contain"
+                    />
                   </div>
-                </div>
+                )}
 
-                <Button onClick={handleSaveTheme} size="lg">
-                  Save Theme
+                <Button 
+                  onClick={handleUploadLogo} 
+                  disabled={!logoFile || isUploadingLogo}
+                  size="lg"
+                >
+                  {isUploadingLogo ? "Uploading..." : "Upload Logo"}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization Theme</CardTitle>
+                <CardDescription>
+                  Customize the appearance for all members of your organization
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-color">Custom Primary Color</Label>
+                    <div className="flex gap-4 items-center">
+                      <Input
+                        id="custom-color"
+                        type="color"
+                        value={customColor}
+                        onChange={(e) => setCustomColor(e.target.value)}
+                        className="w-20 h-10"
+                      />
+                      <Input
+                        type="text"
+                        value={customColor}
+                        onChange={(e) => setCustomColor(e.target.value)}
+                        placeholder="#3b82f6"
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={handleSaveTheme} size="lg">
+                    Save Theme
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };

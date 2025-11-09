@@ -14,32 +14,38 @@ export interface FormTemplate {
   version: number;
   created_at: string;
   updated_at: string;
+  created_by: string | null;
+  scope: 'user' | 'organization' | 'global';
 }
 
 export const useFormTemplates = (orgId: string | null) => {
   return useQuery({
     queryKey: ["form-templates", orgId],
     queryFn: async () => {
-      if (!orgId) return [];
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
-      // Fetch templates based on scope:
-      // - Global templates (scope = 'global')
-      // - Organization templates in user's org (scope = 'organization' AND org_id matches)
-      // - Personal templates created by user (scope = 'user' AND created_by matches)
-      const { data, error } = await supabase
+      let query = supabase
         .from("form_templates")
         .select("*")
-        .eq("is_active", true)
-        .or(`scope.eq.global,and(scope.eq.organization,org_id.eq.${orgId}),and(scope.eq.user,created_by.eq.${user.id})`)
-        .order("name");
+        .eq("is_active", true);
+
+      if (orgId) {
+        // Org user: show org + global templates
+        query = query.or(`scope.eq.global,and(scope.eq.organization,org_id.eq.${orgId})`);
+      } else {
+        // Free tier user: ONLY user-scoped templates they created
+        query = query
+          .eq("created_by", user.id)
+          .is("org_id", null)
+          .eq("scope", "user");
+      }
+      
+      const { data, error } = await query.order("name");
 
       if (error) throw error;
       return data as FormTemplate[];
     },
-    enabled: !!orgId,
   });
 };
 

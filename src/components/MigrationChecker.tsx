@@ -249,7 +249,7 @@ export function MigrationChecker() {
           const { error: testError } = await supabase
             .from("work_orders")
             .insert({
-              title: "__migration_test__",
+              customer_name: "__test__",
               user_id: user.id,
               organization_id: null,
               status: "pending",
@@ -268,7 +268,7 @@ export function MigrationChecker() {
             await supabase
               .from("work_orders")
               .delete()
-              .eq("title", "__migration_test__")
+              .eq("customer_name", "__test__")
               .eq("user_id", user.id);
           }
         }

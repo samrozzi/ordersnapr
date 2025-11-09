@@ -11,42 +11,12 @@ export interface UserPreferences {
   updated_at: string;
 }
 
-// localStorage fallback key
-const STORAGE_KEY = "ordersnapr_user_preferences";
-
-// Helper to get preferences from localStorage
-const getLocalPreferences = (userId: string): UserPreferences | null => {
-  try {
-    const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
-    if (!stored) return null;
-    return JSON.parse(stored);
-  } catch {
-    return null;
-  }
-};
-
-// Helper to save preferences to localStorage
-const setLocalPreferences = (userId: string, prefs: Partial<UserPreferences>) => {
-  const existing = getLocalPreferences(userId);
-  const updated = {
-    id: existing?.id || crypto.randomUUID(),
-    user_id: userId,
-    quick_add_enabled: prefs.quick_add_enabled ?? true,
-    quick_add_items: prefs.quick_add_items ?? [],
-    created_at: existing?.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  localStorage.setItem(`${STORAGE_KEY}_${userId}`, JSON.stringify(updated));
-  return updated;
-};
-
 export const useUserPreferences = (userId: string | null) => {
   return useQuery({
     queryKey: ["user-preferences", userId],
     queryFn: async () => {
       if (!userId) return null;
 
-      // Try database first
       const { data, error } = await supabase
         .from("user_preferences")
         .select("*")
@@ -54,9 +24,9 @@ export const useUserPreferences = (userId: string | null) => {
         .single();
 
       if (error) {
-        // If table doesn't exist, use localStorage fallback
-        if (error.message?.includes("user_preferences") || error.code === "PGRST116") {
-          return getLocalPreferences(userId);
+        // If no row found, return null to allow first insert
+        if (error.code === "PGRST116") {
+          return null;
         }
         throw error;
       }
@@ -81,53 +51,26 @@ export const useUpdateUserPreferences = () => {
       quickAddEnabled: boolean;
       quickAddItems: FeatureModule[];
     }) => {
-      // First, check if preferences exist in database
-      const { data: existing, error: checkError } = await supabase
+      // Upsert to handle both insert and update
+      const { data, error } = await supabase
         .from("user_preferences")
-        .select("id")
-        .eq("user_id", userId)
-        .single();
-
-      // If table doesn't exist, use localStorage fallback
-      if (checkError && checkError.message?.includes("user_preferences")) {
-        return setLocalPreferences(userId, {
+        .upsert({
+          user_id: userId,
           quick_add_enabled: quickAddEnabled,
           quick_add_items: quickAddItems,
-        });
-      }
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
 
-      if (existing) {
-        // Update existing in database
-        const { data, error } = await supabase
-          .from("user_preferences")
-          .update({
-            quick_add_enabled: quickAddEnabled,
-            quick_add_items: quickAddItems,
-          })
-          .eq("user_id", userId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert new in database
-        const { data, error } = await supabase
-          .from("user_preferences")
-          .insert({
-            user_id: userId,
-            quick_add_enabled: quickAddEnabled,
-            quick_add_items: quickAddItems,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      if (error) throw error;
+      return data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
+    onSuccess: async (_, variables) => {
+      // Invalidate and refetch the query immediately
+      await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
+      await queryClient.refetchQueries({ queryKey: ["user-preferences", variables.userId] });
     },
   });
 };

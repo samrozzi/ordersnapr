@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Palette, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Palette, Upload, Lock, Crown, Sparkles } from "lucide-react";
+import { usePremiumAccess } from "@/hooks/use-premium-access";
 
 interface BrandingStepProps {
   primaryColor: string;
@@ -21,6 +23,9 @@ const PRESET_COLORS = [
   { name: "Pink", primary: "#ec4899", secondary: "#a855f7" },
   { name: "Indigo", primary: "#6366f1", secondary: "#8b5cf6" },
   { name: "Red", primary: "#ef4444", secondary: "#f97316" },
+  { name: "Purple", primary: "#a855f7", secondary: "#ec4899" },
+  { name: "Teal", primary: "#14b8a6", secondary: "#06b6d4" },
+  { name: "Amber", primary: "#f59e0b", secondary: "#eab308" },
 ];
 
 export function BrandingStep({
@@ -31,9 +36,12 @@ export function BrandingStep({
   onNext,
   onBack,
 }: BrandingStepProps) {
-  const [localPrimary, setLocalPrimary] = useState(primaryColor);
-  const [localSecondary, setLocalSecondary] = useState(secondaryColor);
-  const [localLogo, setLocalLogo] = useState(logoUrl);
+  const { loading, hasPremiumAccess } = usePremiumAccess();
+  const isPremium = hasPremiumAccess();
+  // Free users default to black/white, premium users can customize
+  const [localPrimary, setLocalPrimary] = useState(isPremium ? primaryColor : "#000000");
+  const [localSecondary, setLocalSecondary] = useState(isPremium ? secondaryColor : "#ffffff");
+  const [localLogo, setLocalLogo] = useState(isPremium ? logoUrl : "");
 
   const applyPreset = (preset: typeof PRESET_COLORS[0]) => {
     setLocalPrimary(preset.primary);
@@ -41,6 +49,65 @@ export function BrandingStep({
     onUpdate({ primaryColor: preset.primary, secondaryColor: preset.secondary });
   };
 
+  // Show locked preview while loading to prevent flicker, or for free users
+  if (loading || !isPremium) {
+    return (
+      <div className="space-y-6 py-4">
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-2xl font-bold">Unlock Premium Branding</h2>
+            <Badge variant="secondary" className="gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          </div>
+          <p className="text-muted-foreground">
+            Upgrade to customize OrderSnapr with your brand colors and logo
+          </p>
+        </div>
+
+        <Card className="p-6 border-2 border-primary/20 bg-primary/5">
+          <div className="flex items-start gap-3">
+            <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="font-semibold flex items-center gap-2">
+                Preview Premium Features
+                <Crown className="h-4 w-4 text-primary" />
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Free accounts use default black and white styling. Upgrade to unlock custom brand colors and logo - you can customize these in Preferences after upgrading!
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 mt-3">
+                <li className="flex items-center gap-2">
+                  <Palette className="h-4 w-4" />
+                  Custom primary and secondary colors
+                </li>
+                <li className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload your company logo
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Multiple color preset themes
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button onClick={onNext}>
+            Continue with Defaults
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Premium users see full customization
   return (
     <div className="space-y-6 py-4">
       <div className="text-center space-y-2">

@@ -5,6 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, List, Calendar as CalendarIcon, LayoutGrid } from "lucide-react";
+import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 interface WorkOrder {
   id: string;
@@ -75,6 +77,7 @@ const WorkOrders = () => {
   const [listTab, setListTab] = useState<ListTab>('pending');
   const [viewingOrder, setViewingOrder] = useState<WorkOrder | null>(null);
   const [viewingOrderDetails, setViewingOrderDetails] = useState<WorkOrder | null>(null);
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
 
   const config = getFeatureConfig('work_orders');
   const displayName = config?.display_name || 'Jobs';
@@ -101,38 +104,66 @@ const WorkOrders = () => {
   const fetchWorkOrders = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('🔍 Fetching work orders for user:', {
+      if (!user) return;
+
+      // Fetch user's active org context
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      const currentActiveOrgId = profile?.active_org_id || null;
+      setActiveOrgId(currentActiveOrgId);
+
+      console.log('🔍 Fetching work orders:', {
         email: user?.email,
-        id: user?.id?.substring(0, 8)
+        activeOrgId: currentActiveOrgId,
+        isPersonal: currentActiveOrgId === null
       });
 
-      const { data, error } = await supabase
+      // Build query with org filtering
+      let query = supabase
         .from("work_orders")
         .select(`
           *,
           creator:profiles!work_orders_user_id_fkey(full_name, email),
           assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
-        `)
-        .order("created_at", { ascending: false });
+        `);
+
+      if (currentActiveOrgId === null) {
+        // Personal workspace: user's own work orders with no organization
+        query = query.eq("user_id", user.id).is("organization_id", null);
+      } else {
+        // Organization workspace: all work orders for that org
+        query = query.eq("organization_id", currentActiveOrgId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) {
         console.error('❌ Work orders query error:', error);
         throw error;
       }
 
-      const { count } = await supabase
+      // Count query with same filters
+      let countQuery = supabase
         .from("work_orders")
         .select("*", { count: 'exact', head: true });
+
+      if (currentActiveOrgId === null) {
+        countQuery = countQuery.eq("user_id", user.id).is("organization_id", null);
+      } else {
+        countQuery = countQuery.eq("organization_id", currentActiveOrgId);
+      }
+
+      const { count } = await countQuery;
 
       console.log('✅ Work orders fetched:', {
         dataLength: data?.length || 0,
         count: count || 0,
-        hasToken: !!(await supabase.auth.getSession()).data.session?.access_token
+        workspace: currentActiveOrgId ? 'organization' : 'personal'
       });
-
-      if (data?.length === 0 && user) {
-        console.warn('⚠️ Token present but 0 rows returned - possible PWA storage issue');
-      }
 
       setWorkOrders(data || []);
     } catch (error) {
@@ -151,7 +182,7 @@ const WorkOrders = () => {
     if (session) {
       fetchWorkOrders();
     }
-  }, [session]);
+  }, [session, activeOrgId]);
 
   // Handle opening work order from URL parameter (e.g., from favorites)
   useEffect(() => {
@@ -212,14 +243,24 @@ const WorkOrders = () => {
         <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
       </div>
 
+      <FreeTierUsageBanner only={["work_orders"]} />
+
       {/* Action buttons row */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
+        <FreeTierGuard resource="work_orders" onAllowed={() => setIsDrawerOpen(true)}>
+          {({ onClick, disabled }) => (
+            <>
+              <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled || loading}>
+                <Plus className="md:mr-2 h-4 w-4" />
+                <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
+              </Button>
+            </>
+          )}
+        </FreeTierGuard>
+
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <SheetTrigger asChild>
-            <Button size="sm" className="md:h-10">
-              <Plus className="md:mr-2 h-4 w-4" />
-              <span className="hidden md:inline">New {displayName.replace(/s$/, '')}</span>
-            </Button>
+            <span></span>
           </SheetTrigger>
           <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
             <SheetHeader>

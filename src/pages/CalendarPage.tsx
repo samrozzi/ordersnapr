@@ -5,6 +5,7 @@ import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";
 import { useOrgCalendarData } from "@/hooks/use-org-calendar-data";
+import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 
 const CalendarPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,6 +49,8 @@ const CalendarPage = () => {
         </div>
         <AddEventDialog onEventAdded={refetch} />
       </div>
+
+      <FreeTierUsageBanner only={["calendar_events"]} />
 
       <div className="bg-card rounded-lg border shadow-sm p-6">
         {loading ? (

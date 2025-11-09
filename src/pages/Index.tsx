@@ -11,6 +11,7 @@ import WorkOrders from "./WorkOrders";
 import Forms from "./Forms";
 import PropertyInfo from "./PropertyInfo";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Index = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+  const { orgLogoUrl } = useActiveOrg();
   
   // Enforce 6-hour session timeout
   useSessionTimeout(session);
@@ -56,19 +57,6 @@ const Index = () => {
       if (profileError) throw profileError;
 
       setApprovalStatus(profileData?.approval_status || null);
-
-      // Fetch organization logo if user belongs to an org
-      if (profileData?.organization_id) {
-        const { data: orgSettings } = await supabase
-          .from("organization_settings")
-          .select("logo_url")
-          .eq("organization_id", profileData.organization_id)
-          .maybeSingle();
-
-        if (orgSettings?.logo_url) {
-          setOrgLogoUrl(orgSettings.logo_url);
-        }
-      }
 
       // Check if user is admin or org admin
       const { data: rolesData } = await supabase

@@ -176,7 +176,7 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             placeholder="INV-0001"
           />
           {errors.number && (
-            <p className="text-sm text-destructive mt-1">{errors.number.message}</p>
+            <p className="text-sm text-destructive mt-1">{String(errors.number.message)}</p>
           )}
         </div>
 

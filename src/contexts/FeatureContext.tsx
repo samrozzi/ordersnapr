@@ -18,6 +18,7 @@ const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -29,9 +30,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("organization_id, active_org_id")
+        .select("organization_id, active_org_id, is_super_admin")
         .eq("id", session.user.id)
         .single();
+
+      // Set super admin status
+      setIsSuperAdmin(profile?.is_super_admin || false);
 
       // Use active_org_id first (multi-org support), fallback to organization_id
       setOrgId(profile?.active_org_id || profile?.organization_id || null);
@@ -49,6 +53,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { data: features = [], isLoading } = useOrgFeatures(orgId);
 
   const hasFeature = (module: FeatureModule): boolean => {
+    // Super admins have access to ALL features
+    if (isSuperAdmin) return true;
+
     // ALWAYS check user preferences from localStorage FIRST
     if (userId) {
       const userFeaturesJson = localStorage.getItem(`user_features_${userId}`);
@@ -76,6 +83,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const canAccessFeature = (module: FeatureModule): boolean => {
+    // Super admins have access to ALL features
+    if (isSuperAdmin) return true;
+
     // Check if user has actual access (for locked/unlocked status)
     
     // Org users: check org_features

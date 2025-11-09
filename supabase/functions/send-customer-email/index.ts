@@ -133,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
       </p>
 
       <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.6; color: #4a4a4a;">
-        ${data.organizationName ? escapeHtml(data.organizationName) : 'We'} ${data.status === 'sent' ? 'have' : 'has'} sent you an invoice. Please find the details below${data.pdfBase64 ? ' and the PDF invoice attached to this email' : ''}:
+        ${data.organizationName ? escapeHtml(data.organizationName) : 'We'} ${data.invoiceData.status === 'sent' ? 'have' : 'has'} sent you an invoice. Please find the details below${data.pdfBase64 ? ' and the PDF invoice attached to this email' : ''}:
       </p>
 
       <!-- Invoice Details Card -->

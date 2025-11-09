@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Settings } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -39,11 +40,13 @@ const MODULE_LABELS: Record<FeatureModule, string> = {
   customer_portal: "Customer Portal",
   pos: "Point of Sale",
   files: "Files",
+  customers: "Customers",
 };
 
 export const FeaturesManagementTab = () => {
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [configEdits, setConfigEdits] = useState<Record<string, string>>({});
+  const [editingOrgName, setEditingOrgName] = useState<string>("");
   const queryClient = useQueryClient();
 
   const { data: organizations, isLoading: orgsLoading } = useQuery({
@@ -126,6 +129,53 @@ export const FeaturesManagementTab = () => {
     },
   });
 
+  const enableAllFeaturesMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedOrgId) throw new Error("No organization selected");
+
+      const promises = ALL_MODULES.map((module) =>
+        supabase.from("org_features").upsert(
+          {
+            org_id: selectedOrgId,
+            module,
+            enabled: true,
+            config: {},
+          },
+          { onConflict: 'org_id,module' }
+        )
+      );
+
+      const results = await Promise.all(promises);
+      const errors = results.filter((r) => r.error);
+      if (errors.length > 0) throw new Error("Failed to enable some features");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["org-features", selectedOrgId] });
+      toast.success("All features enabled successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message ?? "Failed to enable all features");
+    },
+  });
+
+  const updateOrgNameMutation = useMutation({
+    mutationFn: async ({ orgId, name }: { orgId: string; name: string }) => {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ name })
+        .eq("id", orgId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      toast.success("Organization name updated");
+      setEditingOrgName("");
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message ?? "Failed to update organization name");
+    },
+  });
+
   const handleToggle = (module: string, enabled: boolean) => {
     toggleFeatureMutation.mutate({ module, enabled });
   };
@@ -175,12 +225,77 @@ export const FeaturesManagementTab = () => {
             </div>
 
             {selectedOrgId && (
-              <div className="space-y-3 mt-6">
-                {featuresLoading ? (
-                  <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+              <>
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-base">Organization Name:</Label>
+                    {editingOrgName ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingOrgName}
+                          onChange={(e) => setEditingOrgName(e.target.value)}
+                          className="w-64"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            updateOrgNameMutation.mutate({
+                              orgId: selectedOrgId,
+                              name: editingOrgName,
+                            })
+                          }
+                          disabled={updateOrgNameMutation.isPending}
+                        >
+                          {updateOrgNameMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingOrgName("")}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-medium">
+                          {organizations?.find((o) => o.id === selectedOrgId)?.name}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setEditingOrgName(
+                              organizations?.find((o) => o.id === selectedOrgId)?.name || ""
+                            )
+                          }
+                        >
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </div>
-                ) : (
+                  <Button
+                    onClick={() => enableAllFeaturesMutation.mutate()}
+                    disabled={enableAllFeaturesMutation.isPending}
+                  >
+                    {enableAllFeaturesMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Enable All Features
+                  </Button>
+                </div>
+
+                <div className="space-y-3 mt-6">
+                  {featuresLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
                   ALL_MODULES.map((module) => {
                     const feature = features?.find((f) => f.module === module);
                     const isEnabled = feature?.enabled || false;
@@ -250,8 +365,9 @@ export const FeaturesManagementTab = () => {
                       </Card>
                     );
                   })
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </CardContent>

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 interface SharePortalLinkButtonProps {
   customerId: string;
+  customerName?: string;
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   showIcon?: boolean;

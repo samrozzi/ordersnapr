@@ -82,10 +82,12 @@ export function useCustomers(options?: { includeStats?: boolean }) {
               .eq("customer_id", customer.id);
 
             // Fetch work order count
-            const { count: workOrderCount } = await supabase
+            const workOrderCountResult: any = await supabase
               .from("work_orders")
               .select("*", { count: "exact", head: true })
               .eq("customer_id", customer.id);
+            
+            const workOrderCount = workOrderCountResult.count;
 
             const invoice_count = invoiceStats?.length || 0;
             const total_invoiced_cents = invoiceStats?.reduce(
@@ -142,14 +144,18 @@ export function useCustomers(options?: { includeStats?: boolean }) {
 
   // Create customer mutation
   const createCustomer = useMutation({
-    mutationFn: async (customerData: Partial<Customer>) => {
+    mutationFn: async (customerData: Partial<Customer> & { name: string }) => {
       if (!orgId) throw new Error("Organization required");
 
       const { data, error } = await supabase
         .from("customers")
         .insert([
           {
-            ...customerData,
+            name: customerData.name,
+            phone: customerData.phone,
+            email: customerData.email,
+            address: customerData.address as any,
+            meta: customerData.meta,
             org_id: orgId,
           },
         ])
@@ -172,9 +178,14 @@ export function useCustomers(options?: { includeStats?: boolean }) {
   // Update customer mutation
   const updateCustomer = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Customer> }) => {
+      const updateData = {
+        ...updates,
+        address: updates.address as any,
+      };
+      
       const { data, error } = await supabase
         .from("customers")
-        .update(updates)
+        .update(updateData)
         .eq("id", id)
         .eq("org_id", orgId!)
         .select()

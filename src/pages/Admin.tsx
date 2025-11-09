@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FeaturesManagementTab } from "@/components/admin/FeaturesManagementTab";
 import { IndustryTemplatesTab } from "@/components/admin/IndustryTemplatesTab";
 import { TemplateManager } from "@/components/admin/TemplateManager";
+import { UserFeaturesManagement } from "@/components/admin/UserFeaturesManagement";
+import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { Navigate } from "react-router-dom";
 import { usePremiumAccess } from "@/hooks/use-premium-access";
 import { useUserOrgMemberships, useAddOrgMembership, useRemoveOrgMembership, useUpdateOrgMembershipRole } from "@/hooks/use-org-memberships";
@@ -55,6 +57,7 @@ const Admin = () => {
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [managingOrgId, setManagingOrgId] = useState<string | null>(null);
   const [addingOrgRole, setAddingOrgRole] = useState<string>("staff");
   const { hasPremiumAccess } = usePremiumAccess();
   
@@ -65,6 +68,7 @@ const Admin = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({ email: "", full_name: "" });
+  const [managingUserFeatures, setManagingUserFeatures] = useState<string | null>(null);
 
   const addMembership = useAddOrgMembership();
   const removeMembership = useRemoveOrgMembership();
@@ -657,6 +661,14 @@ const Admin = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => setManagingUserFeatures(user.id)}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            Features
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => setChangingPasswordUserId(user.id)}
                           >
                             Change Password
@@ -883,6 +895,18 @@ const Admin = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* User Features Management Dialog */}
+          <Dialog open={!!managingUserFeatures} onOpenChange={(open) => {
+            if (!open) setManagingUserFeatures(null);
+          }}>
+            <DialogContent className="max-w-3xl">
+              <UserFeaturesManagement
+                userId={managingUserFeatures || ""}
+                onClose={() => setManagingUserFeatures(null)}
+              />
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="organizations" className="space-y-6">
@@ -946,14 +970,23 @@ const Admin = () => {
                             {new Date(org.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteOrganization(org.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => setManagingOrgId(org.id)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteOrganization(org.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -963,6 +996,22 @@ const Admin = () => {
               )}
             </CardContent>
           </Card>
+
+          <Dialog open={!!managingOrgId} onOpenChange={(open) => {
+            if (!open) setManagingOrgId(null);
+          }}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              {managingOrgId && (
+                <OrganizationManagement
+                  orgId={managingOrgId}
+                  onClose={() => {
+                    setManagingOrgId(null);
+                    fetchOrganizations();
+                  }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="features">

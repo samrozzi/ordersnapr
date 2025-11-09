@@ -235,7 +235,8 @@ export const generateInvoicePDF = async (data: InvoicePDFData): Promise<jsPDF> =
   const addTotal = (label: string, amount: number, bold: boolean = false) => {
     doc.setFontSize(10);
     doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setTextColor(bold ? ...textColor : ...mutedColor);
+    const color = bold ? textColor : mutedColor;
+    doc.setTextColor(color[0], color[1], color[2]);
     doc.text(label, totalsLabelX, yPos, { align: "right" });
     doc.text(formatCurrency(amount), totalsValueX, yPos, { align: "right" });
     yPos += 6;

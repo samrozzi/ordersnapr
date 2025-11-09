@@ -31,6 +31,7 @@ const WorkOrders = lazy(() => import("./pages/WorkOrders"));
 const PropertyInfo = lazy(() => import("./pages/PropertyInfo"));
 const Forms = lazy(() => import("./pages/Forms"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const Invoices = lazy(() => import("./pages/Invoices"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
@@ -81,6 +82,7 @@ const AppContent = () => {
                 <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
                 <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
                 <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+                <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
                 <Route path="health-data" element={<HealthData />} />
               </Route>
               

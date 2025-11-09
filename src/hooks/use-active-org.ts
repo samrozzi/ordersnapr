@@ -100,6 +100,7 @@ export const useActiveOrg = () => {
     },
     onSuccess: (orgId) => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["org-settings"] });
       queryClient.invalidateQueries({ queryKey: ["org-features"] });
       queryClient.invalidateQueries({ queryKey: ["work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["calendar-events"] });

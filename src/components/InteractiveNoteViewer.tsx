@@ -334,13 +334,20 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         const newItems = [...(block.items || [])];
                         // Remove item if text becomes empty (excluding HTML tags)
                         const textContent = content.replace(/<[^>]*>/g, '').trim();
-                        if (textContent === '' && newItems.length > 1) {
-                          // Remove this item if there are other items
+                        if (textContent === '') {
+                          // Always remove empty items, even if it's the last one
                           newItems.splice(index, 1);
+                          // If this was the last item, remove the entire checklist block
+                          if (newItems.length === 0) {
+                            const newBlocks = blocks.filter(b => b.id !== block.id);
+                            setBlocks(newBlocks);
+                          } else {
+                            updateBlock(block.id, { items: newItems });
+                          }
                         } else {
                           newItems[index] = { ...item, text: content };
+                          updateBlock(block.id, { items: newItems });
                         }
-                        updateBlock(block.id, { items: newItems });
                       }}
                       placeholder="List item..."
                       className="w-full"

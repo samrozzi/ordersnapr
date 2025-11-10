@@ -45,27 +45,44 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistStrikethrough, setChecklistStrikethrough] = useState(preferences?.checklist_strikethrough ?? true);
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
 
-  // Clean up checklist items - remove empty or placeholder text
+  // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
-    return blocks.map(block => {
+    return blocks.filter(block => {
+      // Keep non-checklist blocks as-is
+      if (block.type !== 'checklist' || !block.items) {
+        return true;
+      }
+      
+      // For checklist blocks, filter out empty/placeholder items
+      const validItems = block.items.filter(item => 
+        item.text.trim() !== '' && 
+        item.text !== 'List item... (press Enter for new item)'
+      );
+      
+      // If there are valid items, keep them
+      if (validItems.length > 0) {
+        block.items = validItems;
+        return true;
+      }
+      
+      // If no valid items but the checklist has at least one item, keep one empty placeholder
+      if (block.items.length > 0) {
+        block.items = [{ id: `item-${Date.now()}`, checked: false, text: '' }];
+        return true;
+      }
+      
+      // If checklist was created but has no items at all, remove it
+      return false;
+    }).map(block => {
+      // Return a new object to avoid mutations
       if (block.type === 'checklist' && block.items) {
-        const validItems = block.items.filter(item => 
-          item.text.trim() !== '' && 
-          item.text !== 'List item... (press Enter for new item)'
-        );
-        return { ...block, items: validItems };
+        return { ...block };
       }
       return block;
     });
   };
 
-  // Clean up any invalid checklist items on load
-  useEffect(() => {
-    const cleanedBlocks = cleanChecklistItems(note.content.blocks);
-    if (JSON.stringify(cleanedBlocks) !== JSON.stringify(note.content.blocks)) {
-      setBlocks(cleanedBlocks);
-    }
-  }, []);
+  // Note: We don't clean blocks on mount to preserve empty checklist items for editing
 
   // Load linked entity name
   useEffect(() => {

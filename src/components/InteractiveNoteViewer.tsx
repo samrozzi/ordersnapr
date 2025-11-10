@@ -265,14 +265,38 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   className="mt-3"
                 />
                 <div className={cn(
-                  "w-full",
+                  "w-full relative",
                   item.checked && checklistStrikethrough && 'opacity-60'
                 )}>
+                  {item.checked && checklistStrikethrough && (
+                    <svg 
+                      className="absolute inset-0 pointer-events-none" 
+                      style={{ zIndex: 1 }}
+                      viewBox="0 0 100 100" 
+                      preserveAspectRatio="none"
+                    >
+                      <path 
+                        d="M 5 50 Q 25 45, 50 48 T 95 50" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        fill="none" 
+                        opacity="0.6"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
                   <RichTextEditor
                     content={item.text || ''}
                     onChange={(content) => {
                       const newItems = [...(block.items || [])];
-                      newItems[index] = { ...item, text: content };
+                      // Remove item if text becomes empty (excluding HTML tags)
+                      const textContent = content.replace(/<[^>]*>/g, '').trim();
+                      if (textContent === '' && newItems.length > 1) {
+                        // Remove this item if there are other items
+                        newItems.splice(index, 1);
+                      } else {
+                        newItems[index] = { ...item, text: content };
+                      }
                       updateBlock(block.id, { items: newItems });
                     }}
                     placeholder="List item..."

@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Star, Pin, Palette, Image as ImageIcon, Save, X, Upload, Link as LinkIcon } from "lucide-react";
+import { Star, Pin, Palette, Image as ImageIcon, Save, X, Upload, Link as LinkIcon, Move } from "lucide-react";
 import { useNotes, type Note, type NoteBlock, type LinkedEntity } from "@/hooks/use-notes";
 import { RichBlockEditor } from "@/components/RichBlockEditor";
 import { EntityLinkSelector } from "@/components/EntityLinkSelector";
+import { BannerImageCropper } from "@/components/BannerImageCropper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,8 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [linkedEntity, setLinkedEntity] = useState<LinkedEntity | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [bannerPosition, setBannerPosition] = useState({ x: 50, y: 50, scale: 1 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch linked entity on mount
@@ -121,6 +124,7 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
         .getPublicUrl(fileName);
 
       setBannerImage(publicUrl);
+      setShowCropper(true); // Show cropper after upload
       toast.success("Banner image uploaded");
     } catch (error: any) {
       console.error("Error uploading image:", error);
@@ -128,6 +132,11 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleSavePosition = (position: { x: number; y: number; scale: number }) => {
+    setBannerPosition(position);
+    toast.success("Banner position saved");
   };
 
   const handleToggleFavorite = async () => {
@@ -256,9 +265,23 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
           {bannerImage && (
             <div className="relative">
               <div
-                className="w-full h-48 bg-cover bg-center rounded-lg border"
-                style={{ backgroundImage: `url(${bannerImage})` }}
+                className="w-full h-48 rounded-lg border overflow-hidden"
+                style={{ 
+                  backgroundImage: `url(${bannerImage})`,
+                  backgroundSize: `${bannerPosition.scale * 100}%`,
+                  backgroundPosition: `${bannerPosition.x}% ${bannerPosition.y}%`,
+                  backgroundRepeat: 'no-repeat'
+                }}
               />
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-2 left-2"
+                onClick={() => setShowCropper(true)}
+              >
+                <Move className="h-4 w-4 mr-2" />
+                Reposition
+              </Button>
               <Button
                 variant="destructive"
                 size="sm"
@@ -294,6 +317,15 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
           <p>Last updated: {new Date(note.updated_at).toLocaleString()}</p>
         </div>
       </div>
+
+      {/* Banner Image Cropper Dialog */}
+      <BannerImageCropper
+        imageUrl={bannerImage}
+        open={showCropper}
+        onClose={() => setShowCropper(false)}
+        onSave={handleSavePosition}
+        initialPosition={bannerPosition}
+      />
     </div>
   );
 }

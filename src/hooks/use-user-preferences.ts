@@ -7,6 +7,7 @@ export interface UserPreferences {
   user_id: string;
   quick_add_enabled: boolean;
   quick_add_items: FeatureModule[];
+  nav_order: string[];
   created_at: string;
   updated_at: string;
 }
@@ -46,10 +47,12 @@ export const useUpdateUserPreferences = () => {
       userId,
       quickAddEnabled,
       quickAddItems,
+      navOrder,
     }: {
       userId: string;
       quickAddEnabled: boolean;
       quickAddItems: FeatureModule[];
+      navOrder?: string[];
     }) => {
       // Upsert to handle both insert and update
       const { data, error } = await supabase
@@ -58,6 +61,7 @@ export const useUpdateUserPreferences = () => {
           user_id: userId,
           quick_add_enabled: quickAddEnabled,
           quick_add_items: quickAddItems,
+          ...(navOrder !== undefined && { nav_order: navOrder }),
         }, {
           onConflict: 'user_id'
         })

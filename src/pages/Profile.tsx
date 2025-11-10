@@ -13,6 +13,7 @@ import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 import { UnifiedPreferences } from "@/components/UnifiedPreferences";
+import { NavigationOrderPreferences } from "@/components/NavigationOrderPreferences";
 
 interface AuditLog {
   id: string;
@@ -642,6 +643,7 @@ const Profile = () => {
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">
+            <NavigationOrderPreferences />
             <UnifiedPreferences />
           </TabsContent>
 

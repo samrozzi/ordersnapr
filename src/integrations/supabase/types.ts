@@ -1060,6 +1060,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          nav_order: Json | null
           quick_add_enabled: boolean | null
           quick_add_items: Json | null
           updated_at: string | null
@@ -1068,6 +1069,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          nav_order?: Json | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null
@@ -1076,6 +1078,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          nav_order?: Json | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null

@@ -36,6 +36,7 @@ import {
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useNotes } from "@/hooks/use-notes";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
@@ -69,9 +70,19 @@ export function AppSidebar() {
   const [lockedFeatureName, setLockedFeatureName] = useState<string | null>(null);
   const { pinnedNotes, preferences, updatePreferences } = useNotes();
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const { data: userPreferences } = useUserPreferences(userId);
 
   useEffect(() => {
     fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    getUser();
   }, []);
 
   // Sync notes dropdown state with preferences
@@ -120,6 +131,44 @@ export function AppSidebar() {
       setOpenMobile(false);
     }
   };
+
+  // Build ordered nav items based on user preferences
+  const getOrderedNavItems = () => {
+    // Always include calendar and notes
+    const baseItems = [
+      { id: "calendar", label: "Calendar", path: "/calendar", icon: "calendar", component: Calendar, isLocked: false },
+      { id: "notes", label: "Notes", path: "/notes", icon: "notes", component: StickyNote, isLocked: false },
+    ];
+
+    // Add enabled feature items
+    const featureItems = enabledNavItems.map(item => ({
+      id: item.path.substring(1), // Remove leading slash
+      label: item.label,
+      path: item.path,
+      icon: item.icon || "clipboard",
+      component: iconMap[item.icon || "clipboard"] || ClipboardList,
+      isLocked: item.isLocked || false,
+    }));
+
+    const allItems = [...baseItems, ...featureItems];
+
+    // Apply saved order if exists
+    if (userPreferences?.nav_order && Array.isArray(userPreferences.nav_order) && userPreferences.nav_order.length > 0) {
+      const savedOrder = userPreferences.nav_order as string[];
+      const orderedItems = savedOrder
+        .map(id => allItems.find(item => item.id === id))
+        .filter((item): item is typeof allItems[0] => item !== undefined);
+
+      // Add any new items that weren't in saved order
+      const newItems = allItems.filter(item => !savedOrder.includes(item.id));
+
+      return [...orderedItems, ...newItems];
+    }
+
+    return allItems;
+  };
+
+  const orderedNavItems = getOrderedNavItems();
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -183,6 +232,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Dashboard always first */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
                   <NavLink to="/dashboard" end onClick={handleNavClick}>
@@ -192,13 +242,65 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {!featuresLoading && enabledNavItems.map((item) => {
-                const Icon = item.icon ? iconMap[item.icon] : ClipboardList;
-                
-                if (item.isLocked) {
-                  // Locked feature - show in sidebar but intercept click
+              {/* Ordered nav items (Calendar, Notes, and enabled features) */}
+              {!featuresLoading && orderedNavItems.map((item) => {
+                const Icon = item.component;
+
+                // Special handling for Notes with pinned dropdown
+                if (item.id === "notes") {
                   return (
-                    <SidebarMenuItem key={item.path}>
+                    <SidebarMenuItem key={item.id}>
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          <SidebarMenuButton asChild isActive={isActive(item.path)} className="flex-1">
+                            <NavLink to={item.path} end onClick={handleNavClick}>
+                              <Icon className="h-5 w-5" />
+                              <span>{item.label}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                          {pinnedNotes.length > 0 && state !== "collapsed" && (
+                            <button
+                              onClick={toggleNotesDropdown}
+                              className="px-2 py-2 hover:bg-accent rounded-md"
+                            >
+                              {notesDropdownOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Pinned Notes Dropdown */}
+                        {pinnedNotes.length > 0 && notesDropdownOpen && state !== "collapsed" && (
+                          <div className="ml-6 mt-1 space-y-1">
+                            {pinnedNotes.map((note) => (
+                              <SidebarMenuButton
+                                key={note.id}
+                                asChild
+                                size="sm"
+                                className="text-sm"
+                              >
+                                <NavLink
+                                  to={`/notes?id=${note.id}`}
+                                  onClick={handleNavClick}
+                                >
+                                  <span className="truncate">{note.title}</span>
+                                </NavLink>
+                              </SidebarMenuButton>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                // Locked feature
+                if (item.isLocked) {
+                  return (
+                    <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton 
                         onClick={(e) => {
                           e.preventDefault();
@@ -215,10 +317,10 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   );
                 }
-                
-                // Unlocked feature - normal nav
+
+                // Regular nav item
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
                       <NavLink to={item.path} end onClick={handleNavClick}>
                         <Icon className="h-5 w-5" />

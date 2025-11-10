@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy } from "lucide-react";
+import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy, Mail, History } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useCloneInvoice } from "@/hooks/use-invoice-settings";
+import { SendInvoiceDialog } from "@/components/SendInvoiceDialog";
+import { InvoiceEmailHistoryDialog } from "@/components/InvoiceEmailHistoryDialog";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -143,6 +145,24 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </DropdownMenuItem>
+                    <SendInvoiceDialog
+                      invoice={invoice}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Send Email
+                        </DropdownMenuItem>
+                      }
+                    />
+                    <InvoiceEmailHistoryDialog
+                      invoiceId={invoice.id}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <History className="h-4 w-4 mr-2" />
+                          Email History
+                        </DropdownMenuItem>
+                      }
+                    />
                     {invoice.status === 'draft' && (
                       <DropdownMenuItem onClick={() => onEdit(invoice)}>
                         <Edit className="h-4 w-4 mr-2" />

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InvoiceTemplateManager } from "@/components/InvoiceTemplateManager";
 import { InvoiceSettingsDialog } from "@/components/InvoiceSettingsDialog";
+import { InvoiceEmailTemplateManager } from "@/components/InvoiceEmailTemplateManager";
 
 const Invoices = () => {
   const navigate = useNavigate();
@@ -174,6 +175,7 @@ const Invoices = () => {
             <TabsTrigger value="paid">Paid ({paidInvoices.length})</TabsTrigger>
             <TabsTrigger value="overdue">Overdue ({overdueInvoices.length})</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
@@ -223,6 +225,10 @@ const Invoices = () => {
 
           <TabsContent value="templates" className="mt-4">
             <InvoiceTemplateManager />
+          </TabsContent>
+
+          <TabsContent value="email-templates" className="mt-4">
+            <InvoiceEmailTemplateManager />
           </TabsContent>
         </Tabs>
 

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NoteEditor } from "@/components/NoteEditor";
+import { NoteViewer } from "@/components/NoteViewer";
 import { NoteCard } from "@/components/NoteCard";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { TemplatePickerDialog } from "@/components/TemplatePickerDialog";
@@ -23,12 +24,13 @@ import type { Note, NoteTemplate } from "@/hooks/use-notes";
 import { format } from "date-fns";
 
 const Notes = () => {
-  const { notes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences, templates } = useNotes();
+  const { notes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences, templates, toggleFavorite, togglePin } = useNotes();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState(preferences?.list_sort_by || "updated_at");
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>(preferences?.default_view || 'list');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   // Open note from query parameter (for pinned notes in sidebar)
@@ -103,6 +105,28 @@ const Notes = () => {
   const handleViewModeChange = async (mode: 'list' | 'kanban') => {
     setViewMode(mode);
     await updatePreferences({ default_view: mode });
+  };
+
+  const handleNoteClick = (note: Note) => {
+    setSelectedNote(note);
+    setIsEditMode(false);
+  };
+
+  const handleCloseNote = () => {
+    setSelectedNote(null);
+    setIsEditMode(false);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (selectedNote) {
+      await toggleFavorite(selectedNote.id);
+    }
+  };
+
+  const handleTogglePin = async () => {
+    if (selectedNote) {
+      await togglePin(selectedNote.id);
+    }
   };
 
   return (
@@ -236,7 +260,7 @@ const Notes = () => {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onClick={() => setSelectedNote(note)}
+                  onClick={() => handleNoteClick(note)}
                 />
               ))}
               {sortedNotes.length === 0 && (
@@ -248,7 +272,7 @@ const Notes = () => {
           ) : (
             <KanbanBoard
               notes={sortedNotes}
-              onNoteClick={(note) => setSelectedNote(note)}
+              onNoteClick={handleNoteClick}
             />
           )}
         </TabsContent>
@@ -260,7 +284,7 @@ const Notes = () => {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onClick={() => setSelectedNote(note)}
+                  onClick={() => handleNoteClick(note)}
                 />
               ))}
               {pinnedNotes.length === 0 && (
@@ -272,7 +296,7 @@ const Notes = () => {
           ) : (
             <KanbanBoard
               notes={pinnedNotes}
-              onNoteClick={(note) => setSelectedNote(note)}
+              onNoteClick={handleNoteClick}
             />
           )}
         </TabsContent>
@@ -284,7 +308,7 @@ const Notes = () => {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onClick={() => setSelectedNote(note)}
+                  onClick={() => handleNoteClick(note)}
                 />
               ))}
               {favoriteNotes.length === 0 && (
@@ -296,7 +320,7 @@ const Notes = () => {
           ) : (
             <KanbanBoard
               notes={favoriteNotes}
-              onNoteClick={(note) => setSelectedNote(note)}
+              onNoteClick={handleNoteClick}
             />
           )}
         </TabsContent>
@@ -311,17 +335,26 @@ const Notes = () => {
         onCreateBlank={handleCreateBlankNote}
       />
 
-      {/* Note Editor Dialog */}
-      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
+      {/* Note Viewer/Editor Dialog */}
+      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && handleCloseNote()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Edit Note</DialogTitle>
+            <DialogTitle>{isEditMode ? 'Edit Note' : 'View Note'}</DialogTitle>
           </DialogHeader>
           {selectedNote && (
-            <NoteEditor
-              note={selectedNote}
-              onClose={() => setSelectedNote(null)}
-            />
+            isEditMode ? (
+              <NoteEditor
+                note={selectedNote}
+                onClose={handleCloseNote}
+              />
+            ) : (
+              <NoteViewer
+                note={selectedNote}
+                onEdit={() => setIsEditMode(true)}
+                onToggleFavorite={handleToggleFavorite}
+                onTogglePin={handleTogglePin}
+              />
+            )
           )}
         </DialogContent>
       </Dialog>

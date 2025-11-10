@@ -24,131 +24,44 @@ export function usePaymentReminders(invoiceId?: string) {
   const queryClient = useQueryClient();
 
   // Fetch reminders for a specific invoice
+  // Disabled: payment_reminders table not yet implemented
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ["payment-reminders", invoiceId],
     queryFn: async () => {
-      if (!invoiceId) return [];
-
-      const { data, error } = await supabase
-        .from("payment_reminders")
-        .select("*")
-        .eq("invoice_id", invoiceId)
-        .order("sent_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching payment reminders:", error);
-        throw error;
-      }
-
-      return data as PaymentReminder[];
+      return [];
     },
-    enabled: !!invoiceId,
+    enabled: false,
   });
 
   // Send payment reminder
+  // Disabled: payment_reminders table not yet implemented
   const sendReminder = useMutation({
-    mutationFn: async ({
-      invoiceId,
-      recipientEmail,
-      reminderType = 'custom',
-      daysRelative,
-    }: {
-      invoiceId: string;
-      recipientEmail: string;
-      reminderType?: 'before_due' | 'on_due' | 'after_due' | 'custom';
-      daysRelative?: number;
-    }) => {
-      // In production, this would call a Supabase Edge Function
-      // that sends the actual email via SendGrid/Resend/etc.
-
-      const { data, error } = await supabase
-        .from("payment_reminders")
-        .insert([
-          {
-            invoice_id: invoiceId,
-            recipient_email: recipientEmail,
-            reminder_type: reminderType,
-            days_relative: daysRelative || null,
-            sent_by: user!.id,
-            email_status: 'sent',
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Also update invoice's last_payment_reminder_sent_at
-      await supabase
-        .from("invoices")
-        .update({ last_payment_reminder_sent_at: new Date().toISOString() })
-        .eq("id", invoiceId);
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payment-reminders"] });
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      toast.success("Payment reminder sent successfully");
+    mutationFn: async () => {
+      throw new Error("Payment reminders feature not yet implemented");
     },
     onError: (error: any) => {
-      console.error("Error sending payment reminder:", error);
-      toast.error(error.message || "Failed to send payment reminder");
+      toast.error("Payment reminders feature not yet implemented");
     },
   });
 
   // Get overdue invoices
+  // Disabled: Database function not yet implemented
   const { data: overdueInvoices = [] } = useQuery({
     queryKey: ["overdue-invoices"],
     queryFn: async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user!.id)
-        .single();
-
-      if (!profile?.organization_id) return [];
-
-      const { data, error } = await supabase.rpc("get_invoices_needing_reminders", {
-        org_id_param: profile.organization_id,
-        days_threshold: 7,
-      });
-
-      if (error) {
-        console.error("Error fetching overdue invoices:", error);
-        return [];
-      }
-
-      return data || [];
+      return [];
     },
-    enabled: !!user,
+    enabled: false,
   });
 
   // Get upcoming due invoices
+  // Disabled: Database function not yet implemented
   const { data: upcomingDueInvoices = [] } = useQuery({
     queryKey: ["upcoming-due-invoices"],
     queryFn: async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user!.id)
-        .single();
-
-      if (!profile?.organization_id) return [];
-
-      const { data, error } = await supabase.rpc("get_invoices_approaching_due", {
-        org_id_param: profile.organization_id,
-        days_before: 3,
-      });
-
-      if (error) {
-        console.error("Error fetching upcoming due invoices:", error);
-        return [];
-      }
-
-      return data || [];
+      return [];
     },
-    enabled: !!user,
+    enabled: false,
   });
 
   return {

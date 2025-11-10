@@ -16,6 +16,7 @@ import { Bell, Mail, Clock } from "lucide-react";
 import { usePaymentReminders } from "@/hooks/use-payment-reminders";
 import { format } from "date-fns";
 import type { Invoice } from "@/hooks/use-invoices";
+import { toast } from "sonner";
 
 interface SendPaymentReminderButtonProps {
   invoice: Invoice;
@@ -39,12 +40,9 @@ export function SendPaymentReminderButton({
     if (!email) return;
 
     try {
-      await sendReminder({
-        invoiceId: invoice.id,
-        recipientEmail: email,
-        reminderType: 'custom',
-      });
-      setOpen(false);
+      // Disabled: payment reminders not yet implemented
+      toast.error("Payment reminders feature not yet implemented");
+      return;
     } catch (error) {
       console.error("Error sending reminder:", error);
     }

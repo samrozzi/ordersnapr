@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePayments } from "@/hooks/use-payments";
 import type { Invoice } from "@/hooks/use-invoices";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface RecordPaymentDialogProps {
   open: boolean;
@@ -32,21 +33,10 @@ export function RecordPaymentDialog({ open, onOpenChange, invoice }: RecordPayme
 
     setIsSubmitting(true);
     try {
-      await recordManualPayment({
-        invoiceId: invoice.id,
-        customerId: invoice.customer_id!,
-        amountCents: Math.round(parseFloat(amount) * 100),
-        paymentMethod,
-        notes: notes || undefined,
-        paidAt: new Date(paymentDate).toISOString(),
-      });
-
-      // Reset form
-      setAmount("");
-      setPaymentMethod("cash");
-      setPaymentDate(format(new Date(), "yyyy-MM-dd"));
-      setNotes("");
-      onOpenChange(false);
+      // Disabled: payments feature not yet implemented
+      toast.error("Manual payment recording not yet implemented");
+      setIsSubmitting(false);
+      return;
     } catch (error) {
       console.error("Error recording payment:", error);
     } finally {

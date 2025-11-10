@@ -81,13 +81,13 @@ export function useCustomers(options?: { includeStats?: boolean }) {
               .select("total_cents, paid_amount_cents, status")
               .eq("customer_id", customer.id);
 
-            // Fetch work order count
-            const workOrderCountResult: any = await supabase
-              .from("work_orders")
-              .select("*", { count: "exact", head: true })
+            // Fetch work order count  
+            const workOrdersQuery: any = supabase.from("work_orders");
+            const workOrdersResult = await workOrdersQuery
+              .select("id")
               .eq("customer_id", customer.id);
             
-            const workOrderCount = workOrderCountResult.count;
+            const workOrderCount = workOrdersResult.data?.length || 0;
 
             const invoice_count = invoiceStats?.length || 0;
             const total_invoiced_cents = invoiceStats?.reduce(
@@ -215,8 +215,8 @@ export function useCustomers(options?: { includeStats?: boolean }) {
         .eq("customer_id", id)
         .limit(1);
 
-      const { data: workOrders } = await supabase
-        .from("work_orders")
+      const workOrdersQuery: any = supabase.from("work_orders");
+      const { data: workOrders } = await workOrdersQuery
         .select("id")
         .eq("customer_id", id)
         .limit(1);

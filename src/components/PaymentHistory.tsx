@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePayments } from "@/hooks/use-payments";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { RotateCcw, ExternalLink, Receipt } from "lucide-react";
 
@@ -52,11 +53,10 @@ export function PaymentHistory({ invoiceId, invoiceTotalCents }: PaymentHistoryP
 
     setIsProcessingRefund(true);
     try {
-      await processRefund({
-        paymentId: selectedPayment.id,
-        amountCents: Math.round(parseFloat(refundAmount) * 100),
-        reason: refundReason || undefined,
-      });
+      // Disabled: payments feature not yet implemented
+      toast.error("Refunds feature not yet implemented");
+      setIsProcessingRefund(false);
+      return;
 
       setRefundDialogOpen(false);
       setSelectedPayment(null);

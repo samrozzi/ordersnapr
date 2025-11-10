@@ -155,42 +155,42 @@ const Notes = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Notes</CardDescription>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardDescription className="text-xs md:text-sm">Total Notes</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{notes.length}</div>
+          <CardContent className="pt-2 px-3 md:pt-3 md:px-4">
+            <div className="text-xl md:text-2xl font-bold">{notes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Pinned</CardDescription>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardDescription className="text-xs md:text-sm">Pinned</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pinnedNotes.length}</div>
+          <CardContent className="pt-2 px-3 md:pt-3 md:px-4">
+            <div className="text-xl md:text-2xl font-bold">{pinnedNotes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Favorites</CardDescription>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardDescription className="text-xs md:text-sm">Favorites</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{favoriteNotes.length}</div>
+          <CardContent className="pt-2 px-3 md:pt-3 md:px-4">
+            <div className="text-xl md:text-2xl font-bold">{favoriteNotes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>
+          <CardHeader className="pb-1 md:pb-2">
+            <CardDescription className="text-xs md:text-sm">
               {canCreateNote ? "Notes Remaining" : "Upgrade for Unlimited"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="pt-2 px-3 md:pt-3 md:px-4">
+            <div className="text-xl md:text-2xl font-bold">
               {notesRemaining === Infinity ? "∞" : notesRemaining}
             </div>
           </CardContent>

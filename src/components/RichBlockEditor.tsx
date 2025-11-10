@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Plus,
   Type,
@@ -120,7 +121,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
         return (
           <div className="space-y-2">
             {block.items?.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-2">
+              <div key={item.id} className="grid grid-cols-[auto_1fr_auto] gap-2 items-start">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
@@ -128,29 +129,22 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                     newItems[index] = { ...item, checked: checked as boolean };
                     updateBlock(block.id, { items: newItems });
                   }}
+                  className="mt-3"
                 />
-                <Textarea
-                  value={item.text}
-                  onChange={(e) => {
-                    const newItems = [...(block.items || [])];
-                    newItems[index] = { ...item, text: e.target.value };
-                    updateBlock(block.id, { items: newItems });
-                  }}
-                  placeholder="List item..."
-                  className="flex-1 border-none shadow-none focus-visible:ring-1 resize-none"
-                  rows={1}
-                  style={{ 
-                    height: 'auto',
-                    minHeight: '40px',
-                    overflowY: 'hidden',
-                    wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap'
-                  }}
-                  onInput={(e) => {
-                    e.currentTarget.style.height = 'auto';
-                    e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-                  }}
-                />
+                <div className={cn("w-full", item.checked && 'opacity-60')}>
+                  <RichTextEditor
+                    content={item.text || ''}
+                    onChange={(content) => {
+                      const newItems = [...(block.items || [])];
+                      newItems[index] = { ...item, text: content };
+                      updateBlock(block.id, { items: newItems });
+                    }}
+                    placeholder="List item..."
+                    className="w-full"
+                    showPersistentToolbar={true}
+                    variant="paragraph"
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -160,18 +154,23 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                       updateBlock(block.id, { items: newItems });
                     }
                   }}
+                  className="mt-2"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => {
-                const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
-                updateBlock(block.id, { items: [...(block.items || []), newItem] });
+                const newItems = [
+                  ...(block.items || []),
+                  { id: `item-${Date.now()}`, checked: false, text: '' }
+                ];
+                updateBlock(block.id, { items: newItems });
               }}
+              className="mt-2"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Item

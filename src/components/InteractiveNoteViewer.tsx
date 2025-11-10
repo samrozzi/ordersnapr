@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -244,41 +245,42 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         return (
           <div className="space-y-2" data-block-id={block.id}>
             {block.items?.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-2">
+              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, checked: checked as boolean };
                     updateBlock(block.id, { items: newItems });
+                    
+                    if (checked && checklistMoveCompleted) {
+                      setTimeout(() => {
+                        const newItemsSorted = [...newItems];
+                        const [completedItem] = newItemsSorted.splice(index, 1);
+                        newItemsSorted.push(completedItem);
+                        updateBlock(block.id, { items: newItemsSorted });
+                      }, 300);
+                    }
                   }}
+                  className="mt-3"
                 />
-                <Textarea
-                  value={item.text}
-                  onChange={(e) => {
-                    const newItems = [...(block.items || [])];
-                    newItems[index] = { ...item, text: e.target.value };
-                    updateBlock(block.id, { items: newItems });
-                  }}
-                  onKeyDown={(e) => handleChecklistKeyDown(e, block.id, index, item.text)}
-                  placeholder="List item... (press Enter for new item)"
-                  className={`flex-1 border-none shadow-none focus-visible:ring-1 resize-none ${
-                    item.checked && checklistStrikethrough ? 'line-through text-muted-foreground' : ''
-                  }`}
-                  rows={1}
-                  style={{ 
-                    height: 'auto',
-                    minHeight: '40px',
-                    overflowY: 'hidden',
-                    wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap'
-                  }}
-                  onInput={(e) => {
-                    e.currentTarget.style.height = 'auto';
-                    e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-                  }}
-                  data-item-id={item.id}
-                />
+                <div className={cn(
+                  "w-full",
+                  item.checked && checklistStrikethrough && 'opacity-60'
+                )}>
+                  <RichTextEditor
+                    content={item.text || ''}
+                    onChange={(content) => {
+                      const newItems = [...(block.items || [])];
+                      newItems[index] = { ...item, text: content };
+                      updateBlock(block.id, { items: newItems });
+                    }}
+                    placeholder="List item..."
+                    className="w-full"
+                    showPersistentToolbar={true}
+                    variant="paragraph"
+                  />
+                </div>
               </div>
             ))}
           </div>

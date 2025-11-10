@@ -243,9 +243,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       case 'checklist':
         return (
-          <div className="space-y-2" data-block-id={block.id}>
+          <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
             {block.items?.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start">
+              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
@@ -259,31 +259,54 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         const [completedItem] = newItemsSorted.splice(index, 1);
                         newItemsSorted.push(completedItem);
                         updateBlock(block.id, { items: newItemsSorted });
-                      }, 300);
+                      }, 800);
                     }
                   }}
                   className="mt-3"
                 />
-                <div className={cn(
-                  "w-full relative",
-                  item.checked && checklistStrikethrough && 'opacity-60'
-                )}>
+                <div 
+                  className={cn(
+                    "w-full relative",
+                    item.checked && checklistStrikethrough && 'opacity-60'
+                  )}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Backspace' || e.key === 'Delete')) {
+                      const textContent = item.text.replace(/<[^>]*>/g, '').trim();
+                      if (textContent === '') {
+                        e.preventDefault();
+                        const newItems = [...(block.items || [])];
+                        if (newItems.length > 1) {
+                          newItems.splice(index, 1);
+                          updateBlock(block.id, { items: newItems });
+                          
+                          // Focus previous item after deletion
+                          if (index > 0) {
+                            setTimeout(() => {
+                              const inputs = document.querySelectorAll(`[data-block-id="${block.id}"] .ProseMirror`);
+                              const prevInput = inputs[index - 1] as HTMLElement;
+                              if (prevInput) prevInput.focus();
+                            }, 0);
+                          }
+                        }
+                      }
+                    }
+                  }}
+                >
                 {item.checked && checklistStrikethrough && (
                   <svg 
-                    className="absolute left-0 right-0 pointer-events-none" 
+                    className="absolute inset-0 pointer-events-none" 
                     style={{ 
-                      top: '50%', 
-                      transform: 'translateY(-50%)',
-                      height: '1.5em',
+                      width: '100%',
+                      height: '100%',
                       zIndex: 1 
                     }}
-                    viewBox="0 0 100 10" 
+                    viewBox="0 0 100 20" 
                     preserveAspectRatio="none"
                   >
                     <path 
-                      d="M 0 5 Q 25 3, 50 5.5 T 100 5" 
+                      d="M 0 10 Q 25 8, 50 10.5 T 100 10" 
                       stroke="currentColor" 
-                      strokeWidth="1.5" 
+                      strokeWidth="2" 
                       fill="none" 
                       opacity="0.6"
                       strokeLinecap="round"
@@ -448,7 +471,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         {/* Banner */}
         {note.banner_image && (
           <div
-            className="w-full h-48 bg-cover bg-center rounded-lg mb-6"
+            className="w-full h-56 bg-cover bg-center rounded-lg mb-6"
             style={{ backgroundImage: `url(${note.banner_image})` }}
           />
         )}

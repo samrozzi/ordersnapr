@@ -115,13 +115,19 @@ All colors MUST be HSL.
     position: relative;
   }
 
+  /* Ensure content renders above the hero background */
+  .auth-page > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .auth-page::before {
     content: "";
     position: fixed;
     inset: 0 0 auto 0;
     height: 900px;
     background: url('/login-bg-desktop.png') center top / cover no-repeat;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
     -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 75%, transparent 100%);

@@ -139,6 +139,15 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
     }
   };
 
+  const convertSelectionToChecklist = (items: string[]) => {
+    const newBlock: NoteBlock = {
+      id: `block-${Date.now()}`,
+      type: 'checklist',
+      items: items.map((t) => ({ id: `item-${Math.random().toString(36).slice(2)}`, checked: false, text: `<p>${t}</p>` }))
+    };
+    onChange([...blocks, newBlock]);
+  };
+
   const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
     onChange(blocks.map(block =>
       block.id === id ? { ...block, ...updates } : block
@@ -644,7 +653,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <SharedFormattingToolbar />
+      <SharedFormattingToolbar onConvertSelectionToChecklist={convertSelectionToChecklist} />
     </div>
   </SortableContext>
 

@@ -158,12 +158,38 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       items: [{ id: `item-${Date.now()}`, checked: false, text: '' }]
     };
     setBlocks([...blocks, newBlock]);
-    toast.success('Checklist added');
+    toast.success("Checklist added");
     
     // Focus the new checklist item after render
     setTimeout(() => {
       const newInput = document.querySelector(`[data-item-id="${newBlock.items?.[0].id}"] .ProseMirror`) as HTMLElement;
       if (newInput) newInput.focus();
+    }, 100);
+  };
+
+  const convertSelectionToChecklist = (items: string[]) => {
+    const newBlock: NoteBlock = {
+      id: `block-${Date.now()}`,
+      type: 'checklist',
+      items: items.map((t) => ({ id: `item-${Math.random().toString(36).slice(2)}`, checked: false, text: `<p>${t}</p>` }))
+    };
+    // Insert after the currently edited block if possible
+    if (editingBlockId) {
+      const idx = blocks.findIndex((b) => b.id === editingBlockId);
+      const newBlocks = [...blocks];
+      newBlocks.splice(idx + 1, 0, newBlock);
+      setBlocks(newBlocks);
+    } else {
+      setBlocks([...blocks, newBlock]);
+    }
+    toast.success("Converted to checklist");
+
+    setTimeout(() => {
+      const firstId = newBlock.items?.[0]?.id;
+      if (firstId) {
+        const el = document.querySelector(`[data-item-id="${firstId}"] .ProseMirror`) as HTMLElement;
+        el?.focus();
+      }
     }, 100);
   };
 
@@ -294,7 +320,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         if (newItems.length > 1) {
                           newItems.splice(index, 1);
                           updateBlock(block.id, { items: newItems });
-                          
                           // Focus previous item after deletion
                           if (index > 0) {
                             setTimeout(() => {
@@ -303,6 +328,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                               if (prevInput) prevInput.focus();
                             }, 0);
                           }
+                        } else {
+                          // Last remaining item: remove the entire checklist block
+                          const newBlocks = blocks.filter(b => b.id !== block.id);
+                          setBlocks(newBlocks);
                         }
                       }
                     }
@@ -578,6 +607,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       <SharedFormattingToolbar 
         onInsertChecklist={insertChecklistBlock}
+        onConvertSelectionToChecklist={convertSelectionToChecklist}
       />
     </div>
     </EditorFocusProvider>

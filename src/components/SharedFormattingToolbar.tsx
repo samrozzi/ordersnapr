@@ -28,12 +28,14 @@ interface SharedFormattingToolbarProps {
   onInsertChecklist?: () => void;
   onInsertBulletList?: () => void;
   onInsertNumberedList?: () => void;
+  onConvertSelectionToChecklist?: (items: string[]) => void;
 }
 
 export const SharedFormattingToolbar = ({ 
   onInsertChecklist, 
   onInsertBulletList, 
-  onInsertNumberedList 
+  onInsertNumberedList,
+  onConvertSelectionToChecklist
 }: SharedFormattingToolbarProps) => {
   const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();

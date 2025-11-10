@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy, Mail, History } from "lucide-react";
+import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy, Mail, History, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import { useInvoices } from "@/hooks/use-invoices";
 import { useCloneInvoice } from "@/hooks/use-invoice-settings";
 import { SendInvoiceDialog } from "@/components/SendInvoiceDialog";
 import { InvoiceEmailHistoryDialog } from "@/components/InvoiceEmailHistoryDialog";
+import { ShareInvoiceDialog } from "@/components/ShareInvoiceDialog";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -26,6 +28,7 @@ interface InvoiceTableProps {
 export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTableProps) {
   const { markAsSent, markAsPaid, deleteInvoice } = useInvoices();
   const { cloneInvoice, isCloning } = useCloneInvoice();
+  const [sharingInvoice, setSharingInvoice] = useState<any>(null);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -163,6 +166,11 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
                         </DropdownMenuItem>
                       }
                     />
+                    <DropdownMenuItem onClick={() => setSharingInvoice(invoice)}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Link
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {invoice.status === 'draft' && (
                       <DropdownMenuItem onClick={() => onEdit(invoice)}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -200,6 +208,14 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
           ))}
         </TableBody>
       </Table>
+
+      {sharingInvoice && (
+        <ShareInvoiceDialog
+          invoice={sharingInvoice}
+          isOpen={!!sharingInvoice}
+          onClose={() => setSharingInvoice(null)}
+        />
+      )}
     </div>
   );
 }

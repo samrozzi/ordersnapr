@@ -15,11 +15,13 @@ import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 export const SharedFormattingToolbar = () => {
   const { activeEditor } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const keyboardHeight = useKeyboardHeight();
 
   if (!activeEditor) return null;
 
@@ -42,8 +44,14 @@ export const SharedFormattingToolbar = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border p-2 safe-area-inset-bottom animate-in slide-in-from-bottom-2 duration-200">
-      <div className="flex items-center gap-1 overflow-x-auto">
+    <div 
+      className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
+      style={{ 
+        bottom: `${keyboardHeight}px`,
+        transition: 'bottom 0.3s ease-out'
+      }}
+    >
+      <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button
           variant="ghost"
           size="sm"

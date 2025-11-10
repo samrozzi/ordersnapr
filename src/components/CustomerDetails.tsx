@@ -36,7 +36,7 @@ export function CustomerDetails({ customer, onEdit, onClose }: CustomerDetailsPr
       if (invoicesData) setInvoices(invoicesData);
 
       // Fetch work orders
-      const { data: ordersData } = await supabase
+      const { data: ordersData } = await (supabase as any)
         .from("work_orders")
         .select("*")
         .eq("customer_id", customer.id)

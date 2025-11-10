@@ -3,10 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface InteractiveNoteViewerProps {
   note: Note;
@@ -26,13 +35,15 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
-  const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity } = useNotes();
+  const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content.blocks);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date>(new Date(note.updated_at));
   const [linkedEntityName, setLinkedEntityName] = useState<string | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [checklistStrikethrough, setChecklistStrikethrough] = useState(preferences?.checklist_strikethrough ?? true);
+  const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
 
   // Load linked entity name
   useEffect(() => {
@@ -83,7 +94,29 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   };
 
   const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
-    setBlocks(blocks.map(block => (block.id === id ? { ...block, ...updates } : block)));
+    const updatedBlocks = blocks.map(block => (block.id === id ? { ...block, ...updates } : block));
+    
+    // If updating a checklist and move completed is enabled, sort items
+    if (updates.items && checklistMoveCompleted) {
+      const block = updatedBlocks.find(b => b.id === id);
+      if (block && block.items) {
+        const unchecked = block.items.filter(item => !item.checked);
+        const checked = block.items.filter(item => item.checked);
+        block.items = [...unchecked, ...checked];
+      }
+    }
+    
+    setBlocks(updatedBlocks);
+  };
+
+  const handleToggleStrikethrough = async (enabled: boolean) => {
+    setChecklistStrikethrough(enabled);
+    await updatePreferences({ checklist_strikethrough: enabled });
+  };
+
+  const handleToggleMoveCompleted = async (enabled: boolean) => {
+    setChecklistMoveCompleted(enabled);
+    await updatePreferences({ checklist_move_completed: enabled });
   };
 
   const handleChecklistKeyDown = (
@@ -189,7 +222,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   }}
                   onKeyDown={(e) => handleChecklistKeyDown(e, block.id, index, item.text)}
                   placeholder="List item... (press Enter for new item)"
-                  className="flex-1 border-none shadow-none focus-visible:ring-1"
+                  className={`flex-1 border-none shadow-none focus-visible:ring-1 ${
+                    item.checked && checklistStrikethrough ? 'line-through text-muted-foreground' : ''
+                  }`}
                   data-item-id={item.id}
                 />
               </div>
@@ -279,10 +314,43 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onCustomize}>
-            <Settings className="h-4 w-4 mr-2" />
-            Customize
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <div className="px-2 py-3 space-y-3">
+                <div className="text-sm font-medium">Checklist Options</div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="strikethrough" className="text-sm cursor-pointer">
+                    Strike through completed
+                  </Label>
+                  <Switch
+                    id="strikethrough"
+                    checked={checklistStrikethrough}
+                    onCheckedChange={handleToggleStrikethrough}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="move-completed" className="text-sm cursor-pointer">
+                    Move completed to bottom
+                  </Label>
+                  <Switch
+                    id="move-completed"
+                    checked={checklistMoveCompleted}
+                    onCheckedChange={handleToggleMoveCompleted}
+                  />
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onCustomize}>
+                <Settings className="h-4 w-4 mr-2" />
+                Customize Note
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

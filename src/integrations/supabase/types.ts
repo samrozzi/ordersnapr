@@ -1016,6 +1016,8 @@ export type Database = {
       }
       user_notes_preferences: {
         Row: {
+          checklist_move_completed: boolean
+          checklist_strikethrough: boolean
           created_at: string
           default_view: string
           id: string
@@ -1027,6 +1029,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          checklist_move_completed?: boolean
+          checklist_strikethrough?: boolean
           created_at?: string
           default_view?: string
           id?: string
@@ -1038,6 +1042,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          checklist_move_completed?: boolean
+          checklist_strikethrough?: boolean
           created_at?: string
           default_view?: string
           id?: string

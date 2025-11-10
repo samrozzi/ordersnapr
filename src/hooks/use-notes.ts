@@ -68,6 +68,8 @@ export interface UserNotesPreferences {
   kanban_columns: string[];
   list_sort_by: string;
   list_sort_order: 'asc' | 'desc';
+  checklist_strikethrough: boolean;
+  checklist_move_completed: boolean;
   created_at: string;
   updated_at: string;
 }

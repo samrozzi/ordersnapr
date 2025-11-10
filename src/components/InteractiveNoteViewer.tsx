@@ -247,9 +247,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       case 'checklist':
         return (
-          <div className="space-y-1 transition-all duration-500" data-block-id={block.id}>
+          <div className="space-y-0.5 transition-all duration-500" data-block-id={block.id}>
             {block.items?.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
+              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out py-0.5">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {

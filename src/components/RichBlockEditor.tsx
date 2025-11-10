@@ -100,6 +100,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
               placeholder="Heading..."
               variant="heading"
               className="w-full"
+              showPersistentToolbar={true}
             />
           </div>
         );
@@ -111,6 +112,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
             onChange={(content) => updateBlock(block.id, { content })}
             placeholder="Start writing..."
             className="w-full"
+            showPersistentToolbar={true}
           />
         );
 
@@ -133,15 +135,17 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, text: e.target.value };
                     updateBlock(block.id, { items: newItems });
-                    
-                    // Auto-grow textarea
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
                   }}
                   placeholder="List item..."
-                  className="flex-1 border-none shadow-none focus-visible:ring-1 resize-none overflow-hidden"
+                  className="flex-1 border-none shadow-none focus-visible:ring-1 resize-none"
                   rows={1}
-                  style={{ minHeight: '40px' }}
+                  style={{ 
+                    height: 'auto',
+                    minHeight: '40px',
+                    overflowY: 'hidden',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'pre-wrap'
+                  }}
                   onInput={(e) => {
                     e.currentTarget.style.height = 'auto';
                     e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';

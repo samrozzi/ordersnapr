@@ -206,12 +206,13 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         const headingClass = block.level === 1 ? 'text-3xl' : block.level === 2 ? 'text-2xl' : 'text-xl';
         
         return editingBlockId === block.id ? (
-          <Input
-            value={block.content || ''}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-            onBlur={() => setEditingBlockId(null)}
-            autoFocus
-            className={`font-bold ${headingClass} border-none shadow-none focus-visible:ring-0 px-0`}
+          <RichTextEditor
+            content={block.content || ''}
+            onChange={(content) => updateBlock(block.id, { content })}
+            placeholder="Heading"
+            variant="heading"
+            className="w-full"
+            showPersistentToolbar={true}
           />
         ) : (
           <HeadingTag
@@ -229,6 +230,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             onChange={(content) => updateBlock(block.id, { content })}
             placeholder="Write something..."
             className="w-full"
+            showPersistentToolbar={true}
           />
         ) : (
           <div
@@ -257,18 +259,20 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, text: e.target.value };
                     updateBlock(block.id, { items: newItems });
-                    
-                    // Auto-grow textarea
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
                   }}
                   onKeyDown={(e) => handleChecklistKeyDown(e, block.id, index, item.text)}
                   placeholder="List item... (press Enter for new item)"
-                  className={`flex-1 border-none shadow-none focus-visible:ring-1 resize-none overflow-hidden ${
+                  className={`flex-1 border-none shadow-none focus-visible:ring-1 resize-none ${
                     item.checked && checklistStrikethrough ? 'line-through text-muted-foreground' : ''
                   }`}
                   rows={1}
-                  style={{ minHeight: '40px' }}
+                  style={{ 
+                    height: 'auto',
+                    minHeight: '40px',
+                    overflowY: 'hidden',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'pre-wrap'
+                  }}
                   onInput={(e) => {
                     e.currentTarget.style.height = 'auto';
                     e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';

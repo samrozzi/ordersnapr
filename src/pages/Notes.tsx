@@ -122,6 +122,13 @@ const Notes = () => {
   };
 
   const handleBackToView = () => {
+    // Refresh the selected note with latest data from the notes array
+    if (selectedNote) {
+      const updatedNote = notes.find(n => n.id === selectedNote.id);
+      if (updatedNote) {
+        setSelectedNote(updatedNote);
+      }
+    }
     setIsCustomizeMode(false);
   };
 

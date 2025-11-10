@@ -15,7 +15,8 @@ import {
   List, 
   ListOrdered,
   ImageIcon,
-  Type
+  Type,
+  CheckSquare
 } from "lucide-react";
 import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
@@ -23,13 +24,27 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
-export const SharedFormattingToolbar = () => {
+interface SharedFormattingToolbarProps {
+  onInsertChecklist?: () => void;
+  onInsertBulletList?: () => void;
+  onInsertNumberedList?: () => void;
+}
+
+export const SharedFormattingToolbar = ({ 
+  onInsertChecklist, 
+  onInsertBulletList, 
+  onInsertNumberedList 
+}: SharedFormattingToolbarProps) => {
   const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const keyboardHeight = useKeyboardHeight();
 
-  if (!activeEditor) return null;
+  const getCurrentFontSize = () => {
+    if (!activeEditor) return "1rem";
+    const fontSize = activeEditor.getAttributes('textStyle').fontSize;
+    return fontSize || "1rem";
+  };
 
   const handleToolbarAction = (action: () => void) => {
     setToolbarLocked(true);
@@ -38,6 +53,7 @@ export const SharedFormattingToolbar = () => {
   };
 
   const handleFontSizeChange = (size: string) => {
+    if (!activeEditor) return;
     handleToolbarAction(() => {
       activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
     });
@@ -74,12 +90,13 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          disabled={!activeEditor}
           onMouseDown={(e) => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleBold().run())}
-          className={activeEditor.isActive("bold") ? "bg-accent" : ""}
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleBold().run())}
+          className={activeEditor?.isActive("bold") ? "bg-accent" : ""}
         >
           <Bold className="h-4 w-4" />
         </Button>
@@ -87,12 +104,13 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          disabled={!activeEditor}
           onMouseDown={(e) => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleItalic().run())}
-          className={activeEditor.isActive("italic") ? "bg-accent" : ""}
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleItalic().run())}
+          className={activeEditor?.isActive("italic") ? "bg-accent" : ""}
         >
           <Italic className="h-4 w-4" />
         </Button>
@@ -100,12 +118,13 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          disabled={!activeEditor}
           onMouseDown={(e) => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleUnderline().run())}
-          className={activeEditor.isActive("underline") ? "bg-accent" : ""}
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleUnderline().run())}
+          className={activeEditor?.isActive("underline") ? "bg-accent" : ""}
         >
           <Underline className="h-4 w-4" />
         </Button>
@@ -113,8 +132,9 @@ export const SharedFormattingToolbar = () => {
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         <Select
-          value="1rem"
+          value={getCurrentFontSize()}
           onValueChange={handleFontSizeChange}
+          disabled={!activeEditor}
         >
           <SelectTrigger 
             className="w-[90px] h-9"
@@ -142,15 +162,34 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          disabled={!activeEditor}
           onMouseDown={(e) => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleBulletList().run())}
-          className={activeEditor.isActive("bulletList") ? "bg-accent" : ""}
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleBulletList().run())}
+          className={activeEditor?.isActive("bulletList") ? "bg-accent" : ""}
+          title="Bullet List"
         >
           <List className="h-4 w-4" />
         </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!activeEditor}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleOrderedList().run())}
+          className={activeEditor?.isActive("orderedList") ? "bg-accent" : ""}
+          title="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
 
         <Button
           variant="ghost"
@@ -159,10 +198,13 @@ export const SharedFormattingToolbar = () => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleOrderedList().run())}
-          className={activeEditor.isActive("orderedList") ? "bg-accent" : ""}
+          onClick={() => {
+            onInsertChecklist?.();
+            setTimeout(() => setToolbarLocked(false), 100);
+          }}
+          title="Insert Checklist"
         >
-          <ListOrdered className="h-4 w-4" />
+          <CheckSquare className="h-4 w-4" />
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-1" />

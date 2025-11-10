@@ -151,6 +151,22 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
     setBlocks(updatedBlocks);
   };
 
+  const insertChecklistBlock = () => {
+    const newBlock: NoteBlock = {
+      id: `block-${Date.now()}`,
+      type: 'checklist',
+      items: [{ id: `item-${Date.now()}`, checked: false, text: '' }]
+    };
+    setBlocks([...blocks, newBlock]);
+    toast.success('Checklist added');
+    
+    // Focus the new checklist item after render
+    setTimeout(() => {
+      const newInput = document.querySelector(`[data-item-id="${newBlock.items?.[0].id}"] .ProseMirror`) as HTMLElement;
+      if (newInput) newInput.focus();
+    }, 100);
+  };
+
   const handleToggleStrikethrough = async (enabled: boolean) => {
     setChecklistStrikethrough(enabled);
     await updatePreferences({ checklist_strikethrough: enabled });
@@ -553,7 +569,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
-      <SharedFormattingToolbar />
+      <SharedFormattingToolbar 
+        onInsertChecklist={insertChecklistBlock}
+      />
     </div>
     </EditorFocusProvider>
   );

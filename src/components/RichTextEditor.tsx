@@ -80,7 +80,7 @@ export const RichTextEditor = ({
         inline: true,
         allowBase64: false,
         HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg my-2',
+          class: 'max-w-[150px] h-auto rounded-lg my-2 cursor-pointer',
         },
       }),
     ],

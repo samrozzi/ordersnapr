@@ -31,6 +31,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { NoteBlock } from "@/hooks/use-notes";
 
 interface RichBlockEditorProps {
@@ -38,8 +49,70 @@ interface RichBlockEditorProps {
   onChange: (blocks: NoteBlock[]) => void;
 }
 
+function SortableBlock({ block, children }: { block: NoteBlock; children: React.ReactNode }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="group relative border rounded-lg p-4">
+      <div className="absolute -left-3 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
+  const [activeBlock, setActiveBlock] = useState<NoteBlock | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      setActiveBlock(null);
+      return;
+    }
+
+    const oldIndex = blocks.findIndex(b => b.id === active.id);
+    const newIndex = blocks.findIndex(b => b.id === over.id);
+
+    const newBlocks = [...blocks];
+    const [movedBlock] = newBlocks.splice(oldIndex, 1);
+    newBlocks.splice(newIndex, 0, movedBlock);
+    
+    onChange(newBlocks);
+    setActiveBlock(null);
+  };
 
   const addBlock = (type: NoteBlock['type'], afterId?: string) => {
     const currentDate = new Date();
@@ -444,42 +517,41 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
 
   return (
     <EditorFocusProvider>
-      <div className="space-y-4 pb-16">
-        {blocks.map((block, index) => (
-        <div key={block.id} className="group relative border rounded-lg p-4">
-          {/* Block Controls */}
-          <div className="absolute -left-3 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 cursor-grab"
-            >
-              <GripVertical className="h-4 w-4" />
-            </Button>
-          </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={(event) => {
+          const block = blocks.find(b => b.id === event.active.id);
+          setActiveBlock(block || null);
+        }}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-4 pb-16">
+            {blocks.map((block) => (
+              <SortableBlock key={block.id} block={block}>
+                <div className="absolute -right-3 top-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => deleteBlock(block.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
 
-          <div className="absolute -right-3 top-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={() => deleteBlock(block.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+                {/* Block Content */}
+                {renderBlock(block)}
 
-          {/* Block Content */}
-          {renderBlock(block)}
-
-          {/* Add Block Button */}
-          <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Block Below
-                </Button>
+                {/* Add Block Button */}
+                <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Block Below
+                      </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => addBlock('paragraph', block.id)}>
@@ -521,7 +593,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
+        </SortableBlock>
       ))}
 
       {/* Add Block at End */}
@@ -574,6 +646,16 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
 
       <SharedFormattingToolbar />
     </div>
-    </EditorFocusProvider>
+  </SortableContext>
+
+  <DragOverlay>
+    {activeBlock && (
+      <div className="opacity-60 border rounded-lg p-4 bg-background">
+        {renderBlock(activeBlock)}
+      </div>
+    )}
+  </DragOverlay>
+</DndContext>
+</EditorFocusProvider>
   );
 }

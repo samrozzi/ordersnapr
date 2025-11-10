@@ -45,10 +45,36 @@ const Notes = () => {
     }
   }, [searchParams, notes, setSearchParams]);
 
-  // Filter notes by search query
+  // Filter notes by search query (title and content)
   const filteredNotes = notes.filter((note) => {
     const query = searchQuery.toLowerCase();
-    return note.title.toLowerCase().includes(query);
+    
+    // Search in title
+    if (note.title.toLowerCase().includes(query)) return true;
+    
+    // Search in content blocks
+    return note.content.blocks.some(block => {
+      // Strip HTML tags and search text content
+      const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').toLowerCase();
+      
+      switch (block.type) {
+        case 'paragraph':
+        case 'heading':
+          return stripHtml(block.content || '').includes(query);
+        case 'checklist':
+          return block.items?.some(item => stripHtml(item.text || '').includes(query)) || false;
+        case 'table':
+          return block.rows?.some(row => 
+            row.some((cell: any) => (cell.content || '').toLowerCase().includes(query))
+          ) || false;
+        case 'date':
+          return (block.date || '').toLowerCase().includes(query);
+        case 'time':
+          return (block.time || '').toLowerCase().includes(query);
+        default:
+          return false;
+      }
+    });
   });
 
   // Sort notes

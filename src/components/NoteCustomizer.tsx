@@ -233,8 +233,8 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
           backgroundColor: backgroundColor || undefined,
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
-          height: 'calc(100vh - 80px)', // Ensure proper height for scrolling
-          position: 'relative'
+          touchAction: 'pan-y',
+          maxHeight: 'calc(100dvh - 80px)'
         }}
       >
         {/* Banner Image */}

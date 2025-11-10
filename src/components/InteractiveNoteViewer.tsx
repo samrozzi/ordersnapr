@@ -18,6 +18,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EditorFocusProvider } from "@/contexts/EditorFocusContext";
+import { SharedFormattingToolbar } from "@/components/SharedFormattingToolbar";
 
 interface InteractiveNoteViewerProps {
   note: Note;
@@ -213,7 +215,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             placeholder="Heading"
             variant="heading"
             className="w-full"
-            showPersistentToolbar={true}
           />
         ) : (
           <HeadingTag
@@ -231,7 +232,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             onChange={(content) => updateBlock(block.id, { content })}
             placeholder="Write something..."
             className="w-full"
-            showPersistentToolbar={true}
           />
         ) : (
           <div
@@ -277,7 +277,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     }}
                     placeholder="List item..."
                     className="w-full"
-                    showPersistentToolbar={true}
                     variant="paragraph"
                   />
                 </div>
@@ -340,8 +339,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header Toolbar */}
+    <EditorFocusProvider>
+      <div className="flex flex-col h-full pb-16">
+        {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onClose} className="mr-1">
@@ -445,6 +445,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <p>Last updated: {lastSaved.toLocaleString()}</p>
         </div>
       </div>
+
+      <SharedFormattingToolbar />
     </div>
+    </EditorFocusProvider>
   );
 }

@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { EditorFocusProvider } from "@/contexts/EditorFocusContext";
+import { SharedFormattingToolbar } from "@/components/SharedFormattingToolbar";
 import {
   Plus,
   Type,
@@ -101,7 +103,6 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
               placeholder="Heading..."
               variant="heading"
               className="w-full"
-              showPersistentToolbar={true}
             />
           </div>
         );
@@ -113,7 +114,6 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
             onChange={(content) => updateBlock(block.id, { content })}
             placeholder="Start writing..."
             className="w-full"
-            showPersistentToolbar={true}
           />
         );
 
@@ -141,7 +141,6 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                     }}
                     placeholder="List item..."
                     className="w-full"
-                    showPersistentToolbar={true}
                     variant="paragraph"
                   />
                 </div>
@@ -277,8 +276,9 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {blocks.map((block, index) => (
+    <EditorFocusProvider>
+      <div className="space-y-4 pb-16">
+        {blocks.map((block, index) => (
         <div key={block.id} className="group relative border rounded-lg p-4">
           {/* Block Controls */}
           <div className="absolute -left-3 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -380,6 +380,9 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <SharedFormattingToolbar />
     </div>
+    </EditorFocusProvider>
   );
 }

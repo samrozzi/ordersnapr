@@ -270,6 +270,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     item.checked && checklistStrikethrough && 'opacity-60'
                   )}
                   onKeyDown={(e) => {
+                    // Handle backspace/delete on empty items
                     if ((e.key === 'Backspace' || e.key === 'Delete')) {
                       const textContent = item.text.replace(/<[^>]*>/g, '').trim();
                       if (textContent === '') {
@@ -290,47 +291,56 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         }
                       }
                     }
+                    
+                    // Handle double Enter to create new checkbox
+                    if (e.key === 'Enter') {
+                      // Check if the content ends with a paragraph tag (indicating a previous Enter)
+                      const hasEmptyParagraph = item.text.endsWith('<p></p>') || item.text.endsWith('<p><br></p>');
+                      if (hasEmptyParagraph) {
+                        e.preventDefault();
+                        
+                        // Remove the empty paragraph from current item
+                        const cleanedText = item.text.replace(/<p><\/p>$/, '').replace(/<p><br><\/p>$/, '');
+                        const newItems = [...(block.items || [])];
+                        newItems[index] = { ...item, text: cleanedText };
+                        
+                        // Create new checkbox
+                        const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
+                        newItems.splice(index + 1, 0, newItem);
+                        updateBlock(block.id, { items: newItems });
+                        
+                        // Focus the new item
+                        setTimeout(() => {
+                          const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
+                          if (newInput) newInput.focus();
+                        }, 0);
+                      }
+                    }
                   }}
                 >
-                {item.checked && checklistStrikethrough && (
-                  <svg 
-                    className="absolute inset-0 pointer-events-none" 
-                    style={{ 
-                      width: '100%',
-                      height: '100%',
-                      zIndex: 1 
-                    }}
-                    viewBox="0 0 100 20" 
-                    preserveAspectRatio="none"
+                  <div 
+                    className={cn(item.checked && checklistStrikethrough && 'line-through')}
+                    data-item-id={item.id}
                   >
-                    <path 
-                      d="M 0 10 Q 25 8, 50 10.5 T 100 10" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      fill="none" 
-                      opacity="0.6"
-                      strokeLinecap="round"
+                    <RichTextEditor
+                      content={item.text || ''}
+                      onChange={(content) => {
+                        const newItems = [...(block.items || [])];
+                        // Remove item if text becomes empty (excluding HTML tags)
+                        const textContent = content.replace(/<[^>]*>/g, '').trim();
+                        if (textContent === '' && newItems.length > 1) {
+                          // Remove this item if there are other items
+                          newItems.splice(index, 1);
+                        } else {
+                          newItems[index] = { ...item, text: content };
+                        }
+                        updateBlock(block.id, { items: newItems });
+                      }}
+                      placeholder="List item..."
+                      className="w-full"
+                      variant="paragraph"
                     />
-                  </svg>
-                )}
-                  <RichTextEditor
-                    content={item.text || ''}
-                    onChange={(content) => {
-                      const newItems = [...(block.items || [])];
-                      // Remove item if text becomes empty (excluding HTML tags)
-                      const textContent = content.replace(/<[^>]*>/g, '').trim();
-                      if (textContent === '' && newItems.length > 1) {
-                        // Remove this item if there are other items
-                        newItems.splice(index, 1);
-                      } else {
-                        newItems[index] = { ...item, text: content };
-                      }
-                      updateBlock(block.id, { items: newItems });
-                    }}
-                    placeholder="List item..."
-                    className="w-full"
-                    variant="paragraph"
-                  />
+                  </div>
                 </div>
               </div>
             ))}

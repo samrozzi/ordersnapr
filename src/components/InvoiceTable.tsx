@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, MoreHorizontal, Send, Check, X } from "lucide-react";
+import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy, Mail, History, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInvoices } from "@/hooks/use-invoices";
+import { useCloneInvoice } from "@/hooks/use-invoice-settings";
+import { SendInvoiceDialog } from "@/components/SendInvoiceDialog";
+import { InvoiceEmailHistoryDialog } from "@/components/InvoiceEmailHistoryDialog";
+import { ShareInvoiceDialog } from "@/components/ShareInvoiceDialog";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -22,6 +27,8 @@ interface InvoiceTableProps {
 
 export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTableProps) {
   const { markAsSent, markAsPaid, deleteInvoice } = useInvoices();
+  const { cloneInvoice, isCloning } = useCloneInvoice();
+  const [sharingInvoice, setSharingInvoice] = useState<any>(null);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -61,6 +68,10 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
     if (confirm(`Are you sure you want to delete invoice ${invoice.number}?`)) {
       await deleteInvoice(invoice.id);
     }
+  };
+
+  const handleClone = async (invoice: any) => {
+    await cloneInvoice(invoice.id);
   };
 
   if (isLoading) {
@@ -137,6 +148,29 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </DropdownMenuItem>
+                    <SendInvoiceDialog
+                      invoice={invoice}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Send Email
+                        </DropdownMenuItem>
+                      }
+                    />
+                    <InvoiceEmailHistoryDialog
+                      invoiceId={invoice.id}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <History className="h-4 w-4 mr-2" />
+                          Email History
+                        </DropdownMenuItem>
+                      }
+                    />
+                    <DropdownMenuItem onClick={() => setSharingInvoice(invoice)}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Link
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     {invoice.status === 'draft' && (
                       <DropdownMenuItem onClick={() => onEdit(invoice)}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -156,6 +190,10 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleClone(invoice)} disabled={isCloning}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Clone Invoice
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDelete(invoice)}
                       className="text-destructive"
@@ -170,6 +208,14 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
           ))}
         </TableBody>
       </Table>
+
+      {sharingInvoice && (
+        <ShareInvoiceDialog
+          invoice={sharingInvoice}
+          isOpen={!!sharingInvoice}
+          onClose={() => setSharingInvoice(null)}
+        />
+      )}
     </div>
   );
 }

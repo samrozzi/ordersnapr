@@ -40,6 +40,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const FreeTierDashboard = lazy(() => import("./pages/FreeTierDashboard"));
+const PublicInvoice = lazy(() => import("./pages/PublicInvoice"));
 
 // Optimized React Query configuration
 const queryClient = new QueryClient({
@@ -72,6 +73,9 @@ const AppContent = () => {
 
               {/* Customer Portal - Public route (token-based access) */}
               <Route path="/portal/:token" element={<CustomerPortal />} />
+
+              {/* Public Invoice - Shareable invoice links */}
+              <Route path="/invoice/:token" element={<PublicInvoice />} />
 
               {/* Free Tier Routes - No approval required */}
               <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />

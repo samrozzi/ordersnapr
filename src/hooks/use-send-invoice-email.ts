@@ -35,17 +35,18 @@ export interface SendInvoiceEmailParams {
 }
 
 export function useInvoiceEmailHistory(invoiceId?: string) {
-  const { organization } = useAuth();
+  const { activeOrgId } = useActiveOrg();
+  const supabaseAny = supabase as any;
 
   const { data: emailHistory = [], isLoading } = useQuery({
-    queryKey: ["invoice-emails", organization?.id, invoiceId],
+    queryKey: ["invoice-emails", activeOrgId, invoiceId],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrgId) return [];
 
-      let query = supabase
+      let query = supabaseAny
         .from("invoice_emails")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrgId)
         .order("created_at", { ascending: false });
 
       if (invoiceId) {
@@ -55,9 +56,9 @@ export function useInvoiceEmailHistory(invoiceId?: string) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as InvoiceEmail[];
+      return (data || []) as InvoiceEmail[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrgId,
   });
 
   return {
@@ -67,17 +68,19 @@ export function useInvoiceEmailHistory(invoiceId?: string) {
 }
 
 export function useSendInvoiceEmail() {
-  const { user, organization } = useAuth();
+  const { user } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
+  const supabaseAny = supabase as any;
 
   const sendEmail = useMutation({
     mutationFn: async (params: SendInvoiceEmailParams) => {
-      if (!organization?.id || !user?.id) {
+      if (!activeOrgId || !user?.id) {
         throw new Error("Organization or user not found");
       }
 
       // First, fetch the invoice data to generate PDF
-      const { data: invoice, error: invoiceError } = await supabase
+      const { data: invoice, error: invoiceError } = await supabaseAny
         .from("invoices")
         .select(`
           *,
@@ -96,23 +99,23 @@ export function useSendInvoiceEmail() {
           // Prepare invoice data for PDF generation
           const pdfData = {
             number: invoice.number,
-            issue_date: invoice.invoice_date || invoice.created_at,
-            due_date: invoice.payment_due_date,
+            issue_date: invoice.created_at,
+            due_date: invoice.due_date,
             status: invoice.status,
-            line_items: invoice.line_items || [],
-            subtotal_cents: invoice.subtotal_cents || 0,
-            tax_cents: invoice.tax_cents || 0,
-            discount_cents: invoice.discount_cents || 0,
+            line_items: [],
+            subtotal_cents: invoice.total_cents || 0,
+            tax_cents: 0,
+            discount_cents: 0,
             total_cents: invoice.total_cents || 0,
-            paid_at: invoice.paid_at,
+            paid_at: null,
             paid_amount_cents: invoice.paid_amount_cents,
             customer_name: invoice.customer?.name || invoice.customer?.email || "Customer",
             customer_email: invoice.customer?.email,
             customer_phone: invoice.customer?.phone,
             customer_address: invoice.customer?.address,
-            organization_name: organization.name,
-            notes: invoice.notes,
-            terms: invoice.terms,
+            organization_name: "Organization",
+            notes: null,
+            terms: null,
           };
 
           const pdf = await generateInvoicePDF(pdfData);
@@ -124,11 +127,11 @@ export function useSendInvoiceEmail() {
       }
 
       // Create email record
-      const { data: emailRecord, error: emailError } = await supabase
+      const { data: emailRecord, error: emailError } = await supabaseAny
         .from("invoice_emails")
         .insert([
           {
-            org_id: organization.id,
+            org_id: activeOrgId,
             invoice_id: params.invoiceId,
             template_id: params.templateId || null,
             sent_to: params.to,
@@ -147,7 +150,7 @@ export function useSendInvoiceEmail() {
 
       // Call Supabase Edge Function to send email
       try {
-        const { data: sendResult, error: sendError } = await supabase.functions.invoke(
+        const { data: sendResult, error: sendError } = await supabaseAny.functions.invoke(
           "send-invoice-email",
           {
             body: {
@@ -165,7 +168,7 @@ export function useSendInvoiceEmail() {
         if (sendError) throw sendError;
 
         // Update email record as sent
-        await supabase
+        await supabaseAny
           .from("invoice_emails")
           .update({
             status: "sent",
@@ -175,7 +178,7 @@ export function useSendInvoiceEmail() {
 
         // Update invoice status to sent if it was draft
         if (invoice.status === "draft") {
-          await supabase
+          await supabaseAny
             .from("invoices")
             .update({
               status: "sent",
@@ -187,7 +190,7 @@ export function useSendInvoiceEmail() {
         return { emailRecord, sendResult };
       } catch (error) {
         // Update email record as failed
-        await supabase
+        await supabaseAny
           .from("invoice_emails")
           .update({
             status: "failed",

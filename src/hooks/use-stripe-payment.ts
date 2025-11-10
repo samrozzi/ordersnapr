@@ -27,6 +27,7 @@ export interface CreatePaymentParams {
 
 export function useStripePayment() {
   const queryClient = useQueryClient();
+  const supabaseAny = supabase as any;
 
   // Create payment intent
   const createPaymentIntent = useMutation({
@@ -35,7 +36,7 @@ export function useStripePayment() {
       // that creates a Stripe PaymentIntent on the server side
       // For now, we'll create a placeholder record
 
-      const { data: invoiceData, error: invoiceError } = await supabase
+      const { data: invoiceData, error: invoiceError } = await supabaseAny
         .from("invoices")
         .select("org_id, customer_id")
         .eq("id", params.invoiceId)
@@ -44,7 +45,7 @@ export function useStripePayment() {
       if (invoiceError) throw invoiceError;
 
       // Call Supabase Edge Function to create Stripe PaymentIntent
-      const { data: paymentIntent, error: paymentError } = await supabase.functions.invoke(
+      const { data: paymentIntent, error: paymentError } = await supabaseAny.functions.invoke(
         "create-payment-intent",
         {
           body: {
@@ -57,7 +58,7 @@ export function useStripePayment() {
 
       if (paymentError) {
         // Fallback: Create payment intent record directly (for development)
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAny
           .from("payment_intents")
           .insert([
             {
@@ -102,7 +103,7 @@ export function useStripePayment() {
       paymentMethodBrand?: string;
       receiptUrl?: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("payment_intents")
         .update({
           stripe_payment_intent_id: stripePaymentIntentId,
@@ -119,22 +120,20 @@ export function useStripePayment() {
       if (error) throw error;
 
       // Update invoice as paid
-      const { data: paymentIntent } = await supabase
+      const { data: paymentIntent } = await supabaseAny
         .from("payment_intents")
         .select("invoice_id, amount_cents")
         .eq("id", paymentIntentId)
         .single();
 
       if (paymentIntent) {
-        await supabase
+        await supabaseAny
           .from("invoices")
           .update({
-            payment_status: "paid",
-            paid_amount_cents: paymentIntent.amount_cents,
-            paid_at: new Date().toISOString(),
             status: "paid",
+            paid_amount_cents: (paymentIntent as any).amount_cents,
           })
-          .eq("id", paymentIntent.invoice_id);
+          .eq("id", (paymentIntent as any).invoice_id);
       }
 
       return data as PaymentIntent;
@@ -158,7 +157,7 @@ export function useStripePayment() {
       paymentIntentId: string;
       errorMessage: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("payment_intents")
         .update({
           status: "failed",

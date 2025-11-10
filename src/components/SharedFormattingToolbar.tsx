@@ -6,7 +6,8 @@ import {
   Italic, 
   Underline, 
   Heading1, 
-  Heading2, 
+  Heading2,
+  Heading3,
   List, 
   ListOrdered,
   ImageIcon
@@ -45,6 +46,7 @@ export const SharedFormattingToolbar = () => {
 
   return (
     <div 
+      data-formatting-toolbar
       className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
       style={{ 
         bottom: `${keyboardHeight}px`,
@@ -55,6 +57,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleBold().run()}
           className={activeEditor.isActive("bold") ? "bg-accent" : ""}
         >
@@ -64,6 +67,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleItalic().run()}
           className={activeEditor.isActive("italic") ? "bg-accent" : ""}
         >
@@ -73,6 +77,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleUnderline().run()}
           className={activeEditor.isActive("underline") ? "bg-accent" : ""}
         >
@@ -84,6 +89,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={activeEditor.isActive("heading", { level: 1 }) ? "bg-accent" : ""}
         >
@@ -93,10 +99,22 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={activeEditor.isActive("heading", { level: 2 }) ? "bg-accent" : ""}
         >
           <Heading2 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => activeEditor.chain().focus().toggleHeading({ level: 3 }).run()}
+          className={activeEditor.isActive("heading", { level: 3 }) ? "bg-accent" : ""}
+          title="Heading 3"
+        >
+          <span className="text-xs font-bold">H3</span>
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
@@ -104,6 +122,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleBulletList().run()}
           className={activeEditor.isActive("bulletList") ? "bg-accent" : ""}
         >
@@ -113,6 +132,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => activeEditor.chain().focus().toggleOrderedList().run()}
           className={activeEditor.isActive("orderedList") ? "bg-accent" : ""}
         >
@@ -124,6 +144,7 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
         >
           <ImageIcon className="h-4 w-4" />

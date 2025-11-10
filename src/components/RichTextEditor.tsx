@@ -62,10 +62,16 @@ export const RichTextEditor = ({
       }
       onFocus?.();
     },
-    onBlur: () => {
+    onBlur: (props) => {
+      // Check if the blur is due to clicking within the formatting toolbar
+      const relatedTarget = props.event?.relatedTarget as HTMLElement;
+      if (relatedTarget && relatedTarget.closest('[data-formatting-toolbar]')) {
+        return; // Don't clear the active editor if clicking toolbar
+      }
+      
       setTimeout(() => {
         setActiveEditor(null);
-      }, 200);
+      }, 500);
       onBlur?.();
     },
     autofocus: autoFocus,

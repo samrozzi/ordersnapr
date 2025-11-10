@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus,
@@ -93,28 +94,23 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                 <option value={3}>H3</option>
               </select>
             </div>
-            <Input
-              value={block.content || ''}
-              onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            <RichTextEditor
+              content={block.content || ''}
+              onChange={(content) => updateBlock(block.id, { content })}
               placeholder="Heading..."
-              className={`font-bold ${
-                block.level === 1 ? 'text-3xl' :
-                block.level === 2 ? 'text-2xl' :
-                'text-xl'
-              }`}
+              variant="heading"
+              className="w-full"
             />
           </div>
         );
 
       case 'paragraph':
         return (
-          <Textarea
-            value={block.content || ''}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+          <RichTextEditor
+            content={block.content || ''}
+            onChange={(content) => updateBlock(block.id, { content })}
             placeholder="Start writing..."
-            className="min-h-[100px] resize-none"
-            onFocus={() => setFocusedBlockId(block.id)}
-            onBlur={() => setFocusedBlockId(null)}
+            className="w-full"
           />
         );
 
@@ -131,15 +127,25 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                     updateBlock(block.id, { items: newItems });
                   }}
                 />
-                <Input
+                <Textarea
                   value={item.text}
                   onChange={(e) => {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, text: e.target.value };
                     updateBlock(block.id, { items: newItems });
+                    
+                    // Auto-grow textarea
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
                   }}
                   placeholder="List item..."
-                  className="flex-1"
+                  className="flex-1 border-none shadow-none focus-visible:ring-1 resize-none overflow-hidden"
+                  rows={1}
+                  style={{ minHeight: '40px' }}
+                  onInput={(e) => {
+                    e.currentTarget.style.height = 'auto';
+                    e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                  }}
                 />
                 <Button
                   variant="ghost"

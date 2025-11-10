@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
@@ -159,7 +160,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   };
 
   const handleChecklistKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
+    e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
     blockId: string,
     itemIndex: number,
     itemText: string
@@ -176,7 +177,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       // Focus the new item after render
       setTimeout(() => {
-        const newInput = document.querySelector(`input[data-item-id="${newItem.id}"]`) as HTMLInputElement;
+        const newInput = document.querySelector(`textarea[data-item-id="${newItem.id}"]`) as HTMLTextAreaElement;
         if (newInput) newInput.focus();
       }, 0);
     } else if (e.key === 'Backspace' && itemText === '') {
@@ -190,8 +191,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       // Focus previous item
       if (itemIndex > 0) {
         setTimeout(() => {
-          const inputs = document.querySelectorAll(`[data-block-id="${blockId}"] input[type="text"]`);
-          const prevInput = inputs[itemIndex - 1] as HTMLInputElement;
+          const inputs = document.querySelectorAll(`[data-block-id="${blockId}"] textarea`);
+          const prevInput = inputs[itemIndex - 1] as HTMLTextAreaElement;
           if (prevInput) prevInput.focus();
         }, 0);
       }
@@ -223,20 +224,18 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       case 'paragraph':
         return editingBlockId === block.id ? (
-          <Textarea
-            value={block.content || ''}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-            onBlur={() => setEditingBlockId(null)}
-            autoFocus
-            className="min-h-[100px] resize-none border-none shadow-none focus-visible:ring-1 px-2"
+          <RichTextEditor
+            content={block.content || ''}
+            onChange={(content) => updateBlock(block.id, { content })}
+            placeholder="Write something..."
+            className="w-full"
           />
         ) : (
-          <p
-            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em] whitespace-pre-wrap"
+          <div
+            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em] prose prose-sm max-w-none"
             onClick={() => setEditingBlockId(block.id)}
-          >
-            {block.content || 'Click to start writing...'}
-          </p>
+            dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
+          />
         );
 
       case 'checklist':
@@ -252,18 +251,28 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     updateBlock(block.id, { items: newItems });
                   }}
                 />
-                <Input
+                <Textarea
                   value={item.text}
                   onChange={(e) => {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, text: e.target.value };
                     updateBlock(block.id, { items: newItems });
+                    
+                    // Auto-grow textarea
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
                   }}
                   onKeyDown={(e) => handleChecklistKeyDown(e, block.id, index, item.text)}
                   placeholder="List item... (press Enter for new item)"
-                  className={`flex-1 border-none shadow-none focus-visible:ring-1 ${
+                  className={`flex-1 border-none shadow-none focus-visible:ring-1 resize-none overflow-hidden ${
                     item.checked && checklistStrikethrough ? 'line-through text-muted-foreground' : ''
                   }`}
+                  rows={1}
+                  style={{ minHeight: '40px' }}
+                  onInput={(e) => {
+                    e.currentTarget.style.height = 'auto';
+                    e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                  }}
                   data-item-id={item.id}
                 />
               </div>

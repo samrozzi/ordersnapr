@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, MoreHorizontal, Send, Check, X } from "lucide-react";
+import { Eye, Edit, MoreHorizontal, Send, Check, X, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInvoices } from "@/hooks/use-invoices";
+import { useCloneInvoice } from "@/hooks/use-invoice-settings";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -22,6 +23,7 @@ interface InvoiceTableProps {
 
 export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTableProps) {
   const { markAsSent, markAsPaid, deleteInvoice } = useInvoices();
+  const { cloneInvoice, isCloning } = useCloneInvoice();
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -61,6 +63,10 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
     if (confirm(`Are you sure you want to delete invoice ${invoice.number}?`)) {
       await deleteInvoice(invoice.id);
     }
+  };
+
+  const handleClone = async (invoice: any) => {
+    await cloneInvoice(invoice.id);
   };
 
   if (isLoading) {
@@ -156,6 +162,10 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleClone(invoice)} disabled={isCloning}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Clone Invoice
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDelete(invoice)}
                       className="text-destructive"

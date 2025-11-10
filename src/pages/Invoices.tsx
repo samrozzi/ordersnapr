@@ -13,6 +13,8 @@ import { InvoiceTable } from "@/components/InvoiceTable";
 import { InvoiceDetails } from "@/components/InvoiceDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InvoiceTemplateManager } from "@/components/InvoiceTemplateManager";
+import { InvoiceSettingsDialog } from "@/components/InvoiceSettingsDialog";
 
 const Invoices = () => {
   const navigate = useNavigate();
@@ -83,26 +85,29 @@ const Invoices = () => {
             <p className="text-muted-foreground">Manage your invoices and track payments</p>
           </div>
 
-          <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <SheetTrigger asChild>
-              <Button onClick={() => setSelectedInvoice(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Invoice
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>
-                  {selectedInvoice ? "Edit Invoice" : "Create Invoice"}
-                </SheetTitle>
-              </SheetHeader>
-              <InvoiceForm
-                invoice={selectedInvoice}
-                onSuccess={handleFormClose}
-                onCancel={handleFormClose}
-              />
-            </SheetContent>
-          </Sheet>
+          <div className="flex gap-2">
+            <InvoiceSettingsDialog />
+            <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <SheetTrigger asChild>
+                <Button onClick={() => setSelectedInvoice(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Invoice
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>
+                    {selectedInvoice ? "Edit Invoice" : "Create Invoice"}
+                  </SheetTitle>
+                </SheetHeader>
+                <InvoiceForm
+                  invoice={selectedInvoice}
+                  onSuccess={handleFormClose}
+                  onCancel={handleFormClose}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -168,6 +173,7 @@ const Invoices = () => {
             <TabsTrigger value="sent">Sent ({sentInvoices.length})</TabsTrigger>
             <TabsTrigger value="paid">Paid ({paidInvoices.length})</TabsTrigger>
             <TabsTrigger value="overdue">Overdue ({overdueInvoices.length})</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
@@ -213,6 +219,10 @@ const Invoices = () => {
               onEdit={handleEdit}
               onView={handleView}
             />
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-4">
+            <InvoiceTemplateManager />
           </TabsContent>
         </Tabs>
 

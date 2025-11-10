@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
-import ordersnaprLogo from "@/assets/ordersnapr-stacked.png";
-import ordersnaprLogoDark from "@/assets/ordersnapr-stacked-dark.png";
+import ordersnaprLogo from "@/assets/ordersnapr-logo-new.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,8 +108,7 @@ const Auth = () => {
     <div className="auth-page min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <img src={ordersnaprLogo} alt="ordersnapr" className="w-64 mx-auto mb-2 block dark:hidden" />
-          <img src={ordersnaprLogoDark} alt="ordersnapr" className="w-64 mx-auto mb-2 hidden dark:block" />
+          <img src={ordersnaprLogo} alt="ordersnapr" className="w-48 mx-auto mb-2" />
           <p className="text-muted-foreground">Sign in to manage orders</p>
         </div>
         <div className="bg-card p-8 rounded-lg shadow-lg border">

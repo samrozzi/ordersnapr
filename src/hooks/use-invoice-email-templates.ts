@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { toast } from "sonner";
 
 export interface InvoiceEmailTemplate {
@@ -21,26 +22,27 @@ export type InvoiceEmailTemplateCreate = Omit<InvoiceEmailTemplate, "id" | "org_
 export type InvoiceEmailTemplateUpdate = Partial<InvoiceEmailTemplateCreate>;
 
 export function useInvoiceEmailTemplates() {
-  const { user, organization } = useAuth();
+  const { user } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
 
   // Fetch all email templates for the organization
   const { data: templates = [], isLoading } = useQuery({
-    queryKey: ["invoice-email-templates", organization?.id],
+    queryKey: ["invoice-email-templates", activeOrgId],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrgId) return [];
 
       const { data, error } = await supabase
         .from("invoice_email_templates")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrgId)
         .order("is_default", { ascending: false })
         .order("name");
 
       if (error) throw error;
       return data as InvoiceEmailTemplate[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrgId,
   });
 
   // Get default template
@@ -49,7 +51,7 @@ export function useInvoiceEmailTemplates() {
   // Create new template
   const createTemplate = useMutation({
     mutationFn: async (templateData: InvoiceEmailTemplateCreate) => {
-      if (!organization?.id || !user?.id) {
+      if (!activeOrgId || !user?.id) {
         throw new Error("Organization or user not found");
       }
 
@@ -58,7 +60,7 @@ export function useInvoiceEmailTemplates() {
         .insert([
           {
             ...templateData,
-            org_id: organization.id,
+            org_id: activeOrgId,
             created_by: user.id,
           },
         ])

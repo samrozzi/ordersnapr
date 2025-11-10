@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -345,12 +345,30 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       case 'table':
         return (
           <div className="overflow-x-auto">
-            <table className="border-collapse border w-full">
+            <table 
+              className="border-collapse w-full"
+              style={{
+                backgroundColor: block.tableStyles?.backgroundColor,
+                borderStyle: block.tableStyles?.borderStyle || 'solid',
+                borderWidth: block.tableStyles?.borderStyle === 'none' ? 0 : '1px',
+                borderColor: block.tableStyles?.borderColor || '#e5e7eb',
+                backgroundImage: block.tableStyles?.backgroundImage ? `url(${block.tableStyles.backgroundImage})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
               <tbody>
                 {block.rows?.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {row.map((cell: any, cellIndex: number) => (
-                      <td key={cellIndex} className="border p-2">
+                      <td 
+                        key={cellIndex} 
+                        className="border p-2"
+                        style={{
+                          borderStyle: block.tableStyles?.borderStyle || 'solid',
+                          borderColor: block.tableStyles?.borderColor || '#e5e7eb',
+                        }}
+                      >
                         <Input
                           value={cell.content || ''}
                           onChange={(e) => {
@@ -358,7 +376,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                             newRows[rowIndex][cellIndex] = { content: e.target.value };
                             updateBlock(block.id, { rows: newRows });
                           }}
-                          className="border-none shadow-none focus-visible:ring-1"
+                          className="border-none shadow-none focus-visible:ring-1 bg-transparent"
                         />
                       </td>
                     ))}
@@ -366,6 +384,42 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                 ))}
               </tbody>
             </table>
+          </div>
+        );
+
+      case 'date':
+        return (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Date</p>
+            <p className="text-lg">{block.date ? new Date(block.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No date set'}</p>
+          </div>
+        );
+
+      case 'time':
+        return (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Time</p>
+            <p className="text-lg">{block.time || 'No time set'}</p>
+          </div>
+        );
+
+      case 'imageUpload':
+        return (
+          <div className="space-y-2">
+            {block.url && (
+              <div className="border rounded-lg overflow-hidden">
+                <img src={block.url} alt={block.caption || 'Uploaded image'} className="w-full" />
+              </div>
+            )}
+            {block.caption && (
+              <p className="text-sm text-muted-foreground text-center">{block.caption}</p>
+            )}
+            {!block.url && (
+              <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No image uploaded</p>
+              </div>
+            )}
           </div>
         );
 

@@ -8,13 +8,21 @@ import { toast } from "sonner";
 
 export interface NoteBlock {
   id: string;
-  type: 'paragraph' | 'heading' | 'checklist' | 'table' | 'image' | 'divider';
+  type: 'paragraph' | 'heading' | 'checklist' | 'table' | 'image' | 'divider' | 'date' | 'time' | 'imageUpload';
   content?: string;
   level?: number; // for headings
   items?: Array<{ id: string; checked: boolean; text: string }>; // for checklists
   rows?: any[]; // for tables
   url?: string; // for images
   caption?: string; // for images
+  date?: string; // for date blocks
+  time?: string; // for time blocks
+  tableStyles?: {
+    backgroundColor?: string;
+    borderStyle?: 'solid' | 'dashed' | 'dotted' | 'none';
+    borderColor?: string;
+    backgroundImage?: string;
+  }; // for table styling
 }
 
 export interface NoteContent {

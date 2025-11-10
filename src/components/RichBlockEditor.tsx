@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,10 @@ import {
   Minus,
   GripVertical,
   Trash2,
+  Calendar,
+  Clock,
+  Upload,
+  Palette,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +42,7 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
 
   const addBlock = (type: NoteBlock['type'], afterId?: string) => {
+    const currentDate = new Date();
     const newBlock: NoteBlock = {
       id: `block-${Date.now()}`,
       type,
@@ -44,6 +50,10 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
       level: type === 'heading' ? 1 : undefined,
       items: type === 'checklist' ? [{ id: `item-${Date.now()}`, checked: false, text: '' }] : undefined,
       rows: type === 'table' ? [[{ content: '' }, { content: '' }]] : undefined,
+      date: type === 'date' ? currentDate.toISOString().split('T')[0] : undefined,
+      time: type === 'time' ? currentDate.toTimeString().split(' ')[0].slice(0, 5) : undefined,
+      url: type === 'imageUpload' ? '' : undefined,
+      tableStyles: type === 'table' ? { backgroundColor: '', borderStyle: 'solid', borderColor: '#e5e7eb' } : undefined,
     };
 
     if (afterId) {
@@ -180,13 +190,63 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
       case 'table':
         return (
           <div className="space-y-2">
+            <div className="flex gap-2 mb-2 flex-wrap">
+              <Input
+                type="color"
+                value={block.tableStyles?.backgroundColor || '#ffffff'}
+                onChange={(e) => updateBlock(block.id, { 
+                  tableStyles: { ...block.tableStyles, backgroundColor: e.target.value }
+                })}
+                className="w-20 h-8"
+                title="Background Color"
+              />
+              <select
+                value={block.tableStyles?.borderStyle || 'solid'}
+                onChange={(e) => updateBlock(block.id, { 
+                  tableStyles: { ...block.tableStyles, borderStyle: e.target.value as any }
+                })}
+                className="px-2 py-1 border rounded text-sm"
+              >
+                <option value="solid">Solid Border</option>
+                <option value="dashed">Dashed Border</option>
+                <option value="dotted">Dotted Border</option>
+                <option value="none">No Border</option>
+              </select>
+              <Input
+                type="color"
+                value={block.tableStyles?.borderColor || '#e5e7eb'}
+                onChange={(e) => updateBlock(block.id, { 
+                  tableStyles: { ...block.tableStyles, borderColor: e.target.value }
+                })}
+                className="w-20 h-8"
+                title="Border Color"
+              />
+            </div>
             <div className="overflow-x-auto">
-              <table className="border-collapse border w-full">
+              <table 
+                className="border-collapse w-full"
+                style={{
+                  backgroundColor: block.tableStyles?.backgroundColor,
+                  borderStyle: block.tableStyles?.borderStyle,
+                  borderWidth: block.tableStyles?.borderStyle === 'none' ? 0 : '1px',
+                  borderColor: block.tableStyles?.borderColor,
+                  backgroundImage: block.tableStyles?.backgroundImage ? `url(${block.tableStyles.backgroundImage})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
                 <tbody>
                   {block.rows?.map((row, rowIndex) => (
                     <tr key={rowIndex}>
                       {row.map((cell: any, cellIndex: number) => (
-                        <td key={cellIndex} className="border p-2">
+                        <td 
+                          key={cellIndex} 
+                          className="border p-2 relative"
+                          style={{
+                            borderStyle: block.tableStyles?.borderStyle,
+                            borderColor: block.tableStyles?.borderColor,
+                          }}
+                        >
                           <Input
                             value={cell.content || ''}
                             onChange={(e) => {
@@ -195,16 +255,55 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                               updateBlock(block.id, { rows: newRows });
                             }}
                             placeholder="Cell..."
-                            className="border-none"
+                            className="border-none bg-transparent"
                           />
                         </td>
                       ))}
+                      <td className="p-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if ((block.rows || []).length > 1) {
+                              const newRows = (block.rows || []).filter((_, i) => i !== rowIndex);
+                              updateBlock(block.id, { rows: newRows });
+                            }
+                          }}
+                          className="h-6 w-6 p-0"
+                          title="Delete Row"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
+                  <tr>
+                    {block.rows?.[0]?.map((_: any, cellIndex: number) => (
+                      <td key={cellIndex} className="p-1 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if ((block.rows?.[0]?.length || 0) > 1) {
+                              const newRows = (block.rows || []).map(row => 
+                                row.filter((_: any, i: number) => i !== cellIndex)
+                              );
+                              updateBlock(block.id, { rows: newRows });
+                            }
+                          }}
+                          className="h-6 w-6 p-0"
+                          title="Delete Column"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </td>
+                    ))}
+                    <td></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -226,7 +325,75 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
               >
                 Add Column
               </Button>
+              <Input
+                type="url"
+                placeholder="Background image URL..."
+                value={block.tableStyles?.backgroundImage || ''}
+                onChange={(e) => updateBlock(block.id, { 
+                  tableStyles: { ...block.tableStyles, backgroundImage: e.target.value }
+                })}
+                className="flex-1 min-w-[200px]"
+              />
             </div>
+          </div>
+        );
+
+      case 'date':
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Date</Label>
+            <Input
+              type="date"
+              value={block.date || ''}
+              onChange={(e) => updateBlock(block.id, { date: e.target.value })}
+              className="w-full"
+            />
+          </div>
+        );
+
+      case 'time':
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Time</Label>
+            <Input
+              type="time"
+              value={block.time || ''}
+              onChange={(e) => updateBlock(block.id, { time: e.target.value })}
+              className="w-full"
+            />
+          </div>
+        );
+
+      case 'imageUpload':
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Image Upload</Label>
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // For now, create object URL. In production, upload to storage
+                    const url = URL.createObjectURL(file);
+                    updateBlock(block.id, { url });
+                  }
+                }}
+                className="flex-1"
+              />
+            </div>
+            {block.url && (
+              <div className="border rounded-lg overflow-hidden">
+                <img src={block.url} alt="Uploaded" className="w-full" />
+              </div>
+            )}
+            <Input
+              value={block.caption || ''}
+              onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
+              placeholder="Caption (optional)..."
+              className="text-sm"
+            />
           </div>
         );
 
@@ -335,6 +502,18 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
                   <ImageIcon className="h-4 w-4 mr-2" />
                   Image
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => addBlock('imageUpload', block.id)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Image Upload
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => addBlock('date', block.id)}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Date
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => addBlock('time', block.id)}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Time
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => addBlock('divider', block.id)}>
                   <Minus className="h-4 w-4 mr-2" />
                   Divider
@@ -373,6 +552,18 @@ export function RichBlockEditor({ blocks, onChange }: RichBlockEditorProps) {
           <DropdownMenuItem onClick={() => addBlock('image')}>
             <ImageIcon className="h-4 w-4 mr-2" />
             Image
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock('imageUpload')}>
+            <Upload className="h-4 w-4 mr-2" />
+            Image Upload
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock('date')}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Date
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => addBlock('time')}>
+            <Clock className="h-4 w-4 mr-2" />
+            Time
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => addBlock('divider')}>
             <Minus className="h-4 w-4 mr-2" />

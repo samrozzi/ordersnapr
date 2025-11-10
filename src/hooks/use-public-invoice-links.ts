@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { toast } from "sonner";
 
 export interface InvoicePublicLink {
@@ -19,19 +19,19 @@ export interface InvoicePublicLink {
 }
 
 export function useInvoicePublicLinks(invoiceId?: string) {
-  const { organization } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
 
   // Fetch links for an invoice or all org links
   const { data: links = [], isLoading } = useQuery({
-    queryKey: ["invoice-public-links", organization?.id, invoiceId],
+    queryKey: ["invoice-public-links", activeOrgId, invoiceId],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrgId) return [];
 
-      let query = supabase
+      let query = (supabase as any)
         .from("invoice_public_links")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrgId)
         .order("created_at", { ascending: false });
 
       if (invoiceId) {
@@ -43,7 +43,7 @@ export function useInvoicePublicLinks(invoiceId?: string) {
       if (error) throw error;
       return data as InvoicePublicLink[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrgId,
   });
 
   // Generate shareable link
@@ -57,14 +57,14 @@ export function useInvoicePublicLinks(invoiceId?: string) {
       expiresInDays?: number;
       maxViews?: number;
     }) => {
-      const { data, error } = await supabase.rpc("generate_invoice_public_link", {
+      const { data, error } = await (supabase as any).rpc("generate_invoice_public_link", {
         invoice_id_param: invoiceId,
         expires_in_days: expiresInDays || null,
         max_views_param: maxViews || null,
       });
 
       if (error) throw error;
-      return data as string; // Returns token
+      return (data as string) || ""; // Returns token
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoice-public-links"] });
@@ -78,7 +78,7 @@ export function useInvoicePublicLinks(invoiceId?: string) {
   // Deactivate link
   const deactivateLink = useMutation({
     mutationFn: async (linkId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("invoice_public_links")
         .update({ is_active: false })
         .eq("id", linkId);
@@ -115,17 +115,18 @@ export function usePublicInvoice(token: string) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["public-invoice", token],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_invoice_by_token", {
+      const { data, error } = await (supabase as any).rpc("get_invoice_by_token", {
         token_param: token,
       });
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
+      const rows = data as any[];
+      if (!rows || rows.length === 0) {
         throw new Error("Invoice not found or link expired");
       }
 
-      return data[0] as {
+      return rows[0] as {
         invoice_data: any;
         link_data: InvoicePublicLink;
         can_pay: boolean;

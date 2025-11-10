@@ -25,14 +25,15 @@ export function useInvoiceEmailTemplates() {
   const { user } = useAuth();
   const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
+  const supabaseAny = supabase as any;
 
   // Fetch all email templates for the organization
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templates = [], isLoading } = useQuery<InvoiceEmailTemplate[]>({
     queryKey: ["invoice-email-templates", activeOrgId],
     queryFn: async () => {
-      if (!activeOrgId) return [];
+      if (!activeOrgId) return [] as InvoiceEmailTemplate[];
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("invoice_email_templates")
         .select("*")
         .eq("org_id", activeOrgId)
@@ -40,7 +41,7 @@ export function useInvoiceEmailTemplates() {
         .order("name");
 
       if (error) throw error;
-      return data as InvoiceEmailTemplate[];
+      return (data || []) as InvoiceEmailTemplate[];
     },
     enabled: !!activeOrgId,
   });
@@ -55,7 +56,7 @@ export function useInvoiceEmailTemplates() {
         throw new Error("Organization or user not found");
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("invoice_email_templates")
         .insert([
           {
@@ -82,7 +83,7 @@ export function useInvoiceEmailTemplates() {
   // Update template
   const updateTemplate = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: InvoiceEmailTemplateUpdate }) => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("invoice_email_templates")
         .update(updates)
         .eq("id", id)
@@ -104,7 +105,7 @@ export function useInvoiceEmailTemplates() {
   // Delete template
   const deleteTemplate = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await supabaseAny
         .from("invoice_email_templates")
         .delete()
         .eq("id", id);
@@ -123,7 +124,7 @@ export function useInvoiceEmailTemplates() {
   // Set default template
   const setDefaultTemplate = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from("invoice_email_templates")
         .update({ is_default: true })
         .eq("id", id)
@@ -145,13 +146,13 @@ export function useInvoiceEmailTemplates() {
   // Render template with invoice data
   const renderTemplate = useMutation({
     mutationFn: async ({ templateText, invoiceId }: { templateText: string; invoiceId: string }) => {
-      const { data, error } = await supabase.rpc("render_invoice_email_template", {
+      const { data, error } = await supabaseAny.rpc("render_invoice_email_template", {
         template_text: templateText,
         invoice_id_param: invoiceId,
       });
 
       if (error) throw error;
-      return data as string;
+      return (data as string) ?? "";
     },
   });
 

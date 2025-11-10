@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./use-auth";
+import { useActiveOrg } from "./use-active-org";
 import { toast } from "sonner";
 
 export interface InvoiceSettings {
@@ -29,26 +29,26 @@ export interface InvoiceSettings {
 }
 
 export function useInvoiceSettings() {
-  const { organization } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
 
   // Fetch invoice settings for the organization
   const { data: settings, isLoading } = useQuery({
-    queryKey: ["invoice-settings", organization?.id],
+    queryKey: ["invoice-settings", activeOrgId],
     queryFn: async () => {
-      if (!organization?.id) return null;
+      if (!activeOrgId) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("invoice_settings")
         .select("*")
-        .eq("org_id", organization.id)
-        .single();
+        .eq("org_id", activeOrgId)
+        .maybeSingle();
 
       // If no settings exist, create default settings
-      if (error && error.code === 'PGRST116') {
-        const { data: newSettings, error: createError } = await supabase
+      if (!data) {
+        const { data: newSettings, error: createError } = await (supabase as any)
           .from("invoice_settings")
-          .insert([{ org_id: organization.id }])
+          .insert([{ org_id: activeOrgId }])
           .select()
           .single();
 
@@ -59,23 +59,23 @@ export function useInvoiceSettings() {
       if (error) throw error;
       return data as InvoiceSettings;
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrgId,
   });
 
   // Update settings
   const updateSettings = useMutation({
     mutationFn: async (updates: Partial<InvoiceSettings>) => {
-      if (!organization?.id) throw new Error("Organization required");
+      if (!activeOrgId) throw new Error("Organization required");
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("invoice_settings")
         .update(updates)
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrgId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as InvoiceSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoice-settings"] });
@@ -89,14 +89,14 @@ export function useInvoiceSettings() {
 
   // Helper: Get next invoice number
   const getNextInvoiceNumber = async (): Promise<string> => {
-    if (!organization?.id) throw new Error("Organization required");
+    if (!activeOrgId) throw new Error("Organization required");
 
-    const { data, error } = await supabase.rpc("get_next_invoice_number", {
-      org_id_param: organization.id,
+    const { data, error } = await (supabase as any).rpc("get_next_invoice_number", {
+      org_id_param: activeOrgId,
     });
 
     if (error) throw error;
-    return data as string;
+    return (data as string) ?? "";
   };
 
   return {
@@ -110,11 +110,12 @@ export function useInvoiceSettings() {
 // Hook for clone invoice functionality
 export function useCloneInvoice() {
   const queryClient = useQueryClient();
-  const { organization } = useAuth();
+  const { activeOrgId } = useActiveOrg();
+  const queryClientLocal = useQueryClient();
 
   const cloneInvoice = useMutation({
     mutationFn: async (invoiceId: string) => {
-      const { data, error } = await supabase.rpc("clone_invoice", {
+      const { data, error } = await (supabase as any).rpc("clone_invoice", {
         invoice_id_param: invoiceId,
       });
 
@@ -122,7 +123,7 @@ export function useCloneInvoice() {
       return data as string; // Returns new invoice ID
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices", organization?.id] });
+      queryClientLocal.invalidateQueries({ queryKey: ["invoices", activeOrgId] });
       toast.success("Invoice cloned successfully");
     },
     onError: (error: any) => {

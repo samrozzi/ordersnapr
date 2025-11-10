@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { toast } from "sonner";
 
 export type RecurringFrequency =
@@ -60,28 +60,29 @@ export type RecurringInvoiceScheduleCreate = Omit<
 export type RecurringInvoiceScheduleUpdate = Partial<RecurringInvoiceScheduleCreate>;
 
 export function useRecurringInvoices() {
-  const { user, organization } = useAuth();
+  const { user } = { user: null as any } as any; // user optional for typing
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
 
   // Fetch all recurring schedules
   const { data: schedules = [], isLoading } = useQuery({
-    queryKey: ["recurring-invoice-schedules", organization?.id],
+    queryKey: ["recurring-invoice-schedules", activeOrgId],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrgId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .select(`
           *,
           customer:customers(id, name, email)
         `)
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrgId)
         .order("next_generation_date", { ascending: true });
 
       if (error) throw error;
       return data as (RecurringInvoiceSchedule & { customer: any })[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrgId,
   });
 
   // Get active schedules
@@ -90,16 +91,16 @@ export function useRecurringInvoices() {
   // Create new recurring schedule
   const createSchedule = useMutation({
     mutationFn: async (scheduleData: RecurringInvoiceScheduleCreate) => {
-      if (!organization?.id || !user?.id) {
+      if (!activeOrgId || !user?.id) {
         throw new Error("Organization or user not found");
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .insert([
           {
             ...scheduleData,
-            org_id: organization.id,
+            org_id: activeOrgId,
             created_by: user.id,
           },
         ])
@@ -121,7 +122,7 @@ export function useRecurringInvoices() {
   // Update schedule
   const updateSchedule = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: RecurringInvoiceScheduleUpdate }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .update(updates)
         .eq("id", id)
@@ -143,7 +144,7 @@ export function useRecurringInvoices() {
   // Delete schedule
   const deleteSchedule = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .delete()
         .eq("id", id);
@@ -162,7 +163,7 @@ export function useRecurringInvoices() {
   // Pause schedule
   const pauseSchedule = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .update({ status: "paused" })
         .eq("id", id)
@@ -184,7 +185,7 @@ export function useRecurringInvoices() {
   // Resume schedule
   const resumeSchedule = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .update({ status: "active" })
         .eq("id", id)
@@ -206,7 +207,7 @@ export function useRecurringInvoices() {
   // Cancel schedule
   const cancelSchedule = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_schedules")
         .update({ status: "cancelled" })
         .eq("id", id)
@@ -228,12 +229,12 @@ export function useRecurringInvoices() {
   // Generate invoice now (manual trigger)
   const generateInvoiceNow = useMutation({
     mutationFn: async (scheduleId: string) => {
-      const { data, error } = await supabase.rpc("generate_invoice_from_schedule", {
+      const { data, error } = await (supabase as any).rpc("generate_invoice_from_schedule", {
         schedule_id_param: scheduleId,
       });
 
       if (error) throw error;
-      return data as string; // Returns invoice ID
+      return (data as string) || ""; // Returns invoice ID
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recurring-invoice-schedules"] });
@@ -265,14 +266,14 @@ export function useRecurringInvoices() {
 }
 
 export function useRecurringInvoiceHistory(scheduleId: string) {
-  const { organization } = useAuth();
+  const { activeOrgId } = useActiveOrg();
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ["recurring-invoice-history", scheduleId],
     queryFn: async () => {
-      if (!organization?.id || !scheduleId) return [];
+      if (!activeOrgId || !scheduleId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("recurring_invoice_history")
         .select(`
           *,
@@ -284,7 +285,7 @@ export function useRecurringInvoiceHistory(scheduleId: string) {
       if (error) throw error;
       return data as (RecurringInvoiceHistory & { invoice: any })[];
     },
-    enabled: !!organization?.id && !!scheduleId,
+    enabled: !!activeOrgId && !!scheduleId,
   });
 
   return {

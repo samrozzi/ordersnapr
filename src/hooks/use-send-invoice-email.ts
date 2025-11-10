@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { toast } from "sonner";
 import { generateInvoicePDF } from "@/lib/invoice-pdf-generator";
 

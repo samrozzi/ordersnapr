@@ -1,16 +1,21 @@
 import { useEditorFocus } from "@/contexts/EditorFocusContext";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Bold, 
   Italic, 
   Underline, 
-  Heading1, 
-  Heading2,
-  Heading3,
   List, 
   ListOrdered,
-  ImageIcon
+  ImageIcon,
+  Type
 } from "lucide-react";
 import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
@@ -19,12 +24,24 @@ import { toast } from "sonner";
 import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 export const SharedFormattingToolbar = () => {
-  const { activeEditor } = useEditorFocus();
+  const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const keyboardHeight = useKeyboardHeight();
 
   if (!activeEditor) return null;
+
+  const handleToolbarAction = (action: () => void) => {
+    setToolbarLocked(true);
+    action();
+    setTimeout(() => setToolbarLocked(false), 100);
+  };
+
+  const handleFontSizeChange = (size: string) => {
+    handleToolbarAction(() => {
+      activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+    });
+  };
 
   const handleImageUpload = async (file: File) => {
     if (!user) {
@@ -57,8 +74,11 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleBold().run()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleBold().run())}
           className={activeEditor.isActive("bold") ? "bg-accent" : ""}
         >
           <Bold className="h-4 w-4" />
@@ -67,8 +87,11 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleItalic().run()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleItalic().run())}
           className={activeEditor.isActive("italic") ? "bg-accent" : ""}
         >
           <Italic className="h-4 w-4" />
@@ -77,8 +100,11 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleUnderline().run()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleUnderline().run())}
           className={activeEditor.isActive("underline") ? "bg-accent" : ""}
         >
           <Underline className="h-4 w-4" />
@@ -86,44 +112,41 @@ export const SharedFormattingToolbar = () => {
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={activeEditor.isActive("heading", { level: 1 }) ? "bg-accent" : ""}
+        <Select
+          value="1rem"
+          onValueChange={handleFontSizeChange}
         >
-          <Heading1 className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={activeEditor.isActive("heading", { level: 2 }) ? "bg-accent" : ""}
-        >
-          <Heading2 className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={activeEditor.isActive("heading", { level: 3 }) ? "bg-accent" : ""}
-          title="Heading 3"
-        >
-          <span className="text-xs font-bold">H3</span>
-        </Button>
+          <SelectTrigger 
+            className="w-[90px] h-9"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setToolbarLocked(true);
+            }}
+            onBlur={() => setTimeout(() => setToolbarLocked(false), 100)}
+          >
+            <Type className="h-4 w-4 mr-1" />
+            <SelectValue placeholder="Size" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0.75rem">Tiny</SelectItem>
+            <SelectItem value="0.875rem">Small</SelectItem>
+            <SelectItem value="1rem">Normal</SelectItem>
+            <SelectItem value="1.125rem">Large</SelectItem>
+            <SelectItem value="1.25rem">X-Large</SelectItem>
+            <SelectItem value="1.5rem">XX-Large</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleBulletList().run()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleBulletList().run())}
           className={activeEditor.isActive("bulletList") ? "bg-accent" : ""}
         >
           <List className="h-4 w-4" />
@@ -132,8 +155,11 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => activeEditor.chain().focus().toggleOrderedList().run()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => handleToolbarAction(() => activeEditor.chain().focus().toggleOrderedList().run())}
           className={activeEditor.isActive("orderedList") ? "bg-accent" : ""}
         >
           <ListOrdered className="h-4 w-4" />
@@ -144,8 +170,15 @@ export const SharedFormattingToolbar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => fileInputRef.current?.click()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setToolbarLocked(true);
+          }}
+          onClick={() => {
+            setToolbarLocked(true);
+            fileInputRef.current?.click();
+            setTimeout(() => setToolbarLocked(false), 100);
+          }}
         >
           <ImageIcon className="h-4 w-4" />
         </Button>

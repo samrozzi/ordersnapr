@@ -3,11 +3,39 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Extension } from '@tiptap/core';
 import { cn } from '@/lib/utils';
 import { uploadNoteImage } from '@/lib/note-image-upload';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { useEditorFocus } from '@/contexts/EditorFocusContext';
+
+// Custom extension for font size
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize || null,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -18,6 +46,7 @@ interface RichTextEditorProps {
   variant?: 'paragraph' | 'heading';
   onFocus?: () => void;
   onBlur?: () => void;
+  disableEnterKey?: boolean;
 }
 
 export const RichTextEditor = ({
@@ -29,9 +58,10 @@ export const RichTextEditor = ({
   variant = 'paragraph',
   onFocus,
   onBlur,
+  disableEnterKey = false,
 }: RichTextEditorProps) => {
   const { user } = useAuth();
-  const { setActiveEditor } = useEditorFocus();
+  const { setActiveEditor, toolbarLocked } = useEditorFocus();
   
   const editor = useEditor({
     extensions: [
@@ -41,6 +71,8 @@ export const RichTextEditor = ({
         },
       }),
       Underline,
+      TextStyle,
+      FontSize,
       Placeholder.configure({
         placeholder,
       }),
@@ -63,6 +95,9 @@ export const RichTextEditor = ({
       onFocus?.();
     },
     onBlur: (props) => {
+      // Don't clear if toolbar is being interacted with
+      if (toolbarLocked) return;
+      
       // Check if the blur is due to clicking within the formatting toolbar
       const relatedTarget = props.event?.relatedTarget as HTMLElement;
       if (relatedTarget && relatedTarget.closest('[data-formatting-toolbar]')) {
@@ -70,8 +105,10 @@ export const RichTextEditor = ({
       }
       
       setTimeout(() => {
-        setActiveEditor(null);
-      }, 500);
+        if (!toolbarLocked) {
+          setActiveEditor(null);
+        }
+      }, 1000);
       onBlur?.();
     },
     autofocus: autoFocus,
@@ -82,6 +119,13 @@ export const RichTextEditor = ({
           variant === 'heading' && 'text-2xl font-bold',
           'min-h-[40px] p-2'
         ),
+      },
+      handleKeyDown: (view, event) => {
+        // Prevent Enter key from creating line breaks in checklist items
+        if (disableEnterKey && event.key === 'Enter' && !event.shiftKey) {
+          return true; // Prevent default TipTap behavior
+        }
+        return false;
       },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {

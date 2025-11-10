@@ -4,15 +4,18 @@ import { Editor } from "@tiptap/react";
 interface EditorFocusContextType {
   activeEditor: Editor | null;
   setActiveEditor: (editor: Editor | null) => void;
+  toolbarLocked: boolean;
+  setToolbarLocked: (locked: boolean) => void;
 }
 
 const EditorFocusContext = createContext<EditorFocusContextType | undefined>(undefined);
 
 export const EditorFocusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
+  const [toolbarLocked, setToolbarLocked] = useState<boolean>(false);
 
   return (
-    <EditorFocusContext.Provider value={{ activeEditor, setActiveEditor }}>
+    <EditorFocusContext.Provider value={{ activeEditor, setActiveEditor, toolbarLocked, setToolbarLocked }}>
       {children}
     </EditorFocusContext.Provider>
   );

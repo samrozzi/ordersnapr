@@ -329,6 +329,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                       placeholder="List item..."
                       className="w-full"
                       variant="paragraph"
+                      disableEnterKey={true}
                     />
                   </div>
                 </div>

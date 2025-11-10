@@ -5,6 +5,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Extension } from '@tiptap/core';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { cn } from '@/lib/utils';
 import { uploadNoteImage } from '@/lib/note-image-upload';
 import { useAuth } from '@/hooks/use-auth';
@@ -81,6 +83,13 @@ export const RichTextEditor = ({
       Underline,
       TextStyle,
       FontSize,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start gap-2',
+        },
+      }),
       Placeholder.configure({
         placeholder,
       }),

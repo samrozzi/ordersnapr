@@ -196,15 +196,14 @@ export const SharedFormattingToolbar = ({
         <Button
           variant="ghost"
           size="sm"
+          disabled={!activeEditor}
           onMouseDown={(e) => {
             e.preventDefault();
             setToolbarLocked(true);
           }}
-          onClick={() => {
-            onInsertChecklist?.();
-            setTimeout(() => setToolbarLocked(false), 100);
-          }}
-          title="Insert Checklist"
+          onClick={() => activeEditor && handleToolbarAction(() => activeEditor.chain().focus().toggleTaskList().run())}
+          className={activeEditor?.isActive("taskList") ? "bg-accent" : ""}
+          title="Task List"
         >
           <CheckSquare className="h-4 w-4" />
         </Button>

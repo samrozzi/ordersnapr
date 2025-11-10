@@ -170,7 +170,7 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b gap-2">
+      <div className="sticky top-0 z-30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 gap-2">
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           <Button variant="ghost" size="sm" onClick={onBackToView} className="mr-1">
             <X className="h-4 w-4" />
@@ -316,6 +316,20 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
         <div className="mt-8 pt-4 border-t text-sm text-muted-foreground">
           <p>Created: {new Date(note.created_at).toLocaleString()}</p>
           <p>Last updated: {new Date(note.updated_at).toLocaleString()}</p>
+        </div>
+
+        {/* Sticky Save Bar */}
+        <div className="sticky bottom-0 z-30 mt-6 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 sm:p-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onBackToView}>
+              <X className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Cancel</span>
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Save className="h-4 w-4 sm:mr-2" />
+              {isSaving ? 'Saving…' : 'Save & Close'}
+            </Button>
+          </div>
         </div>
       </div>
 

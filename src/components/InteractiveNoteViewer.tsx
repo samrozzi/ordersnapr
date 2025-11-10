@@ -71,14 +71,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         return true;
       }
       
-      // If no valid items but the checklist has at least one item, keep one empty placeholder
-      if (block.items.length > 0) {
-        block.items = [{ id: `item-${Date.now()}`, checked: false, text: '' }];
-        return true;
-      }
-      
-      // If checklist was created but has no items at all, remove it
-      return false;
+      // Keep checklist with at least one empty item - don't remove empty checklists
+      block.items = [{ id: `item-${Date.now()}`, checked: false, text: '' }];
+      return true;
     }).map(block => {
       // Return a new object to avoid mutations
       if (block.type === 'checklist' && block.items) {

@@ -106,7 +106,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="auth-page min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <img src={ordersnaprLogo} alt="ordersnapr" className="w-64 mx-auto mb-2 block dark:hidden" />

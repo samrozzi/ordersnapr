@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InvoiceTemplateManager } from "@/components/InvoiceTemplateManager";
 import { InvoiceSettingsDialog } from "@/components/InvoiceSettingsDialog";
 import { InvoiceEmailTemplateManager } from "@/components/InvoiceEmailTemplateManager";
+import { RecurringInvoiceManager } from "@/components/RecurringInvoiceManager";
 
 const Invoices = () => {
   const navigate = useNavigate();
@@ -174,6 +175,7 @@ const Invoices = () => {
             <TabsTrigger value="sent">Sent ({sentInvoices.length})</TabsTrigger>
             <TabsTrigger value="paid">Paid ({paidInvoices.length})</TabsTrigger>
             <TabsTrigger value="overdue">Overdue ({overdueInvoices.length})</TabsTrigger>
+            <TabsTrigger value="recurring">Recurring</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           </TabsList>
@@ -221,6 +223,10 @@ const Invoices = () => {
               onEdit={handleEdit}
               onView={handleView}
             />
+          </TabsContent>
+
+          <TabsContent value="recurring" className="mt-4">
+            <RecurringInvoiceManager />
           </TabsContent>
 
           <TabsContent value="templates" className="mt-4">

@@ -48,6 +48,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [checklistStrikethrough, setChecklistStrikethrough] = useState(preferences?.checklist_strikethrough ?? true);
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
+  const [isPinned, setIsPinned] = useState(note.is_pinned);
+  const [isFavorite, setIsFavorite] = useState(note.is_favorite);
 
   // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
@@ -129,10 +131,12 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   }, [title, blocks]);
 
   const handleToggleFavorite = async () => {
+    setIsFavorite(!isFavorite);
     await toggleFavorite(note.id);
   };
 
   const handleTogglePin = async () => {
+    setIsPinned(!isPinned);
     await togglePin(note.id);
   };
 
@@ -243,7 +247,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       case 'checklist':
         return (
-          <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
+          <div className="space-y-1 transition-all duration-500" data-block-id={block.id}>
             {block.items?.map((item, index) => (
               <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
                 <Checkbox
@@ -292,29 +296,20 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                       }
                     }
                     
-                    // Handle double Enter to create new checkbox
+                    // Handle Enter to create new checkbox (like iOS Notes)
                     if (e.key === 'Enter') {
-                      // Check if the content ends with a paragraph tag (indicating a previous Enter)
-                      const hasEmptyParagraph = item.text.endsWith('<p></p>') || item.text.endsWith('<p><br></p>');
-                      if (hasEmptyParagraph) {
-                        e.preventDefault();
-                        
-                        // Remove the empty paragraph from current item
-                        const cleanedText = item.text.replace(/<p><\/p>$/, '').replace(/<p><br><\/p>$/, '');
-                        const newItems = [...(block.items || [])];
-                        newItems[index] = { ...item, text: cleanedText };
-                        
-                        // Create new checkbox
-                        const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
-                        newItems.splice(index + 1, 0, newItem);
-                        updateBlock(block.id, { items: newItems });
-                        
-                        // Focus the new item
-                        setTimeout(() => {
-                          const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
-                          if (newInput) newInput.focus();
-                        }, 0);
-                      }
+                      e.preventDefault();
+                      
+                      const newItems = [...(block.items || [])];
+                      const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
+                      newItems.splice(index + 1, 0, newItem);
+                      updateBlock(block.id, { items: newItems });
+                      
+                      // Focus the new item
+                      setTimeout(() => {
+                        const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
+                        if (newInput) newInput.focus();
+                      }, 0);
                     }
                   }}
                 >
@@ -410,10 +405,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             <X className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
-            <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+            <Star className={`h-4 w-4 ${isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           </Button>
           <Button variant="ghost" size="sm" onClick={handleTogglePin}>
-            <Pin className={`h-4 w-4 ${note.is_pinned ? 'fill-primary text-primary' : ''}`} />
+            <Pin className={`h-4 w-4 ${isPinned ? 'fill-primary text-primary' : ''}`} />
           </Button>
           {linkedEntityName && (
             <Badge variant="outline" className="gap-1">

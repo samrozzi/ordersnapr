@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,28 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistStrikethrough, setChecklistStrikethrough] = useState(preferences?.checklist_strikethrough ?? true);
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
 
+  // Clean up checklist items - remove empty or placeholder text
+  const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
+    return blocks.map(block => {
+      if (block.type === 'checklist' && block.items) {
+        const validItems = block.items.filter(item => 
+          item.text.trim() !== '' && 
+          item.text !== 'List item... (press Enter for new item)'
+        );
+        return { ...block, items: validItems };
+      }
+      return block;
+    });
+  };
+
+  // Clean up any invalid checklist items on load
+  useEffect(() => {
+    const cleanedBlocks = cleanChecklistItems(note.content.blocks);
+    if (JSON.stringify(cleanedBlocks) !== JSON.stringify(note.content.blocks)) {
+      setBlocks(cleanedBlocks);
+    }
+  }, []);
+
   // Load linked entity name
   useEffect(() => {
     const loadEntity = async () => {
@@ -64,7 +86,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             id: note.id,
             updates: {
               title: newTitle,
-              content: { blocks: newBlocks },
+              content: { blocks: cleanChecklistItems(newBlocks) },
             },
           });
           setLastSaved(new Date());
@@ -290,6 +312,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose} className="mr-1">
+            <X className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
             <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           </Button>

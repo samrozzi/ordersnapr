@@ -163,6 +163,9 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b gap-2">
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+          <Button variant="ghost" size="sm" onClick={onBackToView} className="mr-1">
+            <X className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
             <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           </Button>

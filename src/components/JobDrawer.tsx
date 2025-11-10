@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { useConvertWorkOrderToInvoice } from "@/hooks/use-convert-workorder-to-invoice";
 
 const formSchema = z.object({
   customer_name: z.string().min(1, "Customer name is required"),
@@ -52,6 +53,7 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
     workOrder?.checklist || []
   );
   const [newChecklistItem, setNewChecklistItem] = useState("");
+  const { convertToInvoice, isConverting } = useConvertWorkOrderToInvoice();
 
   const { data: orgUsers } = useQuery({
     queryKey: ['org-users'],
@@ -128,9 +130,20 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
 
   const handleConvertToInvoice = async () => {
     if (!workOrder) return;
-    
-    toast.info("Convert to Invoice feature coming soon!");
-    // TODO: Implement invoice creation
+
+    try {
+      await convertToInvoice({
+        workOrder,
+        options: {
+          lineItemDescription: `${workOrder.type || 'Service'}: ${workOrder.customer_name}${workOrder.address ? '\nLocation: ' + workOrder.address : ''}`,
+          lineItemRate: 0, // User will need to fill in the rate
+          dueInDays: 30,
+        },
+      });
+    } catch (error) {
+      // Error is handled by the hook
+      console.error("Conversion error:", error);
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -411,9 +424,10 @@ export function JobDrawer({ onSuccess, workOrder, config }: JobDrawerProps) {
               type="button"
               variant="outline"
               onClick={handleConvertToInvoice}
+              disabled={isConverting}
             >
               <Receipt className="h-4 w-4 mr-2" />
-              Convert to Invoice
+              {isConverting ? "Converting..." : "Convert to Invoice"}
             </Button>
           )}
         </div>

@@ -120,7 +120,7 @@ All colors MUST be HSL.
     position: fixed;
     inset: 0 0 auto 0;
     height: 900px;
-    background: url('/src/assets/login-bg-desktop.png') center top / cover no-repeat;
+    background: url('/login-bg-desktop.png') center top / cover no-repeat;
     z-index: -1;
     pointer-events: none;
     -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent 100%);
@@ -129,7 +129,7 @@ All colors MUST be HSL.
 
   @media (max-width: 768px) {
     .auth-page::before {
-      background: url('/src/assets/login-bg-mobile.png') center top / cover no-repeat;
+      background: url('/login-bg-mobile.png') center top / cover no-repeat;
       height: 720px;
     }
   }

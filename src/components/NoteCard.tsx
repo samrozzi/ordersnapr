@@ -48,7 +48,9 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
     );
 
     if (firstTextBlock && firstTextBlock.content) {
-      return firstTextBlock.content.slice(0, 150) + (firstTextBlock.content.length > 150 ? '...' : '');
+      // Strip HTML tags to get plain text
+      const plainText = firstTextBlock.content.replace(/<[^>]*>/g, '');
+      return plainText.slice(0, 150) + (plainText.length > 150 ? '...' : '');
     }
 
     return "No content";

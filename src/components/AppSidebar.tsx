@@ -348,64 +348,6 @@ export function AppSidebar() {
           </>
         )}
         <SidebarMenu>
-          {!featuresLoading && hasFeature("calendar") && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive("/calendar")}>
-                <NavLink to="/calendar" end onClick={handleNavClick}>
-                  <Calendar className="h-5 w-5" />
-                  <span>Calendar</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-
-          {/* Notes with Pinned Dropdown */}
-          <SidebarMenuItem>
-            <div className="flex flex-col">
-              <div className="flex items-center">
-                <SidebarMenuButton asChild isActive={isActive("/notes")} className="flex-1">
-                  <NavLink to="/notes" end onClick={handleNavClick}>
-                    <StickyNote className="h-5 w-5" />
-                    <span>Notes</span>
-                  </NavLink>
-                </SidebarMenuButton>
-                {pinnedNotes.length > 0 && state !== "collapsed" && (
-                  <button
-                    onClick={toggleNotesDropdown}
-                    className="px-2 py-2 hover:bg-accent rounded-md"
-                  >
-                    {notesDropdownOpen ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {/* Pinned Notes Dropdown */}
-              {pinnedNotes.length > 0 && notesDropdownOpen && state !== "collapsed" && (
-                <div className="ml-6 mt-1 space-y-1">
-                  {pinnedNotes.map((note) => (
-                    <SidebarMenuButton
-                      key={note.id}
-                      asChild
-                      size="sm"
-                      className="text-sm"
-                    >
-                      <NavLink
-                        to={`/notes?id=${note.id}`}
-                        onClick={handleNavClick}
-                      >
-                        <span className="truncate">{note.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  ))}
-                </div>
-              )}
-            </div>
-          </SidebarMenuItem>
-
           {(isAdmin || isOrgAdmin) && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive(isAdmin ? "/admin" : "/org-admin")}>

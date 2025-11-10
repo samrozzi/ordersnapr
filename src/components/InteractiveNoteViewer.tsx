@@ -268,23 +268,28 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   "w-full relative",
                   item.checked && checklistStrikethrough && 'opacity-60'
                 )}>
-                  {item.checked && checklistStrikethrough && (
-                    <svg 
-                      className="absolute inset-0 pointer-events-none" 
-                      style={{ zIndex: 1 }}
-                      viewBox="0 0 100 100" 
-                      preserveAspectRatio="none"
-                    >
-                      <path 
-                        d="M 5 50 Q 25 45, 50 48 T 95 50" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        fill="none" 
-                        opacity="0.6"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
+                {item.checked && checklistStrikethrough && (
+                  <svg 
+                    className="absolute left-0 right-0 pointer-events-none" 
+                    style={{ 
+                      top: '50%', 
+                      transform: 'translateY(-50%)',
+                      height: '1.5em',
+                      zIndex: 1 
+                    }}
+                    viewBox="0 0 100 10" 
+                    preserveAspectRatio="none"
+                  >
+                    <path 
+                      d="M 0 5 Q 25 3, 50 5.5 T 100 5" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      fill="none" 
+                      opacity="0.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
                   <RichTextEditor
                     content={item.text || ''}
                     onChange={(content) => {

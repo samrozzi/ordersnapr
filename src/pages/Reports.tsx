@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PremiumFeatureGuard } from "@/components/PremiumFeatureGuard";
 import { useFinancialAnalytics } from "@/hooks/use-financial-analytics";
-import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import {
   TrendingUp,
   DollarSign,
@@ -23,7 +23,7 @@ import { InvoiceAnalyticsDashboard } from "@/components/InvoiceAnalyticsDashboar
 import { AgingReport } from "@/components/AgingReport";
 
 const Reports = () => {
-  const { organization } = useAuth();
+  const { activeOrg } = useActiveOrg();
   const [dateRange, setDateRange] = useState<{ startDate?: string; endDate?: string }>({});
 
   const {
@@ -49,7 +49,7 @@ const Reports = () => {
     return `${value.toFixed(1)}%`;
   };
 
-  if (!organization?.id) {
+  if (!activeOrg?.id) {
     return (
       <div className="container mx-auto p-6">
         <Card>

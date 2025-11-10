@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 // ============================================================================
 // Type Definitions
@@ -114,18 +114,18 @@ export interface DateRangeFilter {
 // ============================================================================
 
 export function useFinancialAnalytics(dateRange?: DateRangeFilter) {
-  const { user, organization } = useAuth();
+  const { activeOrg } = useActiveOrg();
 
   // Payment Analytics
   const { data: paymentAnalytics = [], isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["payment-analytics", organization?.id, dateRange],
+    queryKey: ["payment-analytics", activeOrg?.id, dateRange],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      let query = supabase
+      let query = (supabase as any)
         .from("payment_analytics")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("month", { ascending: false });
 
       if (dateRange?.startDate) {
@@ -139,19 +139,19 @@ export function useFinancialAnalytics(dateRange?: DateRangeFilter) {
       if (error) throw error;
       return data as PaymentAnalytics[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Invoice Analytics
   const { data: invoiceAnalytics = [], isLoading: isLoadingInvoices } = useQuery({
-    queryKey: ["invoice-analytics", organization?.id, dateRange],
+    queryKey: ["invoice-analytics", activeOrg?.id, dateRange],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      let query = supabase
+      let query = (supabase as any)
         .from("invoice_analytics")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("month", { ascending: false });
 
       if (dateRange?.startDate) {
@@ -165,37 +165,37 @@ export function useFinancialAnalytics(dateRange?: DateRangeFilter) {
       if (error) throw error;
       return data as InvoiceAnalytics[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // AR Aging Report
   const { data: arAgingReport = [], isLoading: isLoadingAR } = useQuery({
-    queryKey: ["ar-aging-report", organization?.id],
+    queryKey: ["ar-aging-report", activeOrg?.id],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("ar_aging_report")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("total_outstanding_cents", { ascending: false });
 
       if (error) throw error;
       return data as ARAgingReport[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Revenue Trends
   const { data: revenueTrends = [], isLoading: isLoadingRevenue } = useQuery({
-    queryKey: ["revenue-trends", organization?.id, dateRange],
+    queryKey: ["revenue-trends", activeOrg?.id, dateRange],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      let query = supabase
+      let query = (supabase as any)
         .from("revenue_trends")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("date", { ascending: false });
 
       if (dateRange?.startDate) {
@@ -209,38 +209,38 @@ export function useFinancialAnalytics(dateRange?: DateRangeFilter) {
       if (error) throw error;
       return data as RevenueTrend[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Customer Lifetime Value
   const { data: customerLTV = [], isLoading: isLoadingLTV } = useQuery({
-    queryKey: ["customer-lifetime-value", organization?.id],
+    queryKey: ["customer-lifetime-value", activeOrg?.id],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("customer_lifetime_value")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("lifetime_revenue_cents", { ascending: false })
         .limit(50); // Top 50 customers
 
       if (error) throw error;
       return data as CustomerLifetimeValue[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Payment Method Analytics
   const { data: paymentMethods = [], isLoading: isLoadingMethods } = useQuery({
-    queryKey: ["payment-method-analytics", organization?.id, dateRange],
+    queryKey: ["payment-method-analytics", activeOrg?.id, dateRange],
     queryFn: async () => {
-      if (!organization?.id) return [];
+      if (!activeOrg?.id) return [];
 
-      let query = supabase
+      let query = (supabase as any)
         .from("payment_method_analytics")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .order("month", { ascending: false });
 
       if (dateRange?.startDate) {
@@ -254,25 +254,25 @@ export function useFinancialAnalytics(dateRange?: DateRangeFilter) {
       if (error) throw error;
       return data as PaymentMethodAnalytics[];
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Outstanding Invoices Summary
   const { data: outstandingSummary, isLoading: isLoadingOutstanding } = useQuery({
-    queryKey: ["outstanding-invoices-summary", organization?.id],
+    queryKey: ["outstanding-invoices-summary", activeOrg?.id],
     queryFn: async () => {
-      if (!organization?.id) return null;
+      if (!activeOrg?.id) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("outstanding_invoices_summary")
         .select("*")
-        .eq("org_id", organization.id)
+        .eq("org_id", activeOrg.id)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
       return data as OutstandingInvoicesSummary | null;
     },
-    enabled: !!organization?.id,
+    enabled: !!activeOrg?.id,
   });
 
   // Computed summary metrics

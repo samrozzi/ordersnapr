@@ -340,7 +340,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
   return (
     <EditorFocusProvider>
-      <div className="flex flex-col h-full pb-16">
+      <div className="flex flex-col h-[90vh] max-h-screen pb-16">
         {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
         <div className="flex items-center gap-2">

@@ -1,0 +1,325 @@
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Star, Pin, Settings, Check, Link as LinkIcon } from "lucide-react";
+import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+interface InteractiveNoteViewerProps {
+  note: Note;
+  onClose: () => void;
+  onCustomize: () => void;
+}
+
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
+  const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity } = useNotes();
+  const [title, setTitle] = useState(note.title);
+  const [blocks, setBlocks] = useState<NoteBlock[]>(note.content.blocks);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date>(new Date(note.updated_at));
+  const [linkedEntityName, setLinkedEntityName] = useState<string | null>(null);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+
+  // Load linked entity name
+  useEffect(() => {
+    const loadEntity = async () => {
+      const entity = await fetchLinkedEntity(note);
+      if (entity) setLinkedEntityName(entity.name);
+    };
+    loadEntity();
+  }, [note.linked_entity_id]);
+
+  // Debounced auto-save
+  const debouncedSave = useMemo(
+    () =>
+      debounce(async (newTitle: string, newBlocks: NoteBlock[]) => {
+        setIsSaving(true);
+        try {
+          await updateNote({
+            id: note.id,
+            updates: {
+              title: newTitle,
+              content: { blocks: newBlocks },
+            },
+          });
+          setLastSaved(new Date());
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+          toast.error("Failed to save changes");
+        } finally {
+          setIsSaving(false);
+        }
+      }, 1500),
+    [note.id]
+  );
+
+  // Trigger auto-save on changes
+  useEffect(() => {
+    if (title !== note.title || JSON.stringify(blocks) !== JSON.stringify(note.content.blocks)) {
+      debouncedSave(title, blocks);
+    }
+  }, [title, blocks]);
+
+  const handleToggleFavorite = async () => {
+    await toggleFavorite(note.id);
+  };
+
+  const handleTogglePin = async () => {
+    await togglePin(note.id);
+  };
+
+  const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
+    setBlocks(blocks.map(block => (block.id === id ? { ...block, ...updates } : block)));
+  };
+
+  const handleChecklistKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    blockId: string,
+    itemIndex: number,
+    itemText: string
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const block = blocks.find(b => b.id === blockId);
+      if (!block || !block.items) return;
+
+      const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
+      const newItems = [...block.items];
+      newItems.splice(itemIndex + 1, 0, newItem);
+      updateBlock(blockId, { items: newItems });
+
+      // Focus the new item after render
+      setTimeout(() => {
+        const newInput = document.querySelector(`input[data-item-id="${newItem.id}"]`) as HTMLInputElement;
+        if (newInput) newInput.focus();
+      }, 0);
+    } else if (e.key === 'Backspace' && itemText === '') {
+      e.preventDefault();
+      const block = blocks.find(b => b.id === blockId);
+      if (!block || !block.items || block.items.length <= 1) return;
+
+      const newItems = block.items.filter((_, i) => i !== itemIndex);
+      updateBlock(blockId, { items: newItems });
+
+      // Focus previous item
+      if (itemIndex > 0) {
+        setTimeout(() => {
+          const inputs = document.querySelectorAll(`[data-block-id="${blockId}"] input[type="text"]`);
+          const prevInput = inputs[itemIndex - 1] as HTMLInputElement;
+          if (prevInput) prevInput.focus();
+        }, 0);
+      }
+    }
+  };
+
+  const renderBlock = (block: NoteBlock) => {
+    switch (block.type) {
+      case 'heading':
+        const HeadingTag = `h${block.level || 1}` as 'h1' | 'h2' | 'h3';
+        const headingClass = block.level === 1 ? 'text-3xl' : block.level === 2 ? 'text-2xl' : 'text-xl';
+        
+        return editingBlockId === block.id ? (
+          <Input
+            value={block.content || ''}
+            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            onBlur={() => setEditingBlockId(null)}
+            autoFocus
+            className={`font-bold ${headingClass} border-none shadow-none focus-visible:ring-0 px-0`}
+          />
+        ) : (
+          <HeadingTag
+            className={`font-bold ${headingClass} cursor-text hover:bg-accent/10 rounded px-2 py-1 -mx-2`}
+            onClick={() => setEditingBlockId(block.id)}
+          >
+            {block.content || 'Click to edit heading...'}
+          </HeadingTag>
+        );
+
+      case 'paragraph':
+        return editingBlockId === block.id ? (
+          <Textarea
+            value={block.content || ''}
+            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            onBlur={() => setEditingBlockId(null)}
+            autoFocus
+            className="min-h-[100px] resize-none border-none shadow-none focus-visible:ring-1 px-2"
+          />
+        ) : (
+          <p
+            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em] whitespace-pre-wrap"
+            onClick={() => setEditingBlockId(block.id)}
+          >
+            {block.content || 'Click to start writing...'}
+          </p>
+        );
+
+      case 'checklist':
+        return (
+          <div className="space-y-2" data-block-id={block.id}>
+            {block.items?.map((item, index) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <Checkbox
+                  checked={item.checked}
+                  onCheckedChange={(checked) => {
+                    const newItems = [...(block.items || [])];
+                    newItems[index] = { ...item, checked: checked as boolean };
+                    updateBlock(block.id, { items: newItems });
+                  }}
+                />
+                <Input
+                  value={item.text}
+                  onChange={(e) => {
+                    const newItems = [...(block.items || [])];
+                    newItems[index] = { ...item, text: e.target.value };
+                    updateBlock(block.id, { items: newItems });
+                  }}
+                  onKeyDown={(e) => handleChecklistKeyDown(e, block.id, index, item.text)}
+                  placeholder="List item... (press Enter for new item)"
+                  className="flex-1 border-none shadow-none focus-visible:ring-1"
+                  data-item-id={item.id}
+                />
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'table':
+        return (
+          <div className="overflow-x-auto">
+            <table className="border-collapse border w-full">
+              <tbody>
+                {block.rows?.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {row.map((cell: any, cellIndex: number) => (
+                      <td key={cellIndex} className="border p-2">
+                        <Input
+                          value={cell.content || ''}
+                          onChange={(e) => {
+                            const newRows = [...(block.rows || [])];
+                            newRows[rowIndex][cellIndex] = { content: e.target.value };
+                            updateBlock(block.id, { rows: newRows });
+                          }}
+                          className="border-none shadow-none focus-visible:ring-1"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+
+      case 'image':
+        return (
+          <div className="space-y-2">
+            {block.url && (
+              <div className="border rounded-lg overflow-hidden">
+                <img src={block.url} alt={block.caption || 'Image'} className="w-full" />
+              </div>
+            )}
+            {block.caption && (
+              <p className="text-sm text-muted-foreground text-center">{block.caption}</p>
+            )}
+          </div>
+        );
+
+      case 'divider':
+        return (
+          <div className="flex items-center justify-center py-4">
+            <div className="border-t w-full"></div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header Toolbar */}
+      <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
+            <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleTogglePin}>
+            <Pin className={`h-4 w-4 ${note.is_pinned ? 'fill-primary text-primary' : ''}`} />
+          </Button>
+          {linkedEntityName && (
+            <Badge variant="outline" className="gap-1">
+              <LinkIcon className="h-3 w-3" />
+              {linkedEntityName}
+            </Badge>
+          )}
+          <div className="text-xs text-muted-foreground ml-2">
+            {isSaving ? (
+              <span className="flex items-center gap-1">Saving...</span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onCustomize}>
+            <Settings className="h-4 w-4 mr-2" />
+            Customize
+          </Button>
+        </div>
+      </div>
+
+      {/* Note Content */}
+      <div
+        className="flex-1 overflow-y-auto p-6"
+        style={{ backgroundColor: note.background_color || undefined }}
+      >
+        {/* Banner */}
+        {note.banner_image && (
+          <div
+            className="w-full h-48 bg-cover bg-center rounded-lg mb-6"
+            style={{ backgroundImage: `url(${note.banner_image})` }}
+          />
+        )}
+
+        {/* Title */}
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Note title..."
+          className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0 mb-6"
+        />
+
+        {/* Blocks */}
+        <div className="space-y-6">
+          {blocks.map((block) => (
+            <div key={block.id}>{renderBlock(block)}</div>
+          ))}
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-8 pt-4 border-t text-xs text-muted-foreground">
+          <p>Created: {new Date(note.created_at).toLocaleString()}</p>
+          <p>Last updated: {lastSaved.toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  );
+}

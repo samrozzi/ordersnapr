@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { NoteEditor } from "@/components/NoteEditor";
-import { NoteViewer } from "@/components/NoteViewer";
+import { InteractiveNoteViewer } from "@/components/InteractiveNoteViewer";
+import { NoteCustomizer } from "@/components/NoteCustomizer";
 import { NoteCard } from "@/components/NoteCard";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { TemplatePickerDialog } from "@/components/TemplatePickerDialog";
@@ -30,7 +30,7 @@ const Notes = () => {
   const [sortBy, setSortBy] = useState(preferences?.list_sort_by || "updated_at");
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>(preferences?.default_view || 'list');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isCustomizeMode, setIsCustomizeMode] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   // Open note from query parameter (for pinned notes in sidebar)
@@ -109,24 +109,20 @@ const Notes = () => {
 
   const handleNoteClick = (note: Note) => {
     setSelectedNote(note);
-    setIsEditMode(false);
+    setIsCustomizeMode(false);
   };
 
   const handleCloseNote = () => {
     setSelectedNote(null);
-    setIsEditMode(false);
+    setIsCustomizeMode(false);
   };
 
-  const handleToggleFavorite = async () => {
-    if (selectedNote) {
-      await toggleFavorite(selectedNote.id);
-    }
+  const handleCustomize = () => {
+    setIsCustomizeMode(true);
   };
 
-  const handleTogglePin = async () => {
-    if (selectedNote) {
-      await togglePin(selectedNote.id);
-    }
+  const handleBackToView = () => {
+    setIsCustomizeMode(false);
   };
 
   return (
@@ -335,24 +331,21 @@ const Notes = () => {
         onCreateBlank={handleCreateBlankNote}
       />
 
-      {/* Note Viewer/Editor Dialog */}
+      {/* Note Viewer/Customizer Dialog */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && handleCloseNote()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{isEditMode ? 'Edit Note' : 'View Note'}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
           {selectedNote && (
-            isEditMode ? (
-              <NoteEditor
+            isCustomizeMode ? (
+              <NoteCustomizer
                 note={selectedNote}
                 onClose={handleCloseNote}
+                onBackToView={handleBackToView}
               />
             ) : (
-              <NoteViewer
+              <InteractiveNoteViewer
                 note={selectedNote}
-                onEdit={() => setIsEditMode(true)}
-                onToggleFavorite={handleToggleFavorite}
-                onTogglePin={handleTogglePin}
+                onClose={handleCloseNote}
+                onCustomize={handleCustomize}
               />
             )
           )}

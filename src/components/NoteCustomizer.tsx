@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Star, Pin, Palette, Image as ImageIcon, Save, X } from "lucide-react";
+import { Star, Pin, Palette, Image as ImageIcon, Save, X, Upload, Link as LinkIcon } from "lucide-react";
 import { useNotes, type Note, type NoteBlock, type LinkedEntity } from "@/hooks/use-notes";
 import { RichBlockEditor } from "@/components/RichBlockEditor";
 import { EntityLinkSelector } from "@/components/EntityLinkSelector";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -15,9 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface NoteEditorProps {
+interface NoteCustomizerProps {
   note: Note;
   onClose: () => void;
+  onBackToView: () => void;
 }
 
 const BACKGROUND_COLORS = [
@@ -30,7 +33,7 @@ const BACKGROUND_COLORS = [
   { name: "Peach", value: "#fed7aa" },
 ];
 
-export function NoteEditor({ note, onClose }: NoteEditorProps) {
+export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerProps) {
   const { updateNote, toggleFavorite, togglePin, linkEntity, unlinkEntity, fetchLinkedEntity } = useNotes();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(
@@ -41,7 +44,9 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
   const [backgroundColor, setBackgroundColor] = useState(note.background_color || null);
   const [bannerImage, setBannerImage] = useState(note.banner_image || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [linkedEntity, setLinkedEntity] = useState<LinkedEntity | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch linked entity on mount
   useEffect(() => {
@@ -65,11 +70,63 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
         },
       });
 
-      onClose();
+      toast.success("Note customization saved");
+      onBackToView();
     } catch (error) {
       console.error("Error saving note:", error);
+      toast.error("Failed to save note");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('note-banners')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('note-banners')
+        .getPublicUrl(fileName);
+
+      setBannerImage(publicUrl);
+      toast.success("Banner image uploaded");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -86,6 +143,7 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
       await linkEntity({ noteId: note.id, entityType, entityId });
       const entity = await fetchLinkedEntity({ ...note, linked_entity_type: entityType, linked_entity_id: entityId });
       setLinkedEntity(entity);
+      toast.success("Entity linked to note");
     } catch (error) {
       console.error("Error linking entity:", error);
     }
@@ -105,19 +163,11 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
       {/* Toolbar */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleFavorite}
-          >
+          <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
             <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleTogglePin}
-          >
+          <Button variant="ghost" size="sm" onClick={handleTogglePin}>
             <Pin className={`h-4 w-4 ${note.is_pinned ? 'fill-primary text-primary' : ''}`} />
           </Button>
 
@@ -152,13 +202,13 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onBackToView}>
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
           <Button size="sm" onClick={handleSave} disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? 'Saving...' : 'Save & Close'}
           </Button>
         </div>
       </div>
@@ -167,38 +217,67 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
       <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: backgroundColor || undefined }}>
         {/* Banner Image */}
         <div className="space-y-2 mb-6">
-          <Label htmlFor="banner-image">Banner Image URL (optional)</Label>
+          <Label>Banner Image</Label>
           <div className="flex gap-2">
             <Input
-              id="banner-image"
               value={bannerImage}
               onChange={(e) => setBannerImage(e.target.value)}
-              placeholder="https://example.com/image.jpg"
+              placeholder="Enter image URL or upload..."
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
             />
           </div>
           {bannerImage && (
-            <div
-              className="w-full h-32 bg-cover bg-center rounded-lg border"
-              style={{ backgroundImage: `url(${bannerImage})` }}
-            />
+            <div className="relative">
+              <div
+                className="w-full h-48 bg-cover bg-center rounded-lg border"
+                style={{ backgroundImage: `url(${bannerImage})` }}
+              />
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => setBannerImage('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
 
         {/* Title */}
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Note title..."
-          className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 px-0 mb-4"
-        />
+        <div className="mb-6">
+          <Label>Title</Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Note title..."
+            className="text-2xl font-bold"
+          />
+        </div>
 
         {/* Content - Rich Block Editor */}
-        <div className="my-6">
+        <div className="mb-6">
+          <Label className="mb-4 block">Content Blocks</Label>
           <RichBlockEditor blocks={blocks} onChange={setBlocks} />
         </div>
 
         {/* Info */}
-        <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
+        <div className="mt-8 pt-4 border-t text-sm text-muted-foreground">
           <p>Created: {new Date(note.created_at).toLocaleString()}</p>
           <p>Last updated: {new Date(note.updated_at).toLocaleString()}</p>
         </div>

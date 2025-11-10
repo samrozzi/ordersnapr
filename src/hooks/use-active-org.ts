@@ -106,6 +106,7 @@ export const useActiveOrg = () => {
       queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
       queryClient.invalidateQueries({ queryKey: ["form-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
       
       if (orgId === null) {
         toast.success("Switched to Personal Workspace");

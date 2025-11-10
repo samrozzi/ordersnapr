@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
+import { useActiveOrg } from "./use-active-org";
 import { usePremiumAccess } from "./use-premium-access";
 import { toast } from "sonner";
 
@@ -78,12 +79,13 @@ const FREE_TIER_NOTE_LIMIT = 10;
 
 export function useNotes() {
   const { user } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const { hasPremiumAccess } = usePremiumAccess();
   const queryClient = useQueryClient();
 
   // Fetch all notes for the user
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ["notes", user?.id],
+    queryKey: ["notes", user?.id, activeOrgId],
     queryFn: async () => {
       if (!user) return [];
 
@@ -165,6 +167,7 @@ export function useNotes() {
           {
             ...noteData,
             user_id: user.id,
+            org_id: activeOrgId,
             content: (noteData.content || { blocks: [] }) as any,
           },
         ])
@@ -175,7 +178,7 @@ export function useNotes() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
       toast.success("Note created successfully");
     },
     onError: (error: any) => {
@@ -199,7 +202,7 @@ export function useNotes() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
     },
     onError: (error: any) => {
       console.error("Error updating note:", error);
@@ -219,7 +222,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
       toast.success("Note deleted successfully");
     },
     onError: (error: any) => {
@@ -243,7 +246,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
     },
   });
 
@@ -262,7 +265,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
     },
   });
 
@@ -281,7 +284,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
     },
   });
 
@@ -351,7 +354,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
       toast.success("Entity linked successfully");
     },
     onError: (error: any) => {
@@ -375,7 +378,7 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
       toast.success("Entity unlinked");
     },
   });

@@ -333,7 +333,7 @@ const Notes = () => {
 
       {/* Note Viewer/Customizer Dialog */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && handleCloseNote()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-4xl h-[100dvh] sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col p-0">
           {selectedNote && (
             isCustomizeMode ? (
               <NoteCustomizer

@@ -161,8 +161,8 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
             <Star className={`h-4 w-4 ${note.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           </Button>
@@ -172,9 +172,9 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
           </Button>
 
           <Select value={backgroundColor || 'default'} onValueChange={(val) => setBackgroundColor(val === 'default' ? null : val)}>
-            <SelectTrigger className="w-[140px]">
-              <Palette className="h-4 w-4 mr-2" />
-              <span className="text-sm">Background</span>
+            <SelectTrigger className="w-[120px] sm:w-[140px] h-9">
+              <Palette className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Color</span>
             </SelectTrigger>
             <SelectContent>
               {BACKGROUND_COLORS.map(color => (
@@ -201,20 +201,29 @@ export function NoteCustomizer({ note, onClose, onBackToView }: NoteCustomizerPr
           />
         </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onBackToView}>
-            <X className="h-4 w-4 mr-2" />
-            Cancel
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={onBackToView} className="flex-1 sm:flex-none">
+            <X className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Cancel</span>
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save & Close'}
+          <Button size="sm" onClick={handleSave} disabled={isSaving} className="flex-1 sm:flex-none">
+            <Save className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save & Close'}</span>
+            <span className="sm:hidden">{isSaving ? 'Saving...' : 'Save'}</span>
           </Button>
         </div>
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: backgroundColor || undefined }}>
+      <div 
+        className="flex-1 overflow-y-auto p-4 sm:p-6" 
+        style={{ 
+          backgroundColor: backgroundColor || undefined,
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+          overscrollBehavior: 'contain'
+        }}
+      >
         {/* Banner Image */}
         <div className="space-y-2 mb-6">
           <Label>Banner Image</Label>

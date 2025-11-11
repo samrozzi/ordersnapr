@@ -75,7 +75,9 @@ export function useUsernameAvailability(username: string) {
       }
 
       console.log('[DEBUG] Returning availability:', data);
-      return { available: data as boolean };
+      // Parse JSON response from database function
+      const result = data as { available: boolean };
+      return { available: result.available };
     },
     enabled: username.length >= 3,
     staleTime: 0, // Disable caching to always fetch fresh data
@@ -216,7 +218,8 @@ export async function generateUsernameSuggestions(
       const { data } = await supabase.rpc('is_username_available', {
         check_username: username,
       });
-      return { username, available: data as boolean };
+      const result = data as { available: boolean };
+      return { username, available: result.available };
     })
   );
 

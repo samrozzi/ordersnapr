@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
+const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
 const Profile = lazy(() => import("./pages/Profile"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));
@@ -88,6 +89,7 @@ const AppContent = () => {
                 <Route path="profile" element={<Profile />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="org-admin" element={<OrgAdmin />} />
+                <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
                 <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
                 <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
                 <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />

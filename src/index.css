@@ -206,8 +206,10 @@ All colors MUST be HSL.
   
   /* Checklist item strike-through when checked */
   [data-checked="true"] .ProseMirror,
-  [data-checked="true"] .ProseMirror * {
-    text-decoration: line-through;
+  [data-checked="true"] .ProseMirror *,
+  [data-checked="true"] .ProseMirror p,
+  [data-checked="true"] .ProseMirror p * {
+    text-decoration-line: line-through !important;
     opacity: 0.6;
   }
 }

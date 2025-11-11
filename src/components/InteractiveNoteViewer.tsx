@@ -291,7 +291,13 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   onCheckedChange={(checked) => {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, checked: Boolean(checked) };
-                    updateBlock(block.id, { items: newItems });
+                    
+                    // Immediately sort if move completed is enabled
+                    const sortedItems = checklistMoveCompleted
+                      ? [...newItems].sort((a, b) => Number(a.checked) - Number(b.checked))
+                      : newItems;
+                    
+                    updateBlock(block.id, { items: sortedItems });
                   }}
                   className="mt-3"
                 />
@@ -560,15 +566,17 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
+      {/* Formatting Toolbar - sticky under header */}
+      <SharedFormattingToolbar 
+        onInsertChecklist={insertChecklistBlock}
+        onConvertSelectionToChecklist={convertSelectionToChecklist}
+      />
+
       {/* Note Content */}
       <div
-        className="flex-1 overflow-y-auto p-6"
+        className="flex-1 overflow-y-auto px-6 pb-6 pt-2"
         style={{ backgroundColor: note.background_color || undefined }}
       >
-        <SharedFormattingToolbar 
-          onInsertChecklist={insertChecklistBlock}
-          onConvertSelectionToChecklist={convertSelectionToChecklist}
-        />
         {/* Banner */}
         {note.banner_image && (
           <div

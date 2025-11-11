@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { CustomFieldDisplay } from "@/components/custom-fields/CustomFieldDisplay";
 
 interface WorkOrder {
   id: string;
@@ -65,7 +66,8 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
   const [isCompleting, setIsCompleting] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  
+  const [orgId, setOrgId] = useState<string | null>(null);
+
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
 
@@ -74,6 +76,21 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
       fetchCreatorInfo(workOrder.user_id);
       fetchAuditLogs(workOrder.id);
     }
+
+    // Fetch org ID
+    async function fetchOrgId() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      setOrgId(profile?.active_org_id || null);
+    }
+    fetchOrgId();
   }, [workOrder?.id, workOrder?.user_id]);
 
   const fetchCreatorInfo = async (userId: string) => {
@@ -538,6 +555,19 @@ ${workOrder.notes}` : ''}`;
                     <p className="whitespace-pre-wrap">{workOrder.completion_notes}</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Custom Fields */}
+            {orgId && workOrder.id && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Additional Information</h3>
+                <CustomFieldDisplay
+                  entityType="work_orders"
+                  entityId={workOrder.id}
+                  orgId={orgId}
+                  layout="grid"
+                />
               </div>
             )}
 

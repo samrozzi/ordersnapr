@@ -5,9 +5,8 @@
  * Handles fetching and saving values for an entity.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tantml:function_calls>
-<invoke name="supabase">
-<parameter name="integrations">import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomFields } from './use-custom-fields';
 import type { CustomFieldValues, CustomFieldValue, EntityType, FieldValue } from '@/types/custom-fields';

@@ -134,8 +134,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       return submission?.id || draftSubmission?.id || null;
     }
     
-    // Only create if we have the required IDs
-    if (!userId || !orgId) return null;
+    // Only create if we have the required user ID
+    if (!userId) return null;
     
     creatingDraftRef.current = true;
     
@@ -521,7 +521,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   };
 
   const handleSaveDraft = async () => {
-    if (!userId || !orgId) {
+    if (!userId) {
       toast.error("User not authenticated");
       return;
     }
@@ -556,7 +556,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const handleSubmit = async () => {
     if (!validateForm()) return;
     
-    if (!userId || !orgId) {
+    if (!userId) {
       toast.error("User not authenticated");
       return;
     }

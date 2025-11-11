@@ -30,7 +30,7 @@ export function AppUpdateNotification() {
   if (offlineReady && !needRefresh) {
     return (
       <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-in slide-in-from-bottom">
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+        <Alert className="relative border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
           <RefreshCw className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertTitle className="text-green-900 dark:text-green-100">
             App ready to work offline!
@@ -55,7 +55,7 @@ export function AppUpdateNotification() {
   if (needRefresh) {
     return (
       <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-in slide-in-from-bottom">
-        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+        <Alert className="relative border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
           <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           <AlertTitle className="text-blue-900 dark:text-blue-100">
             New version available!

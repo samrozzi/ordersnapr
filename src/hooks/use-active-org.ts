@@ -107,13 +107,18 @@ export const useActiveOrg = () => {
       queryClient.invalidateQueries({ queryKey: ["form-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       queryClient.invalidateQueries({ queryKey: ["notes"] });
-      
+
       if (orgId === null) {
-        toast.success("Switched to Personal Workspace");
+        toast.success("Switched to Personal Workspace - Refreshing...");
       } else {
         const org = memberships?.find((m) => m.org_id === orgId);
-        toast.success(`Switched to ${org?.organization.name || "organization"}`);
+        toast.success(`Switched to ${org?.organization.name || "organization"} - Refreshing...`);
       }
+
+      // Reload page after brief delay to show toast
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
     },
     onError: (error) => {
       console.error("Error switching organization:", error);

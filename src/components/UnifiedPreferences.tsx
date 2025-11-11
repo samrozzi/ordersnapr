@@ -254,10 +254,15 @@ export function UnifiedPreferences() {
       localStorage.setItem(`user_features_${user.id}`, JSON.stringify(enabledFeatures));
       toast({
         title: "Sidebar Preferences Saved",
-        description: "Please refresh the page or navigate to another page to see your changes.",
-        duration: 5000,
+        description: "Refreshing page to apply changes...",
+        duration: 2000,
       });
       setSidebarHasChanges(false);
+
+      // Reload page after brief delay to show toast
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
     }
   };
 

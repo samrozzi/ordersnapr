@@ -16,8 +16,9 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB limit for large background images
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'], // Removed png to exclude huge favicons
+        globIgnores: ['**/login-bg-*.png', '**/favicon-*.png'], // Don't cache oversized files
+        maximumFileSizeToCacheInBytes: 1 * 1024 * 1024, // 1 MB limit
         runtimeCaching: [
           // Supabase Storage - Cache first for images and files
           {
@@ -140,10 +141,16 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
-    minify: 'esbuild', // Use esbuild (faster and already included)
+    chunkSizeWarningLimit: 600,
+    minify: 'esbuild',
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],
+    },
+    // Enable compression
+    reportCompressedSize: true,
+    // Improve tree-shaking
+    modulePreload: {
+      polyfill: false,
     },
   },
   optimizeDeps: {

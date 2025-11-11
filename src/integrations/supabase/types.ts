@@ -196,6 +196,50 @@ export type Database = {
           },
         ]
       }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_values: {
         Row: {
           created_at: string
@@ -675,6 +719,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mentions: {
+        Row: {
+          context: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          mentioned_by: string
+          mentioned_user_id: string
+          read_at: string | null
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          mentioned_by: string
+          mentioned_user_id: string
+          read_at?: string | null
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          mentioned_by?: string
+          mentioned_user_id?: string
+          read_at?: string | null
+        }
+        Relationships: []
       }
       note_templates: {
         Row: {
@@ -1429,6 +1506,10 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_approved: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { check_username: string }; Returns: Json }
+      search_users_for_mention: {
+        Args: { org_filter?: string; search_query: string }
+        Returns: Json
+      }
       set_username: { Args: { new_username: string }; Returns: Json }
     }
     Enums: {

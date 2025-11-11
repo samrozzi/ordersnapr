@@ -118,11 +118,35 @@ export interface ShareableEntity {
   type: CommentEntityType;
   id: string;
   title: string;
-  url: string;
+  url?: string;
+}
+
+export interface Share {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  organization_id: string;
+  entity_type: CommentEntityType;
+  entity_id: string;
+  message: string | null;
+  read_at: string | null;
+  created_at: string;
+
+  // Joined data
+  sender?: UserProfile;
+  recipient?: UserProfile;
+}
+
+export interface CreateShareInput {
+  recipient_id: string;
+  entity_type: CommentEntityType;
+  entity_id: string;
+  message?: string;
 }
 
 export interface ShareToUserInput {
-  entity: ShareableEntity;
+  entity_type: CommentEntityType;
+  entity_id: string;
   recipient_ids: string[];
   message?: string;
 }
@@ -136,19 +160,24 @@ export type ActivityType =
   | 'comment'
   | 'share'
   | 'assignment'
-  | 'status_change';
+  | 'status_change'
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'complete';
 
 export interface Activity {
   id: string;
-  type: ActivityType;
   user_id: string;
   organization_id: string;
-  entity_type: string;
+  activity_type: ActivityType;
+  entity_type: CommentEntityType;
   entity_id: string;
-  content: string;
+  metadata: Record<string, any>;
   created_at: string;
-  read_at: string | null;
 
-  // Joined data
-  user?: UserProfile;
+  // Joined data from RPC function
+  username?: string;
+  user_full_name?: string;
+  user_email?: string;
 }

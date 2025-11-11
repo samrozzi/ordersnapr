@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CustomFieldDisplay } from "@/components/custom-fields/CustomFieldDisplay";
 import { CommentsSection } from "@/components/CommentsSection";
+import { ShareToUserDialog } from "@/components/ShareToUserDialog";
 
 interface WorkOrder {
   id: string;
@@ -68,6 +69,7 @@ export function WorkOrderDetails({ workOrder, open, onOpenChange, onEdit, onUpda
   const [creatorProfile, setCreatorProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const validPhotos = workOrder?.photos?.filter(Boolean) || [];
   const selectedPhoto = selectedPhotoIndex !== null ? validPhotos[selectedPhotoIndex] : null;
@@ -323,6 +325,15 @@ ${workOrder.notes}` : ''}`;
             >
               <Mail className="h-4 w-4" />
               Share via Email
+            </Button>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => setShowShareDialog(true)}
+              className="gap-2 flex-1"
+            >
+              <Share2 className="h-4 w-4" />
+              Share to Team
             </Button>
           </div>
           <div className="flex gap-2">
@@ -736,6 +747,17 @@ ${workOrder.notes}` : ''}`;
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share to Team Dialog */}
+      {workOrder && (
+        <ShareToUserDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          entityType="work_order"
+          entityId={workOrder.id}
+          entityTitle={workOrder.customer_name}
+        />
+      )}
     </Dialog>
   );
 }

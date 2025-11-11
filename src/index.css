@@ -203,4 +203,11 @@ All colors MUST be HSL.
     cursor: pointer;
     accent-color: hsl(var(--primary));
   }
+  
+  /* Checklist item strike-through when checked */
+  [data-checked="true"] .ProseMirror,
+  [data-checked="true"] .ProseMirror * {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
 }

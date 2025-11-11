@@ -299,7 +299,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         const [completedItem] = newItemsSorted.splice(index, 1);
                         newItemsSorted.push(completedItem);
                         updateBlock(block.id, { items: newItemsSorted });
-                      }, 800);
+                      }, 300);
                     }
                   }}
                   className="mt-3"
@@ -353,8 +353,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   }}
                 >
                   <div 
-                    className={cn(item.checked && checklistStrikethrough && 'line-through')}
                     data-item-id={item.id}
+                    data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
                   >
                     <RichTextEditor
                       content={item.text || ''}

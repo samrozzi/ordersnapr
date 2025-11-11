@@ -93,10 +93,7 @@ export const SharedFormattingToolbar = ({
   return (
     <div 
       data-formatting-toolbar
-      className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
-      style={{ 
-        bottom: `${keyboardHeight}px`
-      }}
+      className="sticky top-0 left-0 right-0 z-50 bg-background border-b border-border p-2 shadow-sm"
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button

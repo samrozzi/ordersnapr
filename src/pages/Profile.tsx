@@ -406,15 +406,22 @@ const Profile = () => {
         <h1 className="text-3xl font-bold">Profile Settings</h1>
 
         <Tabs defaultValue="settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="preferences">
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              Preferences
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1">
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
+            <TabsTrigger value="preferences" className="text-xs sm:text-sm">
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden sm:inline">Preferences</span>
+              <span className="sm:hidden">Prefs</span>
             </TabsTrigger>
-            <TabsTrigger value="activity">My Activity</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="changelog">Changelog</TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">My Activity</span>
+              <span className="sm:hidden">Activity</span>
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-xs sm:text-sm">Favorites</TabsTrigger>
+            <TabsTrigger value="changelog" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">Changelog</span>
+              <span className="sm:hidden">Log</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="settings" className="space-y-6">

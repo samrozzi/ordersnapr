@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { PaymentStatusBadge } from "@/components/PaymentStatusBadge";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
 import { SendPaymentReminderButton } from "@/components/SendPaymentReminderButton";
+import { CustomFieldDisplay } from "@/components/custom-fields/CustomFieldDisplay";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InvoiceDetailsProps {
   invoice: any;
@@ -22,6 +24,27 @@ interface InvoiceDetailsProps {
 export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps) {
   const { downloadPDF, previewPDF, isGenerating } = useInvoicePDF();
   const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
+  const [orgId, setOrgId] = useState<string | undefined>();
+
+  // Load org ID
+  useEffect(() => {
+    const loadOrgId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.active_org_id) {
+        setOrgId(profile.active_org_id);
+      }
+    };
+
+    loadOrgId();
+  }, []);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -223,6 +246,19 @@ export function InvoiceDetails({ invoice, onEdit, onClose }: InvoiceDetailsProps
             invoiceTotalCents={invoice.total_cents || 0}
           />
         </>
+      )}
+
+      {/* Custom Fields */}
+      {orgId && invoice.id && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg border-b pb-2">Additional Information</h3>
+          <CustomFieldDisplay
+            entityType="invoices"
+            entityId={invoice.id}
+            orgId={orgId}
+            layout="grid"
+          />
+        </div>
       )}
 
       {/* Actions */}

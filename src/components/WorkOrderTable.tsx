@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye, Phone, MessageSquare, Trash2 } from "lucide-react";
@@ -41,12 +42,25 @@ interface WorkOrder {
 interface WorkOrderTableProps {
   workOrders: WorkOrder[];
   onUpdate: () => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: () => void;
+  isAllSelected?: boolean;
+  isSomeSelected?: boolean;
 }
 
 type SortField = "customer_name" | "scheduled_date" | "created_at";
 type SortDirection = "asc" | "desc";
 
-export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
+export function WorkOrderTable({
+  workOrders,
+  onUpdate,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  isAllSelected,
+  isSomeSelected,
+}: WorkOrderTableProps) {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
@@ -194,6 +208,16 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
         <Table className="min-w-max">
             <TableHeader>
               <TableRow>
+              {onToggleSelectAll && (
+                <TableHead className="w-12 px-2">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={onToggleSelectAll}
+                    aria-label="Select all"
+                    className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary" : ""}
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-8 px-2"></TableHead>
               <TableHead className="min-w-[150px]">
                 <Button
@@ -236,6 +260,15 @@ export function WorkOrderTable({ workOrders, onUpdate }: WorkOrderTableProps) {
           <TableBody>
             {sortedOrders.map((order) => (
               <TableRow key={order.id}>
+                {onToggleSelect && selectedIds && (
+                  <TableCell className="px-2">
+                    <Checkbox
+                      checked={selectedIds.has(order.id)}
+                      onCheckedChange={() => onToggleSelect(order.id)}
+                      aria-label={`Select ${order.customer_name}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="px-2">
                   <Button
                     variant="ghost"

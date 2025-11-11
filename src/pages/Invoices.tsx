@@ -17,6 +17,8 @@ import { InvoiceTemplateManager } from "@/components/InvoiceTemplateManager";
 import { InvoiceSettingsDialog } from "@/components/InvoiceSettingsDialog";
 import { InvoiceEmailTemplateManager } from "@/components/InvoiceEmailTemplateManager";
 import { RecurringInvoiceManager } from "@/components/RecurringInvoiceManager";
+import { ExportButton } from "@/components/ExportButton";
+import { ExportColumn, formatCurrencyForExport, formatDateForExport } from "@/lib/export-csv";
 
 const Invoices = () => {
   const navigate = useNavigate();
@@ -47,6 +49,38 @@ const Invoices = () => {
       currency: 'USD',
     }).format(cents / 100);
   };
+
+  // Export columns configuration
+  const exportColumns: ExportColumn<any>[] = [
+    { key: "invoice_number", label: "Invoice #" },
+    { key: "customer.name", label: "Customer" },
+    { key: "status", label: "Status" },
+    {
+      key: "total_cents",
+      label: "Total Amount",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "paid_amount_cents",
+      label: "Paid Amount",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "issue_date",
+      label: "Issue Date",
+      format: (value) => value ? new Date(value).toLocaleDateString() : "",
+    },
+    {
+      key: "due_date",
+      label: "Due Date",
+      format: (value) => value ? new Date(value).toLocaleDateString() : "",
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      format: (value) => formatDateForExport(value),
+    },
+  ];
 
   const handleEdit = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -88,6 +122,13 @@ const Invoices = () => {
           </div>
 
           <div className="flex gap-2">
+            <ExportButton
+              data={invoices}
+              columns={exportColumns}
+              filename="invoices"
+              variant="outline"
+              disabled={invoices.length === 0}
+            />
             <InvoiceSettingsDialog />
             <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
               <SheetTrigger asChild>

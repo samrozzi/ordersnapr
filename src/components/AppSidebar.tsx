@@ -19,6 +19,7 @@ import {
   StickyNote,
   ChevronDown,
   ChevronRight,
+  Sliders,
 } from "lucide-react";
 import {
   Sidebar,
@@ -354,6 +355,17 @@ export function AppSidebar() {
                 <NavLink to={isAdmin ? "/admin" : "/org-admin"} end onClick={handleNavClick}>
                   <Shield className="h-5 w-5" />
                   <span>{isAdmin ? "Admin" : "Org Admin"}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {(isAdmin || isOrgAdmin) && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/custom-fields-admin")}>
+                <NavLink to="/custom-fields-admin" end onClick={handleNavClick}>
+                  <Sliders className="h-5 w-5" />
+                  <span>Custom Fields</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

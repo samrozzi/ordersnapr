@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Users, Search } from "lucide-react";
+import { Plus, Users, Search, Trash2, Mail } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PremiumFeatureGuard } from "@/components/PremiumFeatureGuard";
@@ -11,10 +11,17 @@ import { CustomerTable } from "@/components/CustomerTable";
 import { CustomerDetails } from "@/components/CustomerDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExportButton } from "@/components/ExportButton";
+import { ExportColumn, formatCurrencyForExport, formatDateForExport } from "@/lib/export-csv";
+import { BulkActionBar } from "@/components/BulkActionBar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { CustomerWithStats } from "@/hooks/use-customers";
 
 const Customers = () => {
-  const { customers, isLoading, orgId } = useCustomers({ includeStats: true });
+  const { customers, isLoading, orgId, refetch } = useCustomers({ includeStats: true });
+  const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<CustomerWithStats | null>(null);
@@ -33,6 +40,38 @@ const Customers = () => {
   // Separate customers with and without email
   const customersWithEmail = filteredCustomers.filter((c: CustomerWithStats) => c.email);
   const customersWithoutEmail = filteredCustomers.filter((c: CustomerWithStats) => !c.email);
+
+  // Bulk selection
+  const bulkSelect = useBulkSelect(filteredCustomers);
+
+  // Bulk action handlers
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${bulkSelect.selectedCount} customer(s)?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .in('id', bulkSelect.selectedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${bulkSelect.selectedCount} customer(s) deleted`,
+      });
+
+      bulkSelect.clearSelection();
+      refetch();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete customers",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleEdit = (customer: CustomerWithStats) => {
     setSelectedCustomer(customer);
@@ -70,6 +109,33 @@ const Customers = () => {
     }).format(cents / 100);
   };
 
+  // Export columns configuration
+  const exportColumns: ExportColumn<CustomerWithStats>[] = [
+    { key: "name", label: "Customer Name" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Phone" },
+    { key: "company", label: "Company" },
+    {
+      key: "total_jobs",
+      label: "Total Jobs",
+    },
+    {
+      key: "total_invoiced_cents",
+      label: "Total Invoiced",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "total_paid_cents",
+      label: "Total Paid",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      format: (value) => formatDateForExport(value),
+    },
+  ];
+
   if (!orgId) {
     return (
       <div className="container mx-auto p-6">
@@ -95,13 +161,21 @@ const Customers = () => {
             <p className="text-muted-foreground">Manage your customers and portal access</p>
           </div>
 
-          <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <SheetTrigger asChild>
-              <Button onClick={handleCreateNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Customer
-              </Button>
-            </SheetTrigger>
+          <div className="flex gap-2">
+            <ExportButton
+              data={filteredCustomers}
+              columns={exportColumns}
+              filename="customers"
+              variant="outline"
+              disabled={filteredCustomers.length === 0}
+            />
+            <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <SheetTrigger asChild>
+                <Button onClick={handleCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Customer
+                </Button>
+              </SheetTrigger>
             <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>
@@ -115,6 +189,7 @@ const Customers = () => {
               />
             </SheetContent>
           </Sheet>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -198,6 +273,11 @@ const Customers = () => {
               onEdit={handleEdit}
               onView={handleView}
               showStats={true}
+              selectedIds={bulkSelect.selected}
+              onToggleSelect={bulkSelect.toggleItem}
+              onToggleSelectAll={bulkSelect.toggleAll}
+              isAllSelected={bulkSelect.isAllSelected}
+              isSomeSelected={bulkSelect.isSomeSelected}
             />
           </TabsContent>
 
@@ -208,6 +288,11 @@ const Customers = () => {
               onEdit={handleEdit}
               onView={handleView}
               showStats={true}
+              selectedIds={bulkSelect.selected}
+              onToggleSelect={bulkSelect.toggleItem}
+              onToggleSelectAll={bulkSelect.toggleAll}
+              isAllSelected={bulkSelect.isAllSelected}
+              isSomeSelected={bulkSelect.isSomeSelected}
             />
           </TabsContent>
 
@@ -218,6 +303,11 @@ const Customers = () => {
               onEdit={handleEdit}
               onView={handleView}
               showStats={true}
+              selectedIds={bulkSelect.selected}
+              onToggleSelect={bulkSelect.toggleItem}
+              onToggleSelectAll={bulkSelect.toggleAll}
+              isAllSelected={bulkSelect.isAllSelected}
+              isSomeSelected={bulkSelect.isSomeSelected}
             />
           </TabsContent>
         </Tabs>
@@ -240,6 +330,20 @@ const Customers = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Bulk Action Bar */}
+        <BulkActionBar
+          selectedCount={bulkSelect.selectedCount}
+          onClearSelection={bulkSelect.clearSelection}
+          actions={[
+            {
+              label: "Delete",
+              icon: <Trash2 className="h-4 w-4" />,
+              onClick: handleBulkDelete,
+              variant: "destructive" as const,
+            },
+          ]}
+        />
       </div>
     </PremiumFeatureGuard>
   );

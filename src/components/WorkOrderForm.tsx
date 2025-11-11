@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,6 +15,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Upload, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { CustomFieldRenderer } from "@/components/custom-fields/CustomFieldRenderer";
+import { useCustomFieldValues } from "@/hooks/use-custom-field-values";
+import type { CustomFieldValues } from "@/types/custom-fields";
 
 const formSchema = z.object({
   bpc: z.string().max(50, "BPC must be less than 50 characters").optional(),
@@ -58,6 +61,43 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<CustomFieldValues>({});
+
+  // Fetch org ID and custom field values
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      const effectiveOrgId = profile?.active_org_id;
+      setOrgId(effectiveOrgId || null);
+
+      // Load existing custom field values if editing
+      if (workOrder?.id && effectiveOrgId) {
+        const { data: values } = await supabase
+          .from("custom_field_values")
+          .select("*, custom_fields!inner(*)")
+          .eq("entity_type", "work_orders")
+          .eq("entity_id", workOrder.id);
+
+        if (values) {
+          const valuesMap: CustomFieldValues = {};
+          values.forEach((v: any) => {
+            valuesMap[v.custom_fields.field_key] = v.value;
+          });
+          setCustomFieldValues(valuesMap);
+        }
+      }
+    }
+    loadData();
+  }, [workOrder?.id]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -207,6 +247,8 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         access_notes: data.access_required ? (data.access_notes || null) : null,
       };
 
+      let workOrderId: string;
+
       if (workOrder) {
         // Update existing work order
         const { data: updatedData, error } = await supabase
@@ -221,35 +263,71 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           throw error;
         }
 
+        workOrderId = workOrder.id;
         console.log("Updated work order:", updatedData);
         console.log("New scheduled_date:", updatedData?.scheduled_date);
-
-        toast({
-          title: "Success",
-          description: "Work order updated successfully",
-        });
-        
-        // Wait a moment for the database to commit, then refresh
-        await new Promise(resolve => setTimeout(resolve, 100));
-        onSuccess();
       } else {
         // Create new work order
-        const { error } = await supabase.from("work_orders").insert([{
-          ...orderData,
-          user_id: user.id,
-          organization_id: profile?.organization_id || null,
-        }]);
+        const { data: newWorkOrder, error } = await supabase
+          .from("work_orders")
+          .insert([{
+            ...orderData,
+            user_id: user.id,
+            organization_id: profile?.organization_id || null,
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Work order created successfully",
-        });
-        
-        form.reset();
-        onSuccess();
+        workOrderId = newWorkOrder.id;
       }
+
+      // Save custom field values if any
+      if (orgId && Object.keys(customFieldValues).length > 0) {
+        const { data: fields } = await supabase
+          .from("custom_fields")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("entity_type", "work_orders")
+          .eq("is_active", true);
+
+        if (fields) {
+          const customFieldRows = Object.entries(customFieldValues)
+            .map(([key, value]) => {
+              const field = fields.find((f: any) => f.field_key === key);
+              if (!field || !value) return null;
+
+              return {
+                custom_field_id: field.id,
+                entity_type: "work_orders" as const,
+                entity_id: workOrderId,
+                value,
+              };
+            })
+            .filter(Boolean);
+
+          if (customFieldRows.length > 0) {
+            await supabase
+              .from("custom_field_values")
+              .upsert(customFieldRows, {
+                onConflict: "custom_field_id,entity_id",
+              });
+          }
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: workOrder ? "Work order updated successfully" : "Work order created successfully",
+      });
+
+      if (!workOrder) {
+        form.reset();
+      }
+
+      // Wait a moment for the database to commit, then refresh
+      await new Promise(resolve => setTimeout(resolve, 100));
+      onSuccess();
     } catch (error) {
       console.error("Error saving work order:", error);
       toast({
@@ -545,9 +623,30 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           )}
         </div>
 
+        {/* Custom Fields Section */}
+        {orgId && (
+          <div className="pt-6 border-t space-y-4">
+            <div>
+              <h3 className="text-lg font-medium">Additional Information</h3>
+              <p className="text-sm text-muted-foreground">
+                Custom fields for your organization
+              </p>
+            </div>
+            <CustomFieldRenderer
+              entityType="work_orders"
+              orgId={orgId}
+              values={customFieldValues}
+              onChange={(fieldKey, value) => {
+                setCustomFieldValues(prev => ({ ...prev, [fieldKey]: value }));
+              }}
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
+
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting 
-            ? (workOrder ? "Updating..." : "Creating...") 
+          {isSubmitting
+            ? (workOrder ? "Updating..." : "Creating...")
             : (workOrder ? "Update Work Order" : "Create Work Order")
           }
         </Button>

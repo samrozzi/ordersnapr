@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin } from "lucide-react";
+import { CustomFieldRenderer } from "@/components/custom-fields/CustomFieldRenderer";
+import type { CustomFieldValues } from "@/types/custom-fields";
 
 const formSchema = z.object({
   property_name: z.string().min(1, "Property name is required").max(100, "Property name must be less than 100 characters"),
@@ -44,6 +46,8 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
       ? { lat: property.latitude, lng: property.longitude }
       : null
   );
+  const [orgId, setOrgId] = useState<string | undefined>();
+  const [customFieldValues, setCustomFieldValues] = useState<CustomFieldValues>({});
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -56,6 +60,46 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
       longitude: property?.longitude?.toString() || "",
     },
   });
+
+  // Load org ID and existing custom field values
+  useEffect(() => {
+    const loadOrgAndCustomFields = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.active_org_id) {
+        setOrgId(profile.active_org_id);
+
+        // Load existing custom field values if editing
+        if (property?.id) {
+          const { data: values } = await supabase
+            .from("custom_field_values")
+            .select(`
+              value,
+              custom_fields!inner(field_key)
+            `)
+            .eq("entity_type", "properties")
+            .eq("entity_id", property.id);
+
+          if (values) {
+            const valueMap: CustomFieldValues = {};
+            values.forEach((v: any) => {
+              valueMap[v.custom_fields.field_key] = v.value;
+            });
+            setCustomFieldValues(valueMap);
+          }
+        }
+      }
+    };
+
+    loadOrgAndCustomFields();
+  }, [property?.id]);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -213,6 +257,8 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
         organization_id: currentActiveOrgId,
       };
 
+      let propertyId: string;
+
       if (property) {
         const { error } = await supabase
           .from("properties")
@@ -221,21 +267,61 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
 
         if (error) throw error;
 
+        propertyId = property.id;
+
         toast({
           title: "Success",
           description: "Property updated successfully",
         });
       } else {
-        const { error } = await supabase
+        const { data: newProperty, error } = await supabase
           .from("properties")
-          .insert([propertyData]);
+          .insert([propertyData])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        propertyId = newProperty!.id;
 
         toast({
           title: "Success",
           description: "Property created successfully",
         });
+      }
+
+      // Save custom field values if any
+      if (orgId && Object.keys(customFieldValues).length > 0) {
+        const { data: fields } = await supabase
+          .from("custom_fields")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("entity_type", "properties")
+          .eq("is_active", true);
+
+        if (fields && fields.length > 0) {
+          const valuesToUpsert = Object.entries(customFieldValues)
+            .map(([fieldKey, value]) => {
+              const field = fields.find(f => f.field_key === fieldKey);
+              if (!field) return null;
+
+              return {
+                custom_field_id: field.id,
+                entity_type: "properties" as const,
+                entity_id: propertyId,
+                value,
+              };
+            })
+            .filter(Boolean);
+
+          if (valuesToUpsert.length > 0) {
+            await supabase
+              .from("custom_field_values")
+              .upsert(valuesToUpsert, {
+                onConflict: "custom_field_id,entity_id",
+              });
+          }
+        }
       }
 
       onSuccess();
@@ -363,6 +449,21 @@ export function PropertyForm({ onSuccess, property }: PropertyFormProps) {
             )}
           />
         </div>
+
+        {/* Custom Fields */}
+        {orgId && (
+          <div className="space-y-3 pt-4 border-t">
+            <h3 className="font-semibold">Additional Information</h3>
+            <CustomFieldRenderer
+              entityType="properties"
+              orgId={orgId}
+              values={customFieldValues}
+              onChange={(fieldKey, value) => {
+                setCustomFieldValues(prev => ({ ...prev, [fieldKey]: value }));
+              }}
+            />
+          </div>
+        )}
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : property ? "Update Property" : "Create Property"}

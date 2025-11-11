@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, Loader2 } from "lucide-react";
 import { useCustomers, type Customer, type CustomerAddress } from "@/hooks/use-customers";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { CustomFieldRenderer } from "@/components/custom-fields/CustomFieldRenderer";
+import { useCustomFields } from "@/hooks/use-custom-fields";
+import type { CustomFieldValues } from "@/types/custom-fields";
 
 interface CustomerFormProps {
   customer?: Customer;
@@ -28,6 +32,8 @@ interface CustomerFormData {
 export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProps) {
   const { createCustomer, updateCustomer } = useCustomers();
   const [loading, setLoading] = useState(false);
+  const [orgId, setOrgId] = useState<string | undefined>();
+  const [customFieldValues, setCustomFieldValues] = useState<CustomFieldValues>({});
 
   const { register, handleSubmit, formState: { errors } } = useForm<CustomerFormData>({
     defaultValues: {
@@ -41,6 +47,46 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
       country: customer?.address?.country || "USA",
     }
   });
+
+  // Load org ID and existing custom field values
+  useEffect(() => {
+    const loadOrgAndCustomFields = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_org_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.active_org_id) {
+        setOrgId(profile.active_org_id);
+
+        // Load existing custom field values if editing
+        if (customer?.id) {
+          const { data: values } = await supabase
+            .from("custom_field_values")
+            .select(`
+              value,
+              custom_fields!inner(field_key)
+            `)
+            .eq("entity_type", "customers")
+            .eq("entity_id", customer.id);
+
+          if (values) {
+            const valueMap: CustomFieldValues = {};
+            values.forEach((v: any) => {
+              valueMap[v.custom_fields.field_key] = v.value;
+            });
+            setCustomFieldValues(valueMap);
+          }
+        }
+      }
+    };
+
+    loadOrgAndCustomFields();
+  }, [customer?.id]);
 
   const onSubmit = async (data: CustomerFormData) => {
     setLoading(true);
@@ -69,10 +115,52 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
         address: Object.keys(cleanedAddress).length > 0 ? cleanedAddress : null,
       };
 
+      let customerId: string;
+
       if (customer) {
         await updateCustomer({ id: customer.id, updates: customerData });
+        customerId = customer.id;
       } else {
-        await createCustomer(customerData);
+        const { data: newCustomer } = await supabase
+          .from("customers")
+          .insert(customerData)
+          .select()
+          .single();
+        customerId = newCustomer!.id;
+      }
+
+      // Save custom field values if any
+      if (orgId && Object.keys(customFieldValues).length > 0) {
+        const { data: fields } = await supabase
+          .from("custom_fields")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("entity_type", "customers")
+          .eq("is_active", true);
+
+        if (fields && fields.length > 0) {
+          const valuesToUpsert = Object.entries(customFieldValues)
+            .map(([fieldKey, value]) => {
+              const field = fields.find(f => f.field_key === fieldKey);
+              if (!field) return null;
+
+              return {
+                custom_field_id: field.id,
+                entity_type: "customers" as const,
+                entity_id: customerId,
+                value,
+              };
+            })
+            .filter(Boolean);
+
+          if (valuesToUpsert.length > 0) {
+            await supabase
+              .from("custom_field_values")
+              .upsert(valuesToUpsert, {
+                onConflict: "custom_field_id,entity_id",
+              });
+          }
+        }
       }
 
       onSuccess();
@@ -187,6 +275,25 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
           </div>
         </CardContent>
       </Card>
+
+      {/* Custom Fields */}
+      {orgId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Additional Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CustomFieldRenderer
+              entityType="customers"
+              orgId={orgId}
+              values={customFieldValues}
+              onChange={(fieldKey, value) => {
+                setCustomFieldValues(prev => ({ ...prev, [fieldKey]: value }));
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex justify-end gap-2 pt-4">
         <Button

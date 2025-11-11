@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, List, Calendar as CalendarIcon, LayoutGrid } from "lucide-react";
+import { Plus, List, Calendar as CalendarIcon, LayoutGrid, Trash2, UserPlus, CheckCircle2 } from "lucide-react";
 import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
@@ -17,6 +17,8 @@ import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
 import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
+import { BulkActionBar } from "@/components/BulkActionBar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
 
 interface WorkOrder {
   id: string;
@@ -207,6 +209,65 @@ const WorkOrders = () => {
   const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
   const completedOrders = workOrders.filter((order) => order.status === "completed");
 
+  // Bulk selection
+  const currentOrders = viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders;
+  const bulkSelect = useBulkSelect(currentOrders);
+
+  // Bulk action handlers
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${bulkSelect.selectedCount} work order(s)?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .delete()
+        .in('id', bulkSelect.selectedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${bulkSelect.selectedCount} work order(s) deleted`,
+      });
+
+      bulkSelect.clearSelection();
+      fetchWorkOrders();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete work orders",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkUpdateStatus = async (newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({ status: newStatus })
+        .in('id', bulkSelect.selectedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${bulkSelect.selectedCount} work order(s) updated to ${newStatus}`,
+      });
+
+      bulkSelect.clearSelection();
+      fetchWorkOrders();
+    } catch (error) {
+      console.error('Bulk update error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update work orders",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Export columns definition
   const exportColumns: ExportColumn<WorkOrder>[] = [
     { key: "job_number", label: "Job #" },
@@ -338,6 +399,11 @@ const WorkOrders = () => {
         <WorkOrderTable
           workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
           onUpdate={fetchWorkOrders}
+          selectedIds={bulkSelect.selected}
+          onToggleSelect={bulkSelect.toggleItem}
+          onToggleSelectAll={bulkSelect.toggleAll}
+          isAllSelected={bulkSelect.isAllSelected}
+          isSomeSelected={bulkSelect.isSomeSelected}
         />
       )}
 
@@ -386,6 +452,34 @@ const WorkOrders = () => {
         }}
         onUpdate={fetchWorkOrders}
       />
+
+      {/* Bulk Action Bar */}
+      {viewMode === 'list' && (
+        <BulkActionBar
+          selectedCount={bulkSelect.selectedCount}
+          onClearSelection={bulkSelect.clearSelection}
+          actions={[
+            {
+              label: "Mark Complete",
+              icon: <CheckCircle2 className="h-4 w-4" />,
+              onClick: () => handleBulkUpdateStatus('completed'),
+              show: listTab === 'pending',
+            },
+            {
+              label: "Mark Pending",
+              icon: <CheckCircle2 className="h-4 w-4" />,
+              onClick: () => handleBulkUpdateStatus('pending'),
+              show: listTab === 'completed',
+            },
+            {
+              label: "Delete",
+              icon: <Trash2 className="h-4 w-4" />,
+              onClick: handleBulkDelete,
+              variant: "destructive" as const,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 };

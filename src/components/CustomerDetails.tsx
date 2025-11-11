@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SendPortalLinkEmailButton } from "@/components/SendPortalLinkEmailButton";
 import { SharePortalLinkButton } from "@/components/SharePortalLinkButton";
 import { format } from "date-fns";
+import { CustomFieldDisplay } from "@/components/custom-fields/CustomFieldDisplay";
 
 interface CustomerDetailsProps {
   customer: Customer;
@@ -21,10 +22,25 @@ export function CustomerDetails({ customer, onEdit, onClose }: CustomerDetailsPr
   const [invoices, setInvoices] = useState<any[]>([]);
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [orgId, setOrgId] = useState<string | undefined>();
 
   useEffect(() => {
     const fetchCustomerData = async () => {
       setLoading(true);
+
+      // Fetch org ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("active_org_id")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.active_org_id) {
+          setOrgId(profile.active_org_id);
+        }
+      }
 
       // Fetch invoices
       const { data: invoicesData } = await supabase
@@ -264,6 +280,19 @@ export function CustomerDetails({ customer, onEdit, onClose }: CustomerDetailsPr
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Custom Fields */}
+      {orgId && customer.id && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg border-b pb-2">Additional Information</h3>
+          <CustomFieldDisplay
+            entityType="customers"
+            entityId={customer.id}
+            orgId={orgId}
+            layout="grid"
+          />
+        </div>
+      )}
 
       {/* Close Button */}
       <div className="flex justify-end pt-4 border-t">

@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CustomFieldDisplay } from "@/components/custom-fields/CustomFieldDisplay";
+import { CommentsSection } from "@/components/CommentsSection";
 
 interface WorkOrder {
   id: string;
@@ -624,8 +625,8 @@ ${workOrder.notes}` : ''}`;
                 <h3 className="font-semibold text-lg border-b pb-2">Photos</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {validPhotos.map((photoUrl, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="rounded-lg overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => setSelectedPhotoIndex(index)}
                     >
@@ -645,6 +646,16 @@ ${workOrder.notes}` : ''}`;
                 </div>
               </div>
             )}
+
+            {/* Comments & Discussion */}
+            <div className="border-t pt-6">
+              <CommentsSection
+                entityType="work_order"
+                entityId={workOrder.id}
+                title="Team Discussion"
+                description="Collaborate with your team using comments and @mentions"
+              />
+            </div>
           </div>
         </ScrollArea>
       </DialogContent>

@@ -275,22 +275,32 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <div
-            className="rich-content cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em]"
+            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em]"
             onClick={() => setEditingBlockId(block.id)}
-            dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
-          />
+          >
+            <div 
+              className="ProseMirror prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
+            />
+          </div>
         );
 
       case 'checklist':
+        // Pre-sort items for immediate visual rendering
+        const itemsToRender = checklistMoveCompleted && block.items
+          ? [...block.items].sort((a, b) => Number(a.checked) - Number(b.checked))
+          : (block.items || []);
+        
         return (
           <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
-            {block.items?.map((item, index) => (
+            {itemsToRender.map((item, index) => (
               <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
                     const newItems = [...(block.items || [])];
-                    newItems[index] = { ...item, checked: Boolean(checked) };
+                    const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+                    newItems[originalIndex] = { ...item, checked: Boolean(checked) };
                     
                     // Immediately sort if move completed is enabled
                     const sortedItems = checklistMoveCompleted
@@ -302,10 +312,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   className="mt-3"
                 />
                 <div 
-                  className={cn(
-                    "w-full relative",
-                    item.checked && checklistStrikethrough && 'opacity-60 line-through'
-                  )}
+                  className="w-full relative"
+                  data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
                   onKeyDown={(e) => {
                     // Handle backspace/delete on empty items
                     if ((e.key === 'Backspace' || e.key === 'Delete')) {
@@ -314,7 +322,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                         e.preventDefault();
                         const newItems = [...(block.items || [])];
                         if (newItems.length > 1) {
-                          newItems.splice(index, 1);
+                          const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+                          newItems.splice(originalIndex, 1);
                           updateBlock(block.id, { items: newItems });
                           // Focus previous item after deletion
                           if (index > 0) {
@@ -337,8 +346,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                       e.preventDefault();
                       
                       const newItems = [...(block.items || [])];
+                      const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
                       const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
-                      newItems.splice(index + 1, 0, newItem);
+                      newItems.splice(originalIndex + 1, 0, newItem);
                       updateBlock(block.id, { items: newItems });
                       
                       // Focus the new item
@@ -349,19 +359,17 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     }
                   }}
                 >
-                  <div 
-                    data-item-id={item.id}
-                    data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
-                  >
+                  <div data-item-id={item.id}>
                     <RichTextEditor
                       content={item.text || ''}
                       onChange={(content) => {
                         const newItems = [...(block.items || [])];
+                        const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
                         // Remove item if text becomes empty (excluding HTML tags)
                         const textContent = content.replace(/<[^>]*>/g, '').trim();
                         if (textContent === '') {
                           // Always remove empty items, even if it's the last one
-                          newItems.splice(index, 1);
+                          newItems.splice(originalIndex, 1);
                           // If this was the last item, remove the entire checklist block
                           if (newItems.length === 0) {
                             const newBlocks = blocks.filter(b => b.id !== block.id);
@@ -370,7 +378,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                             updateBlock(block.id, { items: newItems });
                           }
                         } else {
-                          newItems[index] = { ...item, text: content };
+                          newItems[originalIndex] = { ...item, text: content };
                           updateBlock(block.id, { items: newItems });
                         }
                       }}

@@ -683,6 +683,7 @@ export type Database = {
           id: string
           is_favorite: boolean
           is_pinned: boolean
+          is_presentation_mode: boolean
           kanban_column: string | null
           kanban_position: number | null
           linked_entity_id: string | null
@@ -702,6 +703,7 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean
+          is_presentation_mode?: boolean
           kanban_column?: string | null
           kanban_position?: number | null
           linked_entity_id?: string | null
@@ -721,6 +723,7 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean
+          is_presentation_mode?: boolean
           kanban_column?: string | null
           kanban_position?: number | null
           linked_entity_id?: string | null

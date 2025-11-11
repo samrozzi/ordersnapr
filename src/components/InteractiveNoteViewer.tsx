@@ -211,7 +211,7 @@ const SortableChecklistItem = ({
 };
 
 export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
-  const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
+  const { updateNote, toggleFavorite, togglePin, togglePresentationMode, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content.blocks);
   const [isSaving, setIsSaving] = useState(false);
@@ -222,7 +222,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [isPresentationMode, setIsPresentationMode] = useState(note.is_presentation_mode);
 
   // Clean up checklist items - remove empty checklists entirely
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
@@ -305,6 +305,11 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const handleTogglePin = async () => {
     setIsPinned(!isPinned);
     await togglePin(note.id);
+  };
+
+  const handleTogglePresentationMode = async () => {
+    setIsPresentationMode(!isPresentationMode);
+    await togglePresentationMode(note.id);
   };
 
   const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
@@ -644,18 +649,18 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <Button variant="ghost" size="sm" onClick={handleTogglePin}>
             <Pin className={`h-4 w-4 ${isPinned ? 'fill-primary text-primary' : ''}`} />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsPresentationMode(!isPresentationMode)}
-            title={isPresentationMode ? "Exit presentation mode" : "Enter presentation mode"}
-          >
-            {isPresentationMode ? (
-              <Lock className="h-4 w-4 fill-blue-500 text-blue-500" />
-            ) : (
-              <LockOpen className="h-4 w-4" />
-            )}
-          </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleTogglePresentationMode}
+              title={isPresentationMode ? "Exit presentation mode" : "Enter presentation mode"}
+            >
+              {isPresentationMode ? (
+                <Lock className="h-4 w-4 fill-primary text-primary" />
+              ) : (
+                <LockOpen className="h-4 w-4" />
+              )}
+            </Button>
           {linkedEntityName && (
             <Badge variant="outline" className="gap-1">
               <LinkIcon className="h-3 w-3" />

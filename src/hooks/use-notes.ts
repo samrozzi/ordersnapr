@@ -39,6 +39,7 @@ export interface Note {
   banner_image: string | null;
   is_favorite: boolean;
   is_pinned: boolean;
+  is_presentation_mode: boolean;
   kanban_position: number | null;
   kanban_column: string | null;
   view_mode: 'note' | 'checklist' | 'canvas' | 'table';
@@ -277,15 +278,31 @@ export function useNotes() {
     },
   });
 
+  // Toggle presentation mode
+  const togglePresentationMode = useMutation({
+    mutationFn: async (id: string) => {
+      const note = notes.find(n => n.id === id);
+      if (!note) throw new Error("Note not found");
+
+      const { error } = await supabase
+        .from("notes")
+        .update({ is_presentation_mode: !note.is_presentation_mode })
+        .eq("id", id)
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
+    },
+  });
+
   // Update kanban position
   const updateKanbanPosition = useMutation({
     mutationFn: async ({ id, column, position }: { id: string; column: string; position: number }) => {
       const { error } = await supabase
         .from("notes")
-        .update({
-          kanban_column: column,
-          kanban_position: position
-        })
+        .update({ kanban_column: column, kanban_position: position })
         .eq("id", id)
         .eq("user_id", user!.id);
 
@@ -465,6 +482,7 @@ export function useNotes() {
     deleteNote: deleteNote.mutateAsync,
     toggleFavorite: toggleFavorite.mutateAsync,
     togglePin: togglePin.mutateAsync,
+    togglePresentationMode: togglePresentationMode.mutateAsync,
     updateKanbanPosition: updateKanbanPosition.mutateAsync,
     updatePreferences: updatePreferences.mutateAsync,
     linkEntity: linkEntity.mutateAsync,

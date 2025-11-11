@@ -3,7 +3,7 @@
  * Renders reports as tables or various chart types
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   BarChart,
   Bar,
@@ -24,7 +24,17 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { FileDown, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportToCSV, exportToExcel, exportToPDF, exportToPDFWithChart } from '@/lib/report-export';
+import { useToast } from '@/hooks/use-toast';
 import type { ReportResults, ChartType } from '@/lib/report-builder-types';
 
 interface ReportVisualizationProps {
@@ -44,6 +54,9 @@ const CHART_COLORS = [
 ];
 
 export function ReportVisualization({ results, isLoading }: ReportVisualizationProps) {
+  const { toast } = useToast();
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const chartData = useMemo(() => {
     if (!results || !results.data) return null;
 
@@ -70,6 +83,40 @@ export function ReportVisualization({ results, isLoading }: ReportVisualizationP
       yKeys,
     };
   }, [results]);
+
+  const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
+    if (!results) return;
+
+    try {
+      switch (format) {
+        case 'csv':
+          exportToCSV(results);
+          break;
+        case 'xlsx':
+          exportToExcel(results);
+          break;
+        case 'pdf':
+          // Try to get chart canvas for PDF export
+          const canvas = chartRef.current?.querySelector('canvas');
+          if (canvas && results.configuration.chartType !== 'table') {
+            await exportToPDFWithChart(results, canvas);
+          } else {
+            exportToPDF(results);
+          }
+          break;
+      }
+      toast({
+        title: "Export Successful",
+        description: `Report exported as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export report",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -110,10 +157,32 @@ export function ReportVisualization({ results, isLoading }: ReportVisualizationP
             {results.executionTime && (
               <Badge variant="secondary">{results.executionTime}ms</Badge>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export as Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent ref={chartRef}>
         {chartType === 'table' && <TableView data={results.data} />}
         {chartType === 'bar' && chartData && <BarChartView {...chartData} />}
         {chartType === 'line' && chartData && <LineChartView {...chartData} />}

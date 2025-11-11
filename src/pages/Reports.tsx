@@ -26,9 +26,11 @@ import { AgingReport } from "@/components/AgingReport";
 import { ReportBuilderDialog } from "@/components/ReportBuilderDialog";
 import { SavedReportsManager } from "@/components/SavedReportsManager";
 import { ReportVisualization } from "@/components/ReportVisualization";
-import { useExecuteReport, useSavedReports } from "@/hooks/use-report-builder";
+import { ReportScheduleDialog } from "@/components/ReportScheduleDialog";
+import { ReportSchedulesManager } from "@/components/ReportSchedulesManager";
+import { useExecuteReport, useSavedReports, useReportSchedules } from "@/hooks/use-report-builder";
 import { useToast } from "@/hooks/use-toast";
-import type { ReportConfiguration, ReportResults, SavedReport } from "@/lib/report-builder-types";
+import type { ReportConfiguration, ReportResults, SavedReport, ReportSchedule } from "@/lib/report-builder-types";
 
 const Reports = () => {
   const { activeOrg } = useActiveOrg();
@@ -39,9 +41,12 @@ const Reports = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [currentReport, setCurrentReport] = useState<ReportResults | null>(null);
   const [editingReport, setEditingReport] = useState<Partial<ReportConfiguration> | undefined>();
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [schedulingReport, setSchedulingReport] = useState<SavedReport | null>(null);
 
   const { executeReport, isExecuting } = useExecuteReport();
   const { saveReport } = useSavedReports();
+  const { createSchedule } = useReportSchedules();
 
   const {
     paymentAnalytics,
@@ -127,6 +132,29 @@ const Reports = () => {
   const handleCreateNew = () => {
     setEditingReport(undefined);
     setIsBuilderOpen(true);
+  };
+
+  const handleScheduleReport = (report: SavedReport) => {
+    setSchedulingReport(report);
+    setIsScheduleDialogOpen(true);
+  };
+
+  const handleSaveSchedule = async (schedule: Partial<ReportSchedule>) => {
+    try {
+      await createSchedule(schedule);
+      setIsScheduleDialogOpen(false);
+      setSchedulingReport(null);
+      toast({
+        title: "Schedule Created",
+        description: "Report schedule has been created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create schedule",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!activeOrg?.id) {
@@ -342,7 +370,14 @@ const Reports = () => {
               <SavedReportsManager
                 onRunReport={handleRunSavedReport}
                 onEditReport={handleEditSavedReport}
+                onScheduleReport={handleScheduleReport}
               />
+            </div>
+
+            {/* Scheduled Reports */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Scheduled Reports</h3>
+              <ReportSchedulesManager />
             </div>
           </TabsContent>
         </Tabs>
@@ -354,6 +389,14 @@ const Reports = () => {
           onExecute={handleExecuteReport}
           onSave={handleSaveReport}
           initialConfig={editingReport}
+        />
+
+        {/* Report Schedule Dialog */}
+        <ReportScheduleDialog
+          open={isScheduleDialogOpen}
+          onOpenChange={setIsScheduleDialogOpen}
+          report={schedulingReport}
+          onSave={handleSaveSchedule}
         />
       </div>
     </PremiumFeatureGuard>

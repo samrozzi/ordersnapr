@@ -104,17 +104,20 @@ const SortableChecklistItem = ({
           const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
           newItems[originalIndex] = { ...item, checked: Boolean(checked) };
           
-          // Immediately sort if move completed is enabled
           const sortedItems = checklistMoveCompleted
             ? [...newItems].sort((a, b) => Number(a.checked) - Number(b.checked))
             : newItems;
           
           updateBlock(block.id, { items: sortedItems });
         }}
-        className="shrink-0"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        aria-label="Toggle checklist item"
+        className="shrink-0 self-center"
       />
       <div 
-        className="flex-1 relative select-text"
+        className="flex-1 relative select-text [&_.ProseMirror_p]:leading-5 [&_.ProseMirror_p]:my-0"
         style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
         data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
         onKeyDown={(e) => {

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useHasUsername } from '@/hooks/use-username';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
+import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UsernameGuardProps {
@@ -13,6 +14,7 @@ interface UsernameGuardProps {
 }
 
 export function UsernameGuard({ children }: UsernameGuardProps) {
+  const { user } = useAuth();
   const { data: hasUsername, isLoading } = useHasUsername();
   const [userInfo, setUserInfo] = useState<{ email?: string; fullName?: string }>({});
 
@@ -39,13 +41,13 @@ export function UsernameGuard({ children }: UsernameGuardProps) {
       }
     };
 
-    if (!isLoading && hasUsername === false) {
+    if (!isLoading && hasUsername === false && user) {
       fetchUserInfo();
     }
-  }, [hasUsername, isLoading]);
+  }, [hasUsername, isLoading, user]);
 
-  // Show prompt if user doesn't have username
-  const shouldShowPrompt = !isLoading && hasUsername === false;
+  // Only show prompt if user is authenticated, not loading, and has no username
+  const shouldShowPrompt = !!user && !isLoading && hasUsername === false;
 
   return (
     <>

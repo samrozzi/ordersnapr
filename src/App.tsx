@@ -123,7 +123,13 @@ const AppContent = () => {
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        storageKey="ordersnapr-theme"
+        enableColorScheme
+      >
         <TooltipProvider>
           <WorkOrderDialogProvider>
             <ProfileCompletionWrapper>

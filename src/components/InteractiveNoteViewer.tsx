@@ -284,31 +284,31 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
       case 'checklist':
         return (
-          <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
+          <div className="space-y-2" data-block-id={block.id}>
             {block.items?.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
+              <div key={item.id} className="flex gap-3 items-start">
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
                     const newItems = [...(block.items || [])];
                     newItems[index] = { ...item, checked: checked as boolean };
                     updateBlock(block.id, { items: newItems });
-                    
+
                     if (checked && checklistMoveCompleted) {
                       setTimeout(() => {
                         const newItemsSorted = [...newItems];
                         const [completedItem] = newItemsSorted.splice(index, 1);
                         newItemsSorted.push(completedItem);
                         updateBlock(block.id, { items: newItemsSorted });
-                      }, 800);
+                      }, 400);
                     }
                   }}
-                  className="mt-3"
+                  className="mt-[0.4rem] shrink-0"
                 />
-                <div 
+                <div
                   className={cn(
-                    "w-full relative",
-                    item.checked && checklistStrikethrough && 'opacity-60'
+                    "flex-1 min-w-0",
+                    item.checked && checklistStrikethrough && 'opacity-50 transition-opacity duration-300'
                   )}
                   onKeyDown={(e) => {
                     // Handle backspace/delete on empty items
@@ -353,8 +353,11 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     }
                   }}
                 >
-                  <div 
-                    className={cn(item.checked && checklistStrikethrough && 'line-through')}
+                  <div
+                    className={cn(
+                      "transition-all duration-300",
+                      item.checked && checklistStrikethrough && 'line-through decoration-2'
+                    )}
                     data-item-id={item.id}
                   >
                     <RichTextEditor

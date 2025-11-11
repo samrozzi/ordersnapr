@@ -4,7 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -37,6 +53,147 @@ function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+const SortableChecklistItem = ({
+  item,
+  index,
+  block,
+  checklistStrikethrough,
+  checklistMoveCompleted,
+  blocks,
+  updateBlock,
+  setBlocks,
+}: {
+  item: any;
+  index: number;
+  block: NoteBlock;
+  checklistStrikethrough: boolean;
+  checklistMoveCompleted: boolean;
+  blocks: NoteBlock[];
+  updateBlock: (id: string, updates: Partial<NoteBlock>) => void;
+  setBlocks: (blocks: NoteBlock[]) => void;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-start gap-2 transition-all duration-500 ease-in-out touch-none"
+    >
+      <div {...attributes} {...listeners} className="mt-2 cursor-grab active:cursor-grabbing touch-none">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <Checkbox
+        checked={item.checked}
+        onCheckedChange={(checked) => {
+          const newItems = [...(block.items || [])];
+          const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+          newItems[originalIndex] = { ...item, checked: Boolean(checked) };
+          
+          // Immediately sort if move completed is enabled
+          const sortedItems = checklistMoveCompleted
+            ? [...newItems].sort((a, b) => Number(a.checked) - Number(b.checked))
+            : newItems;
+          
+          updateBlock(block.id, { items: sortedItems });
+        }}
+        className="mt-2"
+      />
+      <div 
+        className="flex-1 relative"
+        data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
+        onKeyDown={(e) => {
+          // Handle backspace/delete on empty items
+          if ((e.key === 'Backspace' || e.key === 'Delete')) {
+            const textContent = item.text.replace(/<[^>]*>/g, '').trim();
+            if (textContent === '') {
+              e.preventDefault();
+              const newItems = [...(block.items || [])];
+              if (newItems.length > 1) {
+                const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+                newItems.splice(originalIndex, 1);
+                updateBlock(block.id, { items: newItems });
+                // Focus previous item after deletion
+                if (index > 0) {
+                  setTimeout(() => {
+                    const inputs = document.querySelectorAll(`[data-block-id="${block.id}"] .ProseMirror`);
+                    const prevInput = inputs[index - 1] as HTMLElement;
+                    if (prevInput) prevInput.focus();
+                  }, 0);
+                }
+              } else {
+                // Last remaining item: remove the entire checklist block
+                const newBlocks = blocks.filter(b => b.id !== block.id);
+                setBlocks(newBlocks);
+              }
+            }
+          }
+          
+          // Handle Enter to create new checkbox (like iOS Notes)
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            const newItems = [...(block.items || [])];
+            const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+            const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
+            newItems.splice(originalIndex + 1, 0, newItem);
+            updateBlock(block.id, { items: newItems });
+            
+            // Focus the new item
+            setTimeout(() => {
+              const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
+              if (newInput) newInput.focus();
+            }, 0);
+          }
+        }}
+      >
+        <div data-item-id={item.id}>
+          <RichTextEditor
+            content={item.text || ''}
+            onChange={(content) => {
+              const newItems = [...(block.items || [])];
+              const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+              // Remove item if text becomes empty (excluding HTML tags)
+              const textContent = content.replace(/<[^>]*>/g, '').trim();
+              if (textContent === '') {
+                // Always remove empty items, even if it's the last one
+                newItems.splice(originalIndex, 1);
+                // If this was the last item, remove the entire checklist block
+                if (newItems.length === 0) {
+                  const newBlocks = blocks.filter(b => b.id !== block.id);
+                  setBlocks(newBlocks);
+                } else {
+                  updateBlock(block.id, { items: newItems });
+                }
+              } else {
+                newItems[originalIndex] = { ...item, text: content };
+                updateBlock(block.id, { items: newItems });
+              }
+            }}
+            placeholder="List item..."
+            className="w-full"
+            variant="paragraph"
+            disableEnterKey={true}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
   const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
@@ -292,107 +449,52 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           ? [...block.items].sort((a, b) => Number(a.checked) - Number(b.checked))
           : (block.items || []);
         
+        const sensors = useSensors(
+          useSensor(PointerSensor, {
+            activationConstraint: {
+              distance: 8,
+            },
+          }),
+          useSensor(TouchSensor, {
+            activationConstraint: {
+              delay: 250,
+              tolerance: 5,
+            },
+          })
+        );
+
+        const handleDragEnd = (event: DragEndEvent) => {
+          const { active, over } = event;
+          
+          if (over && active.id !== over.id) {
+            const oldIndex = itemsToRender.findIndex(item => item.id === active.id);
+            const newIndex = itemsToRender.findIndex(item => item.id === over.id);
+            
+            const reorderedItems = arrayMove(itemsToRender, oldIndex, newIndex);
+            updateBlock(block.id, { items: reorderedItems });
+          }
+        };
+        
         return (
-          <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
-            {itemsToRender.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
-                <Checkbox
-                  checked={item.checked}
-                  onCheckedChange={(checked) => {
-                    const newItems = [...(block.items || [])];
-                    const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                    newItems[originalIndex] = { ...item, checked: Boolean(checked) };
-                    
-                    // Immediately sort if move completed is enabled
-                    const sortedItems = checklistMoveCompleted
-                      ? [...newItems].sort((a, b) => Number(a.checked) - Number(b.checked))
-                      : newItems;
-                    
-                    updateBlock(block.id, { items: sortedItems });
-                  }}
-                  className="mt-3"
-                />
-                <div 
-                  className="w-full relative"
-                  data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
-                  onKeyDown={(e) => {
-                    // Handle backspace/delete on empty items
-                    if ((e.key === 'Backspace' || e.key === 'Delete')) {
-                      const textContent = item.text.replace(/<[^>]*>/g, '').trim();
-                      if (textContent === '') {
-                        e.preventDefault();
-                        const newItems = [...(block.items || [])];
-                        if (newItems.length > 1) {
-                          const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                          newItems.splice(originalIndex, 1);
-                          updateBlock(block.id, { items: newItems });
-                          // Focus previous item after deletion
-                          if (index > 0) {
-                            setTimeout(() => {
-                              const inputs = document.querySelectorAll(`[data-block-id="${block.id}"] .ProseMirror`);
-                              const prevInput = inputs[index - 1] as HTMLElement;
-                              if (prevInput) prevInput.focus();
-                            }, 0);
-                          }
-                        } else {
-                          // Last remaining item: remove the entire checklist block
-                          const newBlocks = blocks.filter(b => b.id !== block.id);
-                          setBlocks(newBlocks);
-                        }
-                      }
-                    }
-                    
-                    // Handle Enter to create new checkbox (like iOS Notes)
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      
-                      const newItems = [...(block.items || [])];
-                      const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                      const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
-                      newItems.splice(originalIndex + 1, 0, newItem);
-                      updateBlock(block.id, { items: newItems });
-                      
-                      // Focus the new item
-                      setTimeout(() => {
-                        const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
-                        if (newInput) newInput.focus();
-                      }, 0);
-                    }
-                  }}
-                >
-                  <div data-item-id={item.id}>
-                    <RichTextEditor
-                      content={item.text || ''}
-                      onChange={(content) => {
-                        const newItems = [...(block.items || [])];
-                        const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                        // Remove item if text becomes empty (excluding HTML tags)
-                        const textContent = content.replace(/<[^>]*>/g, '').trim();
-                        if (textContent === '') {
-                          // Always remove empty items, even if it's the last one
-                          newItems.splice(originalIndex, 1);
-                          // If this was the last item, remove the entire checklist block
-                          if (newItems.length === 0) {
-                            const newBlocks = blocks.filter(b => b.id !== block.id);
-                            setBlocks(newBlocks);
-                          } else {
-                            updateBlock(block.id, { items: newItems });
-                          }
-                        } else {
-                          newItems[originalIndex] = { ...item, text: content };
-                          updateBlock(block.id, { items: newItems });
-                        }
-                      }}
-                      placeholder="List item..."
-                      className="w-full"
-                      variant="paragraph"
-                      disableEnterKey={true}
-                    />
-                  </div>
-                </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={itemsToRender.map(item => item.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
+                {itemsToRender.map((item, index) => (
+                  <SortableChecklistItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    block={block}
+                    checklistStrikethrough={checklistStrikethrough}
+                    checklistMoveCompleted={checklistMoveCompleted}
+                    blocks={blocks}
+                    updateBlock={updateBlock}
+                    setBlocks={setBlocks}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         );
 
       case 'table':

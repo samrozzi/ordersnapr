@@ -10,6 +10,8 @@ import { PropertyTable } from "@/components/PropertyTable";
 import { Plus, MapPin, MapPinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
+import { ExportButton } from "@/components/ExportButton";
+import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
 
 interface Property {
   id: string;
@@ -33,6 +35,27 @@ const PropertyInfo = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
+
+  // Export columns configuration
+  const exportColumns: ExportColumn<Property>[] = [
+    { key: "property_name", label: "Property Name" },
+    { key: "address", label: "Address" },
+    { key: "contact", label: "Contact" },
+    { key: "access_information", label: "Access Information" },
+    {
+      key: "latitude",
+      label: "Latitude",
+    },
+    {
+      key: "longitude",
+      label: "Longitude",
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      format: (value) => formatDateForExport(value),
+    },
+  ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -173,6 +196,14 @@ const PropertyInfo = () => {
       <FreeTierUsageBanner only={["properties"]} />
 
       <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+        <ExportButton
+          data={properties}
+          columns={exportColumns}
+          filename="properties"
+          variant="outline"
+          size="sm"
+          disabled={properties.length === 0}
+        />
         <FreeTierGuard resource="properties" onAllowed={() => setIsDialogOpen(true)}>
           {({ onClick, disabled }) => (
             <>

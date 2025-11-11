@@ -11,6 +11,8 @@ import { CustomerTable } from "@/components/CustomerTable";
 import { CustomerDetails } from "@/components/CustomerDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExportButton } from "@/components/ExportButton";
+import { ExportColumn, formatCurrencyForExport, formatDateForExport } from "@/lib/export-csv";
 import type { CustomerWithStats } from "@/hooks/use-customers";
 
 const Customers = () => {
@@ -70,6 +72,33 @@ const Customers = () => {
     }).format(cents / 100);
   };
 
+  // Export columns configuration
+  const exportColumns: ExportColumn<CustomerWithStats>[] = [
+    { key: "name", label: "Customer Name" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Phone" },
+    { key: "company", label: "Company" },
+    {
+      key: "total_jobs",
+      label: "Total Jobs",
+    },
+    {
+      key: "total_invoiced_cents",
+      label: "Total Invoiced",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "total_paid_cents",
+      label: "Total Paid",
+      format: (value) => formatCurrencyForExport(value ? value / 100 : 0),
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      format: (value) => formatDateForExport(value),
+    },
+  ];
+
   if (!orgId) {
     return (
       <div className="container mx-auto p-6">
@@ -95,13 +124,21 @@ const Customers = () => {
             <p className="text-muted-foreground">Manage your customers and portal access</p>
           </div>
 
-          <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <SheetTrigger asChild>
-              <Button onClick={handleCreateNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Customer
-              </Button>
-            </SheetTrigger>
+          <div className="flex gap-2">
+            <ExportButton
+              data={filteredCustomers}
+              columns={exportColumns}
+              filename="customers"
+              variant="outline"
+              disabled={filteredCustomers.length === 0}
+            />
+            <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <SheetTrigger asChild>
+                <Button onClick={handleCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Customer
+                </Button>
+              </SheetTrigger>
             <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>
@@ -115,6 +152,7 @@ const Customers = () => {
               />
             </SheetContent>
           </Sheet>
+          </div>
         </div>
 
         {/* Stats Cards */}

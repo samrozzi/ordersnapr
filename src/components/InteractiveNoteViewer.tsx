@@ -92,9 +92,9 @@ const SortableChecklistItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-start gap-2 transition-all duration-500 ease-in-out touch-none"
+      className="flex items-center gap-2 transition-all duration-500 ease-in-out"
     >
-      <div {...attributes} {...listeners} className="mt-2 cursor-grab active:cursor-grabbing touch-none">
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none shrink-0">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
       <Checkbox
@@ -111,10 +111,11 @@ const SortableChecklistItem = ({
           
           updateBlock(block.id, { items: sortedItems });
         }}
-        className="mt-2"
+        className="shrink-0"
       />
       <div 
-        className="flex-1 relative"
+        className="flex-1 relative select-text"
+        style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
         data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
         onKeyDown={(e) => {
           // Handle backspace/delete on empty items

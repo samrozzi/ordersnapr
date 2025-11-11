@@ -16,6 +16,8 @@ import { Plus, Trash2, Save } from "lucide-react";
 import { useInvoices, useInvoiceNumber, InvoiceLineItem } from "@/hooks/use-invoices";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CustomFieldRenderer } from "@/components/custom-fields/CustomFieldRenderer";
+import type { CustomFieldValues } from "@/types/custom-fields";
 
 interface InvoiceFormProps {
   invoice?: any;
@@ -31,6 +33,7 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [taxPercent, setTaxPercent] = useState(0);
+  const [customFieldValues, setCustomFieldValues] = useState<CustomFieldValues>({});
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
@@ -91,6 +94,32 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     }
   }, [invoice, orgId]);
 
+  // Load existing custom field values if editing
+  useEffect(() => {
+    const loadCustomFieldValues = async () => {
+      if (!orgId || !invoice?.id) return;
+
+      const { data: values } = await supabase
+        .from("custom_field_values")
+        .select(`
+          value,
+          custom_fields!inner(field_key)
+        `)
+        .eq("entity_type", "invoices")
+        .eq("entity_id", invoice.id);
+
+      if (values) {
+        const valueMap: CustomFieldValues = {};
+        values.forEach((v: any) => {
+          valueMap[v.custom_fields.field_key] = v.value;
+        });
+        setCustomFieldValues(valueMap);
+      }
+    };
+
+    loadCustomFieldValues();
+  }, [orgId, invoice?.id]);
+
   // Calculate line item amount when quantity or rate changes
   const updateLineItem = (index: number, field: keyof InvoiceLineItem, value: any) => {
     const newItems = [...lineItems];
@@ -150,10 +179,52 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         status: invoice?.status || 'draft',
       };
 
+      let invoiceId: string;
+
       if (invoice) {
         await updateInvoice({ id: invoice.id, updates: invoiceData });
+        invoiceId = invoice.id;
       } else {
-        await createInvoice(invoiceData);
+        const { data: newInvoice } = await supabase
+          .from("invoices")
+          .insert([{ ...invoiceData, org_id: orgId }])
+          .select()
+          .single();
+        invoiceId = newInvoice!.id;
+      }
+
+      // Save custom field values if any
+      if (orgId && Object.keys(customFieldValues).length > 0) {
+        const { data: fields } = await supabase
+          .from("custom_fields")
+          .select("*")
+          .eq("org_id", orgId)
+          .eq("entity_type", "invoices")
+          .eq("is_active", true);
+
+        if (fields && fields.length > 0) {
+          const valuesToUpsert = Object.entries(customFieldValues)
+            .map(([fieldKey, value]) => {
+              const field = fields.find(f => f.field_key === fieldKey);
+              if (!field) return null;
+
+              return {
+                custom_field_id: field.id,
+                entity_type: "invoices" as const,
+                entity_id: invoiceId,
+                value,
+              };
+            })
+            .filter(Boolean);
+
+          if (valuesToUpsert.length > 0) {
+            await supabase
+              .from("custom_field_values")
+              .upsert(valuesToUpsert, {
+                onConflict: "custom_field_id,entity_id",
+              });
+          }
+        }
       }
 
       onSuccess();
@@ -372,6 +443,25 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           />
         </div>
       </div>
+
+      {/* Custom Fields */}
+      {orgId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Additional Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CustomFieldRenderer
+              entityType="invoices"
+              orgId={orgId}
+              values={customFieldValues}
+              onChange={(fieldKey, value) => {
+                setCustomFieldValues(prev => ({ ...prev, [fieldKey]: value }));
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-4 border-t">

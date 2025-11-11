@@ -1,246 +1,226 @@
-/**
- * Activity Feed Component
- * Display team activity stream
- */
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Activity as ActivityIcon,
-  MessageSquare,
-  Share2,
-  CheckCircle,
-  Edit,
-  Trash2,
-  UserPlus,
-  AlertCircle,
-} from 'lucide-react';
-import { useActivities } from '@/hooks/use-activities';
-import { formatDistanceToNow } from 'date-fns';
-import type { Activity, ActivityType } from '@/lib/collaboration-types';
+  Briefcase,
+  FileText,
+  Calendar,
+  Home,
+  DollarSign,
+  User,
+  Clock,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-interface ActivityFeedProps {
-  limit?: number;
-  showHeader?: boolean;
-  className?: string;
+interface ActivityItem {
+  id: string;
+  type: "work_order" | "form_submission" | "calendar_event" | "property" | "invoice";
+  action: "created" | "updated" | "completed" | "submitted";
+  title: string;
+  user_name: string;
+  user_initials: string;
+  created_at: string;
+  entity_id: string;
 }
 
-export function ActivityFeed({ limit = 50, showHeader = true, className }: ActivityFeedProps) {
-  const { data: activities = [], isLoading } = useActivities(limit);
+const iconMap = {
+  work_order: Briefcase,
+  form_submission: FileText,
+  calendar_event: Calendar,
+  property: Home,
+  invoice: DollarSign,
+};
+
+const actionLabels = {
+  created: "created",
+  updated: "updated",
+  completed: "completed",
+  submitted: "submitted",
+};
+
+export function ActivityFeed({ limit = 10 }: { limit?: number }) {
+  const { user } = useAuth();
+
+  const { data: activities = [], isLoading } = useQuery({
+    queryKey: ["activity-feed", user?.id, limit],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      // Get user's org_id
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.organization_id) return [];
+
+      const activities: ActivityItem[] = [];
+
+      // Fetch recent work orders
+      const { data: workOrders } = await supabase
+        .from("work_orders")
+        .select(`
+          id,
+          title,
+          status,
+          created_at,
+          updated_at,
+          creator:profiles!work_orders_user_id_fkey(full_name, email)
+        `)
+        .eq("organization_id", profile.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (workOrders) {
+        workOrders.forEach((wo: any) => {
+          const name = wo.creator?.full_name || wo.creator?.email || "Unknown";
+          const initials = name
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+
+          activities.push({
+            id: `wo-${wo.id}`,
+            type: "work_order",
+            action: wo.status === "completed" ? "completed" : "created",
+            title: wo.title || "Untitled Work Order",
+            user_name: name,
+            user_initials: initials,
+            created_at: wo.created_at,
+            entity_id: wo.id,
+          });
+        });
+      }
+
+      // Fetch recent form submissions
+      const { data: formSubmissions } = await supabase
+        .from("form_submissions")
+        .select(`
+          id,
+          status,
+          created_at,
+          created_by,
+          form_templates(name)
+        `)
+        .eq("org_id", profile.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (formSubmissions) {
+        formSubmissions.forEach((fs: any) => {
+          activities.push({
+            id: `fs-${fs.id}`,
+            type: "form_submission",
+            action: "submitted",
+            title: fs.form_templates?.name || "Form",
+            user_name: "User",
+            user_initials: "U",
+            created_at: fs.created_at,
+            entity_id: fs.id,
+          });
+        });
+      }
+
+      // Fetch recent calendar events
+      const { data: events } = await supabase
+        .from("calendar_events")
+        .select(`
+          id,
+          title,
+          created_at,
+          created_by
+        `)
+        .eq("organization_id", profile.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (events) {
+        events.forEach((event: any) => {
+          activities.push({
+            id: `event-${event.id}`,
+            type: "calendar_event",
+            action: "created",
+            title: event.title || "Event",
+            user_name: "User",
+            user_initials: "U",
+            created_at: event.created_at,
+            entity_id: event.id,
+          });
+        });
+      }
+
+      // Sort by created_at
+      activities.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return activities.slice(0, limit);
+    },
+    enabled: !!user?.id,
+    staleTime: 60000, // 1 minute
+  });
 
   return (
-    <Card className={className}>
-      {showHeader && (
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ActivityIcon className="h-5 w-5" />
-            Team Activity
-          </CardTitle>
-          <CardDescription>Recent activity from your team</CardDescription>
-        </CardHeader>
-      )}
-
-      <CardContent className={showHeader ? '' : 'p-0'}>
-        <ScrollArea className="h-[600px] pr-4">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Recent Activity
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px] pr-4">
           {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center h-32">
+              <p className="text-sm text-muted-foreground">Loading...</p>
             </div>
           ) : activities.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <ActivityIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p className="text-sm">No recent activity</p>
+            <div className="flex items-center justify-center h-32">
+              <p className="text-sm text-muted-foreground">No recent activity</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {activities.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
-              ))}
+              {activities.map((activity) => {
+                const Icon = iconMap[activity.type];
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 group hover:bg-accent/50 p-2 rounded-lg transition-colors"
+                  >
+                    <Avatar className="h-8 w-8 mt-0.5">
+                      <AvatarFallback className="text-xs">
+                        {activity.user_initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <p className="text-sm">
+                          <span className="font-medium">{activity.user_name}</span>{" "}
+                          {actionLabels[activity.action]}{" "}
+                          <span className="font-medium">{activity.title}</span>
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(activity.created_at), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
       </CardContent>
     </Card>
   );
-}
-
-// ============================================================================
-// Activity Item Component
-// ============================================================================
-
-interface ActivityItemProps {
-  activity: Activity;
-}
-
-function ActivityItem({ activity }: ActivityItemProps) {
-  const userDisplayName = activity.username
-    ? `@${activity.username}`
-    : activity.user_full_name || activity.user_email || 'Unknown';
-
-  const initials = activity.user_full_name
-    ? activity.user_full_name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : activity.user_email?.[0]?.toUpperCase() || '?';
-
-  const icon = getActivityIcon(activity.activity_type);
-  const iconColor = getActivityIconColor(activity.activity_type);
-  const description = getActivityDescription(activity);
-
-  return (
-    <div className="flex gap-3 group">
-      <Avatar className="h-10 w-10">
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <p className="text-sm">
-              <span className="font-medium">{userDisplayName}</span>{' '}
-              <span className="text-muted-foreground">{description}</span>
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className={`flex items-center gap-1 text-xs ${iconColor}`}>
-                {icon}
-                <span className="capitalize">{activity.activity_type.replace('_', ' ')}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-              </span>
-            </div>
-          </div>
-
-          <Badge variant="outline" className="text-xs">
-            {getEntityTypeLabel(activity.entity_type)}
-          </Badge>
-        </div>
-
-        {/* Additional metadata for certain activity types */}
-        {activity.activity_type === 'status_change' && activity.metadata?.new_status && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            Status: <span className="font-medium">{activity.metadata.old_status}</span> →{' '}
-            <span className="font-medium">{activity.metadata.new_status}</span>
-          </div>
-        )}
-
-        {activity.activity_type === 'comment' && activity.metadata?.content_preview && (
-          <div className="mt-2 p-2 bg-muted rounded text-xs text-muted-foreground">
-            "{activity.metadata.content_preview}
-            {activity.metadata.content_preview.length >= 100 ? '...' : ''}"
-          </div>
-        )}
-
-        {activity.activity_type === 'share' && activity.metadata?.message && (
-          <div className="mt-2 p-2 bg-muted rounded text-xs text-muted-foreground">
-            "{activity.metadata.message}"
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function getActivityIcon(type: ActivityType) {
-  const iconClass = 'h-3 w-3';
-
-  switch (type) {
-    case 'comment':
-      return <MessageSquare className={iconClass} />;
-    case 'share':
-      return <Share2 className={iconClass} />;
-    case 'complete':
-    case 'status_change':
-      return <CheckCircle className={iconClass} />;
-    case 'create':
-      return <UserPlus className={iconClass} />;
-    case 'update':
-      return <Edit className={iconClass} />;
-    case 'delete':
-      return <Trash2 className={iconClass} />;
-    case 'mention':
-      return <AlertCircle className={iconClass} />;
-    default:
-      return <ActivityIcon className={iconClass} />;
-  }
-}
-
-function getActivityIconColor(type: ActivityType): string {
-  switch (type) {
-    case 'comment':
-      return 'text-blue-600';
-    case 'share':
-      return 'text-purple-600';
-    case 'complete':
-      return 'text-green-600';
-    case 'status_change':
-      return 'text-orange-600';
-    case 'create':
-      return 'text-green-600';
-    case 'update':
-      return 'text-blue-600';
-    case 'delete':
-      return 'text-red-600';
-    case 'mention':
-      return 'text-yellow-600';
-    default:
-      return 'text-muted-foreground';
-  }
-}
-
-function getActivityDescription(activity: Activity): string {
-  const entityLabel = getEntityTypeLabel(activity.entity_type).toLowerCase();
-
-  switch (activity.activity_type) {
-    case 'comment':
-      return `commented on a ${entityLabel}`;
-    case 'share':
-      return `shared a ${entityLabel}`;
-    case 'complete':
-      return `completed a ${entityLabel}`;
-    case 'status_change':
-      return `changed status of a ${entityLabel}`;
-    case 'create':
-      return `created a ${entityLabel}`;
-    case 'update':
-      return `updated a ${entityLabel}`;
-    case 'delete':
-      return `deleted a ${entityLabel}`;
-    case 'mention':
-      return `mentioned someone in a ${entityLabel}`;
-    case 'assignment':
-      return `assigned a ${entityLabel}`;
-    default:
-      return `performed an action on a ${entityLabel}`;
-  }
-}
-
-function getEntityTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    work_order: 'Work Order',
-    note: 'Note',
-    invoice: 'Invoice',
-    customer: 'Customer',
-    property: 'Property',
-    form_submission: 'Form',
-    comment: 'Comment',
-  };
-  return labels[type] || type;
 }

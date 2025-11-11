@@ -120,6 +120,7 @@ export function useSetUsername() {
         // Invalidate user profile queries
         queryClient.invalidateQueries({ queryKey: ['profile'] });
         queryClient.invalidateQueries({ queryKey: ['user'] });
+        queryClient.invalidateQueries({ queryKey: ['user-has-username'] });
       }
     },
   });

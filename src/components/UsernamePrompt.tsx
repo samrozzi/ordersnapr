@@ -41,7 +41,7 @@ export function UsernamePrompt({ open, userEmail, userFullName }: UsernamePrompt
   const { data: availabilityData, isLoading: checkingAvailability } = useUsernameAvailability(username);
 
   const validation = validateUsername(username);
-  const isAvailable = availabilityData?.available ?? false;
+  const isAvailable = (availabilityData as { available: boolean } | undefined)?.available ?? false;
   const canSubmit = validation.isValid && isAvailable && !setUsernameMutation.isPending;
 
   // Generate suggestions on mount

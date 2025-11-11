@@ -26,7 +26,7 @@ export function useActivities(limit: number = 50) {
       }
 
       const { data, error } = await supabase.rpc('get_recent_activities', {
-        org_id: activeOrg.id,
+        org_filter: activeOrg.id,
         limit_count: limit,
       });
 

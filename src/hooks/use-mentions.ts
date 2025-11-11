@@ -34,7 +34,7 @@ export function useUserSearch(searchQuery: string, enabled: boolean = true) {
 
       const { data, error } = await supabase.rpc('search_users_for_mention', {
         search_query: searchQuery,
-        org_id: activeOrg?.id || null,
+        org_filter: activeOrg?.id || null,
       });
 
       if (error) {

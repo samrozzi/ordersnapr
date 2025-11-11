@@ -33,7 +33,7 @@ export function UsernameStep({ username, onUpdate, onNext, onBack }: UsernameSte
     useUsernameAvailability(localUsername);
 
   const validation = validateUsername(localUsername);
-  const isAvailable = availabilityData?.available ?? false;
+  const isAvailable = (availabilityData as { available: boolean } | undefined)?.available ?? false;
   const canProceed = validation.isValid && isAvailable;
 
   // Fetch user info and generate suggestions on mount

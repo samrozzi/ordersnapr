@@ -97,9 +97,12 @@ export function useSetUsername() {
 
   return useMutation({
     mutationFn: async (username: string): Promise<SetUsernameResult> => {
+      console.log('[useSetUsername] Setting username:', username);
+      
       // Client-side validation
       const validation = validateUsername(username);
       if (!validation.isValid) {
+        console.log('[useSetUsername] Validation failed:', validation.error);
         return { success: false, error: validation.error };
       }
 
@@ -109,14 +112,17 @@ export function useSetUsername() {
       });
 
       if (error) {
-        console.error('Error setting username:', error);
+        console.error('[useSetUsername] Error setting username:', error);
         return { success: false, error: error.message };
       }
 
+      console.log('[useSetUsername] RPC response:', data);
       return data as SetUsernameResult;
     },
     onSuccess: (result) => {
+      console.log('[useSetUsername] Mutation success:', result);
       if (result.success) {
+        console.log('[useSetUsername] Invalidating queries...');
         // Invalidate user profile queries
         queryClient.invalidateQueries({ queryKey: ['profile'] });
         queryClient.invalidateQueries({ queryKey: ['user'] });
@@ -137,13 +143,18 @@ export function useHasUsername() {
   return useQuery({
     queryKey: ['user-has-username'],
     queryFn: async (): Promise<boolean> => {
+      console.log('[useHasUsername] Checking if user has username...');
+      
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
+        console.log('[useHasUsername] No user found');
         return false;
       }
+
+      console.log('[useHasUsername] User ID:', user.id);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -152,12 +163,17 @@ export function useHasUsername() {
         .single();
 
       if (error) {
-        console.error('Error checking username:', error);
+        console.error('[useHasUsername] Error checking username:', error);
         return false;
       }
 
-      return !!data?.username;
+      const hasUsername = !!data?.username;
+      console.log('[useHasUsername] Username from DB:', data?.username, 'Has username:', hasUsername);
+      
+      return hasUsername;
     },
+    staleTime: 0, // Always refetch
+    gcTime: 0, // Don't cache
   });
 }
 

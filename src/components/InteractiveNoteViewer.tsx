@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, GripVertical } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, GripVertical, Lock, LockOpen } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -63,6 +63,7 @@ const SortableChecklistItem = ({
   blocks,
   updateBlock,
   setBlocks,
+  isPresentationMode,
 }: {
   item: any;
   index: number;
@@ -72,6 +73,7 @@ const SortableChecklistItem = ({
   blocks: NoteBlock[];
   updateBlock: (id: string, updates: Partial<NoteBlock>) => void;
   setBlocks: (blocks: NoteBlock[]) => void;
+  isPresentationMode: boolean;
 }) => {
   const {
     attributes,
@@ -94,9 +96,11 @@ const SortableChecklistItem = ({
       style={style}
       className="flex items-center gap-2 transition-all duration-500 ease-in-out"
     >
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none shrink-0">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
+      {!isPresentationMode && (
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none shrink-0">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
       <Checkbox
         checked={item.checked}
         onCheckedChange={(checked) => {
@@ -166,33 +170,40 @@ const SortableChecklistItem = ({
         }}
       >
         <div data-item-id={item.id}>
-          <RichTextEditor
-            content={item.text || ''}
-            onChange={(content) => {
-              const newItems = [...(block.items || [])];
-              const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-              // Remove item if text becomes empty (excluding HTML tags)
-              const textContent = content.replace(/<[^>]*>/g, '').trim();
-              if (textContent === '') {
-                // Always remove empty items, even if it's the last one
-                newItems.splice(originalIndex, 1);
-                // If this was the last item, remove the entire checklist block
-                if (newItems.length === 0) {
-                  const newBlocks = blocks.filter(b => b.id !== block.id);
-                  setBlocks(newBlocks);
+          {isPresentationMode ? (
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: item.text || '' }}
+            />
+          ) : (
+            <RichTextEditor
+              content={item.text || ''}
+              onChange={(content) => {
+                const newItems = [...(block.items || [])];
+                const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
+                // Remove item if text becomes empty (excluding HTML tags)
+                const textContent = content.replace(/<[^>]*>/g, '').trim();
+                if (textContent === '') {
+                  // Always remove empty items, even if it's the last one
+                  newItems.splice(originalIndex, 1);
+                  // If this was the last item, remove the entire checklist block
+                  if (newItems.length === 0) {
+                    const newBlocks = blocks.filter(b => b.id !== block.id);
+                    setBlocks(newBlocks);
+                  } else {
+                    updateBlock(block.id, { items: newItems });
+                  }
                 } else {
+                  newItems[originalIndex] = { ...item, text: content };
                   updateBlock(block.id, { items: newItems });
                 }
-              } else {
-                newItems[originalIndex] = { ...item, text: content };
-                updateBlock(block.id, { items: newItems });
-              }
-            }}
-            placeholder="List item..."
-            className="w-full"
-            variant="paragraph"
-            disableEnterKey={true}
-          />
+              }}
+              placeholder="List item..."
+              className="w-full"
+              variant="paragraph"
+              disableEnterKey={true}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -211,6 +222,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   // Clean up checklist items - remove empty checklists entirely
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
@@ -409,7 +421,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         const HeadingTag = `h${block.level || 1}` as 'h1' | 'h2' | 'h3';
         const headingClass = block.level === 1 ? 'text-3xl' : block.level === 2 ? 'text-2xl' : 'text-xl';
         
-        return editingBlockId === block.id ? (
+        return editingBlockId === block.id && !isPresentationMode ? (
           <RichTextEditor
             content={block.content || ''}
             onChange={(content) => updateBlock(block.id, { content })}
@@ -419,15 +431,18 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <HeadingTag
-            className={`font-bold ${headingClass} cursor-text hover:bg-accent/10 rounded px-2 py-1 -mx-2`}
-            onClick={() => setEditingBlockId(block.id)}
+            className={cn(
+              `font-bold ${headingClass} rounded px-2 py-1 -mx-2`,
+              !isPresentationMode && 'cursor-text hover:bg-accent/10'
+            )}
+            onClick={() => !isPresentationMode && setEditingBlockId(block.id)}
           >
-            {block.content || 'Click to edit heading...'}
+            {block.content || (!isPresentationMode ? 'Click to edit heading...' : '')}
           </HeadingTag>
         );
 
       case 'paragraph':
-        return editingBlockId === block.id ? (
+        return editingBlockId === block.id && !isPresentationMode ? (
           <RichTextEditor
             content={block.content || ''}
             onChange={(content) => updateBlock(block.id, { content })}
@@ -436,13 +451,16 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <div
-            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em]"
-            onClick={() => setEditingBlockId(block.id)}
+            className={cn(
+              'rounded px-2 py-2 -mx-2 min-h-[2em]',
+              !isPresentationMode && 'cursor-text hover:bg-accent/10'
+            )}
+            onClick={() => !isPresentationMode && setEditingBlockId(block.id)}
           >
             <div 
               className="ProseMirror"
               style={{ display: 'block', whiteSpace: 'normal' }}
-              dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
+              dangerouslySetInnerHTML={{ __html: block.content || (!isPresentationMode ? '<p class="text-muted-foreground">Click to start writing...</p>' : '') }}
             />
           </div>
         );
@@ -494,6 +512,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                     blocks={blocks}
                     updateBlock={updateBlock}
                     setBlocks={setBlocks}
+                    isPresentationMode={isPresentationMode}
                   />
                 ))}
               </div>
@@ -536,6 +555,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                             updateBlock(block.id, { rows: newRows });
                           }}
                           className="border-none shadow-none focus-visible:ring-1 bg-transparent"
+                          readOnly={isPresentationMode}
+                          disabled={isPresentationMode}
                         />
                       </td>
                     ))}
@@ -623,6 +644,18 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <Button variant="ghost" size="sm" onClick={handleTogglePin}>
             <Pin className={`h-4 w-4 ${isPinned ? 'fill-primary text-primary' : ''}`} />
           </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsPresentationMode(!isPresentationMode)}
+            title={isPresentationMode ? "Exit presentation mode" : "Enter presentation mode"}
+          >
+            {isPresentationMode ? (
+              <Lock className="h-4 w-4 fill-blue-500 text-blue-500" />
+            ) : (
+              <LockOpen className="h-4 w-4" />
+            )}
+          </Button>
           {linkedEntityName && (
             <Badge variant="outline" className="gap-1">
               <LinkIcon className="h-3 w-3" />
@@ -682,12 +715,14 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       </div>
 
       {/* Formatting Toolbar - sticky under header */}
-      <div className="sticky top-0 z-50 bg-background border-b p-2 shadow-sm">
-        <SharedFormattingToolbar 
-          onInsertChecklist={insertChecklistBlock}
-          onConvertSelectionToChecklist={convertSelectionToChecklist}
-        />
-      </div>
+      {!isPresentationMode && (
+        <div className="sticky top-0 z-50 bg-background border-b p-2 shadow-sm">
+          <SharedFormattingToolbar 
+            onInsertChecklist={insertChecklistBlock}
+            onConvertSelectionToChecklist={convertSelectionToChecklist}
+          />
+        </div>
+      )}
 
       {/* Note Content */}
       <div
@@ -708,6 +743,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Note title..."
           className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0 mb-6"
+          readOnly={isPresentationMode}
+          disabled={isPresentationMode}
         />
 
         {/* Blocks */}

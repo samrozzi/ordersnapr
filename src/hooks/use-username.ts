@@ -61,19 +61,25 @@ export function useUsernameAvailability(username: string) {
         return { available: false };
       }
 
+      console.log('[DEBUG] Checking availability for username:', username);
+
       const { data, error } = await supabase.rpc('is_username_available', {
         check_username: username,
       });
+
+      console.log('[DEBUG] RPC response - data:', data, 'error:', error);
 
       if (error) {
         console.error('Error checking username availability:', error);
         return { available: false };
       }
 
+      console.log('[DEBUG] Returning availability:', data);
       return { available: data as boolean };
     },
     enabled: username.length >= 3,
-    staleTime: 5000, // Consider data fresh for 5 seconds
+    staleTime: 0, // Disable caching to always fetch fresh data
+    cacheTime: 0, // Don't cache results
   });
 }
 

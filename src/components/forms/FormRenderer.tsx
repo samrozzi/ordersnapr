@@ -588,9 +588,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       }
       
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting form:", error);
-      toast.error("Failed to submit form");
+      toast.error(error?.message || "Failed to submit form");
     }
   };
 

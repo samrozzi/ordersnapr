@@ -41,6 +41,7 @@ export const SharedFormattingToolbar = ({
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const keyboardHeight = useKeyboardHeight();
+  const selectionRef = useRef<{ from: number; to: number } | null>(null);
 
   const getCurrentFontSize = () => {
     if (!activeEditor) return "1rem";
@@ -57,7 +58,17 @@ export const SharedFormattingToolbar = ({
   const handleFontSizeChange = (size: string) => {
     if (!activeEditor) return;
     handleToolbarAction(() => {
-      activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+      // Restore captured selection if it exists
+      if (selectionRef.current) {
+        const { from, to } = selectionRef.current;
+        activeEditor.chain()
+          .setTextSelection({ from, to })
+          .setMark('textStyle', { fontSize: size })
+          .run();
+        selectionRef.current = null;
+      } else {
+        activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+      }
     });
   };
 
@@ -84,8 +95,7 @@ export const SharedFormattingToolbar = ({
       data-formatting-toolbar
       className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
       style={{ 
-        bottom: `${keyboardHeight}px`,
-        transition: 'bottom 0.3s ease-out'
+        bottom: `${keyboardHeight}px`
       }}
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
@@ -143,6 +153,11 @@ export const SharedFormattingToolbar = ({
             onMouseDown={(e) => {
               e.preventDefault();
               setToolbarLocked(true);
+              // Capture current selection before dropdown opens
+              if (activeEditor) {
+                const { from, to } = activeEditor.state.selection;
+                selectionRef.current = { from, to };
+              }
             }}
             onBlur={() => setTimeout(() => setToolbarLocked(false), 100)}
           >

@@ -51,7 +51,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
 
-  // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
+  // Clean up checklist items - remove empty checklists entirely
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
     return blocks.filter(block => {
       // Keep non-checklist blocks as-is
@@ -60,10 +60,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       }
       
       // For checklist blocks, filter out empty/placeholder items
-      const validItems = block.items.filter(item => 
-        item.text.trim() !== '' && 
-        item.text !== 'List item... (press Enter for new item)'
-      );
+      const validItems = block.items.filter(item => {
+        const textContent = item.text.replace(/<[^>]*>/g, '').trim();
+        return textContent !== '' && textContent !== 'List item... (press Enter for new item)';
+      });
       
       // If there are valid items, keep them
       if (validItems.length > 0) {
@@ -71,9 +71,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         return true;
       }
       
-      // Keep checklist with at least one empty item - don't remove empty checklists
-      block.items = [{ id: `item-${Date.now()}`, checked: false, text: '' }];
-      return true;
+      // Remove empty checklists entirely - no placeholders
+      return false;
     }).map(block => {
       // Return a new object to avoid mutations
       if (block.type === 'checklist' && block.items) {

@@ -18,6 +18,7 @@ import { useBulkSelect } from "@/hooks/use-bulk-select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { CustomerWithStats } from "@/hooks/use-customers";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const Customers = () => {
   const { customers, isLoading, orgId, refetch } = useCustomers({ includeStats: true });
@@ -153,7 +154,9 @@ const Customers = () => {
 
   return (
     <PremiumFeatureGuard feature="customers" featureName="Customers">
-      <div className="container mx-auto p-6 space-y-6">
+      <>
+        <PullToRefresh onRefresh={refetch} />
+        <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -344,7 +347,8 @@ const Customers = () => {
             },
           ]}
         />
-      </div>
+        </div>
+      </>
     </PremiumFeatureGuard>
   );
 };

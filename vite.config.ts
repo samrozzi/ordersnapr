@@ -19,49 +19,101 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB limit for large background images
         runtimeCaching: [
+          // Supabase Storage - Cache first for images and files
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'supabase-storage',
+              cacheName: 'supabase-storage-v1',
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },
+          // Supabase REST API - Network first with offline fallback
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/(work_orders|customers|properties|invoices).*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-data-v1',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 10, // 10 minutes
+              },
+              networkTimeoutSeconds: 8,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Other Supabase API endpoints
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-api',
+              cacheName: 'supabase-api-v1',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 5,
+                maxAgeSeconds: 60 * 5, // 5 minutes
               },
               networkTimeoutSeconds: 10,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Google Fonts - Cache first
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-stylesheets-v1',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts-v1',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
             },
           },
         ],
       },
       manifest: {
-        name: 'OrderSnapr',
+        name: 'OrderSnapr - Work Order Management',
         short_name: 'OrderSnapr',
-        description: 'Work order management system',
+        description: 'Professional work order, customer, and property management system with offline support',
         theme_color: '#0EA5E9',
         background_color: '#ffffff',
         display: 'standalone',
+        orientation: 'portrait-primary',
         start_url: '/',
+        scope: '/',
+        categories: ['business', 'productivity', 'utilities'],
         icons: [
-          {
-            src: '/favicon-180.png',
-            sizes: '180x180',
-            type: 'image/png',
-          },
           {
             src: '/favicon-48.png',
             sizes: '48x48',
             type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/favicon-180.png',
+            sizes: '180x180',
+            type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },

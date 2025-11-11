@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 interface Property {
   id: string;
@@ -190,8 +191,10 @@ const PropertyInfo = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
+    <>
+      <PullToRefresh onRefresh={fetchProperties} />
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
       <FreeTierUsageBanner only={["properties"]} />
 
@@ -255,12 +258,13 @@ const PropertyInfo = () => {
         </div>
       )}
 
-      <PropertyTable 
-        properties={properties} 
+      <PropertyTable
+        properties={properties}
         onUpdate={fetchProperties}
         userLocation={userLocation}
       />
-    </div>
+      </div>
+    </>
   );
 };
 

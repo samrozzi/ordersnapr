@@ -15,6 +15,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { MigrationChecker } from "@/components/MigrationChecker";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { AppUpdateNotification } from "@/components/AppUpdateNotification";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
@@ -63,6 +65,8 @@ const AppContent = () => {
     <>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
+      <AppUpdateNotification />
       <BrowserRouter>
         <FeatureProvider>
           <MigrationChecker />

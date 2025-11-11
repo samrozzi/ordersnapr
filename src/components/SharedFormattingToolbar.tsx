@@ -22,7 +22,7 @@ import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
+
 
 interface SharedFormattingToolbarProps {
   onInsertChecklist?: () => void;
@@ -40,7 +40,7 @@ export const SharedFormattingToolbar = ({
   const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const keyboardHeight = useKeyboardHeight();
+  
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
 
   const getCurrentFontSize = () => {

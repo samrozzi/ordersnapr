@@ -290,24 +290,15 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                   checked={item.checked}
                   onCheckedChange={(checked) => {
                     const newItems = [...(block.items || [])];
-                    newItems[index] = { ...item, checked: checked as boolean };
+                    newItems[index] = { ...item, checked: Boolean(checked) };
                     updateBlock(block.id, { items: newItems });
-                    
-                    if (checked && checklistMoveCompleted) {
-                      setTimeout(() => {
-                        const newItemsSorted = [...newItems];
-                        const [completedItem] = newItemsSorted.splice(index, 1);
-                        newItemsSorted.push(completedItem);
-                        updateBlock(block.id, { items: newItemsSorted });
-                      }, 300);
-                    }
                   }}
                   className="mt-3"
                 />
                 <div 
                   className={cn(
                     "w-full relative",
-                    item.checked && checklistStrikethrough && 'opacity-60'
+                    item.checked && checklistStrikethrough && 'opacity-60 line-through'
                   )}
                   onKeyDown={(e) => {
                     // Handle backspace/delete on empty items
@@ -574,6 +565,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         className="flex-1 overflow-y-auto p-6"
         style={{ backgroundColor: note.background_color || undefined }}
       >
+        <SharedFormattingToolbar 
+          onInsertChecklist={insertChecklistBlock}
+          onConvertSelectionToChecklist={convertSelectionToChecklist}
+        />
         {/* Banner */}
         {note.banner_image && (
           <div
@@ -604,10 +599,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
-      <SharedFormattingToolbar 
-        onInsertChecklist={insertChecklistBlock}
-        onConvertSelectionToChecklist={convertSelectionToChecklist}
-      />
     </div>
     </EditorFocusProvider>
   );

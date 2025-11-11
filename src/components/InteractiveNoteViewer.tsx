@@ -279,7 +279,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
             onClick={() => setEditingBlockId(block.id)}
           >
             <div 
-              className="ProseMirror prose prose-sm max-w-none"
+              className="ProseMirror"
+              style={{ display: 'block', whiteSpace: 'normal' }}
               dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
             />
           </div>

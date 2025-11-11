@@ -275,7 +275,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <div
-            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em] prose prose-sm max-w-none"
+            className="rich-content cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em]"
             onClick={() => setEditingBlockId(block.id)}
             dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
           />
@@ -567,14 +567,16 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       </div>
 
       {/* Formatting Toolbar - sticky under header */}
-      <SharedFormattingToolbar 
-        onInsertChecklist={insertChecklistBlock}
-        onConvertSelectionToChecklist={convertSelectionToChecklist}
-      />
+      <div className="sticky top-0 z-50 bg-background border-b p-2 shadow-sm">
+        <SharedFormattingToolbar 
+          onInsertChecklist={insertChecklistBlock}
+          onConvertSelectionToChecklist={convertSelectionToChecklist}
+        />
+      </div>
 
       {/* Note Content */}
       <div
-        className="flex-1 overflow-y-auto px-6 pb-6 pt-2"
+        className="flex-1 overflow-y-auto px-6 pb-6 pt-0"
         style={{ backgroundColor: note.background_color || undefined }}
       >
         {/* Banner */}

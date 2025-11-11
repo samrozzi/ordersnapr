@@ -45,15 +45,21 @@ export function useCustomFields({ entityType, orgId }: UseCustomFieldsOptions) {
 
   // Create field mutation
   const createFieldMutation = useMutation({
-    mutationFn: async (field: Omit<CustomField, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      const { data, error } = await supabase
+    mutationFn: async (field: Omit<CustomField, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error} = await supabase
         .from('custom_fields')
-        .insert({
-          ...field,
-          created_by: userData.user?.id,
-        })
+        .insert([{
+          org_id: field.org_id,
+          entity_type: field.entity_type,
+          field_name: field.field_name,
+          field_key: field.field_key,
+          field_type: field.field_type,
+          field_config: JSON.parse(JSON.stringify(field.field_config || {})),
+          display_order: field.display_order,
+          is_required: field.is_required,
+          is_active: field.is_active,
+          created_by: field.created_by,
+        }])
         .select()
         .single();
 
@@ -80,9 +86,14 @@ export function useCustomFields({ entityType, orgId }: UseCustomFieldsOptions) {
   // Update field mutation
   const updateFieldMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CustomField> }) => {
+      const cleanUpdates: any = { ...updates };
+      if (cleanUpdates.field_config) {
+        cleanUpdates.field_config = JSON.parse(JSON.stringify(cleanUpdates.field_config));
+      }
+      
       const { data, error } = await supabase
         .from('custom_fields')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();

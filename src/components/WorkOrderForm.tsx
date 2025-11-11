@@ -83,14 +83,16 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       if (workOrder?.id && effectiveOrgId) {
         const { data: values } = await supabase
           .from("custom_field_values")
-          .select("*, custom_fields!inner(*)")
+          .select("value, custom_field_id, custom_fields(field_key)")
           .eq("entity_type", "work_orders")
           .eq("entity_id", workOrder.id);
 
         if (values) {
           const valuesMap: CustomFieldValues = {};
           values.forEach((v: any) => {
-            valuesMap[v.custom_fields.field_key] = v.value;
+            if (v.custom_fields?.field_key) {
+              valuesMap[v.custom_fields.field_key] = v.value;
+            }
           });
           setCustomFieldValues(valuesMap);
         }
@@ -286,7 +288,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       if (orgId && Object.keys(customFieldValues).length > 0) {
         const { data: fields } = await supabase
           .from("custom_fields")
-          .select("*")
+          .select("id, field_key")
           .eq("org_id", orgId)
           .eq("entity_type", "work_orders")
           .eq("is_active", true);
@@ -304,7 +306,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
                 value,
               };
             })
-            .filter(Boolean);
+            .filter((item): item is { custom_field_id: string; entity_type: "work_orders"; entity_id: string; value: any } => item !== null);
 
           if (customFieldRows.length > 0) {
             await supabase

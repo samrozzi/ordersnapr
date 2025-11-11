@@ -43,7 +43,7 @@ export function useCustomFieldValues({ entityType, entityId, orgId }: UseCustomF
       // Convert to key-value map
       const valueMap: CustomFieldValues = {};
 
-      data.forEach((val: CustomFieldValue) => {
+      data.forEach((val) => {
         const field = fields.find(f => f.id === val.custom_field_id);
         if (field) {
           valueMap[field.field_key] = val.value;

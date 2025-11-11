@@ -101,17 +101,16 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
       const { data: values } = await supabase
         .from("custom_field_values")
-        .select(`
-          value,
-          custom_fields!inner(field_key)
-        `)
+        .select("value, custom_field_id, custom_fields(field_key)")
         .eq("entity_type", "invoices")
         .eq("entity_id", invoice.id);
 
       if (values) {
         const valueMap: CustomFieldValues = {};
         values.forEach((v: any) => {
-          valueMap[v.custom_fields.field_key] = v.value;
+          if (v.custom_fields?.field_key) {
+            valueMap[v.custom_fields.field_key] = v.value;
+          }
         });
         setCustomFieldValues(valueMap);
       }
@@ -197,7 +196,7 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       if (orgId && Object.keys(customFieldValues).length > 0) {
         const { data: fields } = await supabase
           .from("custom_fields")
-          .select("*")
+          .select("id, field_key")
           .eq("org_id", orgId)
           .eq("entity_type", "invoices")
           .eq("is_active", true);
@@ -215,7 +214,7 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
                 value,
               };
             })
-            .filter(Boolean);
+            .filter((item): item is { custom_field_id: string; entity_type: "invoices"; entity_id: string; value: any } => item !== null);
 
           if (valuesToUpsert.length > 0) {
             await supabase

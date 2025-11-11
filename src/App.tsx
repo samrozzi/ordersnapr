@@ -26,7 +26,7 @@ import NotFound from "./pages/NotFound";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
-const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
+const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin").then(m => ({ default: m.CustomFieldsAdmin })));
 const Profile = lazy(() => import("./pages/Profile"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));

@@ -3,7 +3,7 @@
  * Handles username validation, availability checking, and setting
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
@@ -140,26 +140,36 @@ export function useSetUsername() {
  * Hook to check if current user has set a username
  */
 export function useHasUsername() {
-  return useQuery({
-    queryKey: ['user-has-username'],
-    queryFn: async (): Promise<boolean> => {
-      console.log('[useHasUsername] Checking if user has username...');
-      
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  const [userId, setUserId] = useState<string | null>(null);
 
-      if (!user) {
-        console.log('[useHasUsername] No user found');
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return useQuery({
+    queryKey: ['user-has-username', userId],
+    queryFn: async (): Promise<boolean> => {
+      if (!userId) {
+        console.log('[useHasUsername] No user ID available');
         return false;
       }
 
-      console.log('[useHasUsername] User ID:', user.id);
+      console.log('[useHasUsername] Checking username for user:', userId);
 
       const { data, error } = await supabase
         .from('profiles')
         .select('username')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
 
       if (error) {
@@ -172,6 +182,7 @@ export function useHasUsername() {
       
       return hasUsername;
     },
+    enabled: !!userId, // Only run when we have a user ID
     staleTime: 0, // Always refetch
     gcTime: 0, // Don't cache
   });

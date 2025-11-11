@@ -4,23 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, GripVertical, Lock, LockOpen } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -54,164 +38,8 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-const SortableChecklistItem = ({
-  item,
-  index,
-  block,
-  checklistStrikethrough,
-  checklistMoveCompleted,
-  blocks,
-  updateBlock,
-  setBlocks,
-  isPresentationMode,
-}: {
-  item: any;
-  index: number;
-  block: NoteBlock;
-  checklistStrikethrough: boolean;
-  checklistMoveCompleted: boolean;
-  blocks: NoteBlock[];
-  updateBlock: (id: string, updates: Partial<NoteBlock>) => void;
-  setBlocks: (blocks: NoteBlock[]) => void;
-  isPresentationMode: boolean;
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 transition-all duration-500 ease-in-out"
-    >
-      {!isPresentationMode && (
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none shrink-0">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
-      <Checkbox
-        checked={item.checked}
-        onCheckedChange={(checked) => {
-          const newItems = [...(block.items || [])];
-          const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-          newItems[originalIndex] = { ...item, checked: Boolean(checked) };
-          
-          const sortedItems = checklistMoveCompleted
-            ? [...newItems].sort((a, b) => Number(a.checked) - Number(b.checked))
-            : newItems;
-          
-          updateBlock(block.id, { items: sortedItems });
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        aria-label="Toggle checklist item"
-        className="shrink-0 self-center"
-      />
-      <div 
-        className="flex-1 relative select-text [&_.ProseMirror_p]:leading-5 [&_.ProseMirror_p]:my-0"
-        style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
-        data-checked={item.checked && checklistStrikethrough ? "true" : "false"}
-        onKeyDown={(e) => {
-          // Handle backspace/delete on empty items
-          if ((e.key === 'Backspace' || e.key === 'Delete')) {
-            const textContent = item.text.replace(/<[^>]*>/g, '').trim();
-            if (textContent === '') {
-              e.preventDefault();
-              const newItems = [...(block.items || [])];
-              if (newItems.length > 1) {
-                const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                newItems.splice(originalIndex, 1);
-                updateBlock(block.id, { items: newItems });
-                // Focus previous item after deletion
-                if (index > 0) {
-                  setTimeout(() => {
-                    const inputs = document.querySelectorAll(`[data-block-id="${block.id}"] .ProseMirror`);
-                    const prevInput = inputs[index - 1] as HTMLElement;
-                    if (prevInput) prevInput.focus();
-                  }, 0);
-                }
-              } else {
-                // Last remaining item: remove the entire checklist block
-                const newBlocks = blocks.filter(b => b.id !== block.id);
-                setBlocks(newBlocks);
-              }
-            }
-          }
-          
-          // Handle Enter to create new checkbox (like iOS Notes)
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            
-            const newItems = [...(block.items || [])];
-            const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-            const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
-            newItems.splice(originalIndex + 1, 0, newItem);
-            updateBlock(block.id, { items: newItems });
-            
-            // Focus the new item
-            setTimeout(() => {
-              const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
-              if (newInput) newInput.focus();
-            }, 0);
-          }
-        }}
-      >
-        <div data-item-id={item.id}>
-          {isPresentationMode ? (
-            <div 
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: item.text || '' }}
-            />
-          ) : (
-            <RichTextEditor
-              content={item.text || ''}
-              onChange={(content) => {
-                const newItems = [...(block.items || [])];
-                const originalIndex = block.items?.findIndex(i => i.id === item.id) ?? index;
-                // Remove item if text becomes empty (excluding HTML tags)
-                const textContent = content.replace(/<[^>]*>/g, '').trim();
-                if (textContent === '') {
-                  // Always remove empty items, even if it's the last one
-                  newItems.splice(originalIndex, 1);
-                  // If this was the last item, remove the entire checklist block
-                  if (newItems.length === 0) {
-                    const newBlocks = blocks.filter(b => b.id !== block.id);
-                    setBlocks(newBlocks);
-                  } else {
-                    updateBlock(block.id, { items: newItems });
-                  }
-                } else {
-                  newItems[originalIndex] = { ...item, text: content };
-                  updateBlock(block.id, { items: newItems });
-                }
-              }}
-              placeholder="List item..."
-              className="w-full"
-              variant="paragraph"
-              disableEnterKey={true}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
-  const { updateNote, toggleFavorite, togglePin, togglePresentationMode, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
+  const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content.blocks);
   const [isSaving, setIsSaving] = useState(false);
@@ -222,9 +50,8 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
-  const [isPresentationMode, setIsPresentationMode] = useState(note.is_presentation_mode);
 
-  // Clean up checklist items - remove empty checklists entirely
+  // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
     return blocks.filter(block => {
       // Keep non-checklist blocks as-is
@@ -233,10 +60,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
       }
       
       // For checklist blocks, filter out empty/placeholder items
-      const validItems = block.items.filter(item => {
-        const textContent = item.text.replace(/<[^>]*>/g, '').trim();
-        return textContent !== '' && textContent !== 'List item... (press Enter for new item)';
-      });
+      const validItems = block.items.filter(item => 
+        item.text.trim() !== '' && 
+        item.text !== 'List item... (press Enter for new item)'
+      );
       
       // If there are valid items, keep them
       if (validItems.length > 0) {
@@ -244,8 +71,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         return true;
       }
       
-      // Remove empty checklists entirely - no placeholders
-      return false;
+      // Keep checklist with at least one empty item - don't remove empty checklists
+      block.items = [{ id: `item-${Date.now()}`, checked: false, text: '' }];
+      return true;
     }).map(block => {
       // Return a new object to avoid mutations
       if (block.type === 'checklist' && block.items) {
@@ -305,11 +133,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const handleTogglePin = async () => {
     setIsPinned(!isPinned);
     await togglePin(note.id);
-  };
-
-  const handleTogglePresentationMode = async () => {
-    setIsPresentationMode(!isPresentationMode);
-    await togglePresentationMode(note.id);
   };
 
   const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
@@ -426,7 +249,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         const HeadingTag = `h${block.level || 1}` as 'h1' | 'h2' | 'h3';
         const headingClass = block.level === 1 ? 'text-3xl' : block.level === 2 ? 'text-2xl' : 'text-xl';
         
-        return editingBlockId === block.id && !isPresentationMode ? (
+        return editingBlockId === block.id ? (
           <RichTextEditor
             content={block.content || ''}
             onChange={(content) => updateBlock(block.id, { content })}
@@ -436,18 +259,15 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <HeadingTag
-            className={cn(
-              `font-bold ${headingClass} rounded px-2 py-1 -mx-2`,
-              !isPresentationMode && 'cursor-text hover:bg-accent/10'
-            )}
-            onClick={() => !isPresentationMode && setEditingBlockId(block.id)}
+            className={`font-bold ${headingClass} cursor-text hover:bg-accent/10 rounded px-2 py-1 -mx-2`}
+            onClick={() => setEditingBlockId(block.id)}
           >
-            {block.content || (!isPresentationMode ? 'Click to edit heading...' : '')}
+            {block.content || 'Click to edit heading...'}
           </HeadingTag>
         );
 
       case 'paragraph':
-        return editingBlockId === block.id && !isPresentationMode ? (
+        return editingBlockId === block.id ? (
           <RichTextEditor
             content={block.content || ''}
             onChange={(content) => updateBlock(block.id, { content })}
@@ -456,73 +276,118 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           />
         ) : (
           <div
-            className={cn(
-              'rounded px-2 py-2 -mx-2 min-h-[2em]',
-              !isPresentationMode && 'cursor-text hover:bg-accent/10'
-            )}
-            onClick={() => !isPresentationMode && setEditingBlockId(block.id)}
-          >
-            <div 
-              className="ProseMirror"
-              style={{ display: 'block', whiteSpace: 'normal' }}
-              dangerouslySetInnerHTML={{ __html: block.content || (!isPresentationMode ? '<p class="text-muted-foreground">Click to start writing...</p>' : '') }}
-            />
-          </div>
+            className="cursor-text hover:bg-accent/10 rounded px-2 py-2 -mx-2 min-h-[2em] prose prose-sm max-w-none"
+            onClick={() => setEditingBlockId(block.id)}
+            dangerouslySetInnerHTML={{ __html: block.content || '<p class="text-muted-foreground">Click to start writing...</p>' }}
+          />
         );
 
       case 'checklist':
-        // Pre-sort items for immediate visual rendering
-        const itemsToRender = checklistMoveCompleted && block.items
-          ? [...block.items].sort((a, b) => Number(a.checked) - Number(b.checked))
-          : (block.items || []);
-        
-        const sensors = useSensors(
-          useSensor(PointerSensor, {
-            activationConstraint: {
-              distance: 8,
-            },
-          }),
-          useSensor(TouchSensor, {
-            activationConstraint: {
-              delay: 250,
-              tolerance: 5,
-            },
-          })
-        );
-
-        const handleDragEnd = (event: DragEndEvent) => {
-          const { active, over } = event;
-          
-          if (over && active.id !== over.id) {
-            const oldIndex = itemsToRender.findIndex(item => item.id === active.id);
-            const newIndex = itemsToRender.findIndex(item => item.id === over.id);
-            
-            const reorderedItems = arrayMove(itemsToRender, oldIndex, newIndex);
-            updateBlock(block.id, { items: reorderedItems });
-          }
-        };
-        
         return (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={itemsToRender.map(item => item.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
-                {itemsToRender.map((item, index) => (
-                  <SortableChecklistItem
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    block={block}
-                    checklistStrikethrough={checklistStrikethrough}
-                    checklistMoveCompleted={checklistMoveCompleted}
-                    blocks={blocks}
-                    updateBlock={updateBlock}
-                    setBlocks={setBlocks}
-                    isPresentationMode={isPresentationMode}
-                  />
-                ))}
+          <div className="space-y-2 transition-all duration-500" data-block-id={block.id}>
+            {block.items?.map((item, index) => (
+              <div key={item.id} className="grid grid-cols-[auto_1fr] gap-2 items-start transition-all duration-500 ease-in-out">
+                <Checkbox
+                  checked={item.checked}
+                  onCheckedChange={(checked) => {
+                    const newItems = [...(block.items || [])];
+                    newItems[index] = { ...item, checked: checked as boolean };
+                    updateBlock(block.id, { items: newItems });
+                    
+                    if (checked && checklistMoveCompleted) {
+                      setTimeout(() => {
+                        const newItemsSorted = [...newItems];
+                        const [completedItem] = newItemsSorted.splice(index, 1);
+                        newItemsSorted.push(completedItem);
+                        updateBlock(block.id, { items: newItemsSorted });
+                      }, 800);
+                    }
+                  }}
+                  className="mt-3"
+                />
+                <div 
+                  className={cn(
+                    "w-full relative",
+                    item.checked && checklistStrikethrough && 'opacity-60'
+                  )}
+                  onKeyDown={(e) => {
+                    // Handle backspace/delete on empty items
+                    if ((e.key === 'Backspace' || e.key === 'Delete')) {
+                      const textContent = item.text.replace(/<[^>]*>/g, '').trim();
+                      if (textContent === '') {
+                        e.preventDefault();
+                        const newItems = [...(block.items || [])];
+                        if (newItems.length > 1) {
+                          newItems.splice(index, 1);
+                          updateBlock(block.id, { items: newItems });
+                          // Focus previous item after deletion
+                          if (index > 0) {
+                            setTimeout(() => {
+                              const inputs = document.querySelectorAll(`[data-block-id="${block.id}"] .ProseMirror`);
+                              const prevInput = inputs[index - 1] as HTMLElement;
+                              if (prevInput) prevInput.focus();
+                            }, 0);
+                          }
+                        } else {
+                          // Last remaining item: remove the entire checklist block
+                          const newBlocks = blocks.filter(b => b.id !== block.id);
+                          setBlocks(newBlocks);
+                        }
+                      }
+                    }
+                    
+                    // Handle Enter to create new checkbox (like iOS Notes)
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      
+                      const newItems = [...(block.items || [])];
+                      const newItem = { id: `item-${Date.now()}`, checked: false, text: '' };
+                      newItems.splice(index + 1, 0, newItem);
+                      updateBlock(block.id, { items: newItems });
+                      
+                      // Focus the new item
+                      setTimeout(() => {
+                        const newInput = document.querySelector(`[data-item-id="${newItem.id}"] .ProseMirror`) as HTMLElement;
+                        if (newInput) newInput.focus();
+                      }, 0);
+                    }
+                  }}
+                >
+                  <div 
+                    className={cn(item.checked && checklistStrikethrough && 'line-through')}
+                    data-item-id={item.id}
+                  >
+                    <RichTextEditor
+                      content={item.text || ''}
+                      onChange={(content) => {
+                        const newItems = [...(block.items || [])];
+                        // Remove item if text becomes empty (excluding HTML tags)
+                        const textContent = content.replace(/<[^>]*>/g, '').trim();
+                        if (textContent === '') {
+                          // Always remove empty items, even if it's the last one
+                          newItems.splice(index, 1);
+                          // If this was the last item, remove the entire checklist block
+                          if (newItems.length === 0) {
+                            const newBlocks = blocks.filter(b => b.id !== block.id);
+                            setBlocks(newBlocks);
+                          } else {
+                            updateBlock(block.id, { items: newItems });
+                          }
+                        } else {
+                          newItems[index] = { ...item, text: content };
+                          updateBlock(block.id, { items: newItems });
+                        }
+                      }}
+                      placeholder="List item..."
+                      className="w-full"
+                      variant="paragraph"
+                      disableEnterKey={true}
+                    />
+                  </div>
+                </div>
               </div>
-            </SortableContext>
-          </DndContext>
+            ))}
+          </div>
         );
 
       case 'table':
@@ -560,8 +425,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                             updateBlock(block.id, { rows: newRows });
                           }}
                           className="border-none shadow-none focus-visible:ring-1 bg-transparent"
-                          readOnly={isPresentationMode}
-                          disabled={isPresentationMode}
                         />
                       </td>
                     ))}
@@ -649,18 +512,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <Button variant="ghost" size="sm" onClick={handleTogglePin}>
             <Pin className={`h-4 w-4 ${isPinned ? 'fill-primary text-primary' : ''}`} />
           </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleTogglePresentationMode}
-              title={isPresentationMode ? "Exit presentation mode" : "Enter presentation mode"}
-            >
-              {isPresentationMode ? (
-                <Lock className="h-4 w-4 fill-primary text-primary" />
-              ) : (
-                <LockOpen className="h-4 w-4" />
-              )}
-            </Button>
           {linkedEntityName && (
             <Badge variant="outline" className="gap-1">
               <LinkIcon className="h-3 w-3" />
@@ -719,19 +570,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
-      {/* Formatting Toolbar - sticky under header */}
-      {!isPresentationMode && (
-        <div className="sticky top-0 z-50 bg-background border-b p-2 shadow-sm">
-          <SharedFormattingToolbar 
-            onInsertChecklist={insertChecklistBlock}
-            onConvertSelectionToChecklist={convertSelectionToChecklist}
-          />
-        </div>
-      )}
-
       {/* Note Content */}
       <div
-        className="flex-1 overflow-y-auto px-6 pb-6 pt-0"
+        className="flex-1 overflow-y-auto p-6"
         style={{ backgroundColor: note.background_color || undefined }}
       >
         {/* Banner */}
@@ -748,8 +589,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Note title..."
           className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0 mb-6"
-          readOnly={isPresentationMode}
-          disabled={isPresentationMode}
         />
 
         {/* Blocks */}
@@ -766,6 +605,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
+      <SharedFormattingToolbar 
+        onInsertChecklist={insertChecklistBlock}
+        onConvertSelectionToChecklist={convertSelectionToChecklist}
+      />
     </div>
     </EditorFocusProvider>
   );

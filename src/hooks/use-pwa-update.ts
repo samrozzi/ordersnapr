@@ -5,8 +5,6 @@
  */
 
 import { useState, useEffect } from 'react';
-
-// @ts-ignore - vite-plugin-pwa virtual module
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export function usePWAUpdate() {
@@ -14,11 +12,11 @@ export function usePWAUpdate() {
   const [offlineReady, setOfflineReady] = useState(false);
 
   const {
-    needRefresh: [swNeedRefresh, setSwNeedRefresh] = [false, () => {}],
-    offlineReady: [swOfflineReady, setSwOfflineReady] = [false, () => {}],
-    updateServiceWorker = async () => {},
-  } = useRegisterSW?.({
-    onRegistered(registration: any) {
+    needRefresh: [swNeedRefresh, setSwNeedRefresh],
+    offlineReady: [swOfflineReady, setSwOfflineReady],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(registration) {
       console.log('SW Registered:', registration);
 
       // Check for updates every hour
@@ -26,10 +24,10 @@ export function usePWAUpdate() {
         registration?.update();
       }, 60 * 60 * 1000);
     },
-    onRegisterError(error: any) {
+    onRegisterError(error) {
       console.error('SW registration error:', error);
     },
-  }) || {};
+  });
 
   useEffect(() => {
     setNeedRefresh(swNeedRefresh);

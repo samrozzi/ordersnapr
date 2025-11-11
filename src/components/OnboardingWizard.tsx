@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, ArrowRight, ArrowLeft, Rocket } from "lucide-react";
 import { WelcomeStep } from "./onboarding/WelcomeStep";
+import { UsernameStep } from "./onboarding/UsernameStep";
 import { FeaturesStep } from "./onboarding/FeaturesStep";
 import { BrandingStep } from "./onboarding/BrandingStep";
 import { SampleDataStep } from "./onboarding/SampleDataStep";
 import { CompletionStep } from "./onboarding/CompletionStep";
 
 export interface OnboardingData {
+  username: string;
   selectedFeatures: string[];
   primaryColor: string;
   secondaryColor: string;
@@ -23,6 +25,7 @@ export interface OnboardingData {
 
 const ONBOARDING_STEPS = [
   { id: "welcome", title: "Welcome", description: "Get started with OrderSnapr" },
+  { id: "username", title: "Username", description: "Choose your identity" },
   { id: "features", title: "Features", description: "Choose your modules" },
   { id: "branding", title: "Branding", description: "Customize your look" },
   { id: "sample-data", title: "Sample Data", description: "Optional example data" },
@@ -32,6 +35,7 @@ const ONBOARDING_STEPS = [
 export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+    username: "",
     selectedFeatures: [],
     primaryColor: "#000000",
     secondaryColor: "#ffffff",
@@ -63,6 +67,18 @@ export function OnboardingWizard() {
     }
 
     try {
+      // Set username first
+      if (onboardingData.username) {
+        const { error: usernameError } = await supabase.rpc('set_username', {
+          new_username: onboardingData.username,
+        });
+
+        if (usernameError) {
+          console.error("Error setting username:", usernameError);
+          // Continue anyway - username can be set later
+        }
+      }
+
       // Get user's profile to check organization membership
       const { data: profile } = await supabase
         .from("profiles")
@@ -72,6 +88,7 @@ export function OnboardingWizard() {
 
       // Build onboarding data - only include branding for org users
       const onboardingDataToSave: any = {
+        username: onboardingData.username,
         selectedFeatures: onboardingData.selectedFeatures,
         includeSampleData: onboardingData.includeSampleData,
         sampleDataTypes: onboardingData.sampleDataTypes,
@@ -147,6 +164,15 @@ export function OnboardingWizard() {
         return <WelcomeStep onNext={handleNext} />;
       case 1:
         return (
+          <UsernameStep
+            username={onboardingData.username}
+            onUpdate={(username) => updateData({ username })}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 2:
+        return (
           <FeaturesStep
             selectedFeatures={onboardingData.selectedFeatures}
             onUpdate={(features) => updateData({ selectedFeatures: features })}
@@ -154,7 +180,7 @@ export function OnboardingWizard() {
             onBack={handleBack}
           />
         );
-      case 2:
+      case 3:
         return (
           <BrandingStep
             primaryColor={onboardingData.primaryColor}
@@ -165,7 +191,7 @@ export function OnboardingWizard() {
             onBack={handleBack}
           />
         );
-      case 3:
+      case 4:
         return (
           <SampleDataStep
             includeSampleData={onboardingData.includeSampleData}
@@ -175,7 +201,7 @@ export function OnboardingWizard() {
             onBack={handleBack}
           />
         );
-      case 4:
+      case 5:
         return (
           <CompletionStep
             onboardingData={onboardingData}

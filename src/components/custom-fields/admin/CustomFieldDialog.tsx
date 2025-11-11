@@ -6,7 +6,6 @@
 import { useState, useEffect } from 'react';
 import { useCustomFields } from '@/hooks/use-custom-fields';
 import { EntityType, FieldType, CustomField } from '@/types/custom-fields';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -111,8 +110,6 @@ export function CustomFieldDialog({
     setIsSubmitting(true);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      
       const fieldData = {
         org_id: orgId,
         entity_type: entityType,
@@ -124,14 +121,9 @@ export function CustomFieldDialog({
       };
 
       if (fieldId) {
-        await updateField({ id: fieldId, updates: fieldData });
+        await updateField({ fieldId, updates: fieldData });
       } else {
-        await createField({
-          ...fieldData,
-          display_order: fields.length,
-          is_active: true,
-          created_by: userData.user?.id || null,
-        });
+        await createField(fieldData);
       }
 
       onClose();

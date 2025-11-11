@@ -17,6 +17,7 @@ import { PageSkeleton } from "@/components/PageSkeleton";
 import { MigrationChecker } from "@/components/MigrationChecker";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AppUpdateNotification } from "@/components/AppUpdateNotification";
+import { UsernameGuard } from "@/components/UsernameGuard";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
@@ -26,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
-const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin").then(m => ({ default: m.CustomFieldsAdmin })));
+const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
 const Profile = lazy(() => import("./pages/Profile"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));
@@ -60,14 +61,15 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   useOrgTheme();
-  
+
   return (
     <>
       <Toaster />
       <Sonner />
       <PWAInstallPrompt />
       <AppUpdateNotification />
-      <BrowserRouter>
+      <UsernameGuard>
+        <BrowserRouter>
         <FeatureProvider>
           <MigrationChecker />
           <Suspense fallback={<PageSkeleton />}>
@@ -112,7 +114,8 @@ const AppContent = () => {
             </Routes>
           </Suspense>
         </FeatureProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </UsernameGuard>
     </>
   );
 };

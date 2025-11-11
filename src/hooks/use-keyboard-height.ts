@@ -20,11 +20,7 @@ export function useKeyboardHeight() {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const accessoryOffset = isIOS ? 50 : 0;
       
-      // Round to nearest 10px to reduce jitter from iOS predictive bar
-      const newHeight = heightDiff > 150 ? Math.round((heightDiff + accessoryOffset) / 10) * 10 : 0;
-      
-      // Only update if change is significant (> 15px) to reduce jitter
-      setKeyboardHeight(prev => Math.abs(newHeight - prev) > 15 ? newHeight : prev);
+      setKeyboardHeight(heightDiff > 150 ? heightDiff + accessoryOffset : 0);
     };
 
     visualViewport.addEventListener('resize', handleResize);

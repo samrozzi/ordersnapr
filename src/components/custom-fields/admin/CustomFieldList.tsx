@@ -63,7 +63,7 @@ export function CustomFieldList({
   };
 
   const handleToggle = (fieldId: string, isActive: boolean) => {
-    toggleField({ id: fieldId, is_active: isActive });
+    toggleField({ fieldId, isActive });
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -75,8 +75,13 @@ export function CustomFieldList({
 
     setOrderedFields(items);
 
-    // Pass array of field IDs in order
-    reorderFields(items.map(f => f.id));
+    // Update display_order for all fields
+    const updates = items.map((field, index) => ({
+      fieldId: field.id,
+      displayOrder: index,
+    }));
+
+    reorderFields(updates);
   };
 
   const getFieldTypeLabel = (type: string): string => {

@@ -155,100 +155,6 @@ export type Database = {
           },
         ]
       }
-      custom_field_values: {
-        Row: {
-          created_at: string
-          custom_field_id: string
-          entity_id: string
-          entity_type: string
-          id: string
-          updated_at: string
-          value: Json
-        }
-        Insert: {
-          created_at?: string
-          custom_field_id: string
-          entity_id: string
-          entity_type: string
-          id?: string
-          updated_at?: string
-          value: Json
-        }
-        Update: {
-          created_at?: string
-          custom_field_id?: string
-          entity_id?: string
-          entity_type?: string
-          id?: string
-          updated_at?: string
-          value?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custom_field_values_custom_field_id_fkey"
-            columns: ["custom_field_id"]
-            isOneToOne: false
-            referencedRelation: "custom_fields"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      custom_fields: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          display_order: number
-          entity_type: string
-          field_config: Json
-          field_key: string
-          field_name: string
-          field_type: string
-          id: string
-          is_active: boolean
-          is_required: boolean
-          org_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          entity_type: string
-          field_config?: Json
-          field_key: string
-          field_name: string
-          field_type: string
-          id?: string
-          is_active?: boolean
-          is_required?: boolean
-          org_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          entity_type?: string
-          field_config?: Json
-          field_key?: string
-          field_name?: string
-          field_type?: string
-          id?: string
-          is_active?: boolean
-          is_required?: boolean
-          org_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custom_fields_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       customer_portal_tokens: {
         Row: {
           created_at: string
@@ -683,7 +589,6 @@ export type Database = {
           id: string
           is_favorite: boolean
           is_pinned: boolean
-          is_presentation_mode: boolean
           kanban_column: string | null
           kanban_position: number | null
           linked_entity_id: string | null
@@ -703,7 +608,6 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean
-          is_presentation_mode?: boolean
           kanban_column?: string | null
           kanban_position?: number | null
           linked_entity_id?: string | null
@@ -723,7 +627,6 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean
-          is_presentation_mode?: boolean
           kanban_column?: string | null
           kanban_position?: number | null
           linked_entity_id?: string | null

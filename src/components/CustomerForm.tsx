@@ -67,16 +67,17 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
         if (customer?.id) {
           const { data: values } = await supabase
             .from("custom_field_values")
-            .select("value, custom_field_id, custom_fields(field_key)")
+            .select(`
+              value,
+              custom_fields!inner(field_key)
+            `)
             .eq("entity_type", "customers")
             .eq("entity_id", customer.id);
 
           if (values) {
             const valueMap: CustomFieldValues = {};
             values.forEach((v: any) => {
-              if (v.custom_fields?.field_key) {
-                valueMap[v.custom_fields.field_key] = v.value;
-              }
+              valueMap[v.custom_fields.field_key] = v.value;
             });
             setCustomFieldValues(valueMap);
           }
@@ -122,11 +123,7 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
       } else {
         const { data: newCustomer } = await supabase
           .from("customers")
-          .insert([{ 
-            ...customerData, 
-            org_id: orgId!,
-            address: customerData.address ? JSON.parse(JSON.stringify(customerData.address)) : null
-          }])
+          .insert(customerData)
           .select()
           .single();
         customerId = newCustomer!.id;
@@ -136,7 +133,7 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
       if (orgId && Object.keys(customFieldValues).length > 0) {
         const { data: fields } = await supabase
           .from("custom_fields")
-          .select("id, field_key")
+          .select("*")
           .eq("org_id", orgId)
           .eq("entity_type", "customers")
           .eq("is_active", true);
@@ -154,7 +151,7 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
                 value,
               };
             })
-            .filter((item): item is { custom_field_id: string; entity_type: "customers"; entity_id: string; value: any } => item !== null);
+            .filter(Boolean);
 
           if (valuesToUpsert.length > 0) {
             await supabase

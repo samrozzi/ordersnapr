@@ -281,6 +281,5 @@ export function useCustomers(options?: { includeStats?: boolean }) {
     updateCustomer: updateCustomer.mutateAsync,
     deleteCustomer: deleteCustomer.mutateAsync,
     searchCustomers,
-    refetch: () => queryClient.invalidateQueries({ queryKey: ["customers", orgId] }),
   };
 }

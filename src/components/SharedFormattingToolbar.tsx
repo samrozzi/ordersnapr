@@ -22,7 +22,7 @@ import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 interface SharedFormattingToolbarProps {
   onInsertChecklist?: () => void;
@@ -40,8 +40,7 @@ export const SharedFormattingToolbar = ({
   const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const selectionRef = useRef<{ from: number; to: number } | null>(null);
+  const keyboardHeight = useKeyboardHeight();
 
   const getCurrentFontSize = () => {
     if (!activeEditor) return "1rem";
@@ -58,17 +57,7 @@ export const SharedFormattingToolbar = ({
   const handleFontSizeChange = (size: string) => {
     if (!activeEditor) return;
     handleToolbarAction(() => {
-      // Restore captured selection if it exists
-      if (selectionRef.current) {
-        const { from, to } = selectionRef.current;
-        activeEditor.chain()
-          .setTextSelection({ from, to })
-          .setMark('textStyle', { fontSize: size })
-          .run();
-        selectionRef.current = null;
-      } else {
-        activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
-      }
+      activeEditor.chain().focus().setMark('textStyle', { fontSize: size }).run();
     });
   };
 
@@ -93,7 +82,11 @@ export const SharedFormattingToolbar = ({
   return (
     <div 
       data-formatting-toolbar
-      className="sticky top-0 left-0 right-0 z-50 bg-background border-b border-border p-2 shadow-sm"
+      className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
+      style={{ 
+        bottom: `${keyboardHeight}px`,
+        transition: 'bottom 0.3s ease-out'
+      }}
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button
@@ -150,11 +143,6 @@ export const SharedFormattingToolbar = ({
             onMouseDown={(e) => {
               e.preventDefault();
               setToolbarLocked(true);
-              // Capture current selection before dropdown opens
-              if (activeEditor) {
-                const { from, to } = activeEditor.state.selection;
-                selectionRef.current = { from, to };
-              }
             }}
             onBlur={() => setTimeout(() => setToolbarLocked(false), 100)}
           >

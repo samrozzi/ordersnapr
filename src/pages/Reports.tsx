@@ -13,7 +13,9 @@ import {
   AlertCircle,
   BarChart3,
   PieChart,
-  Calendar
+  Calendar,
+  Plus,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -21,10 +23,25 @@ import { RevenueDashboard } from "@/components/RevenueDashboard";
 import { PaymentAnalyticsDashboard } from "@/components/PaymentAnalyticsDashboard";
 import { InvoiceAnalyticsDashboard } from "@/components/InvoiceAnalyticsDashboard";
 import { AgingReport } from "@/components/AgingReport";
+import { ReportBuilderDialog } from "@/components/ReportBuilderDialog";
+import { SavedReportsManager } from "@/components/SavedReportsManager";
+import { ReportVisualization } from "@/components/ReportVisualization";
+import { useExecuteReport, useSavedReports } from "@/hooks/use-report-builder";
+import { useToast } from "@/hooks/use-toast";
+import type { ReportConfiguration, ReportResults, SavedReport } from "@/lib/report-builder-types";
 
 const Reports = () => {
   const { activeOrg } = useActiveOrg();
+  const { toast } = useToast();
   const [dateRange, setDateRange] = useState<{ startDate?: string; endDate?: string }>({});
+
+  // Custom Reports State
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [currentReport, setCurrentReport] = useState<ReportResults | null>(null);
+  const [editingReport, setEditingReport] = useState<Partial<ReportConfiguration> | undefined>();
+
+  const { executeReport, isExecuting } = useExecuteReport();
+  const { saveReport } = useSavedReports();
 
   const {
     paymentAnalytics,
@@ -47,6 +64,69 @@ const Reports = () => {
 
   const formatPercentage = (value: number) => {
     return `${value.toFixed(1)}%`;
+  };
+
+  // Custom Report Handlers
+  const handleExecuteReport = async (config: ReportConfiguration) => {
+    try {
+      const results = await executeReport(config);
+      setCurrentReport(results);
+      setIsBuilderOpen(false);
+      toast({
+        title: "Report Generated",
+        description: `Successfully generated ${results.totalRows} rows`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to execute report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveReport = async (config: ReportConfiguration) => {
+    try {
+      await saveReport({ configuration: config, name: config.name, description: config.description });
+      setIsBuilderOpen(false);
+      toast({
+        title: "Report Saved",
+        description: `"${config.name}" has been saved`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRunSavedReport = async (report: SavedReport) => {
+    try {
+      const results = await executeReport(report.configuration as ReportConfiguration);
+      setCurrentReport(results);
+      toast({
+        title: "Report Executed",
+        description: `"${report.name}" executed successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to execute report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditSavedReport = (report: SavedReport) => {
+    setEditingReport(report.configuration);
+    setIsBuilderOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setEditingReport(undefined);
+    setIsBuilderOpen(true);
   };
 
   if (!activeOrg?.id) {
@@ -177,7 +257,7 @@ const Reports = () => {
 
         {/* Tabbed Reports */}
         <Tabs defaultValue="revenue" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="revenue" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Revenue
@@ -193,6 +273,10 @@ const Reports = () => {
             <TabsTrigger value="aging" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               AR Aging
+            </TabsTrigger>
+            <TabsTrigger value="custom" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Custom
             </TabsTrigger>
           </TabsList>
 
@@ -231,7 +315,46 @@ const Reports = () => {
               formatCurrency={formatCurrency}
             />
           </TabsContent>
+
+          <TabsContent value="custom" className="space-y-4">
+            {/* Custom Reports Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold">Custom Reports</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create and manage custom reports with advanced filtering and visualization
+                </p>
+              </div>
+              <Button onClick={handleCreateNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Report
+              </Button>
+            </div>
+
+            {/* Current Report Results */}
+            {currentReport && (
+              <ReportVisualization results={currentReport} isLoading={isExecuting} />
+            )}
+
+            {/* Saved Reports */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Saved Reports</h3>
+              <SavedReportsManager
+                onRunReport={handleRunSavedReport}
+                onEditReport={handleEditSavedReport}
+              />
+            </div>
+          </TabsContent>
         </Tabs>
+
+        {/* Report Builder Dialog */}
+        <ReportBuilderDialog
+          open={isBuilderOpen}
+          onOpenChange={setIsBuilderOpen}
+          onExecute={handleExecuteReport}
+          onSave={handleSaveReport}
+          initialConfig={editingReport}
+        />
       </div>
     </PremiumFeatureGuard>
   );

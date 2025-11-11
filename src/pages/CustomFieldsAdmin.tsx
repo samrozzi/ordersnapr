@@ -37,7 +37,7 @@ const ENTITY_TYPES: { value: EntityType; label: string; description: string }[] 
   },
 ];
 
-export function CustomFieldsAdmin() {
+function CustomFieldsAdmin() {
   const { activeOrgId } = useActiveOrg();
   const [selectedEntityType, setSelectedEntityType] = useState<EntityType>('work_orders');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -131,3 +131,5 @@ export function CustomFieldsAdmin() {
     </div>
   );
 }
+
+export default CustomFieldsAdmin;

@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, Edit, MoreHorizontal, Trash2, Mail, Link as LinkIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,9 +19,25 @@ interface CustomerTableProps {
   onEdit: (customer: CustomerWithStats) => void;
   onView: (customer: CustomerWithStats) => void;
   showStats?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: () => void;
+  isAllSelected?: boolean;
+  isSomeSelected?: boolean;
 }
 
-export function CustomerTable({ customers, isLoading, onEdit, onView, showStats = false }: CustomerTableProps) {
+export function CustomerTable({
+  customers,
+  isLoading,
+  onEdit,
+  onView,
+  showStats = false,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  isAllSelected,
+  isSomeSelected,
+}: CustomerTableProps) {
   const { deleteCustomer } = useCustomers();
 
   const formatCurrency = (cents: number) => {
@@ -67,6 +84,16 @@ export function CustomerTable({ customers, isLoading, onEdit, onView, showStats 
       <Table>
         <TableHeader>
           <TableRow>
+            {onToggleSelectAll && (
+              <TableHead className="w-12 px-2">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={onToggleSelectAll}
+                  aria-label="Select all"
+                  className={isSomeSelected && !isAllSelected ? "data-[state=checked]:bg-primary" : ""}
+                />
+              </TableHead>
+            )}
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
@@ -84,6 +111,15 @@ export function CustomerTable({ customers, isLoading, onEdit, onView, showStats 
         <TableBody>
           {customers.map((customer) => (
             <TableRow key={customer.id}>
+              {onToggleSelect && selectedIds && (
+                <TableCell className="px-2">
+                  <Checkbox
+                    checked={selectedIds.has(customer.id)}
+                    onCheckedChange={() => onToggleSelect(customer.id)}
+                    aria-label={`Select ${customer.name}`}
+                  />
+                </TableCell>
+              )}
               <TableCell className="font-medium">
                 {customer.name}
                 {customer.address && (

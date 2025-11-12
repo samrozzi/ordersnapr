@@ -15,8 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { InteractiveNoteViewer } from "@/components/InteractiveNoteViewer";
-import { NoteCustomizer } from "@/components/NoteCustomizer";
+import { OptimizedNoteEditor } from "@/components/notes/OptimizedNoteEditor";
 import { NoteCard } from "@/components/NoteCard";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { TemplatePickerDialog } from "@/components/TemplatePickerDialog";
@@ -364,23 +363,15 @@ const Notes = () => {
         onCreateBlank={handleCreateBlankNote}
       />
 
-      {/* Note Viewer/Customizer Dialog */}
+      {/* Note Editor Dialog */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && handleCloseNote()}>
         <DialogContent className="max-w-4xl h-[100dvh] sm:max-h-[90vh] sm:h-auto overflow-hidden flex flex-col p-0">
           {selectedNote && (
-            isCustomizeMode ? (
-              <NoteCustomizer
-                note={selectedNote}
-                onClose={handleCloseNote}
-                onBackToView={handleBackToView}
-              />
-            ) : (
-              <InteractiveNoteViewer
-                note={selectedNote}
-                onClose={handleCloseNote}
-                onCustomize={handleCustomize}
-              />
-            )
+            <OptimizedNoteEditor
+              note={selectedNote}
+              onClose={handleCloseNote}
+              onCustomize={handleCustomize}
+            />
           )}
         </DialogContent>
       </Dialog>

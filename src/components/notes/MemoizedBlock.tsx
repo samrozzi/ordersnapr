@@ -9,6 +9,7 @@ interface MemoizedBlockProps {
   index: number;
   isActive: boolean;
   isDragging?: boolean;
+  isLocked?: boolean;
   onFocus: () => void;
   onDelete: () => void;
   onAddBelow: () => void;
@@ -50,6 +51,7 @@ export const MemoizedBlock = memo(function MemoizedBlock({
   index,
   isActive,
   isDragging,
+  isLocked,
   onFocus,
   onDelete,
   onAddBelow,
@@ -75,17 +77,19 @@ export const MemoizedBlock = memo(function MemoizedBlock({
     >
       <div className="flex items-start gap-2 hover:bg-accent/5 rounded-lg transition-colors duration-150">
         {/* Drag Handle with Block Type Icon */}
-        <div className="flex-shrink-0 pt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            {getBlockTypeIcon(block.type)}
+        {!isLocked && (
+          <div className="flex-shrink-0 pt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              {getBlockTypeIcon(block.type)}
+            </div>
+            <div
+              {...dragHandleProps}
+              className="cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
-          <div
-            {...dragHandleProps}
-            className="cursor-grab active:cursor-grabbing"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
+        )}
 
         {/* Block Content */}
         <div className="flex-1 min-w-0">
@@ -93,7 +97,8 @@ export const MemoizedBlock = memo(function MemoizedBlock({
         </div>
 
         {/* Block Actions */}
-        <div className="flex-shrink-0 flex items-center gap-1 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!isLocked && (
+          <div className="flex-shrink-0 flex items-center gap-1 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -177,6 +182,7 @@ export const MemoizedBlock = memo(function MemoizedBlock({
             <Plus className="h-3 w-3" />
           </Button>
         </div>
+        )}
       </div>
     </div>
   );

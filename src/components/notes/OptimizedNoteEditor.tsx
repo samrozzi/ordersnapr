@@ -40,6 +40,7 @@ function SortableBlock({
   block, 
   index, 
   isActive, 
+  isLocked,
   onFocus, 
   onDelete, 
   onAddBelow,
@@ -71,6 +72,7 @@ function SortableBlock({
         index={index}
         isActive={isActive}
         isDragging={isDragging}
+        isLocked={isLocked}
         onFocus={onFocus}
         onDelete={onDelete}
         onAddBelow={onAddBelow}
@@ -95,7 +97,6 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content?.blocks || []);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [presentationMode, setPresentationMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [slashMenuState, setSlashMenuState] = useState<{
@@ -290,13 +291,47 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     }));
   }, [activeBlockId]);
 
+  // Preference update handler
+  const updatePreferences = useCallback((updates: Partial<{
+    fontStyle: 'default' | 'serif' | 'mono';
+    smallText: boolean;
+    fullWidth: boolean;
+    locked: boolean;
+  }>) => {
+    const currentPrefs = (note.content as any)?.preferences || {};
+    const newPrefs = { ...currentPrefs, ...updates };
+    
+    updateNote({
+      id: note.id,
+      updates: {
+        content: {
+          ...note.content,
+          blocks: debouncedBlocks,
+          preferences: newPrefs
+        } as any
+      }
+    });
+  }, [note, debouncedBlocks, updateNote]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!activeBlockId) return;
-      
-      // Check for mod key (Cmd on Mac, Ctrl on Windows)
       const isMod = e.metaKey || e.ctrlKey;
+      
+      // Allow Cmd/Ctrl+P to toggle lock from anywhere
+      if (isMod && e.key === "p") {
+        e.preventDefault();
+        const newValue = !locked;
+        setLocked(newValue);
+        updatePreferences({ locked: newValue });
+        toast.success(newValue ? "Page locked" : "Page unlocked");
+        return;
+      }
+      
+      // Block all other shortcuts when locked
+      if (locked) return;
+      
+      if (!activeBlockId) return;
       
       if (isMod && e.key === "Enter") {
         e.preventDefault();
@@ -342,15 +377,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }, 0);
         }
-      } else if (isMod && e.key === "p") {
-        e.preventDefault();
-        setPresentationMode(!presentationMode);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activeBlockId, addBlockBelow, addBlockAbove, duplicateBlock, moveBlockUp, moveBlockDown, presentationMode, blocks]);
+  }, [activeBlockId, addBlockBelow, addBlockAbove, duplicateBlock, moveBlockUp, moveBlockDown, locked, blocks, updatePreferences]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveBlockId(event.active.id as string);
@@ -371,13 +403,14 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   };
 
   const handleSlashDetected = useCallback((blockId: string, position: { top: number; left: number }, searchQuery: string) => {
+    if (locked) return;
     setSlashMenuState({
       visible: true,
       position,
       searchQuery,
       blockId,
     });
-  }, []);
+  }, [locked]);
 
   const handleSlashCancelled = useCallback(() => {
     setSlashMenuState(prev => ({ ...prev, visible: false }));
@@ -543,33 +576,18 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     toast.success(icon ? "Icon added!" : "Icon removed!");
   };
 
-  // Preference update handler
-  const updatePreferences = useCallback((updates: Partial<{
-    fontStyle: 'default' | 'serif' | 'mono';
-    smallText: boolean;
-    fullWidth: boolean;
-    locked: boolean;
-  }>) => {
-    const currentPrefs = (note.content as any)?.preferences || {};
-    const newPrefs = { ...currentPrefs, ...updates };
-    
-    updateNote({
-      id: note.id,
-      updates: {
-        content: {
-          ...note.content,
-          blocks: debouncedBlocks,
-          preferences: newPrefs
-        } as any
-      }
-    });
-  }, [note, debouncedBlocks, updateNote]);
-
   const handleFontStyleChange = (style: 'default' | 'serif' | 'mono') => {
     setFontStyle(style);
     updatePreferences({ fontStyle: style });
     toast.success(`Font changed to ${style}`);
   };
+
+  const handleToggleLock = useCallback(() => {
+    const newValue = !locked;
+    setLocked(newValue);
+    updatePreferences({ locked: newValue });
+    toast.success(newValue ? "Page locked" : "Page unlocked");
+  }, [locked, updatePreferences]);
 
   const handleDuplicate = async () => {
     try {
@@ -633,19 +651,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     updatePreferences({ fullWidth: newValue });
   };
 
-  const handleToggleLock = () => {
-    const newValue = !locked;
-    setLocked(newValue);
-    updatePreferences({ locked: newValue });
-    toast.success(newValue ? "Page locked" : "Page unlocked");
-  };
-
   const renderBlock = (block: NoteBlock, index: number) => {
     const isActive = block.id === activeBlockId;
 
     switch (block.type) {
       case "heading":
-        if (presentationMode) {
+        if (locked) {
           return (
             <div className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: typeof block.content === "string" ? block.content : "" }} />
           );
@@ -654,7 +665,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
           <div className="space-y-2">
             <RichTextEditor
               content={typeof block.content === "string" ? block.content : ""}
-              onChange={(html) => !locked && updateBlock(block.id, { content: html })}
+              onChange={(html) => updateBlock(block.id, { content: html })}
               placeholder="Heading..."
               className="text-2xl font-bold"
               variant="heading"
@@ -667,7 +678,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         );
 
       case "paragraph":
-        if (presentationMode) {
+        if (locked) {
           return (
             <div dangerouslySetInnerHTML={{ __html: typeof block.content === "string" ? block.content : "" }} />
           );
@@ -675,7 +686,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         return (
           <RichTextEditor
             content={typeof block.content === "string" ? block.content : ""}
-            onChange={(html) => !locked && updateBlock(block.id, { content: html })}
+            onChange={(html) => updateBlock(block.id, { content: html })}
             placeholder="Type '/' for commands"
             autoFocus={block.id === activeBlockId}
             onFocus={() => setActiveBlockId(block.id)}
@@ -697,23 +708,20 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 <Checkbox
                   checked={item.checked}
                   onCheckedChange={(checked) => {
-                    if (presentationMode) return;
                     const newItems = [...checklistContent.items];
                     newItems[idx] = { ...item, checked: !!checked };
                     const updatedBlock: any = { content: { ...checklistContent, items: newItems } };
                     updateBlock(block.id, updatedBlock);
                   }}
-                  disabled={presentationMode}
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  {presentationMode ? (
+                  {locked ? (
                     <div dangerouslySetInnerHTML={{ __html: item.text }} />
                   ) : (
                     <RichTextEditor
                       content={item.text}
                       onChange={(html) => {
-                        if (locked) return;
                         const newItems = [...checklistContent.items];
                         newItems[idx] = { ...item, text: html };
                         const updatedBlock: any = { content: { ...checklistContent, items: newItems } };
@@ -744,7 +752,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 const updatedBlock: any = { content: { date: new Date(e.target.value).toISOString() } };
                 updateBlock(block.id, updatedBlock);
               }}
-              disabled={presentationMode || locked}
+              disabled={locked}
               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
             />
           </div>
@@ -766,7 +774,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 const updatedBlock: any = { content: { time: e.target.value } };
                 updateBlock(block.id, updatedBlock);
               }}
-              disabled={presentationMode || locked}
+              disabled={locked}
               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
             />
           </div>
@@ -800,7 +808,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                                 updateBlock(block.id, updatedBlock);
                               }}
                               placeholder={`Header ${colIndex + 1}`}
-                              disabled={presentationMode || locked}
+                              disabled={locked}
                               className="border-none shadow-none focus-visible:ring-0 bg-transparent font-semibold"
                             />
                           </th>
@@ -815,7 +823,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                                 updateBlock(block.id, updatedBlock);
                               }}
                               placeholder="Cell"
-                              disabled={presentationMode || locked}
+                              disabled={locked}
                               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
                             />
                           </td>
@@ -826,7 +834,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 </tbody>
               </table>
             </div>
-            {!presentationMode && (
+            {!locked && (
               <div className="flex gap-2">
                 <Button 
                   size="sm" 
@@ -931,7 +939,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                   }
                 }
               }}
-              disabled={presentationMode}
+              disabled={locked}
             />
           </div>
         );
@@ -954,7 +962,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 updateBlock(block.id, updatedBlock);
               }}
               placeholder="Add a caption..."
-              disabled={presentationMode || locked}
+              disabled={locked}
             />
           </div>
         );
@@ -993,10 +1001,10 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setPresentationMode(!presentationMode)}
-                className={presentationMode ? "text-primary" : ""}
+                onClick={handleToggleLock}
+                className={locked ? "text-primary" : ""}
               >
-                <Eye className="h-4 w-4" />
+                <Lock className={`h-4 w-4 ${locked ? "fill-current" : ""}`} />
               </Button>
             </div>
           </div>
@@ -1291,13 +1299,13 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Untitled"
                 className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0"
-                disabled={presentationMode || locked}
+                readOnly={locked}
               />
             </div>
 
             {/* Blocks */}
             <DndContext
-              sensors={sensors}
+              sensors={locked ? [] : sensors}
               collisionDetection={closestCenter}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
@@ -1310,6 +1318,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                         block={block}
                         index={index}
                         isActive={block.id === activeBlockId}
+                        isLocked={locked}
                         onFocus={() => setActiveBlockId(block.id)}
                         onDelete={() => deleteBlock(block.id)}
                         onAddBelow={() => addBlockBelow(block.id)}
@@ -1363,7 +1372,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             </DndContext>
 
             {/* Add Block Button */}
-            {!presentationMode && (
+            {!locked && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -1395,7 +1404,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         )}
 
         {/* Formatting Toolbar */}
-        {!presentationMode && (
+        {!locked && (
           <div
             className={cn(
               "transition-all duration-200",

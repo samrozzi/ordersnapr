@@ -105,9 +105,13 @@ const WorkOrders = () => {
   }, [navigate]);
 
   const fetchWorkOrders = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       // Fetch user's active org context
       const { data: profile } = await supabase

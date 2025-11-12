@@ -276,18 +276,21 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
       if (index !== -1) {
         const block: any = draft[index];
         
-        // Remove the "/" and search text from content
+        // Preserve existing content and remove only the "/" and search text
+        let preservedContent = "";
         if (typeof block.content === "string") {
           const slashIndex = block.content.lastIndexOf('/');
           if (slashIndex >= 0) {
-            block.content = block.content.slice(0, slashIndex);
+            preservedContent = block.content.slice(0, slashIndex).trim();
+          } else {
+            preservedContent = block.content.trim();
           }
         }
 
-        // Convert block to new type
+        // Convert block to new type while preserving content
         block.type = blockType as any;
         if (blockType === "checklist") {
-          block.content = { items: [{ id: crypto.randomUUID(), text: "", checked: false }] };
+          block.content = { items: [{ id: crypto.randomUUID(), text: preservedContent, checked: false }] };
         } else if (blockType === "table") {
           block.content = {
             rows: 2,
@@ -297,17 +300,16 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             bordered: true
           };
         } else if (blockType === "imageUpload") {
-          block.content = { url: "", alt: "" };
+          block.content = { url: "", alt: preservedContent };
         } else if (blockType === "date") {
           block.content = { date: new Date().toISOString() };
         } else if (blockType === "time") {
           block.content = { time: new Date().toTimeString().slice(0, 5) };
         } else if (blockType === "divider") {
           block.content = {};
-        } else if (blockType === "heading") {
-          block.content = block.content || "";
         } else {
-          block.content = block.content || "";
+          // For heading, paragraph, etc - preserve the text
+          block.content = preservedContent;
         }
       }
     }));
@@ -520,7 +522,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           <div className="max-w-4xl mx-auto space-y-4">
             {/* Title */}
             <Input

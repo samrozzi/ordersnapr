@@ -37,6 +37,7 @@ export interface Note {
   content: NoteContent;
   background_color: string | null;
   banner_image: string | null;
+  icon: string | null;
   is_favorite: boolean;
   is_pinned: boolean;
   is_presentation_mode: boolean;

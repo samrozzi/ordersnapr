@@ -7,7 +7,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragSta
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock, Image as ImageIcon, Palette, Smile, Link as LinkIcon, Download } from "lucide-react";
+import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock, Image as ImageIcon, Palette, Smile, Link as LinkIcon, Download, Trash, Copy, Upload, Lock, Type, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { MemoizedBlock } from "./MemoizedBlock";
 import { SlashCommandMenu } from "./SlashCommandMenu";
@@ -19,6 +19,9 @@ import { Separator } from "@/components/ui/separator";
 import { EditorFocusProvider } from "@/contexts/EditorFocusContext";
 import { SharedFormattingToolbar } from "@/components/SharedFormattingToolbar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { BannerImageCropper } from "@/components/BannerImageCropper";
 import { format } from "date-fns";
 import { uploadNoteImage } from "@/lib/note-image-upload";
 
@@ -98,6 +101,44 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     searchQuery: '',
     blockId: null,
   });
+
+  // Banner feature state
+  const [bannerDialog, setBannerDialog] = useState({
+    open: false,
+    imageUrl: note.banner_image || ""
+  });
+  const [bannerCropperOpen, setBannerCropperOpen] = useState(false);
+  const [bannerPosition, setBannerPosition] = useState(
+    (note.content as any)?.bannerPosition || { x: 50, y: 50, scale: 1 }
+  );
+
+  // Background color picker state
+  const [backgroundColorOpen, setBackgroundColorOpen] = useState(false);
+
+  // Icon picker state
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+
+  // Background colors
+  const BACKGROUND_COLORS = [
+    { name: "Default", value: null, class: "bg-background" },
+    { name: "Gray", value: "#f3f4f6", class: "bg-gray-100" },
+    { name: "Brown", value: "#fef3c7", class: "bg-amber-100" },
+    { name: "Orange", value: "#fed7aa", class: "bg-orange-200" },
+    { name: "Yellow", value: "#fef08a", class: "bg-yellow-200" },
+    { name: "Green", value: "#d9f99d", class: "bg-lime-200" },
+    { name: "Blue", value: "#bfdbfe", class: "bg-blue-200" },
+    { name: "Purple", value: "#e9d5ff", class: "bg-purple-200" },
+    { name: "Pink", value: "#fbcfe8", class: "bg-pink-200" },
+    { name: "Red", value: "#fecaca", class: "bg-red-200" },
+  ];
+
+  // Common emojis
+  const COMMON_EMOJIS = [
+    "📝", "📋", "📌", "📍", "📎", "✅", "❌", "⭐", "🔥", "💡",
+    "🎯", "🚀", "💼", "📊", "📈", "📉", "💰", "🏠", "🔧", "⚙️",
+    "📅", "⏰", "🔔", "📧", "📞", "💬", "👤", "👥", "🏆", "🎨",
+    "📚", "🎓", "🌟", "💪", "🎉", "🎁", "🏃", "💻", "🖥️", "📱"
+  ];
 
   // Debounced auto-save
   const [debouncedTitle] = useDebounce(title, 500);
@@ -392,6 +433,73 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     togglePin(note.id);
   };
 
+  // Banner handlers
+  const handleAddBanner = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          const url = await uploadNoteImage(file, note.user_id);
+          if (url) {
+            setBannerDialog({ open: true, imageUrl: url });
+            setBannerCropperOpen(true);
+          }
+        } catch (error) {
+          toast.error("Failed to upload banner image");
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleSaveBanner = (position: { x: number; y: number; scale: number }) => {
+    setBannerPosition(position);
+    updateNote({
+      id: note.id,
+      updates: { 
+        banner_image: bannerDialog.imageUrl,
+        content: {
+          ...note.content,
+          blocks: debouncedBlocks,
+          bannerPosition: position
+        } as any
+      }
+    });
+    setBannerCropperOpen(false);
+    toast.success("Banner added!");
+  };
+
+  const handleRemoveBanner = () => {
+    updateNote({
+      id: note.id,
+      updates: { banner_image: null }
+    });
+    setBannerDialog({ open: false, imageUrl: "" });
+    toast.success("Banner removed!");
+  };
+
+  // Background color handler
+  const handleBackgroundColorChange = (color: string | null) => {
+    updateNote({
+      id: note.id,
+      updates: { background_color: color }
+    });
+    setBackgroundColorOpen(false);
+    toast.success("Background updated!");
+  };
+
+  // Icon handler
+  const handleIconChange = (icon: string | null) => {
+    updateNote({
+      id: note.id,
+      updates: { icon } as any
+    });
+    toast.success(icon ? "Icon added!" : "Icon removed!");
+  };
+
   const renderBlock = (block: NoteBlock, index: number) => {
     const isActive = block.id === activeBlockId;
 
@@ -611,6 +719,53 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 >
                   Add Column
                 </Button>
+                
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    if (tableData.rows <= 1) {
+                      toast.error("Table must have at least 1 row");
+                      return;
+                    }
+                    const newCells = tableData.cells.slice(0, -tableData.cols);
+                    const updatedBlock: any = { 
+                      content: { ...tableData, rows: tableData.rows - 1, cells: newCells } 
+                    };
+                    updateBlock(block.id, updatedBlock);
+                  }}
+                  disabled={tableData.rows <= 1}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash className="h-4 w-4 mr-1" />
+                  Delete Row
+                </Button>
+                
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    if (tableData.cols <= 1) {
+                      toast.error("Table must have at least 1 column");
+                      return;
+                    }
+                    const newCells = [];
+                    for (let i = 0; i < tableData.rows; i++) {
+                      const rowStart = i * tableData.cols;
+                      const rowEnd = rowStart + tableData.cols - 1;
+                      newCells.push(...tableData.cells.slice(rowStart, rowEnd));
+                    }
+                    const updatedBlock: any = { 
+                      content: { ...tableData, cols: tableData.cols - 1, cells: newCells } 
+                    };
+                    updateBlock(block.id, updatedBlock);
+                  }}
+                  disabled={tableData.cols <= 1}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash className="h-4 w-4 mr-1" />
+                  Delete Column
+                </Button>
               </div>
             )}
           </div>
@@ -720,27 +875,159 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => toast.info("Banner feature coming soon!")}>
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Add Banner
+              <DropdownMenuContent align="end" className="w-72 max-h-[500px] overflow-y-auto">
+                {/* Search */}
+                <div className="p-2 border-b sticky top-0 bg-background z-10">
+                  <Input 
+                    placeholder="Search actions..." 
+                    className="h-8"
+                  />
+                </div>
+
+                {/* Font Styles */}
+                <div className="flex gap-2 p-2 border-b">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                    <Type className="h-3 w-3 mr-1" />
+                    Default
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                    <Type className="h-3 w-3 mr-1" />
+                    Serif
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                    <Type className="h-3 w-3 mr-1" />
+                    Mono
+                  </Button>
+                </div>
+
+                {/* Customization */}
+                <div className="py-1">
+                  <DropdownMenuItem onClick={handleAddBanner}>
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Add Banner
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => setIconPickerOpen(true)}>
+                    <Smile className="h-4 w-4 mr-2" />
+                    {(note as any).icon ? "Change Icon" : "Add Icon"}
+                  </DropdownMenuItem>
+                </div>
+
+                {/* Background Color Submenu */}
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setBackgroundColorOpen(!backgroundColorOpen);
+                  }}
+                  className="flex justify-between"
+                >
+                  <div className="flex items-center">
+                    <Palette className="h-4 w-4 mr-2" />
+                    Change Background
+                  </div>
+                  <span className="text-xs">›</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info("Background color feature coming soon!")}>
-                  <Palette className="h-4 w-4 mr-2" />
-                  Change Background
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info("Icon picker coming soon!")}>
-                  <Smile className="h-4 w-4 mr-2" />
-                  Add Icon
-                </DropdownMenuItem>
+                
+                {backgroundColorOpen && (
+                  <div className="grid grid-cols-5 gap-2 p-3 border-t border-b">
+                    {BACKGROUND_COLORS.map(color => (
+                      <button
+                        key={color.name}
+                        onClick={() => handleBackgroundColorChange(color.value)}
+                        className="w-10 h-10 rounded-md border-2 hover:border-primary transition-colors flex items-center justify-center"
+                        style={{ backgroundColor: color.value || 'transparent' }}
+                        title={color.name}
+                      >
+                        {!color.value && <X className="h-4 w-4" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toast.info("Link to entity coming soon!")}>
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  Link to Entity
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info("Export feature coming soon!")}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Note
+
+                {/* Actions */}
+                <div className="py-1">
+                  <DropdownMenuItem onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied!");
+                  }}>
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Copy Link
+                    <span className="ml-auto text-xs text-muted-foreground">⌘⇧L</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => {
+                    toast.info("Duplicate feature coming soon!");
+                  }}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                    <span className="ml-auto text-xs text-muted-foreground">⌘D</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onClick={() => toast.info("Link to entity coming soon!")}>
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Link to Entity
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                {/* Toggles */}
+                <div className="py-1">
+                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4" />
+                      <span className="text-sm">Small text</span>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                    <div className="flex items-center gap-2">
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="text-sm">Full width</span>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      <span className="text-sm">Lock page</span>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                {/* Import/Export */}
+                <div className="py-1">
+                  <DropdownMenuItem onClick={() => toast.info("Import coming soon!")}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onClick={() => toast.info("Export coming soon!")}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                {/* Delete */}
+                <DropdownMenuItem 
+                  onClick={() => {
+                    if (confirm("Move this note to trash?")) {
+                      toast.info("Delete feature coming soon!");
+                    }
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Move to Trash
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -748,16 +1035,65 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div 
+          className="flex-1 overflow-y-auto overflow-x-hidden p-8 transition-colors duration-200" 
+          style={{ 
+            maxHeight: 'calc(100vh - 200px)',
+            backgroundColor: note.background_color || 'transparent'
+          }}
+        >
           <div className="max-w-4xl mx-auto space-y-4">
-            {/* Title */}
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Untitled"
-              className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0"
-              disabled={presentationMode}
-            />
+            {/* Banner Image */}
+            {note.banner_image && (
+              <div className="relative -mt-8 -mx-8 mb-6 h-64 overflow-hidden group">
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${note.banner_image})`,
+                    backgroundSize: `${bannerPosition.scale * 100}%`,
+                    backgroundPosition: `${bannerPosition.x}% ${bannerPosition.y}%`,
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20" />
+                <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setBannerCropperOpen(true)}
+                  >
+                    Reposition
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveBanner}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Icon and Title */}
+            <div className="space-y-4">
+              {(note as any).icon && (
+                <button
+                  onClick={() => setIconPickerOpen(true)}
+                  className="text-5xl hover:scale-110 transition-transform cursor-pointer"
+                  title="Change icon"
+                >
+                  {(note as any).icon}
+                </button>
+              )}
+              
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Untitled"
+                className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0"
+                disabled={presentationMode}
+              />
+            </div>
 
             {/* Blocks */}
             <DndContext
@@ -860,6 +1196,51 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
         {/* Formatting Toolbar */}
         {!presentationMode && <SharedFormattingToolbar />}
+
+        {/* Icon Picker Dialog */}
+        <Dialog open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Choose an Icon</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-10 gap-2 p-4 max-h-96 overflow-y-auto">
+              {COMMON_EMOJIS.map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => {
+                    handleIconChange(emoji);
+                    setIconPickerOpen(false);
+                  }}
+                  className="text-3xl hover:scale-125 transition-transform p-2 rounded hover:bg-accent"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  handleIconChange(null);
+                  setIconPickerOpen(false);
+                }}
+              >
+                Remove Icon
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Banner Cropper Dialog */}
+        {bannerCropperOpen && (
+          <BannerImageCropper
+            imageUrl={bannerDialog.imageUrl}
+            open={bannerCropperOpen}
+            onClose={() => setBannerCropperOpen(false)}
+            onSave={handleSaveBanner}
+            initialPosition={bannerPosition}
+          />
+        )}
       </div>
     </EditorFocusProvider>
   );

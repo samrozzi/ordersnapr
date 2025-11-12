@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.send-customer-email]
 verify_jwt = true
+
+[functions.cleanup-expired-archives]
+verify_jwt = false

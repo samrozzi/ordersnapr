@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Grid, List, Star, Pin } from "lucide-react";
+import { Plus, Search, Grid, List, Star, Pin, Archive } from "lucide-react";
 import { useNotes } from "@/hooks/use-notes";
+import { usePremiumAccess } from "@/hooks/use-premium-access";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,11 +20,13 @@ import { OptimizedNoteEditor } from "@/components/notes/OptimizedNoteEditor";
 import { NoteCard } from "@/components/NoteCard";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { TemplatePickerDialog } from "@/components/TemplatePickerDialog";
+import { ArchivedNotes } from "@/components/ArchivedNotes";
 import type { Note, NoteTemplate } from "@/hooks/use-notes";
 import { format } from "date-fns";
 
 const Notes = () => {
-  const { notes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences, templates, toggleFavorite, togglePin } = useNotes();
+  const { notes, archivedNotes, pinnedNotes, isLoading, canCreateNote, notesRemaining, createNote, preferences, updatePreferences, templates, toggleFavorite, togglePin, archiveNote, restoreNote, permanentlyDeleteNote } = useNotes();
+  const { hasPremiumAccess } = usePremiumAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState(preferences?.list_sort_by || "updated_at");
@@ -279,6 +282,10 @@ const Notes = () => {
             <Star className="h-3 w-3 mr-1" />
             Favorites ({favoriteNotes.length})
           </TabsTrigger>
+          <TabsTrigger value="archived">
+            <Archive className="h-3 w-3 mr-1" />
+            Archived ({archivedNotes.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
@@ -351,6 +358,15 @@ const Notes = () => {
               onNoteClick={handleNoteClick}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="archived" className="mt-4">
+          <ArchivedNotes 
+            archivedNotes={archivedNotes}
+            hasPremiumAccess={hasPremiumAccess()}
+            onRestore={(id) => restoreNote(id)}
+            onPermanentDelete={(id) => permanentlyDeleteNote(id)}
+          />
         </TabsContent>
       </Tabs>
 

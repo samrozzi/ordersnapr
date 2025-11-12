@@ -7,7 +7,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragSta
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock, Image as ImageIcon, Palette, Smile, Link as LinkIcon, Download, Trash, Copy, Upload, Lock, Type, Maximize2 } from "lucide-react";
+import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock, Image as ImageIcon, Palette, Smile, Link as LinkIcon, Download, Copy, Upload, Lock, Type, Maximize2, Archive, Info, Table, Minus, FileText, Link2, Unlink, Menu, ChevronDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { MemoizedBlock } from "./MemoizedBlock";
 import { SlashCommandMenu } from "./SlashCommandMenu";
@@ -129,6 +129,11 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   const [locked, setLocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Local state for immediate UI updates
+  const [localBannerImage, setLocalBannerImage] = useState(note.banner_image);
+  const [localBackgroundColor, setLocalBackgroundColor] = useState(note.background_color);
+  const [localIcon, setLocalIcon] = useState((note as any).icon);
+
   // Background colors
   const BACKGROUND_COLORS = [
     { name: "Default", value: null, class: "bg-background" },
@@ -192,6 +197,13 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
       setLocked(prefs.locked || false);
     }
   }, [note.id]);
+
+  // Sync local state when note prop changes
+  useEffect(() => {
+    setLocalBannerImage(note.banner_image);
+    setLocalBackgroundColor(note.background_color);
+    setLocalIcon((note as any).icon);
+  }, [note.banner_image, note.background_color, (note as any).icon]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -579,23 +591,24 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     }
   };
 
-  const handleMoveToTrash = async () => {
-    if (!confirm("Move this note to trash?")) return;
+  const handleArchive = async () => {
+    if (!confirm("Archive this note?")) return;
     
     try {
       const { error } = await supabase
         .from('notes')
-        .delete()
+        .update({ archived_at: new Date().toISOString() })
         .eq('id', note.id);
       
       if (error) throw error;
       
       queryClient.invalidateQueries({ queryKey: ["notes", note.user_id, note.org_id] });
-      toast.success("Note moved to trash");
+      queryClient.invalidateQueries({ queryKey: ["archived-notes", note.user_id, note.org_id] });
+      toast.success("Note archived");
       onClose();
     } catch (error) {
-      console.error("Delete error:", error);
-      toast.error("Failed to delete note");
+      console.error("Archive error:", error);
+      toast.error("Failed to archive note");
     }
   };
 
@@ -856,7 +869,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                   disabled={tableData.rows <= 1}
                   className="text-destructive hover:text-destructive"
                 >
-                  <Trash className="h-4 w-4 mr-1" />
+                  <Trash2 className="h-4 w-4 mr-1" />
                   Delete Row
                 </Button>
                 
@@ -882,7 +895,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                   disabled={tableData.cols <= 1}
                   className="text-destructive hover:text-destructive"
                 >
-                  <Trash className="h-4 w-4 mr-1" />
+                  <Trash2 className="h-4 w-4 mr-1" />
                   Delete Column
                 </Button>
               </div>
@@ -1186,13 +1199,13 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 <DropdownMenuSeparator />
 
                 {/* Delete */}
-                <DropdownMenuItem 
-                  onClick={handleMoveToTrash}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Move to Trash
-                </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={handleArchive}
+            className="text-destructive focus:text-destructive"
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            Archive
+          </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -1206,14 +1219,14 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             fontStyle === 'mono' && "font-mono",
             smallText && "text-sm"
           )}
-          style={{ 
-            maxHeight: 'calc(100vh - 200px)',
-            backgroundColor: note.background_color || 'transparent'
-          }}
+        style={{ 
+          maxHeight: 'calc(100vh - 200px)',
+          backgroundColor: localBackgroundColor || 'transparent'
+        }}
         >
           <div className={cn("mx-auto space-y-4", fullWidth ? "max-w-full" : "max-w-4xl")}>
-            {/* Banner Image */}
-            {note.banner_image && (
+        {/* Banner Image */}
+        {localBannerImage && (
               <div className="relative -mt-8 -mx-8 mb-6 h-64 overflow-hidden group">
                 <div
                   className="absolute inset-0 bg-cover bg-center"

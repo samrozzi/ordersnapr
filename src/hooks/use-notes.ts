@@ -47,6 +47,7 @@ export interface Note {
   linked_entity_type: 'customer' | 'work_order' | 'invoice' | null;
   linked_entity_id: string | null;
   template_id: string | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,7 +94,7 @@ export function useNotes() {
   const { hasPremiumAccess } = usePremiumAccess();
   const queryClient = useQueryClient();
 
-  // Fetch all notes for the user
+  // Fetch all active (non-archived) notes for the user
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["notes", user?.id, activeOrgId],
     queryFn: async () => {
@@ -103,10 +104,34 @@ export function useNotes() {
         .from("notes")
         .select("*")
         .eq("user_id", user.id)
+        .is('archived_at', null)
         .order("updated_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching notes:", error);
+        throw error;
+      }
+
+      return data as unknown as Note[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch archived notes
+  const { data: archivedNotes = [], isLoading: archivedLoading } = useQuery({
+    queryKey: ["archived-notes", user?.id, activeOrgId],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("user_id", user.id)
+        .not('archived_at', 'is', null)
+        .order("archived_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching archived notes:", error);
         throw error;
       }
 
@@ -220,8 +245,51 @@ export function useNotes() {
     },
   });
 
-  // Delete note mutation
-  const deleteNote = useMutation({
+  // Archive note mutation (soft delete)
+  const archiveNote = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("notes")
+        .update({ archived_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
+      queryClient.invalidateQueries({ queryKey: ["archived-notes", user?.id, activeOrgId] });
+      toast.success("Note archived");
+    },
+    onError: (error: any) => {
+      console.error("Error archiving note:", error);
+      toast.error(error.message || "Failed to archive note");
+    },
+  });
+
+  // Restore archived note
+  const restoreNote = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("notes")
+        .update({ archived_at: null })
+        .eq("id", id)
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
+      queryClient.invalidateQueries({ queryKey: ["archived-notes", user?.id, activeOrgId] });
+      toast.success("Note restored");
+    },
+    onError: (error: any) => {
+      toast.error("Failed to restore note");
+    },
+  });
+
+  // Permanent delete
+  const permanentlyDeleteNote = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("notes")
@@ -232,12 +300,11 @@ export function useNotes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", user?.id, activeOrgId] });
-      toast.success("Note deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["archived-notes", user?.id, activeOrgId] });
+      toast.success("Note permanently deleted");
     },
     onError: (error: any) => {
-      console.error("Error deleting note:", error);
-      toast.error(error.message || "Failed to delete note");
+      toast.error("Failed to delete note permanently");
     },
   });
 
@@ -456,15 +523,19 @@ export function useNotes() {
 
   return {
     notes,
+    archivedNotes,
     pinnedNotes,
     isLoading,
+    archivedLoading,
     preferences,
     templates,
     canCreateNote: canCreateNote(),
     notesRemaining: hasPremiumAccess ? Infinity : FREE_TIER_NOTE_LIMIT - notes.length,
     createNote: createNote.mutateAsync,
     updateNote: updateNote.mutateAsync,
-    deleteNote: deleteNote.mutateAsync,
+    archiveNote: archiveNote.mutateAsync,
+    restoreNote: restoreNote.mutateAsync,
+    permanentlyDeleteNote: permanentlyDeleteNote.mutateAsync,
     toggleFavorite: toggleFavorite.mutateAsync,
     togglePin: togglePin.mutateAsync,
     updateKanbanPosition: updateKanbanPosition.mutateAsync,

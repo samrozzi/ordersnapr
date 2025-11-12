@@ -48,7 +48,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 15 },
     }),
     useSensor(KeyboardSensor)
   );
@@ -816,6 +816,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               onSectionsChange={setSections}
               onFieldClick={handleFieldClick}
               onAddSection={handleAddSection}
+              isAnyFieldDragging={!!activeId}
             />
           </div>
         </div>

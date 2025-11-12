@@ -9,7 +9,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy, Eye, EyeOff } from "lucide-react";
+import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy, Eye, EyeOff, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FieldType } from "./FieldPalette";
 import { fieldTypes } from "./FieldPalette";
@@ -80,6 +80,7 @@ interface FormCanvasProps {
   onSectionsChange: (sections: Section[]) => void;
   onFieldClick: (sectionId: string, fieldId: string) => void;
   onAddSection: () => void;
+  isAnyFieldDragging?: boolean;
 }
 
 export function FormCanvas({
@@ -87,6 +88,7 @@ export function FormCanvas({
   onSectionsChange,
   onFieldClick,
   onAddSection,
+  isAnyFieldDragging = false,
 }: FormCanvasProps) {
   // Create a flat map of all fields with their section IDs and parent field IDs
   const fieldToSectionMap = new Map<string, string>();
@@ -312,6 +314,7 @@ export function FormCanvas({
                           onFieldClick={onFieldClick}
                           onCopy={handleCopyField}
                           onRemove={handleRemoveField}
+                          isAnyFieldDragging={isAnyFieldDragging}
                         />
                       ) : (
                         <SortableFieldCard
@@ -602,11 +605,13 @@ function DroppableCellPreview({
   cellKey,
   cellField,
   borderStyle,
+  isAnyFieldDragging,
 }: {
   tableFieldId: string;
   cellKey: string;
   cellField?: Field;
   borderStyle: string;
+  isAnyFieldDragging?: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: `table-${tableFieldId}-cell-${cellKey}`,
@@ -621,9 +626,11 @@ function DroppableCellPreview({
     <td
       ref={setNodeRef}
       className={cn(
-        "p-2 min-w-[100px] transition-colors",
+        "relative z-10 p-3 md:p-4 min-w-[120px] md:min-w-[150px] min-h-[60px] transition-all duration-200 pointer-events-auto",
         borderStyle === 'all' && "border border-border",
-        isOver && "bg-primary/10 border-primary"
+        !cellField && "border-2 border-dashed border-muted-foreground/30",
+        isOver && "bg-primary/20 border-primary border-2 scale-105 shadow-lg",
+        isAnyFieldDragging && !cellField && "border-primary/50 bg-primary/5"
       )}
     >
       {cellField ? (
@@ -637,10 +644,22 @@ function DroppableCellPreview({
         </div>
       ) : (
         <div className={cn(
-          "text-center text-muted-foreground text-xs transition-all",
+          "flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs transition-all",
           isOver && "text-primary font-medium"
         )}>
-          {isOver ? "Drop here" : "Empty"}
+          {isOver ? (
+            <>
+              <Plus className="h-4 w-4 animate-pulse" />
+              <span>Drop here</span>
+            </>
+          ) : isAnyFieldDragging ? (
+            <>
+              <ArrowDown className="h-4 w-4" />
+              <span>Drop field here</span>
+            </>
+          ) : (
+            <span>Empty</span>
+          )}
         </div>
       )}
     </td>
@@ -653,15 +672,20 @@ function TableLayoutFieldCard({
   onFieldClick,
   onCopy,
   onRemove,
+  isAnyFieldDragging,
 }: {
   field: Field;
   sectionId: string;
   onFieldClick: (sectionId: string, fieldId: string) => void;
   onCopy: (sectionId: string, fieldId: string) => void;
   onRemove: (sectionId: string, fieldId: string) => void;
+  isAnyFieldDragging?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: field.id });
+    useSortable({ 
+      id: field.id,
+      disabled: isAnyFieldDragging
+    });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -684,16 +708,21 @@ function TableLayoutFieldCard({
       style={style}
       className={cn(
         "group relative rounded-xl border-2 border-accent bg-card transition-all",
-        isDragging && "shadow-lg"
+        isDragging && "shadow-lg",
+        isAnyFieldDragging && "pointer-events-none"
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-accent/30">
+      <div className="flex items-center gap-3 p-4 bg-accent/30 pointer-events-auto relative z-20">
         <button
           type="button"
-          className="cursor-move touch-none p-1 hover:bg-accent rounded"
+          className={cn(
+            "cursor-move touch-none p-1 hover:bg-accent rounded",
+            isAnyFieldDragging && "opacity-30 cursor-not-allowed"
+          )}
           {...attributes}
           {...listeners}
+          disabled={isAnyFieldDragging}
         >
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -748,7 +777,7 @@ function TableLayoutFieldCard({
       </div>
 
       {/* Table Preview */}
-      <div className="p-4 bg-muted/10">
+      <div className="p-4 bg-muted/10 relative z-0 pointer-events-auto">
         <div className="overflow-x-auto">
           <table className={cn(
             "w-full border-collapse text-xs",
@@ -770,6 +799,7 @@ function TableLayoutFieldCard({
                         cellKey={cellKey}
                         cellField={cellField}
                         borderStyle={borderStyle}
+                        isAnyFieldDragging={isAnyFieldDragging}
                       />
                     );
                   })}

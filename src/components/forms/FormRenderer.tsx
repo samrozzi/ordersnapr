@@ -857,6 +857,62 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <SmartFormImport
               formType="job-audit"
               onDataExtracted={(data) => {
+                console.log('Smart Import - Raw extracted data:', data);
+
+                // Handle dynamic table population for technicianRows (if detected)
+                const technicianRows = (data as any).technicianRows;
+                if (technicianRows && Array.isArray(technicianRows) && technicianRows.length > 0) {
+                  console.log(`Found ${technicianRows.length} technician rows - populating table`);
+                  
+                  // Find the table layout field
+                  let tableField: any = null;
+
+                  template.schema.sections.forEach((section: any) => {
+                    (section.fields || []).forEach((f: any) => {
+                      if (f.type === 'table_layout') {
+                        tableField = f;
+                      }
+                    });
+                  });
+
+                  if (tableField) {
+                    const currentRows = tableField.tableRows || 2;
+                    const rowsToPopulate = Math.min(technicianRows.length, currentRows);
+                    
+                    console.log(`Populating ${rowsToPopulate} rows (table has ${currentRows} rows)`);
+
+                    // Populate table cells with data
+                    let populatedCount = 0;
+                    technicianRows.slice(0, rowsToPopulate).forEach((techRow: any, rowIndex: number) => {
+                      const columnMapping = {
+                        techId: 0,
+                        techName: 1,
+                        techPhone: 2,
+                        techType: 3,
+                        ban: 4,
+                      };
+
+                      Object.entries(columnMapping).forEach(([field, colIndex]) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        const cellField = tableField.tableCells?.[cellKey]?.field;
+                        
+                        if (cellField && techRow[field]) {
+                          handleFieldChange(cellField.key, techRow[field]);
+                          populatedCount++;
+                        }
+                      });
+                    });
+
+                    if (technicianRows.length > currentRows) {
+                      toast.success(`Populated ${rowsToPopulate} rows. Table has ${currentRows} rows, but ${technicianRows.length} were detected. Add more rows to the template to capture all data.`);
+                    } else {
+                      toast.success(`Populated ${rowsToPopulate} rows with technician data`);
+                    }
+                    // Don't process other fields if we handled table population
+                    return;
+                  }
+                }
+
                 // Create a mapping of extracted keys to form field keys
                 const keyMapping: Record<string, string> = {};
                 

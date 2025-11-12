@@ -383,16 +383,35 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         
         const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
         if (!allowedTypes.includes(fieldType)) {
+          toast.error("Only simple fields can be placed in table cells");
           return;
         }
 
         const tableSectionId = fieldToSectionMap.get(tableFieldId);
         if (!tableSectionId) return;
 
+        // Find the table field to check if cell is occupied
+        let tableField: Field | null = null;
+        for (const section of sections) {
+          const found = section.fields.find(f => f.id === tableFieldId);
+          if (found) {
+            tableField = found;
+            break;
+          }
+        }
+
+        // Check if cell is already occupied
+        if (tableField?.tableCells?.[cellKey]?.field) {
+          toast.error("Cell is already occupied");
+          return;
+        }
+
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substr(2, 9);
         const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
         const label = fieldDef?.label || "Field";
+
+        console.log('Dropping palette item into table cell:', { tableFieldId, cellKey, fieldType, label });
 
         setSections(
           sections.map((section) => {
@@ -414,10 +433,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
                   const updatedCells = {
                     ...(field.tableCells || {}),
                     [cellKey]: {
-                      ...(field.tableCells?.[cellKey] || {}),
                       field: newField,
                     },
                   };
+
+                  console.log('Updated table cells:', updatedCells);
 
                   return {
                     ...field,
@@ -429,6 +449,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
             };
           })
         );
+        toast.success(`${label} added to table cell`);
         return;
       }
     }

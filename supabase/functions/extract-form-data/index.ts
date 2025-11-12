@@ -46,7 +46,21 @@ serve(async (req) => {
             serviceDate: { type: "string", description: "Date of service in YYYY-MM-DD format" },
             address: { type: "string", description: "Full service address including street, city, state, zip" },
             customerName: { type: "string", description: "Customer's full name (homeowner/business receiving AT&T service, e.g., McKinzey Sayers)" },
-            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" }
+            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" },
+            technicianRows: {
+              type: "array",
+              description: "Array of technician schedule rows if multiple technicians are present in a table",
+              items: {
+                type: "object",
+                properties: {
+                  techId: { type: "string", description: "Technician ID code" },
+                  techName: { type: "string", description: "Technician full name" },
+                  techPhone: { type: "string", description: "Technician phone number" },
+                  techType: { type: "string", description: "Technician type or classification" },
+                  ban: { type: "string", description: "BAN or account number" }
+                }
+              }
+            }
           },
           required: ["technicianName", "accountNumber", "serviceDate", "address", "customerName", "canBeReached"]
         }
@@ -71,6 +85,12 @@ serve(async (req) => {
 CUSTOMER = homeowner/business receiving service (e.g., McKinzey Sayers).
 TECHNICIAN = AT&T field tech who performed the work.
 CAN BE REACHED = phone, email, or contact method for customer.
+
+IMPORTANT - DETECT TABULAR DATA:
+If you see a table with multiple rows of technicians (columns like Tech ID, Tech Name, Phone, Type, BAN), 
+extract ALL rows as an array in technicianRows. Each row should be an object with: techId, techName, techPhone, techType, ban.
+Example: If table has 4 technicians, return array with 4 objects. If 20 technicians, return 20 objects.
+
 Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only.`
       : `Extract data from AT&T ride-along observation form. 
 THREE DISTINCT PEOPLE:

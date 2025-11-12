@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronRight,
   Sliders,
+  Bell,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,6 +59,7 @@ const iconMap: Record<string, React.ElementType> = {
   "bar-chart": BarChart3,
   folder: Folder,
   users: Users,
+  bell: Bell,
 };
 
 export function AppSidebar() {

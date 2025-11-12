@@ -35,6 +35,7 @@ import {
   Unlock,
   Palette,
   Upload,
+  Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hexToHSL } from "@/lib/color-utils";
@@ -66,6 +67,13 @@ const AVAILABLE_FEATURES = [
     name: "Calendar",
     description: "Schedule and view events",
     icon: Calendar,
+    free: true,
+  },
+  {
+    id: "reminders",
+    name: "Reminders & Tasks",
+    description: "Daily tasks and reminders",
+    icon: Bell,
     free: true,
   },
   {

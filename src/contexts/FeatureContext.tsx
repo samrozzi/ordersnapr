@@ -111,7 +111,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     // Free tier user without localStorage - show defaults
-    const FREE_TIER_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
+    const FREE_TIER_DEFAULTS = ["work_orders", "properties", "forms", "calendar", "reminders"];
     return FREE_TIER_DEFAULTS.includes(module);
   }, [isSuperAdmin, userId, features, orgId, refreshKey, getUserFeaturesKey]); // refreshKey forces updates
 
@@ -128,7 +128,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     // Free tier users: check if it's a free feature
-    const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar"];
+    const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar", "reminders"];
     return FREE_TIER_FEATURES.includes(module);
   }, [isSuperAdmin, features, orgId]);
 

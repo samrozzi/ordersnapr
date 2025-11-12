@@ -21,7 +21,8 @@ export type FeatureModule =
   | "inventory"
   | "customer_portal"
   | "pos"
-  | "files";
+  | "files"
+  | "reminders";
 
 export const useOrgFeatures = (orgId: string | null) => {
   return useQuery({

@@ -226,7 +226,13 @@ const WorkOrders = () => {
     }
   }, [searchParams, workOrders, setSearchParams, toast]);
 
-  console.log('🎨 Rendering WorkOrders:', { loading, workOrdersCount: workOrders.length, session: !!session });
+  console.log('🎨 Rendering WorkOrders:', { 
+    loading, 
+    workOrdersCount: workOrders.length, 
+    session: !!session,
+    viewMode,
+    listTab 
+  });
 
   if (loading) {
     return (
@@ -458,12 +464,19 @@ const WorkOrders = () => {
 
       {viewMode === 'calendar' && (
         <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading calendar…</div>}>
-          <CalendarView onEventClick={(item) => {
-            if (item.type === 'work_order') {
-              const order = workOrders.find(wo => wo.id === item.id);
-              if (order) setViewingOrderDetails(order);
-            }
-          }} />
+          <CalendarView 
+            onEventClick={(item) => {
+              console.log('📅 Calendar event clicked:', item);
+              try {
+                if (item.type === 'work_order') {
+                  const order = workOrders.find(wo => wo.id === item.id);
+                  if (order) setViewingOrderDetails(order);
+                }
+              } catch (error) {
+                console.error('❌ Error handling calendar click:', error);
+              }
+            }} 
+          />
         </Suspense>
       )}
 
@@ -473,7 +486,14 @@ const WorkOrders = () => {
             workOrders={workOrders}
             statuses={statuses}
             onUpdate={fetchWorkOrders}
-            onJobClick={(order) => setViewingOrderDetails(order as WorkOrder)}
+            onJobClick={(order) => {
+              console.log('📋 Kanban card clicked:', order);
+              try {
+                setViewingOrderDetails(order as WorkOrder);
+              } catch (error) {
+                console.error('❌ Error handling kanban click:', error);
+              }
+            }}
           />
         </Suspense>
       )}

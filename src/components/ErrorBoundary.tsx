@@ -23,7 +23,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('❌ ErrorBoundary caught an error:', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      errorName: error.name,
+    });
   }
 
   handleReset = () => {
@@ -42,11 +47,20 @@ export class ErrorBoundary extends Component<Props, State> {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              An error occurred while rendering this form. This might be due to invalid data or an unsupported field type.
+              An error occurred while rendering this component. This might be due to invalid data or a component issue.
             </p>
             {this.state.error && (
-              <div className="p-3 bg-muted rounded-lg text-xs font-mono">
-                {this.state.error.message}
+              <div className="space-y-2">
+                <div className="p-3 bg-muted rounded-lg text-xs font-mono">
+                  <div className="font-semibold mb-1">Error:</div>
+                  {this.state.error.message}
+                </div>
+                {this.state.error.stack && (
+                  <details className="p-3 bg-muted rounded-lg text-xs font-mono">
+                    <summary className="cursor-pointer font-semibold mb-1">Stack Trace</summary>
+                    <pre className="mt-2 whitespace-pre-wrap">{this.state.error.stack}</pre>
+                  </details>
+                )}
               </div>
             )}
             <Button onClick={this.handleReset} variant="outline">

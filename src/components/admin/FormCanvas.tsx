@@ -64,6 +64,21 @@ export interface Field {
   fields?: Field[]; // Nested fields for repeating groups
   minInstances?: number;
   maxInstances?: number;
+  
+  // Table layout specific
+  tableRows?: number;
+  tableColumns?: number;
+  tableCells?: Record<string, TableCell>; // Keyed by "row-col" (e.g., "0-1")
+  showBorders?: boolean;
+  borderStyle?: 'all' | 'outer' | 'none' | 'custom';
+  customBorders?: Record<string, boolean>; // Cell-specific border visibility
+}
+
+export interface TableCell {
+  field?: Field; // The form field in this cell
+  colSpan?: number; // Allow merging cells horizontally
+  rowSpan?: number; // Allow merging cells vertically
+  isEmpty?: boolean; // Empty cells for layout
 }
 
 export interface Section {
@@ -599,6 +614,15 @@ export function FormCanvas({
                           onCopy={handleCopyField}
                           onRemove={handleRemoveField}
                         />
+                      ) : field.type === "table_layout" ? (
+                        <TableLayoutFieldCard
+                          key={field.id}
+                          field={field}
+                          sectionId={section.id}
+                          onFieldClick={onFieldClick}
+                          onCopy={handleCopyField}
+                          onRemove={handleRemoveField}
+                        />
                       ) : (
                         <SortableFieldCard
                           key={field.id}
@@ -894,6 +918,157 @@ function SortableFieldCard({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function TableLayoutFieldCard({
+  field,
+  sectionId,
+  onFieldClick,
+  onCopy,
+  onRemove,
+}: {
+  field: Field;
+  sectionId: string;
+  onFieldClick: (sectionId: string, fieldId: string) => void;
+  onCopy: (sectionId: string, fieldId: string) => void;
+  onRemove: (sectionId: string, fieldId: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: field.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const fieldDef = fieldTypes.find((ft) => ft.type === field.type);
+  const Icon = fieldDef?.icon || Edit2;
+  const rows = field.tableRows || 2;
+  const columns = field.tableColumns || 2;
+  const borderStyle = field.borderStyle || 'all';
+  const tableCells = field.tableCells || {};
+  
+  const cellCount = Object.values(tableCells).filter(cell => cell.field).length;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group relative rounded-xl border-2 border-accent bg-card transition-all",
+        isDragging && "shadow-lg"
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 bg-accent/30">
+        <button
+          type="button"
+          className="cursor-move touch-none p-1 hover:bg-accent rounded"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </button>
+
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-foreground flex items-center gap-2">
+            {field.label}
+            {field.required && <span className="text-destructive text-xs">*</span>}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {rows}×{columns} table • {cellCount} field{cellCount !== 1 ? 's' : ''} • {borderStyle} borders
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onFieldClick(sectionId, field.id)}
+            title="Edit table layout"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onCopy(sectionId, field.id)}
+            title="Duplicate table"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
+            onClick={() => onRemove(sectionId, field.id)}
+            title="Delete table"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Table Preview */}
+      <div className="p-4 bg-muted/10">
+        <div className="overflow-x-auto">
+          <table className={cn(
+            "w-full border-collapse text-xs",
+            borderStyle === 'all' && "border border-border",
+            borderStyle === 'outer' && "border-2 border-border"
+          )}>
+            <tbody>
+              {Array.from({ length: rows }).map((_, rowIndex) => (
+                <tr key={rowIndex}>
+                  {Array.from({ length: columns }).map((_, colIndex) => {
+                    const cellKey = `${rowIndex}-${colIndex}`;
+                    const cell = tableCells[cellKey];
+                    const cellField = cell?.field;
+
+                    return (
+                      <td
+                        key={colIndex}
+                        className={cn(
+                          "p-2 min-w-[100px]",
+                          borderStyle === 'all' && "border border-border"
+                        )}
+                      >
+                        {cellField ? (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const cellFieldDef = fieldTypes.find(ft => ft.type === cellField.type);
+                              const CellIcon = cellFieldDef?.icon || Edit2;
+                              return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
+                            })()}
+                            <span className="text-xs font-medium truncate">{cellField.label}</span>
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground text-xs">
+                            Empty
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

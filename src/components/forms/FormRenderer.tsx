@@ -26,6 +26,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FormRendererProps {
   template: FormTemplate;
@@ -1004,6 +1005,195 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 toast.success(`Applied ${Object.keys(data).length} fields to form`);
               }}
             />
+          </div>
+        );
+
+      case "table_layout":
+        const rows = field.tableRows || 2;
+        const columns = field.tableColumns || 2;
+        const tableCells = field.tableCells || {};
+        const borderStyle = field.borderStyle || 'all';
+        const tableValue = value || {};
+
+        return (
+          <div key={field.key} className="space-y-2">
+            {!field.hideLabel && (
+              <Label>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
+            <div className="overflow-x-auto">
+              <table className={cn(
+                "w-full border-collapse",
+                borderStyle === 'all' && "border border-border",
+                borderStyle === 'outer' && "border-2 border-border"
+              )}>
+                <tbody>
+                  {Array.from({ length: rows }).map((_, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Array.from({ length: columns }).map((_, colIndex) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        const cell = tableCells[cellKey];
+                        const cellField = cell?.field;
+                        
+                        if (!cellField) {
+                          return (
+                            <td
+                              key={colIndex}
+                              className={cn(
+                                "p-3 min-w-[120px] bg-muted/20",
+                                borderStyle === 'all' && "border border-border"
+                              )}
+                            >
+                              {/* Empty cell */}
+                            </td>
+                          );
+                        }
+
+                        const cellValue = tableValue[cellKey];
+                        const cellId = `${field.key}-${cellKey}-${cellField.key}`;
+
+                        return (
+                          <td
+                            key={colIndex}
+                            className={cn(
+                              "p-3 min-w-[120px]",
+                              borderStyle === 'all' && "border border-border"
+                            )}
+                          >
+                            {/* Render cell field */}
+                            {cellField.type === "text" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+                            
+                            {cellField.type === "number" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="number"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: parseInt(e.target.value) || null,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  min={cellField.min}
+                                  max={cellField.max}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "date" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="date"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "time" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="time"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "select" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Select
+                                  value={cellValue || ""}
+                                  onValueChange={(val) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: val,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                >
+                                  <SelectTrigger id={cellId} className="h-8 text-sm">
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(cellField.options || []).map((option, idx) => (
+                                      <SelectItem key={idx} value={option}>
+                                        {option}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 

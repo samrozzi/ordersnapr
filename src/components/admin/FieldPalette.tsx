@@ -13,6 +13,7 @@ import {
   Copy,
   MapPin,
   Sparkles,
+  Table2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,8 @@ export type FieldType =
   | "signature"
   | "address"
   | "repeating_group"
-  | "smart_import";
+  | "smart_import"
+  | "table_layout";
 
 export interface FieldTypeDefinition {
   type: FieldType;
@@ -55,6 +57,7 @@ export const fieldTypes: FieldTypeDefinition[] = [
   { type: "address", icon: MapPin, label: "Address", description: "Structured address inputs" },
   { type: "repeating_group", icon: Copy, label: "Repeating Group", description: "Add multiple entries" },
   { type: "smart_import", icon: Sparkles, label: "Smart Import", description: "AI-powered data extraction" },
+  { type: "table_layout", icon: Table2, label: "Table Layout", description: "Arrange fields in rows and columns" },
 ];
 
 interface FieldPaletteProps {

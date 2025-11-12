@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X } from "lucide-react";
 import type { Field } from "./FormCanvas";
 import { fieldTypes } from "./FieldPalette";
+import { TableFieldEditor } from "./TableFieldEditor";
 
 interface FieldPropertiesPanelProps {
   open: boolean;
@@ -104,6 +105,7 @@ export function FieldPropertiesPanel({
   const fieldDef = fieldTypes.find((ft) => ft.type === editedField.type);
   const needsOptions = ["select", "radio", "checklist"].includes(editedField.type);
   const isRepeatingGroup = editedField.type === "repeating_group";
+  const isTableLayout = editedField.type === "table_layout";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -356,6 +358,21 @@ export function FieldPropertiesPanel({
                     To add fields to this repeating group, simply <strong>drag any field from the palette</strong> and drop it onto this repeating group container in the canvas. You can also drag existing fields into the group.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Table Layout Configuration */}
+            {isTableLayout && (
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Create a table to organize fields into rows and columns. Fields can be arranged side-by-side for compact layouts.
+                  </p>
+                </div>
+                <TableFieldEditor
+                  field={editedField}
+                  onFieldUpdate={(updatedField) => setEditedField(updatedField)}
+                />
               </div>
             )}
 

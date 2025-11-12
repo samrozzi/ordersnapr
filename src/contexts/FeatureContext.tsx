@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrgFeatures, OrgFeature, FeatureModule } from "@/hooks/use-features";
@@ -19,6 +19,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [orgId, setOrgId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -50,9 +51,32 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => subscription.unsubscribe();
   }, []);
 
+  // Listen for localStorage changes to refresh features
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.startsWith('user_features_')) {
+        setRefreshKey((prev) => prev + 1);
+      }
+    };
+
+    // Also listen to custom event for same-page updates
+    const handleCustomUpdate = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userFeaturesUpdated', handleCustomUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userFeaturesUpdated', handleCustomUpdate);
+    };
+  }, []);
+
   const { data: features = [], isLoading } = useOrgFeatures(orgId);
 
-  const hasFeature = (module: FeatureModule): boolean => {
+  // Memoize hasFeature to ensure it updates when localStorage changes
+  const hasFeature = useCallback((module: FeatureModule): boolean => {
     // Super admins have access to ALL features
     if (isSuperAdmin) return true;
 
@@ -80,47 +104,48 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Free tier user without localStorage - show defaults
     const FREE_TIER_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
     return FREE_TIER_DEFAULTS.includes(module);
-  };
+  }, [isSuperAdmin, userId, features, orgId, refreshKey]); // refreshKey forces updates
 
-  const canAccessFeature = (module: FeatureModule): boolean => {
+  const canAccessFeature = useCallback((module: FeatureModule): boolean => {
     // Super admins have access to ALL features
     if (isSuperAdmin) return true;
 
     // Check if user has actual access (for locked/unlocked status)
-    
+
     // Org users: check org_features
     if (features && features.length > 0 && orgId) {
       const feature = features.find((f) => f.module === module);
       return feature?.enabled || false;
     }
-    
+
     // Free tier users: check if it's a free feature
     const FREE_TIER_FEATURES = ["work_orders", "properties", "forms", "calendar"];
     return FREE_TIER_FEATURES.includes(module);
-  };
+  }, [isSuperAdmin, features, orgId]);
 
-  const getFeatureConfig = (module: FeatureModule): Record<string, any> => {
+  const getFeatureConfig = useCallback((module: FeatureModule): Record<string, any> => {
     if (!features) return {};
     const feature = features.find((f) => f.module === module);
     return feature?.config || {};
-  };
+  }, [features]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["org-features", orgId] });
-  };
+  }, [queryClient, orgId]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    features,
+    isLoading,
+    hasFeature,
+    canAccessFeature,
+    getFeatureConfig,
+    refresh,
+    orgId,
+  }), [features, isLoading, hasFeature, canAccessFeature, getFeatureConfig, refresh, orgId]);
 
   return (
-    <FeatureContext.Provider
-      value={{
-        features,
-        isLoading,
-        hasFeature,
-        canAccessFeature,
-        getFeatureConfig,
-        refresh,
-        orgId,
-      }}
-    >
+    <FeatureContext.Provider value={contextValue}>
       {children}
     </FeatureContext.Provider>
   );

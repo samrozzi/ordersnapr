@@ -252,6 +252,10 @@ export function UnifiedPreferences() {
   const handleSaveSidebar = () => {
     if (user) {
       localStorage.setItem(`user_features_${user.id}`, JSON.stringify(enabledFeatures));
+
+      // Dispatch custom event to update FeatureContext immediately
+      window.dispatchEvent(new Event('userFeaturesUpdated'));
+
       toast({
         title: "Sidebar Preferences Saved",
         description: "Refreshing page to apply changes...",

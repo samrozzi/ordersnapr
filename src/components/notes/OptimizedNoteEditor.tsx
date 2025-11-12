@@ -27,6 +27,8 @@ import { uploadNoteImage } from "@/lib/note-image-upload";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface OptimizedNoteEditorProps {
   note: Note;
@@ -88,6 +90,8 @@ function SortableBlock({
 export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNoteEditorProps) {
   const { updateNote, toggleFavorite, togglePin } = useNotes();
   const queryClient = useQueryClient();
+  const keyboardHeight = useKeyboardHeight();
+  const isMobile = useIsMobile();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content?.blocks || []);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -1391,7 +1395,16 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         )}
 
         {/* Formatting Toolbar */}
-        {!presentationMode && <SharedFormattingToolbar />}
+        {!presentationMode && (
+          <div
+            className={cn(
+              "transition-all duration-200",
+              isMobile && keyboardHeight > 0 && "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+            )}
+          >
+            <SharedFormattingToolbar />
+          </div>
+        )}
 
         {/* Icon Picker Dialog */}
         <Dialog open={iconPickerOpen} onOpenChange={setIconPickerOpen}>

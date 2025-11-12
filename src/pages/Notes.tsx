@@ -284,7 +284,8 @@ const Notes = () => {
           </TabsTrigger>
           <TabsTrigger value="archived">
             <Archive className="h-3 w-3 mr-1" />
-            Archived ({archivedNotes.length})
+            <span className="hidden sm:inline">Archived ({archivedNotes.length})</span>
+            <span className="sm:hidden">({archivedNotes.length})</span>
           </TabsTrigger>
         </TabsList>
 

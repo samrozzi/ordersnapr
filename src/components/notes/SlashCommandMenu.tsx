@@ -122,7 +122,11 @@ export function SlashCommandMenu({ onSelect, onClose, searchQuery = "", position
       <div
         ref={menuRef}
         className="fixed z-50 w-80 rounded-lg border border-border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 p-4"
-        style={position ? { top: position.top, left: position.left } : {}}
+        style={position ? { 
+          top: position.top, 
+          left: position.left,
+          maxWidth: 'calc(100vw - 20px)'
+        } : {}}
       >
         <div className="text-sm text-muted-foreground text-center">
           <p className="font-medium mb-1">No blocks found for "{searchQuery}"</p>
@@ -136,7 +140,11 @@ export function SlashCommandMenu({ onSelect, onClose, searchQuery = "", position
     <div
       ref={menuRef}
       className="fixed z-50 w-80 rounded-lg border border-border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95"
-      style={position ? { top: position.top, left: position.left } : {}}
+      style={position ? { 
+        top: position.top, 
+        left: position.left,
+        maxWidth: 'calc(100vw - 20px)'
+      } : {}}
     >
       <Command>
         <CommandList>

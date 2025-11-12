@@ -416,19 +416,25 @@ const Profile = () => {
         <h1 className="text-3xl font-bold">Profile Settings</h1>
 
         <Tabs defaultValue="settings" className="w-full">
-          <TabsList className="flex flex-wrap w-full gap-2 h-auto p-1 sm:p-2">
-            <TabsTrigger value="settings" className="text-xs sm:text-sm flex-1 min-w-[80px]">Settings</TabsTrigger>
-            <TabsTrigger value="preferences" className="text-xs sm:text-sm flex-1 min-w-[80px]">
-              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+          <TabsList className="grid grid-cols-5 w-full h-auto p-1">
+            <TabsTrigger value="settings" className="text-xs sm:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Settings</span>
+              <span className="sm:hidden">Set</span>
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="text-xs sm:text-sm px-2 py-2">
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
               <span className="hidden sm:inline">Preferences</span>
-              <span className="sm:hidden">Prefs</span>
+              <span className="sm:hidden">Pref</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs sm:text-sm flex-1 min-w-[80px]">
-              <span className="hidden sm:inline">My Activity</span>
-              <span className="sm:hidden">Activity</span>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Activity</span>
+              <span className="sm:hidden">Act</span>
             </TabsTrigger>
-            <TabsTrigger value="favorites" className="text-xs sm:text-sm flex-1 min-w-[80px]">Favorites</TabsTrigger>
-            <TabsTrigger value="changelog" className="text-xs sm:text-sm flex-1 min-w-[80px]">
+            <TabsTrigger value="favorites" className="text-xs sm:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Favorites</span>
+              <span className="sm:hidden">Fav</span>
+            </TabsTrigger>
+            <TabsTrigger value="changelog" className="text-xs sm:text-sm px-2 py-2">
               <span className="hidden sm:inline">Changelog</span>
               <span className="sm:hidden">Log</span>
             </TabsTrigger>

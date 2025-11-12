@@ -144,14 +144,23 @@ export const RichTextEditor = ({
             let top = coords.bottom + 5 + scrollTop;
             let left = coords.left + scrollLeft;
             
-            // Prevent menu from going off right edge
-            if (left + menuWidth > viewportWidth) {
-              left = viewportWidth - menuWidth - 10;
-            }
-            
-            // Prevent menu from going below viewport
-            if (top + menuHeight > scrollTop + viewportHeight) {
-              top = coords.top - menuHeight - 5 + scrollTop;
+            // Mobile-specific adjustments
+            const isMobile = viewportWidth < 768;
+            if (isMobile) {
+              // Center menu horizontally on mobile
+              left = Math.max(10, (viewportWidth - menuWidth) / 2);
+              // Position above cursor if not enough space below
+              if (top + menuHeight > scrollTop + viewportHeight - 100) {
+                top = Math.max(scrollTop + 100, coords.top - menuHeight - 5 + scrollTop);
+              }
+            } else {
+              // Desktop positioning
+              if (left + menuWidth > viewportWidth) {
+                left = viewportWidth - menuWidth - 10;
+              }
+              if (top + menuHeight > scrollTop + viewportHeight) {
+                top = coords.top - menuHeight - 5 + scrollTop;
+              }
             }
             
             onSlashDetected({ top, left }, searchQuery);

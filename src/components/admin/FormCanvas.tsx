@@ -359,6 +359,84 @@ export function FormCanvas({
         return;
       }
     }
+
+    // Handle dragging existing field into table cell
+    if (!isDraggingFromPalette && overFieldId.includes("-cell-")) {
+      const overData = over.data?.current as any;
+      if (overData?.type === 'table-cell') {
+        const tableFieldId = overData.tableFieldId;
+        const cellKey = overData.cellKey;
+        
+        const activeField = findFieldById(activeFieldId);
+        if (!activeField) return;
+        
+        // Only allow simple field types in table cells
+        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
+        if (!allowedTypes.includes(activeField.type)) {
+          return;
+        }
+
+        const tableSectionId = fieldToSectionMap.get(tableFieldId);
+        if (!tableSectionId) return;
+
+        const activeSectionId = fieldToSectionMap.get(activeFieldId);
+        if (!activeSectionId) return;
+
+        const activeParentId = fieldToParentMap.get(activeFieldId);
+
+        onSectionsChange(
+          sections.map((section) => {
+            let updatedFields = [...section.fields];
+
+            // Remove from source location
+            if (section.id === activeSectionId) {
+              if (activeParentId) {
+                // Remove from repeating group
+                updatedFields = updatedFields.map(f => {
+                  if (f.id === activeParentId && f.fields) {
+                    return { ...f, fields: f.fields.filter(sf => sf.id !== activeFieldId) };
+                  }
+                  return f;
+                });
+              } else {
+                // Remove from section
+                updatedFields = updatedFields.filter(f => f.id !== activeFieldId);
+              }
+            }
+
+            // Add to table cell
+            if (section.id === tableSectionId) {
+              updatedFields = updatedFields.map((field) => {
+                if (field.id === tableFieldId && field.type === "table_layout") {
+                  const movedField: Field = {
+                    ...activeField,
+                    id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${activeField.label.toLowerCase().replace(/\s+/g, '_')}`,
+                  };
+
+                  const updatedCells = {
+                    ...(field.tableCells || {}),
+                    [cellKey]: {
+                      ...(field.tableCells?.[cellKey] || {}),
+                      field: movedField,
+                    },
+                  };
+
+                  return {
+                    ...field,
+                    tableCells: updatedCells,
+                  };
+                }
+                return field;
+              });
+            }
+
+            return { ...section, fields: updatedFields };
+          })
+        );
+        return;
+      }
+    }
     
     // Handle dropping from palette into repeating group drop zone
     if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
@@ -984,6 +1062,57 @@ function SortableFieldCard({
   );
 }
 
+// Droppable cell component for table preview in FormCanvas
+function DroppableCellPreview({
+  tableFieldId,
+  cellKey,
+  cellField,
+  borderStyle,
+}: {
+  tableFieldId: string;
+  cellKey: string;
+  cellField?: Field;
+  borderStyle: string;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `table-${tableFieldId}-cell-${cellKey}`,
+    data: {
+      type: 'table-cell',
+      tableFieldId,
+      cellKey,
+    },
+  });
+
+  return (
+    <td
+      ref={setNodeRef}
+      className={cn(
+        "p-2 min-w-[100px] transition-colors",
+        borderStyle === 'all' && "border border-border",
+        isOver && "bg-primary/10 border-primary"
+      )}
+    >
+      {cellField ? (
+        <div className="flex items-center gap-2">
+          {(() => {
+            const cellFieldDef = fieldTypes.find(ft => ft.type === cellField.type);
+            const CellIcon = cellFieldDef?.icon || Edit2;
+            return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
+          })()}
+          <span className="text-xs font-medium truncate">{cellField.label}</span>
+        </div>
+      ) : (
+        <div className={cn(
+          "text-center text-muted-foreground text-xs transition-all",
+          isOver && "text-primary font-medium"
+        )}>
+          {isOver ? "Drop here" : "Empty"}
+        </div>
+      )}
+    </td>
+  );
+}
+
 function TableLayoutFieldCard({
   field,
   sectionId,
@@ -1101,28 +1230,13 @@ function TableLayoutFieldCard({
                     const cellField = cell?.field;
 
                     return (
-                      <td
+                      <DroppableCellPreview
                         key={colIndex}
-                        className={cn(
-                          "p-2 min-w-[100px]",
-                          borderStyle === 'all' && "border border-border"
-                        )}
-                      >
-                        {cellField ? (
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const cellFieldDef = fieldTypes.find(ft => ft.type === cellField.type);
-                              const CellIcon = cellFieldDef?.icon || Edit2;
-                              return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
-                            })()}
-                            <span className="text-xs font-medium truncate">{cellField.label}</span>
-                          </div>
-                        ) : (
-                          <div className="text-center text-muted-foreground text-xs">
-                            Empty
-                          </div>
-                        )}
-                      </td>
+                        tableFieldId={field.id}
+                        cellKey={cellKey}
+                        cellField={cellField}
+                        borderStyle={borderStyle}
+                      />
                     );
                   })}
                 </tr>

@@ -39,6 +39,7 @@ const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const Customers = lazy(() => import("./pages/Customers"));
 const Notes = lazy(() => import("./pages/Notes"));
+const Reminders = lazy(() => import("./pages/Reminders"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
@@ -105,6 +106,7 @@ const AppContent = () => {
                 <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
                 <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
                 <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+                <Route path="reminders" element={<FeatureRouteGuard module="reminders"><Reminders /></FeatureRouteGuard>} />
                 <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
                 <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
                 <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />

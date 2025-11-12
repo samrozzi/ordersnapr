@@ -26,13 +26,14 @@ import {
   FolderOpen,
   ShoppingCart,
   BarChart3,
+  Bell,
 } from "lucide-react";
 
 interface SearchResult {
   id: string;
   title: string;
   subtitle?: string;
-  type: "work_order" | "property" | "form" | "calendar_event" | "customer";
+  type: "work_order" | "property" | "form" | "calendar_event" | "customer" | "reminder";
   icon: typeof FileText;
   path: string;
   itemId?: string; // The actual item ID for opening dialogs/sheets
@@ -55,6 +56,7 @@ export function GlobalSearch() {
     properties: { icon: Home, path: "/property-info", defaultLabel: "Property" },
     forms: { icon: FileText, path: "/forms", defaultLabel: "Form" },
     calendar: { icon: Calendar, path: "/calendar", defaultLabel: "Event" },
+    reminders: { icon: Bell, path: "/reminders", defaultLabel: "Reminder" },
     appointments: { icon: Users, path: "/appointments", defaultLabel: "Appointment" },
     inventory: { icon: Package, path: "/inventory", defaultLabel: "Inventory Item" },
     invoicing: { icon: DollarSign, path: "/invoices", defaultLabel: "Invoice" },
@@ -223,6 +225,43 @@ export function GlobalSearch() {
                 icon: Calendar,
                 path: `/calendar?event=${event.id}`,
                 itemId: event.id,
+              });
+            });
+          }
+        }
+
+        // Search reminders - filter by current org/personal space
+        console.log("🔍 Searching reminders...");
+        let remindersQuery = supabase
+          .from("reminders")
+          .select("id, title, description, due_date, status, priority, organization_id")
+          .or(`title.ilike.${orSearchTerm},description.ilike.${orSearchTerm}`);
+
+        // Filter by org context
+        if (isPersonalWorkspace) {
+          remindersQuery = remindersQuery.is("organization_id", null);
+        } else if (activeOrgId) {
+          remindersQuery = remindersQuery.eq("organization_id", activeOrgId);
+        }
+
+        const { data: reminders, error: reminderError } = await remindersQuery.limit(5);
+
+        if (reminderError) {
+          console.error("Reminders search error:", reminderError);
+        } else {
+          console.log("✅ Found reminders:", reminders?.length || 0);
+          if (reminders) {
+            reminders.forEach((reminder: any) => {
+              searchResults.push({
+                id: reminder.id,
+                title: reminder.title,
+                subtitle: reminder.due_date
+                  ? `${reminder.status} • Due: ${new Date(reminder.due_date).toLocaleDateString()}`
+                  : reminder.status,
+                type: "reminder",
+                icon: Bell,
+                path: `/reminders`,
+                itemId: reminder.id,
               });
             });
           }

@@ -14,6 +14,7 @@ const MODULE_NAV_MAP: NavItem[] = [
   { module: "work_orders", label: "Work Orders", path: "/work-orders", icon: "clipboard" },
   { module: "properties", label: "Property Info", path: "/property-info", icon: "building" },
   { module: "forms", label: "Forms", path: "/forms", icon: "file-text" },
+  { module: "reminders", label: "Reminders", path: "/reminders", icon: "bell" },
   { module: "invoicing", label: "Invoices", path: "/invoices", icon: "file-invoice" },
   { module: "customers", label: "Customers", path: "/customers", icon: "users" },
   { module: "inventory", label: "Inventory", path: "/inventory", icon: "package" },
@@ -52,6 +53,11 @@ export const useFeatureNavigation = () => {
     // Calendar is checked via feature but not in nav tabs (icon only)
     if (path === "/calendar") {
       return hasFeature("calendar");
+    }
+
+    // Reminders route
+    if (path === "/reminders") {
+      return hasFeature("reminders");
     }
 
     // Customers route

@@ -29,6 +29,7 @@ import {
   FolderOpen,
   ShoppingCart,
   BarChart3,
+  Bell,
 } from "lucide-react";
 
 interface QuickAction {
@@ -43,6 +44,7 @@ const FEATURE_CONFIG: Record<FeatureModule, { icon: typeof Plus; path: string; d
   properties: { icon: Home, path: "/property-info", defaultLabel: "Property", limitResource: "properties" },
   forms: { icon: FileText, path: "/forms", defaultLabel: "Form", limitResource: "forms" },
   calendar: { icon: Calendar, path: "/calendar", defaultLabel: "Event", limitResource: "calendar_events" },
+  reminders: { icon: Bell, path: "/reminders", defaultLabel: "Reminder" },
   appointments: { icon: Users, path: "/appointments", defaultLabel: "Appointment" },
   inventory: { icon: Package, path: "/inventory", defaultLabel: "Inventory Item" },
   invoicing: { icon: DollarSign, path: "/invoices", defaultLabel: "Invoice" },

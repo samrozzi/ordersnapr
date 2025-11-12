@@ -122,7 +122,7 @@ const WorkOrders = () => {
         .from("profiles")
         .select("active_org_id")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       const currentActiveOrgId = profile?.active_org_id || null;
       setActiveOrgId(currentActiveOrgId);
@@ -133,14 +133,10 @@ const WorkOrders = () => {
         isPersonal: currentActiveOrgId === null
       });
 
-      // Build query with org filtering
+      // Build query with org filtering - fetch work orders without relationships
       let query = supabase
         .from("work_orders")
-        .select(`
-          *,
-          creator:profiles!user_id(full_name, email),
-          assignee:profiles!assigned_to(full_name, email)
-        `);
+        .select("*");
 
       if (currentActiveOrgId === null) {
         // Personal workspace: user's own work orders with no organization
@@ -162,7 +158,39 @@ const WorkOrders = () => {
         workspace: currentActiveOrgId ? 'organization' : 'personal'
       });
 
-      setWorkOrders(data || []);
+      // Decorate work orders with creator/assignee profiles
+      if (data && data.length > 0) {
+        const userIds = new Set<string>();
+        data.forEach(order => {
+          if (order.user_id) userIds.add(order.user_id);
+          if (order.assigned_to) userIds.add(order.assigned_to);
+        });
+
+        let profilesMap = new Map<string, { full_name: string | null; email: string | null }>();
+        
+        if (userIds.size > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", Array.from(userIds));
+
+          if (!profilesError && profiles) {
+            profilesMap = new Map(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+          } else {
+            console.warn("Profiles fetch error (non-fatal):", profilesError);
+          }
+        }
+
+        const decoratedOrders = data.map(order => ({
+          ...order,
+          creator: profilesMap.get(order.user_id) || null,
+          assignee: order.assigned_to ? profilesMap.get(order.assigned_to) || null : null,
+        }));
+
+        setWorkOrders(decoratedOrders);
+      } else {
+        setWorkOrders([]);
+      }
     } catch (error: any) {
       console.error("❌ Error fetching work orders:", error);
       toast({

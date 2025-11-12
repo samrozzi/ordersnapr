@@ -70,6 +70,9 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
+            width={1200}
+            height={240}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
       )}

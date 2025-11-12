@@ -18,6 +18,7 @@ import { MigrationChecker } from "@/components/MigrationChecker";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AppUpdateNotification } from "@/components/AppUpdateNotification";
 import { UsernameGuard } from "@/components/UsernameGuard";
+import { ThemeRestorer } from "@/components/ThemeRestorer";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
@@ -64,6 +65,7 @@ const AppContent = () => {
 
   return (
     <>
+      <ThemeRestorer />
       <Toaster />
       <Sonner />
       <PWAInstallPrompt />

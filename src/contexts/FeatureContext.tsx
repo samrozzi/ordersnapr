@@ -73,6 +73,14 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
+  // Helper function to get org-aware localStorage key
+  const getUserFeaturesKey = useCallback((uid: string, activeOrgId: string | null): string => {
+    if (activeOrgId === null) {
+      return `user_features_${uid}_personal`;
+    }
+    return `user_features_${uid}_org_${activeOrgId}`;
+  }, []);
+
   const { data: features = [], isLoading } = useOrgFeatures(orgId);
 
   // Memoize hasFeature to ensure it updates when localStorage changes
@@ -80,9 +88,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Super admins have access to ALL features
     if (isSuperAdmin) return true;
 
-    // ALWAYS check user preferences from localStorage FIRST
+    // ALWAYS check user preferences from localStorage FIRST (with org-aware key)
     if (userId) {
-      const userFeaturesJson = localStorage.getItem(`user_features_${userId}`);
+      const storageKey = getUserFeaturesKey(userId, orgId);
+      const userFeaturesJson = localStorage.getItem(storageKey);
       if (userFeaturesJson) {
         try {
           const userFeatures: string[] = JSON.parse(userFeaturesJson);
@@ -104,7 +113,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Free tier user without localStorage - show defaults
     const FREE_TIER_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
     return FREE_TIER_DEFAULTS.includes(module);
-  }, [isSuperAdmin, userId, features, orgId, refreshKey]); // refreshKey forces updates
+  }, [isSuperAdmin, userId, features, orgId, refreshKey, getUserFeaturesKey]); // refreshKey forces updates
 
   const canAccessFeature = useCallback((module: FeatureModule): boolean => {
     // Super admins have access to ALL features

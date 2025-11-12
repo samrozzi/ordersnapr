@@ -5,6 +5,7 @@ import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
+import { useActiveOrg } from "@/hooks/use-active-org";
 import { FreeTierBadge } from "@/components/FreeTierBadge";
 import { FeatureModule } from "@/hooks/use-features";
 import {
@@ -60,6 +61,15 @@ export function QuickAddButton() {
   const { data: userPreferences, isLoading: prefsLoading } = useUserPreferences(user?.id || null);
   const { isAtLimit } = useFreeTierLimits();
   const { enabledNavItems } = useFeatureNavigation();
+  const { activeOrgId } = useActiveOrg();
+
+  // Helper function to get org-aware localStorage key
+  const getUserFeaturesKey = (userId: string, activeOrgId: string | null): string => {
+    if (activeOrgId === null) {
+      return `user_features_${userId}_personal`;
+    }
+    return `user_features_${userId}_org_${activeOrgId}`;
+  };
 
   // Don't render until preferences are loaded to prevent flash of wrong items
   if (prefsLoading) {
@@ -80,8 +90,9 @@ export function QuickAddButton() {
       .filter(f => f.enabled)
       .map(f => f.module as FeatureModule);
   } else if (user) {
-    // Free tier user - check localStorage, fallback to sensible defaults including properties
-    const userFeaturesJson = localStorage.getItem(`user_features_${user.id}`);
+    // Free tier user - check localStorage with org-aware key
+    const storageKey = getUserFeaturesKey(user.id, activeOrgId);
+    const userFeaturesJson = localStorage.getItem(storageKey);
     if (userFeaturesJson) {
       try {
         userFeatureModules = JSON.parse(userFeaturesJson) as FeatureModule[];

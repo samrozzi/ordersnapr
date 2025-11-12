@@ -108,8 +108,8 @@ Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits onl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
-        max_tokens: 150,
+        model: 'google/gemini-2.5-flash',
+        max_tokens: 2000,
         messages: [
           { 
             role: 'system', 

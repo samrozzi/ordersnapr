@@ -859,124 +859,93 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               onDataExtracted={(data) => {
                 console.log('Smart Import - Raw extracted data:', data);
 
-                // Handle dynamic table population for technicianRows (if detected)
+                // Handle dynamic population for technicianRows (if detected)
                 const technicianRows = (data as any).technicianRows;
                 if (technicianRows && Array.isArray(technicianRows) && technicianRows.length > 0) {
-                  console.log(`Found ${technicianRows.length} technician rows - populating table`);
+                  console.log(`Found ${technicianRows.length} technician(s) - populating data`);
                   
-                  // Find the table layout field
-                  let tableField: any = null;
-                  let sectionWithTable: any = null;
+                  // Find a repeating group or table field
+                  let targetField: any = null;
+                  let fieldType: 'repeating_group' | 'table_layout' | null = null;
+                  let sectionWithField: any = null;
 
                   template.schema.sections.forEach((section: any) => {
                     (section.fields || []).forEach((f: any) => {
-                      if (f.type === 'table_layout') {
-                        tableField = f;
-                        sectionWithTable = section;
+                      if ((f.type === 'repeating_group' || f.type === 'table_layout') && !targetField) {
+                        targetField = f;
+                        fieldType = f.type;
+                        sectionWithField = section;
                       }
                     });
                   });
 
-                  if (tableField && sectionWithTable) {
-                    const currentRows = tableField.tableRows || 2;
-                    const currentCols = tableField.tableColumns || 5;
-                    
-                    console.log(`Table has ${currentRows} rows x ${currentCols} columns`);
+                  if (targetField && fieldType) {
+                    if (fieldType === 'repeating_group') {
+                      console.log('Populating repeating group with technician data');
+                      
+                      // Set the repeat count to match number of technicians
+                      setRepeatCounts(prev => ({
+                        ...prev,
+                        [targetField.key]: technicianRows.length
+                      }));
 
-                    // Helper to infer field type from column header
-                    const inferFieldType = (header: string): string => {
-                      const h = header.toLowerCase();
-                      if (h.includes('phone') || h.includes('tn')) return 'text';
-                      if (h.includes('email')) return 'text';
-                      if (h.includes('date')) return 'date';
-                      if (h.includes('id') || h.includes('ban') || h.includes('number')) return 'text';
-                      return 'text';
-                    };
+                      // Populate each instance
+                      technicianRows.forEach((techRow: any, techIndex: number) => {
+                        // Find fields in the repeating group that match our data
+                        targetField.fields?.forEach((field: any) => {
+                          const fieldLabel = field.label?.toLowerCase();
+                          let value = null;
 
-                    // Helper to format label from camelCase
-                    const formatLabel = (header: string): string => {
-                      return header
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, str => str.toUpperCase())
-                        .trim();
-                    };
+                          if (fieldLabel?.includes('name')) value = techRow.techName;
+                          else if (fieldLabel?.includes('id')) value = techRow.techId;
+                          else if (fieldLabel?.includes('type')) value = techRow.techType;
+                          else if (fieldLabel?.includes('phone') || fieldLabel?.includes('tn')) value = techRow.techPhone;
+                          else if (fieldLabel?.includes('ban')) value = techRow.ban;
 
-                    // Get column headers from first row
-                    const columnHeaders = Object.keys(technicianRows[0]);
-                    console.log('Column headers:', columnHeaders);
-
-                    // STEP 1: Auto-place fields in empty cells
-                    if (!tableField.tableCells) {
-                      tableField.tableCells = {};
-                    }
-
-                    columnHeaders.forEach((header, colIndex) => {
-                      if (colIndex >= currentCols) return; // Skip if exceeds table columns
-
-                      // Check if any cell in this column has a field
-                      const hasFieldsInColumn = Array.from({ length: currentRows }).some((_, rowIndex) => {
-                        const cellKey = `${rowIndex}-${colIndex}`;
-                        return tableField.tableCells?.[cellKey]?.field;
-                      });
-
-                      if (!hasFieldsInColumn) {
-                        // Column is empty - auto-place fields in all rows of this column
-                        console.log(`Auto-placing field type for column ${colIndex}: ${header}`);
-                        const fieldType = inferFieldType(header);
-                        const label = formatLabel(header);
-
-                        Array.from({ length: currentRows }).forEach((_, rowIndex) => {
-                          const cellKey = `${rowIndex}-${colIndex}`;
-                          const fieldId = `${tableField.id}_cell_${cellKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                          const fieldKey = `${tableField.key}_${rowIndex}_${colIndex}`;
-
-                          tableField.tableCells[cellKey] = {
-                            field: {
-                              id: fieldId,
-                              key: fieldKey,
-                              type: fieldType,
-                              label: label,
-                              required: false,
-                            }
-                          };
+                          if (value) {
+                            const instanceKey = `${field.key}_${techIndex}`;
+                            handleFieldChange(instanceKey, value);
+                          }
                         });
-                      }
-                    });
-
-                    // STEP 2: Populate the data
-                    let populatedCount = 0;
-                    const rowsToPopulate = Math.min(technicianRows.length, currentRows);
-
-                    technicianRows.slice(0, rowsToPopulate).forEach((techRow: any, rowIndex: number) => {
-                      columnHeaders.forEach((header, colIndex) => {
-                        if (colIndex >= currentCols) return;
-
-                        const cellKey = `${rowIndex}-${colIndex}`;
-                        const cellField = tableField.tableCells?.[cellKey]?.field;
-                        
-                        if (cellField && techRow[header] !== undefined && techRow[header] !== null) {
-                          handleFieldChange(cellField.key, techRow[header]);
-                          populatedCount++;
-                        }
                       });
-                    });
 
-                    console.log(`Populated ${populatedCount} cells across ${rowsToPopulate} rows`);
-
-                    if (technicianRows.length > currentRows) {
                       toast.success(
-                        `Populated ${rowsToPopulate} rows with ${populatedCount} values. Found ${technicianRows.length} rows in total - expand the table to capture all data.`,
-                        { duration: 5000 }
-                      );
-                    } else {
-                      toast.success(
-                        `Successfully populated ${rowsToPopulate} rows with ${populatedCount} values!`,
+                        `Created ${technicianRows.length} technician entries!`,
                         { duration: 4000 }
                       );
+                    } else if (fieldType === 'table_layout') {
+                      console.log('Populating table cells with first technician data');
+                      
+                      // For table layout, populate the cells with first tech's data
+                      const firstTech = technicianRows[0];
+                      const cellMapping = {
+                        '0-0': { key: 'techName', label: 'Tech Name' },
+                        '0-1': { key: 'techId', label: 'Tech ID' },
+                        '1-0': { key: 'techType', label: 'Tech Type' },
+                        '1-1': { key: 'techPhone', label: 'Tech Tn' },
+                      };
+
+                      Object.entries(cellMapping).forEach(([cellKey, mapping]) => {
+                        const cell = targetField.tableCells?.[cellKey];
+                        if (cell?.field) {
+                          handleFieldChange(cell.field.key, firstTech[mapping.key] || '');
+                        }
+                      });
+
+                      if (technicianRows.length > 1) {
+                        toast.success(
+                          `Populated first technician. Found ${technicianRows.length} total - use a Repeating Group field to capture all.`,
+                          { duration: 6000 }
+                        );
+                      } else {
+                        toast.success('Successfully populated technician data!');
+                      }
                     }
                     
-                    // Don't process other fields if we handled table population
+                    // Don't process other fields if we handled population
                     return;
+                  } else {
+                    toast.error('No compatible field found. Add a Repeating Group or Table Layout to your form.');
                   }
                 }
 

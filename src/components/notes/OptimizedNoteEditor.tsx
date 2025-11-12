@@ -35,6 +35,11 @@ function SortableBlock({
   onFocus, 
   onDelete, 
   onAddBelow,
+  onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  onConvertType,
+  onCopyLink,
   children 
 }: any) {
   const {
@@ -61,6 +66,11 @@ function SortableBlock({
         onFocus={onFocus}
         onDelete={onDelete}
         onAddBelow={onAddBelow}
+        onDuplicate={onDuplicate}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        onConvertType={onConvertType}
+        onCopyLink={onCopyLink}
         dragHandleProps={{ ...attributes, ...listeners }}
       >
         {children}

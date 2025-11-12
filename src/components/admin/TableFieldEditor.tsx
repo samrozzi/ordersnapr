@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,7 +105,7 @@ export function TableFieldEditor({ field, onFieldUpdate }: TableFieldEditorProps
     const updatedField = {
       ...cell.field,
       label: newLabel,
-      key: newLabel.toLowerCase().replace(/\s+/g, '_'),
+      key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${newLabel.toLowerCase().replace(/\s+/g, '_')}`,
     };
 
     const updatedCells = {
@@ -121,7 +122,92 @@ export function TableFieldEditor({ field, onFieldUpdate }: TableFieldEditorProps
     });
   };
 
+  const handleDropOnCell = (cellKey: string, droppedFieldType: FieldType) => {
+    handleAddFieldToCell(cellKey, droppedFieldType);
+  };
+
   const simpleFieldTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select'];
+
+  // Droppable cell component
+  function DroppableCell({ 
+    cellKey, 
+    rowIndex, 
+    colIndex, 
+    hasField, 
+    cell 
+  }: { 
+    cellKey: string; 
+    rowIndex: number; 
+    colIndex: number; 
+    hasField: boolean;
+    cell: TableCell | undefined;
+  }) {
+    const { setNodeRef, isOver } = useDroppable({
+      id: `table-${field.id}-cell-${cellKey}`,
+      data: {
+        type: 'table-cell',
+        tableFieldId: field.id,
+        cellKey,
+      }
+    });
+
+    return (
+      <td
+        ref={setNodeRef}
+        className={cn(
+          "p-3 min-w-[120px] transition-colors",
+          borderStyle === 'all' && "border border-border",
+          selectedCell === cellKey && "bg-primary/10 ring-2 ring-primary",
+          !hasField && "cursor-pointer hover:bg-accent",
+          isOver && !hasField && "bg-primary/20 ring-2 ring-primary"
+        )}
+        onClick={() => !hasField && handleCellClick(rowIndex, colIndex)}
+      >
+        {hasField ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {(() => {
+                  const fieldDef = fieldTypes.find(ft => ft.type === cell?.field?.type);
+                  const Icon = fieldDef?.icon || Table2;
+                  return (
+                    <div className="flex-shrink-0">
+                      <Icon className="h-3 w-3 text-primary" />
+                    </div>
+                  );
+                })()}
+                <Input
+                  value={cell?.field?.label || ""}
+                  onChange={(e) => handleFieldLabelChange(cellKey, e.target.value)}
+                  className="h-7 text-xs"
+                  placeholder="Field label"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveFieldFromCell(cellKey);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {fieldTypes.find(ft => ft.type === cell?.field?.type)?.label}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-xs text-muted-foreground py-2">
+            {isOver ? "Drop field here" : "Click to add field"}
+          </div>
+        )}
+      </td>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -187,59 +273,14 @@ export function TableFieldEditor({ field, onFieldUpdate }: TableFieldEditorProps
                     const hasField = !!cell?.field;
 
                     return (
-                      <td
+                      <DroppableCell
                         key={colIndex}
-                        className={cn(
-                          "p-3 min-w-[120px] transition-colors",
-                          borderStyle === 'all' && "border border-border",
-                          selectedCell === cellKey && "bg-primary/10 ring-2 ring-primary",
-                          !hasField && "cursor-pointer hover:bg-accent"
-                        )}
-                        onClick={() => !hasField && handleCellClick(rowIndex, colIndex)}
-                      >
-                        {hasField ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                {(() => {
-                                  const fieldDef = fieldTypes.find(ft => ft.type === cell.field?.type);
-                                  const Icon = fieldDef?.icon || Table2;
-                                  return (
-                                    <div className="flex-shrink-0">
-                                      <Icon className="h-3 w-3 text-primary" />
-                                    </div>
-                                  );
-                                })()}
-                                <Input
-                                  value={cell.field?.label || ""}
-                                  onChange={(e) => handleFieldLabelChange(cellKey, e.target.value)}
-                                  className="h-7 text-xs"
-                                  placeholder="Field label"
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 flex-shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveFieldFromCell(cellKey);
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {fieldTypes.find(ft => ft.type === cell.field?.type)?.label}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center text-xs text-muted-foreground py-2">
-                            Click to add field
-                          </div>
-                        )}
-                      </td>
+                        cellKey={cellKey}
+                        rowIndex={rowIndex}
+                        colIndex={colIndex}
+                        hasField={hasField}
+                        cell={cell}
+                      />
                     );
                   })}
                 </tr>

@@ -860,13 +860,54 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 // Create a mapping of extracted keys to form field keys
                 const keyMapping: Record<string, string> = {};
                 
-                // Build mapping by finding fields with matching labels or keys
+                // Build mapping by finding fields with matching labels or keys (including table cells)
                 template.schema.sections.forEach((section: any) => {
                   (section.fields || []).forEach((f: any) => {
                     const label = f.label?.toLowerCase().replace(/\s+/g, '');
                     const fieldKey = f.key;
                     
-                    // Map common extracted keys to form field keys
+                    // Handle table layout fields - extract cell fields
+                    if (f.type === 'table_layout' && f.tableCells) {
+                      Object.entries(f.tableCells).forEach(([cellKey, cell]: [string, any]) => {
+                        if (cell?.field) {
+                          const cellLabel = cell.field.label?.toLowerCase().replace(/\s+/g, '');
+                          const cellFieldKey = cell.field.key;
+                          
+                          // Map common extracted keys to table cell field keys
+                          if (cellLabel?.includes('technician') || cellFieldKey?.includes('technician') || cellFieldKey?.includes('tech')) {
+                            keyMapping['technicianName'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('account') || cellLabel?.includes('ban') || cellFieldKey?.includes('ban') || cellFieldKey?.includes('account')) {
+                            keyMapping['accountNumber'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('service') && cellLabel?.includes('date') || cellFieldKey?.includes('servicedate') || cellFieldKey?.includes('service_date')) {
+                            keyMapping['serviceDate'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('address') || cellFieldKey?.includes('address')) {
+                            keyMapping['address'] = cellFieldKey;
+                          }
+                          if ((cellLabel?.toLowerCase().includes('customer') && cellLabel?.toLowerCase().includes('name')) || 
+                              cellFieldKey?.toLowerCase().includes('customer_name')) {
+                            keyMapping['customerName'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('reached') || cellFieldKey?.includes('reach')) {
+                            keyMapping['canBeReached'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('observer') || cellFieldKey?.includes('observer') || cellFieldKey?.includes('reported')) {
+                            keyMapping['observerName'] = cellFieldKey;
+                            keyMapping['reportedBy'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('start') && cellLabel?.includes('time') || cellFieldKey?.includes('starttime') || cellFieldKey?.includes('start_time')) {
+                            keyMapping['startTime'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('end') && cellLabel?.includes('time') || cellFieldKey?.includes('endtime') || cellFieldKey?.includes('end_time')) {
+                            keyMapping['endTime'] = cellFieldKey;
+                          }
+                        }
+                      });
+                    }
+                    
+                    // Map regular fields
                     if (label?.includes('technician') || fieldKey?.includes('technician') || fieldKey?.includes('tech')) {
                       keyMapping['technicianName'] = fieldKey;
                     }

@@ -299,6 +299,67 @@ export function FormCanvas({
     const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
     const effectiveOverSectionId = overSectionId ?? fieldToSectionMap.get(targetRepeatingGroupId);
     
+    // Handle dropping from palette into table cell
+    if (isDraggingFromPalette && overFieldId.includes("-cell-")) {
+      const overData = over.data?.current as any;
+      if (overData?.type === 'table-cell') {
+        const tableFieldId = overData.tableFieldId;
+        const cellKey = overData.cellKey;
+        const fieldType = activeFieldId as FieldType;
+        
+        // Only allow simple field types in table cells
+        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
+        if (!allowedTypes.includes(fieldType)) {
+          return;
+        }
+
+        const tableSectionId = fieldToSectionMap.get(tableFieldId);
+        if (!tableSectionId) return;
+
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+        const label = fieldDef?.label || "Field";
+
+        onSectionsChange(
+          sections.map((section) => {
+            if (section.id !== tableSectionId) return section;
+
+            return {
+              ...section,
+              fields: section.fields.map((field) => {
+                if (field.id === tableFieldId && field.type === "table_layout") {
+                  const newField: Field = {
+                    id: `field-${timestamp}-${randomId}`,
+                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
+                    type: fieldType,
+                    label: label,
+                    placeholder: "",
+                    required: false,
+                  };
+
+                  const updatedCells = {
+                    ...(field.tableCells || {}),
+                    [cellKey]: {
+                      ...(field.tableCells?.[cellKey] || {}),
+                      field: newField,
+                    },
+                  };
+
+                  return {
+                    ...field,
+                    tableCells: updatedCells,
+                  };
+                }
+                return field;
+              }),
+            };
+          })
+        );
+        return;
+      }
+    }
+    
     // Handle dropping from palette into repeating group drop zone
     if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
       const targetSectionId = fieldToSectionMap.get(targetRepeatingGroupId);

@@ -24,6 +24,9 @@ import { Switch } from "@/components/ui/switch";
 import { BannerImageCropper } from "@/components/BannerImageCropper";
 import { format } from "date-fns";
 import { uploadNoteImage } from "@/lib/note-image-upload";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface OptimizedNoteEditorProps {
   note: Note;
@@ -84,6 +87,7 @@ function SortableBlock({
 
 export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNoteEditorProps) {
   const { updateNote, toggleFavorite, togglePin } = useNotes();
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content?.blocks || []);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -117,6 +121,13 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
   // Icon picker state
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+
+  // Page preferences state
+  const [fontStyle, setFontStyle] = useState<'default' | 'serif' | 'mono'>('default');
+  const [smallText, setSmallText] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Background colors
   const BACKGROUND_COLORS = [
@@ -170,6 +181,17 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
     saveChanges();
   }, [debouncedTitle, debouncedBlocks]);
+
+  // Load preferences from note content
+  useEffect(() => {
+    const prefs = (note.content as any)?.preferences;
+    if (prefs) {
+      setFontStyle(prefs.fontStyle || 'default');
+      setSmallText(prefs.smallText || false);
+      setFullWidth(prefs.fullWidth || false);
+      setLocked(prefs.locked || false);
+    }
+  }, [note.id]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -500,6 +522,102 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     toast.success(icon ? "Icon added!" : "Icon removed!");
   };
 
+  // Preference update handler
+  const updatePreferences = useCallback((updates: Partial<{
+    fontStyle: 'default' | 'serif' | 'mono';
+    smallText: boolean;
+    fullWidth: boolean;
+    locked: boolean;
+  }>) => {
+    const currentPrefs = (note.content as any)?.preferences || {};
+    const newPrefs = { ...currentPrefs, ...updates };
+    
+    updateNote({
+      id: note.id,
+      updates: {
+        content: {
+          ...note.content,
+          blocks: debouncedBlocks,
+          preferences: newPrefs
+        } as any
+      }
+    });
+  }, [note, debouncedBlocks, updateNote]);
+
+  const handleFontStyleChange = (style: 'default' | 'serif' | 'mono') => {
+    setFontStyle(style);
+    updatePreferences({ fontStyle: style });
+    toast.success(`Font changed to ${style}`);
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      const duplicatedNote = {
+        user_id: note.user_id,
+        org_id: note.org_id,
+        title: `${note.title} (Copy)`,
+        content: note.content as any,
+        background_color: note.background_color,
+        banner_image: note.banner_image,
+        icon: (note as any).icon,
+        is_favorite: false,
+        is_pinned: false,
+        view_mode: note.view_mode
+      };
+      
+      const { error } = await supabase
+        .from('notes')
+        .insert([duplicatedNote]);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["notes", note.user_id, note.org_id] });
+      toast.success("Note duplicated!");
+    } catch (error) {
+      console.error("Duplicate error:", error);
+      toast.error("Failed to duplicate note");
+    }
+  };
+
+  const handleMoveToTrash = async () => {
+    if (!confirm("Move this note to trash?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', note.id);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["notes", note.user_id, note.org_id] });
+      toast.success("Note moved to trash");
+      onClose();
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete note");
+    }
+  };
+
+  const handleToggleSmallText = () => {
+    const newValue = !smallText;
+    setSmallText(newValue);
+    updatePreferences({ smallText: newValue });
+  };
+
+  const handleToggleFullWidth = () => {
+    const newValue = !fullWidth;
+    setFullWidth(newValue);
+    updatePreferences({ fullWidth: newValue });
+  };
+
+  const handleToggleLock = () => {
+    const newValue = !locked;
+    setLocked(newValue);
+    updatePreferences({ locked: newValue });
+    toast.success(newValue ? "Page locked" : "Page unlocked");
+  };
+
   const renderBlock = (block: NoteBlock, index: number) => {
     const isActive = block.id === activeBlockId;
 
@@ -514,7 +632,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
           <div className="space-y-2">
             <RichTextEditor
               content={typeof block.content === "string" ? block.content : ""}
-              onChange={(html) => updateBlock(block.id, { content: html })}
+              onChange={(html) => !locked && updateBlock(block.id, { content: html })}
               placeholder="Heading..."
               className="text-2xl font-bold"
               variant="heading"
@@ -535,7 +653,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         return (
           <RichTextEditor
             content={typeof block.content === "string" ? block.content : ""}
-            onChange={(html) => updateBlock(block.id, { content: html })}
+            onChange={(html) => !locked && updateBlock(block.id, { content: html })}
             placeholder="Type '/' for commands"
             autoFocus={block.id === activeBlockId}
             onFocus={() => setActiveBlockId(block.id)}
@@ -573,6 +691,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                     <RichTextEditor
                       content={item.text}
                       onChange={(html) => {
+                        if (locked) return;
                         const newItems = [...checklistContent.items];
                         newItems[idx] = { ...item, text: html };
                         const updatedBlock: any = { content: { ...checklistContent, items: newItems } };
@@ -603,7 +722,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 const updatedBlock: any = { content: { date: new Date(e.target.value).toISOString() } };
                 updateBlock(block.id, updatedBlock);
               }}
-              disabled={presentationMode}
+              disabled={presentationMode || locked}
               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
             />
           </div>
@@ -625,7 +744,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 const updatedBlock: any = { content: { time: e.target.value } };
                 updateBlock(block.id, updatedBlock);
               }}
-              disabled={presentationMode}
+              disabled={presentationMode || locked}
               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
             />
           </div>
@@ -649,7 +768,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                         const isHeader = rowIndex === 0 && tableData.headerRow;
                         
                         return isHeader ? (
-                          <th key={colIndex} className="border border-border p-2 bg-accent/20 font-semibold text-left">
+                           <th key={colIndex} className="border border-border p-2 bg-accent/20 font-semibold text-left">
                             <Input
                               value={tableData.cells[cellIndex] || ""}
                               onChange={(e) => {
@@ -659,7 +778,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                                 updateBlock(block.id, updatedBlock);
                               }}
                               placeholder={`Header ${colIndex + 1}`}
-                              disabled={presentationMode}
+                              disabled={presentationMode || locked}
                               className="border-none shadow-none focus-visible:ring-0 bg-transparent font-semibold"
                             />
                           </th>
@@ -674,7 +793,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                                 updateBlock(block.id, updatedBlock);
                               }}
                               placeholder="Cell"
-                              disabled={presentationMode}
+                              disabled={presentationMode || locked}
                               className="border-none shadow-none focus-visible:ring-0 bg-transparent"
                             />
                           </td>
@@ -813,7 +932,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 updateBlock(block.id, updatedBlock);
               }}
               placeholder="Add a caption..."
-              disabled={presentationMode}
+              disabled={presentationMode || locked}
             />
           </div>
         );
@@ -881,20 +1000,37 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                   <Input 
                     placeholder="Search actions..." 
                     className="h-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
                 {/* Font Styles */}
                 <div className="flex gap-2 p-2 border-b">
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                  <Button 
+                    variant={fontStyle === 'default' ? "default" : "outline"} 
+                    size="sm" 
+                    className="flex-1 text-xs"
+                    onClick={() => handleFontStyleChange('default')}
+                  >
                     <Type className="h-3 w-3 mr-1" />
                     Default
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                  <Button 
+                    variant={fontStyle === 'serif' ? "default" : "outline"} 
+                    size="sm" 
+                    className="flex-1 text-xs"
+                    onClick={() => handleFontStyleChange('serif')}
+                  >
                     <Type className="h-3 w-3 mr-1" />
                     Serif
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 text-xs">
+                  <Button 
+                    variant={fontStyle === 'mono' ? "default" : "outline"} 
+                    size="sm" 
+                    className="flex-1 text-xs"
+                    onClick={() => handleFontStyleChange('mono')}
+                  >
                     <Type className="h-3 w-3 mr-1" />
                     Mono
                   </Button>
@@ -957,9 +1093,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                     <span className="ml-auto text-xs text-muted-foreground">⌘⇧L</span>
                   </DropdownMenuItem>
                   
-                  <DropdownMenuItem onClick={() => {
-                    toast.info("Duplicate feature coming soon!");
-                  }}>
+                  <DropdownMenuItem onClick={handleDuplicate}>
                     <Copy className="h-4 w-4 mr-2" />
                     Duplicate
                     <span className="ml-auto text-xs text-muted-foreground">⌘D</span>
@@ -975,28 +1109,37 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
                 {/* Toggles */}
                 <div className="py-1">
-                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                  <div 
+                    className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm"
+                    onClick={handleToggleSmallText}
+                  >
                     <div className="flex items-center gap-2">
                       <Type className="h-4 w-4" />
                       <span className="text-sm">Small text</span>
                     </div>
-                    <Switch />
+                    <Switch checked={smallText} onCheckedChange={handleToggleSmallText} />
                   </div>
 
-                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                  <div 
+                    className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm"
+                    onClick={handleToggleFullWidth}
+                  >
                     <div className="flex items-center gap-2">
                       <Maximize2 className="h-4 w-4" />
                       <span className="text-sm">Full width</span>
                     </div>
-                    <Switch />
+                    <Switch checked={fullWidth} onCheckedChange={handleToggleFullWidth} />
                   </div>
 
-                  <div className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm">
+                  <div 
+                    className="flex items-center justify-between px-2 py-2 hover:bg-accent cursor-pointer rounded-sm"
+                    onClick={handleToggleLock}
+                  >
                     <div className="flex items-center gap-2">
                       <Lock className="h-4 w-4" />
                       <span className="text-sm">Lock page</span>
                     </div>
-                    <Switch />
+                    <Switch checked={locked} onCheckedChange={handleToggleLock} />
                   </div>
                 </div>
 
@@ -1004,12 +1147,37 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
                 {/* Import/Export */}
                 <div className="py-1">
-                  <DropdownMenuItem onClick={() => toast.info("Import coming soon!")}>
+                  <DropdownMenuItem onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'application/json';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        const text = await file.text();
+                        const imported = JSON.parse(text);
+                        setTitle(imported.title || note.title);
+                        setBlocks(imported.content?.blocks || []);
+                        toast.success("Note imported!");
+                      }
+                    };
+                    input.click();
+                  }}>
                     <Upload className="h-4 w-4 mr-2" />
                     Import
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={() => toast.info("Export coming soon!")}>
+                  <DropdownMenuItem onClick={() => {
+                    const dataStr = JSON.stringify({ title: note.title, content: note.content }, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${note.title || 'note'}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("Note exported!");
+                  }}>
                     <Download className="h-4 w-4 mr-2" />
                     Export
                   </DropdownMenuItem>
@@ -1019,11 +1187,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
                 {/* Delete */}
                 <DropdownMenuItem 
-                  onClick={() => {
-                    if (confirm("Move this note to trash?")) {
-                      toast.info("Delete feature coming soon!");
-                    }
-                  }}
+                  onClick={handleMoveToTrash}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash className="h-4 w-4 mr-2" />
@@ -1036,13 +1200,18 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
         {/* Content */}
         <div 
-          className="flex-1 overflow-y-auto overflow-x-hidden p-8 transition-colors duration-200" 
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden p-8 transition-colors duration-200",
+            fontStyle === 'serif' && "font-serif",
+            fontStyle === 'mono' && "font-mono",
+            smallText && "text-sm"
+          )}
           style={{ 
             maxHeight: 'calc(100vh - 200px)',
             backgroundColor: note.background_color || 'transparent'
           }}
         >
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className={cn("mx-auto space-y-4", fullWidth ? "max-w-full" : "max-w-4xl")}>
             {/* Banner Image */}
             {note.banner_image && (
               <div className="relative -mt-8 -mx-8 mb-6 h-64 overflow-hidden group">
@@ -1091,7 +1260,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Untitled"
                 className="text-3xl font-bold border-none shadow-none focus-visible:ring-0 px-0"
-                disabled={presentationMode}
+                disabled={presentationMode || locked}
               />
             </div>
 

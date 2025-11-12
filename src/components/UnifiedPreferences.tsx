@@ -158,10 +158,19 @@ export function UnifiedPreferences() {
   const [brandLogoUrl, setBrandLogoUrl] = useState("");
   const [brandingHasChanges, setBrandingHasChanges] = useState(false);
 
-  // Load sidebar preferences from localStorage
+  // Helper function to get org-aware localStorage key
+  const getUserFeaturesKey = (userId: string, activeOrgId: string | null): string => {
+    if (activeOrgId === null) {
+      return `user_features_${userId}_personal`;
+    }
+    return `user_features_${userId}_org_${activeOrgId}`;
+  };
+
+  // Load sidebar preferences from localStorage (org-aware)
   useEffect(() => {
     if (user) {
-      const savedFeatures = localStorage.getItem(`user_features_${user.id}`);
+      const storageKey = getUserFeaturesKey(user.id, activeOrgId);
+      const savedFeatures = localStorage.getItem(storageKey);
       if (savedFeatures) {
         try {
           setEnabledFeatures(JSON.parse(savedFeatures));
@@ -178,7 +187,7 @@ export function UnifiedPreferences() {
       }
       setFeaturesReady(true);
     }
-  }, [user]);
+  }, [user, activeOrgId]); // Re-run when activeOrgId changes
 
   // Load branding preferences from database (for premium users)
   useEffect(() => {
@@ -251,14 +260,16 @@ export function UnifiedPreferences() {
 
   const handleSaveSidebar = () => {
     if (user) {
-      localStorage.setItem(`user_features_${user.id}`, JSON.stringify(enabledFeatures));
+      const storageKey = getUserFeaturesKey(user.id, activeOrgId);
+      localStorage.setItem(storageKey, JSON.stringify(enabledFeatures));
 
       // Dispatch custom event to update FeatureContext immediately
       window.dispatchEvent(new Event('userFeaturesUpdated'));
 
+      const workspaceType = activeOrgId ? 'organization' : 'personal';
       toast({
         title: "Sidebar Preferences Saved",
-        description: "Refreshing page to apply changes...",
+        description: `Settings saved for ${workspaceType} workspace. Refreshing...`,
         duration: 2000,
       });
       setSidebarHasChanges(false);
@@ -603,9 +614,11 @@ export function UnifiedPreferences() {
           <CardTitle className="flex items-center gap-2">
             <SidebarIcon className="h-5 w-5" />
             Sidebar Navigation
+            {activeOrgId && <Badge variant="outline">Organization</Badge>}
+            {!activeOrgId && <Badge variant="outline">Personal</Badge>}
           </CardTitle>
           <CardDescription>
-            Choose which pages appear in your sidebar navigation. {!isPremium && (
+            Choose which pages appear in your sidebar navigation. Settings are saved per workspace (organization or personal). {!isPremium && (
               <span className="text-orange-600 dark:text-orange-400 font-medium block mt-1">
                 Premium features will be locked until you upgrade your account or join/create an organization.
               </span>

@@ -126,8 +126,7 @@ All colors MUST be HSL.
     position: fixed;
     inset: 0 0 auto 0;
     height: 900px;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--primary) / 0.05) 25%, transparent 50%),
-                linear-gradient(225deg, hsl(var(--accent)) 0%, transparent 40%);
+    background: url('/login-bg-desktop.png') center top / cover no-repeat;
     z-index: 0;
     pointer-events: none;
     -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent 100%);
@@ -136,16 +135,14 @@ All colors MUST be HSL.
 
   @media (max-width: 768px) {
     .auth-page::before {
+      background: url('/login-bg-mobile.png') center top / cover no-repeat;
       height: 720px;
-      background: linear-gradient(180deg, hsl(var(--primary) / 0.08) 0%, transparent 60%);
     }
   }
 
   /* Dark mode support */
   .dark .auth-page::before {
     opacity: 0.9;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.08) 25%, transparent 50%),
-                linear-gradient(225deg, hsl(var(--accent) / 0.8) 0%, transparent 40%);
   }
 }
 

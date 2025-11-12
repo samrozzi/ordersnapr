@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'], // Removed png to exclude huge favicons
-        globIgnores: ['**/login-bg-*.png', '**/favicon-*.png'], // Don't cache oversized files
-        maximumFileSizeToCacheInBytes: 1 * 1024 * 1024, // 1 MB limit
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['**/favicon-*.png'], // Don't cache oversized favicons
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit for background images
         runtimeCaching: [
           // Supabase Storage - Cache first for images and files
           {

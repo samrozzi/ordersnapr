@@ -15,6 +15,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { MigrationChecker } from "@/components/MigrationChecker";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AppUpdateNotification } from "@/components/AppUpdateNotification";
 import { UsernameGuard } from "@/components/UsernameGuard";
@@ -24,21 +25,23 @@ import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
-// Lazy load heavy page components
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+// Eager load frequently accessed pages for instant navigation
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import WorkOrders from "./pages/WorkOrders";
+import PropertyInfo from "./pages/PropertyInfo";
+import Notes from "./pages/Notes";
+
+// Lazy load less frequently accessed pages
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
 const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
-const Profile = lazy(() => import("./pages/Profile"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));
-const WorkOrders = lazy(() => import("./pages/WorkOrders"));
-const PropertyInfo = lazy(() => import("./pages/PropertyInfo"));
 const Forms = lazy(() => import("./pages/Forms"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const Customers = lazy(() => import("./pages/Customers"));
-const Notes = lazy(() => import("./pages/Notes"));
 const Reminders = lazy(() => import("./pages/Reminders"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -48,12 +51,12 @@ const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const FreeTierDashboard = lazy(() => import("./pages/FreeTierDashboard"));
 const PublicInvoice = lazy(() => import("./pages/PublicInvoice"));
 
-// Optimized React Query configuration
+// Optimized React Query configuration for speed
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      staleTime: 2 * 60 * 1000, // 2 minutes - data stays fresh longer
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       retry: 1,
@@ -75,48 +78,50 @@ const AppContent = () => {
         <BrowserRouter>
         <FeatureProvider>
           <MigrationChecker />
-          <Suspense fallback={<PageSkeleton />}>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/pending-approval" element={<PendingApproval />} />
+          <ErrorBoundary>
+            <Suspense fallback={<PageSkeleton />}>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/pending-approval" element={<PendingApproval />} />
 
-              {/* Customer Portal - Public route (token-based access) */}
-              <Route path="/portal/:token" element={<CustomerPortal />} />
+                {/* Customer Portal - Public route (token-based access) */}
+                <Route path="/portal/:token" element={<CustomerPortal />} />
 
-              {/* Public Invoice - Shareable invoice links */}
-              <Route path="/invoice/:token" element={<PublicInvoice />} />
+                {/* Public Invoice - Shareable invoice links */}
+                <Route path="/invoice/:token" element={<PublicInvoice />} />
 
-              {/* Free Tier Routes - No approval required */}
-              <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />
-              <Route path="/free-workspace" element={<FreeRoute><FreeTierWorkspace /></FreeRoute>} />
+                {/* Free Tier Routes - No approval required */}
+                <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />
+                <Route path="/free-workspace" element={<FreeRoute><FreeTierWorkspace /></FreeRoute>} />
 
-              {/* Protected Routes - Require approval */}
-              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="admin" element={<Admin />} />
-                <Route path="org-admin" element={<OrgAdmin />} />
-                <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
-                <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
-                <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
-                <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
-                <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
-                <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
-                <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
-                <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
-                <Route path="reminders" element={<FeatureRouteGuard module="reminders"><Reminders /></FeatureRouteGuard>} />
-                <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
-                <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
-                <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />
-                <Route path="notes" element={<Notes />} />
-                <Route path="health-data" element={<HealthData />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+                {/* Protected Routes - Require approval */}
+                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="admin" element={<Admin />} />
+                  <Route path="org-admin" element={<OrgAdmin />} />
+                  <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
+                  <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
+                  <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
+                  <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
+                  <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
+                  <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
+                  <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
+                  <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+                  <Route path="reminders" element={<FeatureRouteGuard module="reminders"><Reminders /></FeatureRouteGuard>} />
+                  <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
+                  <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
+                  <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />
+                  <Route path="notes" element={<Notes />} />
+                  <Route path="health-data" element={<HealthData />} />
+                </Route>
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </FeatureProvider>
         </BrowserRouter>
       </UsernameGuard>

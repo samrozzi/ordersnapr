@@ -276,16 +276,10 @@ export function UnifiedPreferences() {
 
       const workspaceType = activeOrgId ? 'organization' : 'personal';
       toast({
-        title: "Sidebar Preferences Saved",
-        description: `Settings saved for ${workspaceType} workspace. Refreshing...`,
-        duration: 2000,
+        title: "Sidebar Updated",
+        description: `Navigation preferences saved for ${workspaceType} workspace.`,
       });
       setSidebarHasChanges(false);
-
-      // Reload page after brief delay to show toast
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
     }
   };
 

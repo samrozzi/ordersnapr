@@ -18,7 +18,7 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, onClick }: NoteCardProps) {
-  const { toggleFavorite, togglePin, deleteNote } = useNotes();
+  const { toggleFavorite, togglePin, archiveNote } = useNotes();
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,10 +30,10 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
     await togglePin(note.id);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleArchive = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Are you sure you want to delete "${note.title}"?`)) {
-      await deleteNote(note.id);
+    if (confirm(`Archive "${note.title}"?`)) {
+      await archiveNote(note.id);
     }
   };
 
@@ -63,10 +63,18 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
       onClick={onClick}
     >
       {note.banner_image && (
-        <div
-          className="h-24 bg-cover bg-center rounded-t-lg"
-          style={{ backgroundImage: `url(${note.banner_image})` }}
-        />
+        <div className="relative h-24 bg-muted rounded-t-lg overflow-hidden">
+          <img
+            src={note.banner_image}
+            alt={`${note.title} banner`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            width={1200}
+            height={240}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
       )}
 
       <CardHeader className="pb-3">
@@ -118,9 +126,9 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
                   {note.is_pinned ? 'Unpin from' : 'Pin to'} Sidebar
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <DropdownMenuItem onClick={handleArchive} className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

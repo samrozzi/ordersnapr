@@ -42,7 +42,7 @@ export function useUserSearch(searchQuery: string, enabled: boolean = true) {
         return [];
       }
 
-      return (data as MentionableUser[]) || [];
+      return (data as unknown as MentionableUser[]) || [];
     },
     enabled: enabled && searchQuery.length >= 1,
     staleTime: 30000, // Cache for 30 seconds

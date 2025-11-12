@@ -49,6 +49,8 @@ interface RichTextEditorProps {
   onFocus?: () => void;
   onBlur?: () => void;
   disableEnterKey?: boolean;
+  onSlashDetected?: (position: { top: number; left: number }, searchQuery: string) => void;
+  onSlashCancelled?: () => void;
 }
 
 export const RichTextEditor = ({
@@ -61,6 +63,8 @@ export const RichTextEditor = ({
   onFocus,
   onBlur,
   disableEnterKey = false,
+  onSlashDetected,
+  onSlashCancelled,
 }: RichTextEditorProps) => {
   const { user } = useAuth();
   const { setActiveEditor, toolbarLocked } = useEditorFocus();
@@ -103,7 +107,80 @@ export const RichTextEditor = ({
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const text = editor.getText();
+      const html = editor.getHTML();
+      
+      // Detect slash command trigger
+      if (onSlashDetected) {
+        const cursorPos = editor.state.selection.$anchor.pos;
+        
+        // Only check last 20 characters before cursor
+        const startPos = Math.max(0, cursorPos - 20);
+        const textBeforeCursor = text.slice(startPos, cursorPos);
+        
+        if (textBeforeCursor.includes('/')) {
+          const lastSlashIndex = textBeforeCursor.lastIndexOf('/');
+          const absoluteSlashPos = startPos + lastSlashIndex;
+          
+          // Check if slash is at start or after space/newline
+          const charBeforeSlash = absoluteSlashPos > 0 ? text[absoluteSlashPos - 1] : '\n';
+          const isValidSlashPosition = charBeforeSlash === '\n' || charBeforeSlash === ' ' || absoluteSlashPos === 0;
+          
+          if (isValidSlashPosition) {
+            const searchQuery = textBeforeCursor.slice(lastSlashIndex + 1);
+            
+            // Get cursor position with viewport boundary checks
+            const { view } = editor;
+            const coords = view.coordsAtPos(cursorPos);
+            
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const menuWidth = 320;
+            const menuHeight = 400;
+            
+            let top = coords.bottom + 5 + scrollTop;
+            let left = coords.left + scrollLeft;
+            
+            // Mobile-specific adjustments
+            const isMobile = viewportWidth < 768;
+            if (isMobile) {
+              // Center menu horizontally on mobile
+              left = Math.max(10, (viewportWidth - menuWidth) / 2);
+              // Position above cursor if not enough space below
+              if (top + menuHeight > scrollTop + viewportHeight - 100) {
+                top = Math.max(scrollTop + 100, coords.top - menuHeight - 5 + scrollTop);
+              }
+            } else {
+              // Desktop positioning
+              if (left + menuWidth > viewportWidth) {
+                left = viewportWidth - menuWidth - 10;
+              }
+              if (top + menuHeight > scrollTop + viewportHeight) {
+                top = coords.top - menuHeight - 5 + scrollTop;
+              }
+            }
+            
+            onSlashDetected({ top, left }, searchQuery);
+            onChange(html);
+            return;
+          }
+        }
+      }
+      
+      // Cancel slash menu if slash was deleted
+      if (onSlashCancelled) {
+        const cursorPos = editor.state.selection.$anchor.pos;
+        const startPos = Math.max(0, cursorPos - 20);
+        const textBeforeCursor = text.slice(startPos, cursorPos);
+        if (!textBeforeCursor.includes('/')) {
+          onSlashCancelled();
+        }
+      }
+      
+      onChange(html);
     },
     onFocus: () => {
       if (editor) {

@@ -3,9 +3,9 @@ import { compressImage } from './image-compression';
 
 export const uploadNoteImage = async (file: File, userId: string): Promise<string> => {
   try {
-    // Compress image if it's larger than 2MB
-    const compressedFile = file.size > 2 * 1024 * 1024 
-      ? await compressImage(file, { maxSizeMB: 1, maxWidthOrHeight: 1920 })
+    // Compress image for faster loading - optimize for banner display
+    const compressedFile = file.size > 500 * 1024 
+      ? await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 800 })
       : file;
 
     // Create unique filename

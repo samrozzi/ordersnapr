@@ -81,7 +81,7 @@ export function useUsernameAvailability(username: string) {
     },
     enabled: username.length >= 3,
     staleTime: 0, // Disable caching to always fetch fresh data
-    cacheTime: 0, // Don't cache results
+    gcTime: 0, // Don't cache results
   });
 }
 
@@ -117,7 +117,7 @@ export function useSetUsername() {
       }
 
       console.log('[useSetUsername] RPC response:', data);
-      return data as SetUsernameResult;
+      return data as unknown as SetUsernameResult;
     },
     onSuccess: (result) => {
       console.log('[useSetUsername] Mutation success:', result);

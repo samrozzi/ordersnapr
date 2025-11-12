@@ -56,16 +56,42 @@ export const WorkOrderDialogProvider: React.FC<{ children: React.ReactNode }> = 
     try {
       const { data, error } = await supabase
         .from('work_orders')
-        .select(`
-          *,
-          creator:profiles!work_orders_user_id_fkey(full_name, email),
-          assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
       
       if (error) throw error;
-      if (data) setWorkOrder(data as WorkOrder);
+      
+      if (data) {
+        // Fetch related profiles for creator and assignee
+        const userIds = new Set<string>();
+        if (data.user_id) userIds.add(data.user_id);
+        if (data.assigned_to) userIds.add(data.assigned_to);
+        
+        let profilesMap = new Map<string, { full_name: string | null; email: string | null }>();
+        
+        if (userIds.size > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', Array.from(userIds));
+          
+          if (!profilesError && profiles) {
+            profilesMap = new Map(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+          } else {
+            console.warn('Profiles fetch error (non-fatal):', profilesError);
+          }
+        }
+        
+        // Decorate the work order with profile data
+        const decoratedOrder = {
+          ...data,
+          creator: profilesMap.get(data.user_id) || null,
+          assignee: data.assigned_to ? profilesMap.get(data.assigned_to) || null : null,
+        };
+        
+        setWorkOrder(decoratedOrder as WorkOrder);
+      }
     } catch (error) {
       console.error('Error fetching work order:', error);
     }

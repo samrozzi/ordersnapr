@@ -794,10 +794,12 @@ export type Database = {
       }
       notes: {
         Row: {
+          archived_at: string | null
           background_color: string | null
           banner_image: string | null
           content: Json
           created_at: string
+          icon: string | null
           id: string
           is_favorite: boolean
           is_pinned: boolean
@@ -814,10 +816,12 @@ export type Database = {
           view_mode: string
         }
         Insert: {
+          archived_at?: string | null
           background_color?: string | null
           banner_image?: string | null
           content?: Json
           created_at?: string
+          icon?: string | null
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean
@@ -834,10 +838,12 @@ export type Database = {
           view_mode?: string
         }
         Update: {
+          archived_at?: string | null
           background_color?: string | null
           banner_image?: string | null
           content?: Json
           created_at?: string
+          icon?: string | null
           id?: string
           is_favorite?: boolean
           is_pinned?: boolean

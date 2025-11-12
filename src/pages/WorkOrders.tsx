@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, List, Calendar as CalendarIcon, LayoutGrid, Trash2, UserPlus, CheckCircle2 } from "lucide-react";
+import { Plus, List as ListIcon, Calendar as CalendarIcon, LayoutGrid, Trash2, UserPlus, CheckCircle2 } from "lucide-react";
 import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
-import { CalendarView } from "@/components/CalendarView";
-import { JobKanbanBoard } from "@/components/JobKanbanBoard";
+
+// Lazy load heavy subcomponents
+const CalendarView = React.lazy(() => import("@/components/CalendarView"));
+const JobKanbanBoard = React.lazy(() => import("@/components/JobKanbanBoard"));
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";
@@ -122,7 +124,7 @@ const WorkOrders = () => {
         .from("profiles")
         .select("active_org_id")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       const currentActiveOrgId = profile?.active_org_id || null;
       setActiveOrgId(currentActiveOrgId);
@@ -133,14 +135,10 @@ const WorkOrders = () => {
         isPersonal: currentActiveOrgId === null
       });
 
-      // Build query with org filtering
+      // Build query with org filtering - fetch work orders without relationships
       let query = supabase
         .from("work_orders")
-        .select(`
-          *,
-          creator:profiles!work_orders_user_id_fkey(full_name, email),
-          assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
-        `);
+        .select("*");
 
       if (currentActiveOrgId === null) {
         // Personal workspace: user's own work orders with no organization
@@ -162,7 +160,39 @@ const WorkOrders = () => {
         workspace: currentActiveOrgId ? 'organization' : 'personal'
       });
 
-      setWorkOrders(data || []);
+      // Decorate work orders with creator/assignee profiles
+      if (data && data.length > 0) {
+        const userIds = new Set<string>();
+        data.forEach(order => {
+          if (order.user_id) userIds.add(order.user_id);
+          if (order.assigned_to) userIds.add(order.assigned_to);
+        });
+
+        let profilesMap = new Map<string, { full_name: string | null; email: string | null }>();
+        
+        if (userIds.size > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", Array.from(userIds));
+
+          if (!profilesError && profiles) {
+            profilesMap = new Map(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+          } else {
+            console.warn("Profiles fetch error (non-fatal):", profilesError);
+          }
+        }
+
+        const decoratedOrders = data.map(order => ({
+          ...order,
+          creator: profilesMap.get(order.user_id) || null,
+          assignee: order.assigned_to ? profilesMap.get(order.assigned_to) || null : null,
+        }));
+
+        setWorkOrders(decoratedOrders);
+      } else {
+        setWorkOrders([]);
+      }
     } catch (error: any) {
       console.error("❌ Error fetching work orders:", error);
       toast({
@@ -196,7 +226,19 @@ const WorkOrders = () => {
     }
   }, [searchParams, workOrders, setSearchParams, toast]);
 
-  console.log('🎨 Rendering WorkOrders:', { loading, workOrdersCount: workOrders.length, session: !!session });
+  // Bulk selection - must be called before any early returns
+  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
+  const completedOrders = workOrders.filter((order) => order.status === "completed");
+  const currentOrders = viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders;
+  const bulkSelect = useBulkSelect(currentOrders);
+
+  console.log('🎨 Rendering WorkOrders:', { 
+    loading, 
+    workOrdersCount: workOrders.length, 
+    session: !!session,
+    viewMode,
+    listTab 
+  });
 
   if (loading) {
     return (
@@ -213,13 +255,6 @@ const WorkOrders = () => {
       </div>
     );
   }
-
-  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
-  const completedOrders = workOrders.filter((order) => order.status === "completed");
-
-  // Bulk selection
-  const currentOrders = viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders;
-  const bulkSelect = useBulkSelect(currentOrders);
 
   // Bulk action handlers
   const handleBulkDelete = async () => {
@@ -330,9 +365,6 @@ const WorkOrders = () => {
         </FreeTierGuard>
 
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <SheetTrigger asChild>
-            <span></span>
-          </SheetTrigger>
           <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
@@ -354,7 +386,7 @@ const WorkOrders = () => {
             size="sm"
             onClick={() => setViewMode('list')}
           >
-            <List className="h-4 w-4 md:mr-2" />
+            <ListIcon className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">List</span>
           </Button>
           <Button
@@ -427,21 +459,39 @@ const WorkOrders = () => {
       )}
 
       {viewMode === 'calendar' && (
-        <CalendarView onEventClick={(item) => {
-          if (item.type === 'work_order') {
-            const order = workOrders.find(wo => wo.id === item.id);
-            if (order) setViewingOrderDetails(order);
-          }
-        }} />
+        <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading calendar…</div>}>
+          <CalendarView 
+            onEventClick={(item) => {
+              console.log('📅 Calendar event clicked:', item);
+              try {
+                if (item.type === 'work_order') {
+                  const order = workOrders.find(wo => wo.id === item.id);
+                  if (order) setViewingOrderDetails(order);
+                }
+              } catch (error) {
+                console.error('❌ Error handling calendar click:', error);
+              }
+            }} 
+          />
+        </Suspense>
       )}
 
       {viewMode === 'kanban' && (
-        <JobKanbanBoard
-          workOrders={workOrders}
-          statuses={statuses}
-          onUpdate={fetchWorkOrders}
-          onJobClick={(order) => setViewingOrderDetails(order as WorkOrder)}
-        />
+        <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading board…</div>}>
+          <JobKanbanBoard
+            workOrders={workOrders}
+            statuses={statuses}
+            onUpdate={fetchWorkOrders}
+            onJobClick={(order) => {
+              console.log('📋 Kanban card clicked:', order);
+              try {
+                setViewingOrderDetails(order as WorkOrder);
+              } catch (error) {
+                console.error('❌ Error handling kanban click:', error);
+              }
+            }}
+          />
+        </Suspense>
       )}
 
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
@@ -473,7 +523,7 @@ const WorkOrders = () => {
       />
 
       {/* Bulk Action Bar */}
-      {viewMode === 'list' && (
+      {viewMode === 'list' && bulkSelect?.selectedCount > 0 && (
         <BulkActionBar
           selectedCount={bulkSelect.selectedCount}
           onClearSelection={bulkSelect.clearSelection}
@@ -496,7 +546,7 @@ const WorkOrders = () => {
               onClick: handleBulkDelete,
               variant: "destructive" as const,
             },
-          ]}
+          ].filter(action => action.show !== false)}
         />
       )}
       </div>

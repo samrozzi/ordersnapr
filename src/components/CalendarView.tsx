@@ -17,7 +17,7 @@ interface CalendarViewProps {
   onEventClick?: (item: any) => void;
 }
 
-export function CalendarView({ onEventClick }: CalendarViewProps) {
+export default function CalendarView({ onEventClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const { items, workOrders, calendarEvents, loading } = useOrgCalendarData();

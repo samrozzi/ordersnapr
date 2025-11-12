@@ -1,13 +1,27 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Plus } from "lucide-react";
-import { FieldPalette, type FieldType } from "./FieldPalette";
+import { Eye, Plus, GripVertical } from "lucide-react";
+import { FieldPalette, type FieldType, fieldTypes } from "./FieldPalette";
 import { FormCanvas, type Section, type Field } from "./FormCanvas";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
 import { FormRenderer } from "@/components/forms/FormRenderer";
+import { CellFieldPickerDialog } from "./CellFieldPickerDialog";
 import { toast } from "sonner";
 
 interface TemplateBuilderV2Props {
@@ -28,6 +42,24 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   } | null>(null);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
   const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
+  
+  // Cell picker dialog state
+  const [cellPickerOpen, setCellPickerOpen] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{
+    tableFieldId: string;
+    cellKey: string;
+  } | null>(null);
+  
+  // DnD state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 15 },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   const generateKey = useCallback((label: string): string => {
     return label
@@ -270,10 +302,532 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       })()
     : null;
 
+  // Create field maps for drag operations
+  const fieldToSectionMap = new Map<string, string>();
+  const fieldToParentMap = new Map<string, string>();
+  
+  sections.forEach(section => {
+    section.fields.forEach(field => {
+      fieldToSectionMap.set(field.id, section.id);
+      if (field.fields) {
+        field.fields.forEach(subField => {
+          fieldToSectionMap.set(subField.id, section.id);
+          fieldToParentMap.set(subField.id, field.id);
+        });
+      }
+    });
+  });
+
+  const findFieldById = (fieldId: string): Field | null => {
+    for (const section of sections) {
+      for (const field of section.fields) {
+        if (field.id === fieldId) return field;
+        if (field.fields) {
+          const subField = field.fields.find(f => f.id === fieldId);
+          if (subField) return subField;
+        }
+      }
+    }
+    return null;
+  };
+
+  const createFieldFromType = (fieldType: FieldType): Field => {
+    const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const label = fieldDef?.label || "New Field";
+    
+    const isChoice = fieldType === "select" || fieldType === "radio" || fieldType === "checklist";
+    const isFile = fieldType === "file";
+
+    return {
+      id: `field-${timestamp}-${randomId}`,
+      key: label.toLowerCase().replace(/\s+/g, '_'),
+      type: fieldType,
+      label: label,
+      placeholder: "",
+      required: false,
+      options: isChoice ? ["Option 1"] : undefined,
+      responseOptions: fieldType === "checklist" ? ["OK", "DEV", "N/A"] : undefined,
+      maxFiles: isFile ? 10 : undefined,
+      accept: isFile ? ["image/*"] : undefined,
+    };
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    console.log('[DND] start', {
+      activeId: event.active.id,
+      activeData: event.active.data?.current,
+    });
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over, active } = event;
+    setOverId(over ? (over.id as string) : null);
+    console.log('[DND] over', {
+      activeId: active.id,
+      overId: over?.id,
+      overData: over?.data?.current,
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setOverId(null);
+
+    console.log('[DND] end', {
+      activeId: active.id,
+      activeData: active.data?.current,
+      overId: over?.id,
+      overData: over?.data?.current,
+    });
+    
+    if (!over || active.id === over.id) return;
+
+    const activeFieldId = active.id as string;
+    const overFieldId = over.id as string;
+    
+    const isDraggingFromPalette = !fieldToSectionMap.has(activeFieldId);
+    const activeSectionId = fieldToSectionMap.get(activeFieldId);
+    const overSectionId = fieldToSectionMap.get(overFieldId);
+    
+    const isDropZone = overFieldId.endsWith('-drop-zone');
+    const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
+    const effectiveOverSectionId = overSectionId ?? fieldToSectionMap.get(targetRepeatingGroupId);
+    
+    // Handle dropping from palette into table cell
+    if (isDraggingFromPalette && overFieldId.includes("-cell-")) {
+      const overData = over.data?.current as any;
+      if (overData?.type === 'table-cell') {
+        const tableFieldId = overData.tableFieldId;
+        const cellKey = overData.cellKey;
+        const fieldType = activeFieldId as FieldType;
+        
+        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
+        if (!allowedTypes.includes(fieldType)) {
+          toast.error("Only simple fields can be placed in table cells");
+          return;
+        }
+
+        const tableSectionId = fieldToSectionMap.get(tableFieldId);
+        if (!tableSectionId) return;
+
+        // Find the table field to check if cell is occupied
+        let tableField: Field | null = null;
+        for (const section of sections) {
+          const found = section.fields.find(f => f.id === tableFieldId);
+          if (found) {
+            tableField = found;
+            break;
+          }
+        }
+
+        // Check if cell is already occupied
+        if (tableField?.tableCells?.[cellKey]?.field) {
+          toast.error("Cell is already occupied");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+        const label = fieldDef?.label || "Field";
+
+        console.log('Dropping palette item into table cell:', { tableFieldId, cellKey, fieldType, label });
+
+        setSections(
+          sections.map((section) => {
+            if (section.id !== tableSectionId) return section;
+
+            return {
+              ...section,
+              fields: section.fields.map((field) => {
+                if (field.id === tableFieldId && field.type === "table_layout") {
+                  const newField: Field = {
+                    id: `field-${timestamp}-${randomId}`,
+                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
+                    type: fieldType,
+                    label: label,
+                    placeholder: "",
+                    required: false,
+                  };
+
+                  const updatedCells = {
+                    ...(field.tableCells || {}),
+                    [cellKey]: {
+                      field: newField,
+                    },
+                  };
+
+                  console.log('Updated table cells:', updatedCells);
+
+                  return {
+                    ...field,
+                    tableCells: updatedCells,
+                  };
+                }
+                return field;
+              }),
+            };
+          })
+        );
+        toast.success(`${label} added to table cell`);
+        return;
+      }
+    }
+
+    // Handle dragging existing field into table cell
+    if (!isDraggingFromPalette && overFieldId.includes("-cell-")) {
+      const overData = over.data?.current as any;
+      if (overData?.type === 'table-cell') {
+        const tableFieldId = overData.tableFieldId;
+        const cellKey = overData.cellKey;
+        
+        const activeField = findFieldById(activeFieldId);
+        if (!activeField) return;
+        
+        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
+        if (!allowedTypes.includes(activeField.type)) {
+          return;
+        }
+
+        const tableSectionId = fieldToSectionMap.get(tableFieldId);
+        if (!tableSectionId) return;
+
+        const activeSectionId = fieldToSectionMap.get(activeFieldId);
+        if (!activeSectionId) return;
+
+        const activeParentId = fieldToParentMap.get(activeFieldId);
+
+        setSections(
+          sections.map((section) => {
+            let updatedFields = [...section.fields];
+
+            // Remove from source location
+            if (section.id === activeSectionId) {
+              if (activeParentId) {
+                updatedFields = updatedFields.map(f => {
+                  if (f.id === activeParentId && f.fields) {
+                    return { ...f, fields: f.fields.filter(sf => sf.id !== activeFieldId) };
+                  }
+                  return f;
+                });
+              } else {
+                updatedFields = updatedFields.filter(f => f.id !== activeFieldId);
+              }
+            }
+
+            // Add to table cell
+            if (section.id === tableSectionId) {
+              updatedFields = updatedFields.map((field) => {
+                if (field.id === tableFieldId && field.type === "table_layout") {
+                  const movedField: Field = {
+                    ...activeField,
+                    id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${activeField.label.toLowerCase().replace(/\s+/g, '_')}`,
+                  };
+
+                  const updatedCells = {
+                    ...(field.tableCells || {}),
+                    [cellKey]: {
+                      ...(field.tableCells?.[cellKey] || {}),
+                      field: movedField,
+                    },
+                  };
+
+                  return {
+                    ...field,
+                    tableCells: updatedCells,
+                  };
+                }
+                return field;
+              });
+            }
+
+            return { ...section, fields: updatedFields };
+          })
+        );
+        return;
+      }
+    }
+    
+    // Handle dropping from palette into repeating group
+    if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
+      const targetSectionId = fieldToSectionMap.get(targetRepeatingGroupId);
+      if (!targetSectionId) return;
+      
+      if (activeFieldId === "repeating_group") return;
+      
+      const newField = createFieldFromType(activeFieldId as FieldType);
+      
+      setSections(
+        sections.map((section) => {
+          if (section.id !== effectiveOverSectionId) return section;
+          
+          return {
+            ...section,
+            fields: section.fields.map(f => {
+              if (f.id === targetRepeatingGroupId) {
+                return {
+                  ...f,
+                  fields: [...(f.fields || []), newField]
+                };
+              }
+              return f;
+            })
+          };
+        })
+      );
+      return;
+    }
+    
+    if (!isDraggingFromPalette && (!activeSectionId || !effectiveOverSectionId)) return;
+    
+    const activeParentId = fieldToParentMap.get(activeFieldId);
+    const overParentId = fieldToParentMap.get(overFieldId);
+    const overField = findFieldById(targetRepeatingGroupId);
+    
+    const activeField = findFieldById(activeFieldId);
+    if (activeField?.type === "repeating_group" && (overParentId || isDropZone)) {
+      return;
+    }
+
+    if (overField?.type === "repeating_group" && !overParentId) {
+      setSections(
+        sections.map((section) => {
+          if (section.id !== effectiveOverSectionId) return section;
+
+          const removeFromFields = (fields: Field[]): Field[] => {
+            return fields.filter(f => {
+              if (f.id === activeFieldId) return false;
+              if (f.fields) {
+                f.fields = removeFromFields(f.fields);
+              }
+              return true;
+            });
+          };
+
+          const cleanedFields = removeFromFields([...section.fields]);
+
+          return {
+            ...section,
+            fields: cleanedFields.map(f => {
+              if (f.id === targetRepeatingGroupId && activeField) {
+                return {
+                  ...f,
+                  fields: [...(f.fields || []), { ...activeField, id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }]
+                };
+              }
+              return f;
+            })
+          };
+        })
+      );
+      return;
+    }
+
+    if (activeParentId && overParentId && activeParentId === overParentId) {
+      setSections(
+        sections.map((section) => {
+          if (section.id !== activeSectionId) return section;
+
+          return {
+            ...section,
+            fields: section.fields.map(f => {
+              if (f.id !== activeParentId || !f.fields) return f;
+
+              const oldIndex = f.fields.findIndex(sf => sf.id === activeFieldId);
+              const newIndex = f.fields.findIndex(sf => sf.id === overFieldId);
+
+              return {
+                ...f,
+                fields: arrayMove(f.fields, oldIndex, newIndex),
+              };
+            })
+          };
+        })
+      );
+      return;
+    }
+
+    if (activeParentId || overParentId) {
+      setSections(
+        sections.map((section) => {
+          if (section.id !== activeSectionId && section.id !== effectiveOverSectionId) return section;
+
+          let updatedFields = [...section.fields];
+
+          if (activeParentId && section.id === activeSectionId) {
+            updatedFields = updatedFields.map(f => {
+              if (f.id === activeParentId && f.fields) {
+                return { ...f, fields: f.fields.filter(sf => sf.id !== activeFieldId) };
+              }
+              return f;
+            });
+          } else if (!activeParentId && section.id === activeSectionId) {
+            updatedFields = updatedFields.filter(f => f.id !== activeFieldId);
+          }
+
+          if (overParentId && section.id === effectiveOverSectionId && activeField) {
+            updatedFields = updatedFields.map(f => {
+              if (f.id === overParentId && f.fields) {
+                const overIndex = f.fields.findIndex(sf => sf.id === overFieldId);
+                const newFields = [...f.fields];
+                newFields.splice(overIndex, 0, activeField);
+                return { ...f, fields: newFields };
+              }
+              return f;
+            });
+          } else if (!overParentId && section.id === effectiveOverSectionId && activeField) {
+            const overIndex = updatedFields.findIndex(f => f.id === overFieldId);
+            updatedFields.splice(overIndex, 0, activeField);
+          }
+
+          return { ...section, fields: updatedFields };
+        })
+      );
+      return;
+    }
+
+    if (activeSectionId === overSectionId) {
+      setSections(
+        sections.map((section) => {
+          if (section.id !== activeSectionId) return section;
+
+          const oldIndex = section.fields.findIndex((f) => f.id === activeFieldId);
+          const newIndex = section.fields.findIndex((f) => f.id === overFieldId);
+
+          return {
+            ...section,
+            fields: arrayMove(section.fields, oldIndex, newIndex),
+          };
+        })
+      );
+    } else {
+      const activeSection = sections.find(s => s.id === activeSectionId);
+      const overSection = sections.find(s => s.id === overSectionId);
+      
+      if (!activeSection || !overSection) return;
+      
+      const activeField = activeSection.fields.find(f => f.id === activeFieldId);
+      if (!activeField) return;
+      
+      const overIndex = overSection.fields.findIndex(f => f.id === overFieldId);
+      
+      setSections(
+        sections.map((section) => {
+          if (section.id === activeSectionId) {
+            return {
+              ...section,
+              fields: section.fields.filter(f => f.id !== activeFieldId),
+            };
+          } else if (section.id === overSectionId) {
+            const newFields = [...section.fields];
+            newFields.splice(overIndex, 0, activeField);
+            return {
+              ...section,
+              fields: newFields,
+            };
+          }
+          return section;
+        })
+      );
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setOverId(null);
+  };
+
+  const handleTableCellClick = (tableFieldId: string, cellKey: string) => {
+    setSelectedCell({ tableFieldId, cellKey });
+    setCellPickerOpen(true);
+  };
+
+  const handleCellFieldSelect = (fieldType: FieldType) => {
+    if (!selectedCell) return;
+
+    const { tableFieldId, cellKey } = selectedCell;
+    
+    console.log('[CELL PICKER] Selecting field:', { tableFieldId, cellKey, fieldType });
+    
+    // Find the section containing the table
+    const tableSectionId = fieldToSectionMap.get(tableFieldId);
+    console.log('[CELL PICKER] Table section ID:', tableSectionId);
+    
+    if (!tableSectionId) {
+      console.error('[CELL PICKER] Could not find section for table:', tableFieldId);
+      toast.error("Could not find table section");
+      return;
+    }
+
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+    const label = fieldDef?.label || "Field";
+
+    console.log('[CELL PICKER] Creating new field:', { label, fieldType });
+
+    const newSections = sections.map((section) => {
+      if (section.id !== tableSectionId) return section;
+
+      return {
+        ...section,
+        fields: section.fields.map((field) => {
+          if (field.id === tableFieldId && field.type === "table_layout") {
+            const newField: Field = {
+              id: `field-${timestamp}-${randomId}`,
+              key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
+              type: fieldType,
+              label: label,
+              placeholder: "",
+              required: false,
+            };
+
+            const updatedCells = {
+              ...(field.tableCells || {}),
+              [cellKey]: {
+                field: newField,
+              },
+            };
+
+            console.log('[CELL PICKER] Updated cells:', updatedCells);
+
+            return {
+              ...field,
+              tableCells: updatedCells,
+            };
+          }
+          return field;
+        }),
+      };
+    });
+
+    console.log('[CELL PICKER] Setting new sections');
+    setSections(newSections);
+    
+    toast.success(`${label} added to table cell`);
+    setSelectedCell(null);
+  };
+
+  const activeField = activeId ? findFieldById(activeId) : null;
+  const activeFieldType = activeId && !activeField ? (activeId as FieldType) : null;
+
   return (
-    <div className="space-y-4">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between pb-4 border-b">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="space-y-4">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between pb-4 border-b">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Switch
@@ -357,6 +911,8 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               onSectionsChange={setSections}
               onFieldClick={handleFieldClick}
               onAddSection={handleAddSection}
+              isAnyFieldDragging={!!activeId}
+              onTableCellClick={handleTableCellClick}
             />
           </div>
         </div>
@@ -437,13 +993,46 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         </div>
       )}
 
-      {/* Field Properties Panel */}
-      <FieldPropertiesPanel
-        open={propertiesPanelOpen}
-        field={currentField}
-        onOpenChange={setPropertiesPanelOpen}
-        onFieldUpdate={handleFieldUpdate}
-      />
-    </div>
+        {/* Field Properties Panel */}
+        <FieldPropertiesPanel
+          open={propertiesPanelOpen}
+          field={currentField}
+          onOpenChange={setPropertiesPanelOpen}
+          onFieldUpdate={handleFieldUpdate}
+        />
+
+        {/* Cell Field Picker Dialog */}
+        <CellFieldPickerDialog
+          open={cellPickerOpen}
+          onOpenChange={setCellPickerOpen}
+          onFieldSelect={handleCellFieldSelect}
+        />
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeId ? (
+          <div className="p-3 rounded-lg border bg-card shadow-lg opacity-80">
+            {activeField ? (
+              <div className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{activeField.label}</span>
+              </div>
+            ) : activeFieldType ? (
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const fieldDef = fieldTypes.find(ft => ft.type === activeFieldType);
+                  const Icon = fieldDef?.icon;
+                  return Icon ? <Icon className="h-4 w-4 text-primary" /> : null;
+                })()}
+                <span className="text-sm font-medium">
+                  {fieldTypes.find(ft => ft.type === activeFieldType)?.label}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

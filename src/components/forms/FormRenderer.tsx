@@ -26,6 +26,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FormRendererProps {
   template: FormTemplate;
@@ -856,16 +857,113 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <SmartFormImport
               formType="job-audit"
               onDataExtracted={(data) => {
+                console.log('Smart Import - Raw extracted data:', data);
+
+                // Handle dynamic table population for technicianRows (if detected)
+                const technicianRows = (data as any).technicianRows;
+                if (technicianRows && Array.isArray(technicianRows) && technicianRows.length > 0) {
+                  console.log(`Found ${technicianRows.length} technician rows - populating table`);
+                  
+                  // Find the table layout field
+                  let tableField: any = null;
+
+                  template.schema.sections.forEach((section: any) => {
+                    (section.fields || []).forEach((f: any) => {
+                      if (f.type === 'table_layout') {
+                        tableField = f;
+                      }
+                    });
+                  });
+
+                  if (tableField) {
+                    const currentRows = tableField.tableRows || 2;
+                    const rowsToPopulate = Math.min(technicianRows.length, currentRows);
+                    
+                    console.log(`Populating ${rowsToPopulate} rows (table has ${currentRows} rows)`);
+
+                    // Populate table cells with data
+                    let populatedCount = 0;
+                    technicianRows.slice(0, rowsToPopulate).forEach((techRow: any, rowIndex: number) => {
+                      const columnMapping = {
+                        techId: 0,
+                        techName: 1,
+                        techPhone: 2,
+                        techType: 3,
+                        ban: 4,
+                      };
+
+                      Object.entries(columnMapping).forEach(([field, colIndex]) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        const cellField = tableField.tableCells?.[cellKey]?.field;
+                        
+                        if (cellField && techRow[field]) {
+                          handleFieldChange(cellField.key, techRow[field]);
+                          populatedCount++;
+                        }
+                      });
+                    });
+
+                    if (technicianRows.length > currentRows) {
+                      toast.success(`Populated ${rowsToPopulate} rows. Table has ${currentRows} rows, but ${technicianRows.length} were detected. Add more rows to the template to capture all data.`);
+                    } else {
+                      toast.success(`Populated ${rowsToPopulate} rows with technician data`);
+                    }
+                    // Don't process other fields if we handled table population
+                    return;
+                  }
+                }
+
                 // Create a mapping of extracted keys to form field keys
                 const keyMapping: Record<string, string> = {};
                 
-                // Build mapping by finding fields with matching labels or keys
+                // Build mapping by finding fields with matching labels or keys (including table cells)
                 template.schema.sections.forEach((section: any) => {
                   (section.fields || []).forEach((f: any) => {
                     const label = f.label?.toLowerCase().replace(/\s+/g, '');
                     const fieldKey = f.key;
                     
-                    // Map common extracted keys to form field keys
+                    // Handle table layout fields - extract cell fields
+                    if (f.type === 'table_layout' && f.tableCells) {
+                      Object.entries(f.tableCells).forEach(([cellKey, cell]: [string, any]) => {
+                        if (cell?.field) {
+                          const cellLabel = cell.field.label?.toLowerCase().replace(/\s+/g, '');
+                          const cellFieldKey = cell.field.key;
+                          
+                          // Map common extracted keys to table cell field keys
+                          if (cellLabel?.includes('technician') || cellFieldKey?.includes('technician') || cellFieldKey?.includes('tech')) {
+                            keyMapping['technicianName'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('account') || cellLabel?.includes('ban') || cellFieldKey?.includes('ban') || cellFieldKey?.includes('account')) {
+                            keyMapping['accountNumber'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('service') && cellLabel?.includes('date') || cellFieldKey?.includes('servicedate') || cellFieldKey?.includes('service_date')) {
+                            keyMapping['serviceDate'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('address') || cellFieldKey?.includes('address')) {
+                            keyMapping['address'] = cellFieldKey;
+                          }
+                          if ((cellLabel?.toLowerCase().includes('customer') && cellLabel?.toLowerCase().includes('name')) || 
+                              cellFieldKey?.toLowerCase().includes('customer_name')) {
+                            keyMapping['customerName'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('reached') || cellFieldKey?.includes('reach')) {
+                            keyMapping['canBeReached'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('observer') || cellFieldKey?.includes('observer') || cellFieldKey?.includes('reported')) {
+                            keyMapping['observerName'] = cellFieldKey;
+                            keyMapping['reportedBy'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('start') && cellLabel?.includes('time') || cellFieldKey?.includes('starttime') || cellFieldKey?.includes('start_time')) {
+                            keyMapping['startTime'] = cellFieldKey;
+                          }
+                          if (cellLabel?.includes('end') && cellLabel?.includes('time') || cellFieldKey?.includes('endtime') || cellFieldKey?.includes('end_time')) {
+                            keyMapping['endTime'] = cellFieldKey;
+                          }
+                        }
+                      });
+                    }
+                    
+                    // Map regular fields
                     if (label?.includes('technician') || fieldKey?.includes('technician') || fieldKey?.includes('tech')) {
                       keyMapping['technicianName'] = fieldKey;
                     }
@@ -1004,6 +1102,195 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 toast.success(`Applied ${Object.keys(data).length} fields to form`);
               }}
             />
+          </div>
+        );
+
+      case "table_layout":
+        const rows = field.tableRows || 2;
+        const columns = field.tableColumns || 2;
+        const tableCells = field.tableCells || {};
+        const borderStyle = field.borderStyle || 'all';
+        const tableValue = value || {};
+
+        return (
+          <div key={field.key} className="space-y-2">
+            {!field.hideLabel && (
+              <Label>
+                {field.label} {field.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
+            <div className="overflow-x-auto">
+              <table className={cn(
+                "w-full border-collapse",
+                borderStyle === 'all' && "border border-border",
+                borderStyle === 'outer' && "border-2 border-border"
+              )}>
+                <tbody>
+                  {Array.from({ length: rows }).map((_, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Array.from({ length: columns }).map((_, colIndex) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        const cell = tableCells[cellKey];
+                        const cellField = cell?.field;
+                        
+                        if (!cellField) {
+                          return (
+                            <td
+                              key={colIndex}
+                              className={cn(
+                                "p-3 min-w-[120px] bg-muted/20",
+                                borderStyle === 'all' && "border border-border"
+                              )}
+                            >
+                              {/* Empty cell */}
+                            </td>
+                          );
+                        }
+
+                        const cellValue = tableValue[cellKey];
+                        const cellId = `${field.key}-${cellKey}-${cellField.key}`;
+
+                        return (
+                          <td
+                            key={colIndex}
+                            className={cn(
+                              "p-3 min-w-[120px]",
+                              borderStyle === 'all' && "border border-border"
+                            )}
+                          >
+                            {/* Render cell field */}
+                            {cellField.type === "text" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+                            
+                            {cellField.type === "number" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="number"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: parseInt(e.target.value) || null,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  min={cellField.min}
+                                  max={cellField.max}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "date" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="date"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "time" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="time"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "select" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Select
+                                  value={cellValue || ""}
+                                  onValueChange={(val) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: val,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                >
+                                  <SelectTrigger id={cellId} className="h-8 text-sm">
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(cellField.options || []).map((option, idx) => (
+                                      <SelectItem key={idx} value={option}>
+                                        {option}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 

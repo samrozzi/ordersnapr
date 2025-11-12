@@ -121,9 +121,13 @@ export function CustomFieldDialog({
       };
 
       if (fieldId) {
-        await updateField({ fieldId, updates: fieldData });
+        await updateField({ id: fieldId, updates: fieldData as Partial<CustomField> });
       } else {
-        await createField(fieldData);
+        await createField({
+          ...fieldData,
+          display_order: 0,
+          is_active: true,
+        });
       }
 
       onClose();

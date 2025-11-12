@@ -182,7 +182,7 @@ export function ShareToUserDialog({
             {searchQuery && searchResults.length > 0 && (
               <div className="border rounded-lg max-h-48 overflow-y-auto">
                 {searchResults.map((user) => {
-                  const isSelected = selectedUsers.find((u) => u.id === user.id);
+                  const isSelected = !!selectedUsers.find((u) => u.id === user.id);
                   return (
                     <button
                       key={user.id}

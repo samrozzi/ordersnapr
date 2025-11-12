@@ -10,7 +10,7 @@ interface FeatureRouteGuardProps {
 }
 
 export const FeatureRouteGuard = ({ module, children }: FeatureRouteGuardProps) => {
-  const { hasFeature, isLoading } = useFeatureContext();
+  const { canAccessFeature, isLoading } = useFeatureContext();
   const navigate = useNavigate();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
@@ -36,10 +36,10 @@ export const FeatureRouteGuard = ({ module, children }: FeatureRouteGuardProps) 
     // Super admins bypass all feature checks
     if (isSuperAdmin) return;
 
-    if (!isLoading && !hasFeature(module)) {
+    if (!isLoading && !canAccessFeature(module)) {
       navigate("/dashboard", { replace: true });
     }
-  }, [hasFeature, isLoading, module, navigate, isSuperAdmin]);
+  }, [canAccessFeature, isLoading, module, navigate, isSuperAdmin]);
 
   if (isLoading) {
     return (
@@ -54,7 +54,7 @@ export const FeatureRouteGuard = ({ module, children }: FeatureRouteGuardProps) 
     return <>{children}</>;
   }
 
-  if (!hasFeature(module)) {
+  if (!canAccessFeature(module)) {
     return null;
   }
 

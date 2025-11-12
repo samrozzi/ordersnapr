@@ -1,6 +1,7 @@
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -39,6 +40,7 @@ import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useNotes } from "@/hooks/use-notes";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useSidebarState } from "@/hooks/use-sidebar-state";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
@@ -63,6 +65,7 @@ const iconMap: Record<string, React.ElementType> = {
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
   const { hasFeature } = useFeatureContext();
@@ -75,7 +78,7 @@ export function AppSidebar() {
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
   const [userId, setUserId] = useState<string | null>(null);
   const { data: userPreferences } = useUserPreferences(userId);
-
+  const { enabledToggles, featureToggleVersion } = useSidebarState(userId);
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -135,28 +138,52 @@ export function AppSidebar() {
     }
   };
 
-  // Build ordered nav items based on user preferences
-  const getOrderedNavItems = () => {
-    // Start with base items - trust useFeatureNavigation for filtering
-    const baseItems = [];
+  // Prefetch page data on hover for instant navigation
+  const handlePrefetch = useCallback((path: string) => {
+    if (path === "/work-orders") {
+      queryClient.prefetchQuery({ queryKey: ["workOrders"] });
+    } else if (path === "/property-info") {
+      queryClient.prefetchQuery({ queryKey: ["properties"] });
+    } else if (path === "/notes") {
+      queryClient.prefetchQuery({ queryKey: ["notes"] });
+    } else if (path === "/customers") {
+      queryClient.prefetchQuery({ queryKey: ["customers"] });
+    } else if (path === "/invoices") {
+      queryClient.prefetchQuery({ queryKey: ["invoices"] });
+    }
+  }, [queryClient]);
 
-    // Calendar - only add if user has it enabled (useFeatureNavigation already checked localStorage)
-    if (hasFeature("calendar")) {
+  // Build ordered nav items based on user preferences and org-aware toggles
+  const orderedNavItems = useMemo(() => {
+    // Base items (Calendar, Notes)
+    const baseItems: Array<{
+      id: string;
+      label: string;
+      path: string;
+      icon: string;
+      component: React.ElementType;
+      isLocked: boolean;
+    }> = [];
+
+    // Calendar: must be both feature-enabled and user-enabled
+    if (hasFeature("calendar") && enabledToggles.includes("calendar")) {
       baseItems.push({ id: "calendar", label: "Calendar", path: "/calendar", icon: "calendar", component: Calendar, isLocked: false });
     }
 
-    // Notes - always available (not in feature modules)
+    // Notes - always available and not toggle-controlled
     baseItems.push({ id: "notes", label: "Notes", path: "/notes", icon: "notes", component: StickyNote, isLocked: false });
 
-    // Add feature items from useFeatureNavigation (already filtered by user preferences)
-    const featureItems = enabledNavItems.map(item => ({
-      id: item.path.substring(1), // Remove leading slash
-      label: item.label,
-      path: item.path,
-      icon: item.icon || "clipboard",
-      component: iconMap[item.icon || "clipboard"] || ClipboardList,
-      isLocked: item.isLocked || false,
-    }));
+    // Feature items from useFeatureNavigation, further filtered by user toggles
+    const featureItems = enabledNavItems
+      .filter((item) => enabledToggles.includes(item.module))
+      .map((item) => ({
+        id: item.path.substring(1),
+        label: item.label,
+        path: item.path,
+        icon: item.icon || "clipboard",
+        component: iconMap[item.icon || "clipboard"] || ClipboardList,
+        isLocked: item.isLocked || false,
+      }));
 
     const allItems = [...baseItems, ...featureItems];
 
@@ -164,19 +191,17 @@ export function AppSidebar() {
     if (userPreferences?.nav_order && Array.isArray(userPreferences.nav_order) && userPreferences.nav_order.length > 0) {
       const savedOrder = userPreferences.nav_order as string[];
       const orderedItems = savedOrder
-        .map(id => allItems.find(item => item.id === id))
+        .map((id) => allItems.find((item) => item.id === id))
         .filter((item): item is typeof allItems[0] => item !== undefined);
 
       // Add any new items that weren't in saved order
-      const newItems = allItems.filter(item => !savedOrder.includes(item.id));
+      const newItems = allItems.filter((item) => !savedOrder.includes(item.id));
 
       return [...orderedItems, ...newItems];
     }
 
     return allItems;
-  };
-
-  const orderedNavItems = getOrderedNavItems();
+  }, [enabledNavItems, hasFeature, userPreferences?.nav_order, enabledToggles, featureToggleVersion]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -243,7 +268,12 @@ export function AppSidebar() {
               {/* Dashboard always first */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
-                  <NavLink to="/dashboard" end onClick={handleNavClick}>
+                  <NavLink 
+                    to="/dashboard" 
+                    end 
+                    onClick={handleNavClick}
+                    onMouseEnter={() => handlePrefetch("/dashboard")}
+                  >
                     <LayoutDashboard className="h-5 w-5" />
                     <span>Dashboard</span>
                   </NavLink>
@@ -261,7 +291,12 @@ export function AppSidebar() {
                       <div className="flex flex-col">
                         <div className="flex items-center">
                           <SidebarMenuButton asChild isActive={isActive(item.path)} className="flex-1">
-                            <NavLink to={item.path} end onClick={handleNavClick}>
+                            <NavLink 
+                              to={item.path} 
+                              end 
+                              onClick={handleNavClick}
+                              onMouseEnter={() => handlePrefetch(item.path)}
+                            >
                               <Icon className="h-5 w-5" />
                               <span>{item.label}</span>
                             </NavLink>
@@ -330,7 +365,12 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                      <NavLink to={item.path} end onClick={handleNavClick}>
+                      <NavLink 
+                        to={item.path} 
+                        end 
+                        onClick={handleNavClick}
+                        onMouseEnter={() => handlePrefetch(item.path)}
+                      >
                         <Icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </NavLink>

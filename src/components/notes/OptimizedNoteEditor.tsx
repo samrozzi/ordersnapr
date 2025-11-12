@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { produce } from "immer";
 import { useDebounce } from "use-debounce";
-import { Editor } from "@tiptap/react";
 import { NoteBlock, Note } from "@/hooks/use-notes";
 import { useNotes } from "@/hooks/use-notes";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragStartEvent, closestCenter } from "@dnd-kit/core";
@@ -12,7 +11,6 @@ import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus } from "lucide-r
 import { toast } from "sonner";
 import { MemoizedBlock } from "./MemoizedBlock";
 import { SlashCommandMenu } from "./SlashCommandMenu";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,7 +80,6 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   const [presentationMode, setPresentationMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const editorsRef = useRef<Map<string, Editor>>(new Map());
 
   // Debounced auto-save
   const [debouncedTitle] = useDebounce(title, 500);
@@ -196,16 +193,41 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     }));
   }, [activeBlockId]);
 
-  useKeyboardShortcuts({
-    onAddBlockBelow: () => activeBlockId && addBlockBelow(activeBlockId),
-    onAddBlockAbove: () => activeBlockId && addBlockAbove(activeBlockId),
-    onDuplicateBlock: duplicateBlock,
-    onDeleteBlock: () => activeBlockId && deleteBlock(activeBlockId),
-    onMoveBlockUp: moveBlockUp,
-    onMoveBlockDown: moveBlockDown,
-    onTogglePresentationMode: () => setPresentationMode(!presentationMode),
-    onShowHelp: () => toast.info("Keyboard shortcuts active! ⌘+/ for help")
-  });
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!activeBlockId) return;
+      
+      // Check for mod key (Cmd on Mac, Ctrl on Windows)
+      const isMod = e.metaKey || e.ctrlKey;
+      
+      if (isMod && e.key === "Enter") {
+        e.preventDefault();
+        addBlockBelow(activeBlockId);
+      } else if (isMod && e.shiftKey && e.key === "Enter") {
+        e.preventDefault();
+        addBlockAbove(activeBlockId);
+      } else if (isMod && e.key === "d") {
+        e.preventDefault();
+        duplicateBlock();
+      } else if (isMod && e.shiftKey && e.key === "Backspace") {
+        e.preventDefault();
+        deleteBlock(activeBlockId);
+      } else if (isMod && e.shiftKey && e.key === "ArrowUp") {
+        e.preventDefault();
+        moveBlockUp();
+      } else if (isMod && e.shiftKey && e.key === "ArrowDown") {
+        e.preventDefault();
+        moveBlockDown();
+      } else if (isMod && e.key === "p") {
+        e.preventDefault();
+        setPresentationMode(!presentationMode);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [activeBlockId, addBlockBelow, addBlockAbove, duplicateBlock, moveBlockUp, moveBlockDown, presentationMode]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveBlockId(event.active.id as string);

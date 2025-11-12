@@ -2,7 +2,6 @@ import { memo } from "react";
 import { NoteBlock } from "@/hooks/use-notes";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 
 interface MemoizedBlockProps {
   block: NoteBlock;
@@ -28,14 +27,16 @@ export const MemoizedBlock = memo(function MemoizedBlock({
   children
 }: MemoizedBlockProps) {
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`group relative ${isDragging ? "opacity-50" : ""} ${isActive ? "ring-2 ring-primary/20 rounded-lg" : ""}`}
+    <div
+      className={`group relative transition-all duration-200 ease-out ${
+        isDragging ? "opacity-50" : "opacity-100"
+      } ${
+        isActive ? "ring-2 ring-primary/20 rounded-lg" : ""
+      }`}
       onClick={onFocus}
+      style={{
+        animation: isDragging ? "none" : "fadeIn 0.2s ease-out"
+      }}
     >
       <div className="flex items-start gap-2 hover:bg-accent/5 rounded-lg transition-colors duration-150">
         {/* Drag Handle */}
@@ -77,7 +78,7 @@ export const MemoizedBlock = memo(function MemoizedBlock({
           </Button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison to prevent unnecessary re-renders

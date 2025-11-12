@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { WorkOrderForm } from "@/components/WorkOrderForm";
 import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
-import { CalendarView } from "@/components/CalendarView";
-import { JobKanbanBoard } from "@/components/JobKanbanBoard";
+
+// Lazy load heavy subcomponents
+const CalendarView = React.lazy(() => import("@/components/CalendarView").then(m => ({ default: m.CalendarView })));
+const JobKanbanBoard = React.lazy(() => import("@/components/JobKanbanBoard").then(m => ({ default: m.JobKanbanBoard })));
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";
@@ -455,21 +457,25 @@ const WorkOrders = () => {
       )}
 
       {viewMode === 'calendar' && (
-        <CalendarView onEventClick={(item) => {
-          if (item.type === 'work_order') {
-            const order = workOrders.find(wo => wo.id === item.id);
-            if (order) setViewingOrderDetails(order);
-          }
-        }} />
+        <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading calendar…</div>}>
+          <CalendarView onEventClick={(item) => {
+            if (item.type === 'work_order') {
+              const order = workOrders.find(wo => wo.id === item.id);
+              if (order) setViewingOrderDetails(order);
+            }
+          }} />
+        </Suspense>
       )}
 
       {viewMode === 'kanban' && (
-        <JobKanbanBoard
-          workOrders={workOrders}
-          statuses={statuses}
-          onUpdate={fetchWorkOrders}
-          onJobClick={(order) => setViewingOrderDetails(order as WorkOrder)}
-        />
+        <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading board…</div>}>
+          <JobKanbanBoard
+            workOrders={workOrders}
+            statuses={statuses}
+            onUpdate={fetchWorkOrders}
+            onJobClick={(order) => setViewingOrderDetails(order as WorkOrder)}
+          />
+        </Suspense>
       )}
 
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>

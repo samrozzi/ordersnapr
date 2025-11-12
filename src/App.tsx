@@ -15,6 +15,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { MigrationChecker } from "@/components/MigrationChecker";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AppUpdateNotification } from "@/components/AppUpdateNotification";
 import { UsernameGuard } from "@/components/UsernameGuard";
@@ -74,47 +75,49 @@ const AppContent = () => {
         <BrowserRouter>
         <FeatureProvider>
           <MigrationChecker />
-          <Suspense fallback={<PageSkeleton />}>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/pending-approval" element={<PendingApproval />} />
+          <ErrorBoundary>
+            <Suspense fallback={<PageSkeleton />}>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/pending-approval" element={<PendingApproval />} />
 
-              {/* Customer Portal - Public route (token-based access) */}
-              <Route path="/portal/:token" element={<CustomerPortal />} />
+                {/* Customer Portal - Public route (token-based access) */}
+                <Route path="/portal/:token" element={<CustomerPortal />} />
 
-              {/* Public Invoice - Shareable invoice links */}
-              <Route path="/invoice/:token" element={<PublicInvoice />} />
+                {/* Public Invoice - Shareable invoice links */}
+                <Route path="/invoice/:token" element={<PublicInvoice />} />
 
-              {/* Free Tier Routes - No approval required */}
-              <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />
-              <Route path="/free-workspace" element={<FreeRoute><FreeTierWorkspace /></FreeRoute>} />
+                {/* Free Tier Routes - No approval required */}
+                <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />
+                <Route path="/free-workspace" element={<FreeRoute><FreeTierWorkspace /></FreeRoute>} />
 
-              {/* Protected Routes - Require approval */}
-              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="admin" element={<Admin />} />
-                <Route path="org-admin" element={<OrgAdmin />} />
-                <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
-                <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
-                <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
-                <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
-                <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
-                <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
-                <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
-                <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
-                <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
-                <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
-                <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />
-                <Route path="notes" element={<Notes />} />
-                <Route path="health-data" element={<HealthData />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+                {/* Protected Routes - Require approval */}
+                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="admin" element={<Admin />} />
+                  <Route path="org-admin" element={<OrgAdmin />} />
+                  <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
+                  <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
+                  <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
+                  <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
+                  <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
+                  <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
+                  <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
+                  <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
+                  <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
+                  <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
+                  <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />
+                  <Route path="notes" element={<Notes />} />
+                  <Route path="health-data" element={<HealthData />} />
+                </Route>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </FeatureProvider>
         </BrowserRouter>
       </UsernameGuard>

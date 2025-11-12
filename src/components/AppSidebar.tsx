@@ -1,6 +1,6 @@
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -72,8 +72,8 @@ export function AppSidebar() {
   const { pinnedNotes, preferences, updatePreferences } = useNotes();
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
   const [userId, setUserId] = useState<string | null>(null);
-  const { data: userPreferences } = useUserPreferences(userId);
-
+const { data: userPreferences } = useUserPreferences(userId);
+const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -84,6 +84,13 @@ export function AppSidebar() {
       if (user) setUserId(user.id);
     };
     getUser();
+  }, []);
+
+  // Recompute when user features updated via preferences
+  useEffect(() => {
+    const handler = () => setFeatureToggleVersion((v) => v + 1);
+    window.addEventListener('userFeaturesUpdated', handler);
+    return () => window.removeEventListener('userFeaturesUpdated', handler);
   }, []);
 
   // Sync notes dropdown state with preferences
@@ -133,28 +140,56 @@ export function AppSidebar() {
     }
   };
 
-  // Build ordered nav items based on user preferences
-  const getOrderedNavItems = () => {
-    // Start with base items - trust useFeatureNavigation for filtering
-    const baseItems = [];
+  // Build ordered nav items based on user preferences and org-aware toggles
+  const orderedNavItems = useMemo(() => {
+    // Read org-aware sidebar toggles from localStorage
+    const uid = userId;
+    const orgId = activeOrg?.id ?? null;
+    const storageKey = uid ? (orgId === null ? `user_features_${uid}_personal` : `user_features_${uid}_org_${orgId}`) : null;
 
-    // Calendar - only add if user has it enabled (useFeatureNavigation already checked localStorage)
-    if (hasFeature("calendar")) {
+    const FREE_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
+    let enabledToggles: string[] = FREE_DEFAULTS;
+
+    if (storageKey) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          enabledToggles = JSON.parse(saved);
+        } catch (e) {
+          console.warn("Failed to parse saved sidebar toggles, using defaults.", e);
+        }
+      }
+    }
+
+    // Base items (Calendar, Notes)
+    const baseItems: Array<{
+      id: string;
+      label: string;
+      path: string;
+      icon: string;
+      component: React.ElementType;
+      isLocked: boolean;
+    }> = [];
+
+    // Calendar: must be both feature-enabled and user-enabled
+    if (hasFeature("calendar") && enabledToggles.includes("calendar")) {
       baseItems.push({ id: "calendar", label: "Calendar", path: "/calendar", icon: "calendar", component: Calendar, isLocked: false });
     }
 
-    // Notes - always available (not in feature modules)
+    // Notes - always available and not toggle-controlled
     baseItems.push({ id: "notes", label: "Notes", path: "/notes", icon: "notes", component: StickyNote, isLocked: false });
 
-    // Add feature items from useFeatureNavigation (already filtered by user preferences)
-    const featureItems = enabledNavItems.map(item => ({
-      id: item.path.substring(1), // Remove leading slash
-      label: item.label,
-      path: item.path,
-      icon: item.icon || "clipboard",
-      component: iconMap[item.icon || "clipboard"] || ClipboardList,
-      isLocked: item.isLocked || false,
-    }));
+    // Feature items from useFeatureNavigation, further filtered by user toggles
+    const featureItems = enabledNavItems
+      .filter((item) => enabledToggles.includes(item.module))
+      .map((item) => ({
+        id: item.path.substring(1),
+        label: item.label,
+        path: item.path,
+        icon: item.icon || "clipboard",
+        component: iconMap[item.icon || "clipboard"] || ClipboardList,
+        isLocked: item.isLocked || false,
+      }));
 
     const allItems = [...baseItems, ...featureItems];
 
@@ -162,19 +197,17 @@ export function AppSidebar() {
     if (userPreferences?.nav_order && Array.isArray(userPreferences.nav_order) && userPreferences.nav_order.length > 0) {
       const savedOrder = userPreferences.nav_order as string[];
       const orderedItems = savedOrder
-        .map(id => allItems.find(item => item.id === id))
+        .map((id) => allItems.find((item) => item.id === id))
         .filter((item): item is typeof allItems[0] => item !== undefined);
 
       // Add any new items that weren't in saved order
-      const newItems = allItems.filter(item => !savedOrder.includes(item.id));
+      const newItems = allItems.filter((item) => !savedOrder.includes(item.id));
 
       return [...orderedItems, ...newItems];
     }
 
     return allItems;
-  };
-
-  const orderedNavItems = getOrderedNavItems();
+  }, [enabledNavItems, hasFeature, userPreferences?.nav_order, userId, activeOrg?.id, featureToggleVersion]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">

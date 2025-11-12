@@ -185,7 +185,7 @@ const WorkOrders = () => {
     if (session) {
       fetchWorkOrders();
     }
-  }, [session, activeOrgId]);
+  }, [session]);  // Remove activeOrgId from deps to prevent infinite loop
 
   // Handle opening work order from URL parameter (e.g., from favorites)
   useEffect(() => {

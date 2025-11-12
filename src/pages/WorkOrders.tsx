@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, List, Calendar as CalendarIcon, LayoutGrid, Trash2, UserPlus, CheckCircle2 } from "lucide-react";
+import { Plus, List as ListIcon, Calendar as CalendarIcon, LayoutGrid, Trash2, UserPlus, CheckCircle2 } from "lucide-react";
 import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderForm } from "@/components/WorkOrderForm";
@@ -366,9 +366,6 @@ const WorkOrders = () => {
         </FreeTierGuard>
 
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <SheetTrigger asChild>
-            <span></span>
-          </SheetTrigger>
           <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Create New {displayName.replace(/s$/, '')}</SheetTitle>
@@ -390,7 +387,7 @@ const WorkOrders = () => {
             size="sm"
             onClick={() => setViewMode('list')}
           >
-            <List className="h-4 w-4 md:mr-2" />
+            <ListIcon className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">List</span>
           </Button>
           <Button
@@ -527,7 +524,7 @@ const WorkOrders = () => {
       />
 
       {/* Bulk Action Bar */}
-      {viewMode === 'list' && (
+      {viewMode === 'list' && bulkSelect?.selectedCount > 0 && (
         <BulkActionBar
           selectedCount={bulkSelect.selectedCount}
           onClearSelection={bulkSelect.clearSelection}
@@ -550,7 +547,7 @@ const WorkOrders = () => {
               onClick: handleBulkDelete,
               variant: "destructive" as const,
             },
-          ]}
+          ].filter(action => action.show !== false)}
         />
       )}
       </div>

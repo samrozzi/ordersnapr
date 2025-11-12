@@ -33,20 +33,22 @@ export function FieldPropertiesPanel({
     }
   }, [open, field?.id]);
 
-  // Auto-save table dimension changes immediately
+  // Auto-save table changes immediately (dimensions and cells)
   useEffect(() => {
     if (editedField && editedField.type === 'table_layout' && field) {
-      // Only save if dimensions actually changed
+      // Only save if table properties actually changed
       const dimensionsChanged = 
         editedField.tableRows !== field.tableRows ||
         editedField.tableColumns !== field.tableColumns ||
         editedField.borderStyle !== field.borderStyle;
       
-      if (dimensionsChanged) {
+      const cellsChanged = JSON.stringify(editedField.tableCells) !== JSON.stringify(field.tableCells);
+      
+      if (dimensionsChanged || cellsChanged) {
         onFieldUpdate(editedField);
       }
     }
-  }, [editedField?.tableRows, editedField?.tableColumns, editedField?.borderStyle]);
+  }, [editedField?.tableRows, editedField?.tableColumns, editedField?.borderStyle, editedField?.tableCells]);
 
   if (!editedField) return null;
 

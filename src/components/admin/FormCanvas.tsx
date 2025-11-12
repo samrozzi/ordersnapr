@@ -640,13 +640,15 @@ function DroppableCellPreview({
       )}
     >
       {cellField ? (
-        <div className="flex items-center gap-2">
-          {(() => {
-            const cellFieldDef = fieldTypes.find(ft => ft.type === cellField.type);
-            const CellIcon = cellFieldDef?.icon || Edit2;
-            return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
-          })()}
-          <span className="text-xs font-medium truncate">{cellField.label}</span>
+        <div className="flex items-center justify-between gap-2 group/cell">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {(() => {
+              const cellFieldDef = fieldTypes.find(ft => ft.type === cellField.type);
+              const CellIcon = cellFieldDef?.icon || Edit2;
+              return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
+            })()}
+            <span className="text-xs font-medium truncate">{cellField.label}</span>
+          </div>
         </div>
       ) : (
         <div className={cn(

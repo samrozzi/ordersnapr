@@ -762,14 +762,10 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
     const { tableFieldId, cellKey } = selectedCell;
     
-    console.log('[CELL PICKER] Selecting field:', { tableFieldId, cellKey, fieldType });
-    
     // Find the section containing the table
     const tableSectionId = fieldToSectionMap.get(tableFieldId);
-    console.log('[CELL PICKER] Table section ID:', tableSectionId);
     
     if (!tableSectionId) {
-      console.error('[CELL PICKER] Could not find section for table:', tableFieldId);
       toast.error("Could not find table section");
       return;
     }
@@ -778,8 +774,6 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     const randomId = Math.random().toString(36).substr(2, 9);
     const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
     const label = fieldDef?.label || "Field";
-
-    console.log('[CELL PICKER] Creating new field:', { label, fieldType });
 
     const newSections = sections.map((section) => {
       if (section.id !== tableSectionId) return section;
@@ -804,8 +798,6 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               },
             };
 
-            console.log('[CELL PICKER] Updated cells:', updatedCells);
-
             return {
               ...field,
               tableCells: updatedCells,
@@ -816,11 +808,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       };
     });
 
-    console.log('[CELL PICKER] Setting new sections');
     setSections(newSections);
     
     toast.success(`${label} added to table cell`);
     setSelectedCell(null);
+    setCellPickerOpen(false);
   };
 
   const activeField = activeId ? findFieldById(activeId) : null;

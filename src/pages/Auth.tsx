@@ -114,7 +114,7 @@ const Auth = () => {
           <img 
             src={theme === 'dark' ? logoDark : logoLight} 
             alt="ordersnapr" 
-            className="h-16 w-auto"
+            className="h-20 w-auto"
           />
         </div>
         <p className="text-center text-muted-foreground">Sign in to manage orders</p>

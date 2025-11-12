@@ -53,7 +53,7 @@ export function useCustomers(options?: { includeStats?: boolean }) {
   }, [user]);
 
   // Fetch all customers for the organization
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customers = [], isLoading, refetch } = useQuery({
     queryKey: ["customers", orgId, options?.includeStats],
     queryFn: async () => {
       if (!orgId) return [];
@@ -281,5 +281,6 @@ export function useCustomers(options?: { includeStats?: boolean }) {
     updateCustomer: updateCustomer.mutateAsync,
     deleteCustomer: deleteCustomer.mutateAsync,
     searchCustomers,
+    refetch: async () => { await refetch(); },
   };
 }

@@ -91,7 +91,7 @@ export function useSavedReports() {
       if (!activeOrg?.id) return [];
 
       const { data, error } = await supabase
-        .from('saved_reports')
+        .from('saved_reports' as any)
         .select('*')
         .eq('organization_id', activeOrg.id)
         .order('updated_at', { ascending: false });
@@ -109,7 +109,7 @@ export function useSavedReports() {
       if (!activeOrg?.id) throw new Error('No active organization');
 
       const { data, error } = await supabase
-        .from('saved_reports')
+        .from('saved_reports' as any)
         .insert([{
           name: report.name,
           description: report.description,
@@ -133,7 +133,7 @@ export function useSavedReports() {
   const updateReport = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<SavedReport> }) => {
       const { data, error } = await supabase
-        .from('saved_reports')
+        .from('saved_reports' as any)
         .update(updates as any)
         .eq('id', id)
         .select()
@@ -150,7 +150,7 @@ export function useSavedReports() {
   const deleteReport = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('saved_reports')
+        .from('saved_reports' as any)
         .delete()
         .eq('id', id);
 
@@ -164,7 +164,7 @@ export function useSavedReports() {
   const toggleFavorite = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
       const { error } = await supabase
-        .from('saved_reports')
+        .from('saved_reports' as any)
         .update({ is_favorite: isFavorite })
         .eq('id', id);
 
@@ -199,7 +199,7 @@ export function useReportSchedules() {
       if (!activeOrg?.id) return [];
 
       const { data, error } = await supabase
-        .from('report_schedules')
+        .from('report_schedules' as any)
         .select('*')
         .eq('organization_id', activeOrg.id)
         .order('created_at', { ascending: false });
@@ -215,7 +215,7 @@ export function useReportSchedules() {
       if (!activeOrg?.id) throw new Error('No active organization');
 
       const { data, error } = await supabase
-        .from('report_schedules')
+        .from('report_schedules' as any)
         .insert([{
           ...schedule as any,
           organization_id: activeOrg.id,
@@ -234,7 +234,7 @@ export function useReportSchedules() {
   const updateSchedule = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ReportSchedule> }) => {
       const { data, error } = await supabase
-        .from('report_schedules')
+        .from('report_schedules' as any)
         .update(updates as any)
         .eq('id', id)
         .select()
@@ -251,7 +251,7 @@ export function useReportSchedules() {
   const deleteSchedule = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('report_schedules')
+        .from('report_schedules' as any)
         .delete()
         .eq('id', id);
 
@@ -280,7 +280,7 @@ function buildSupabaseQuery(config: ReportConfiguration, orgId: string) {
 
   // Start building the query
   let query = supabase
-    .from(entity)
+    .from(entity as any)
     .select(fields.join(', '), { count: 'exact' })
     .eq('organization_id', orgId);
 

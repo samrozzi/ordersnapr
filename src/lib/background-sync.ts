@@ -74,7 +74,7 @@ export async function queueSync(
     if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
       const registration = await navigator.serviceWorker.ready;
       try {
-        await registration.sync.register(`sync-${entity}`);
+        await (registration as any).sync.register(`sync-${entity}`);
         console.log(`Background sync registered for ${entity}`);
       } catch (error) {
         console.warn('Background sync registration failed, will use manual sync:', error);

@@ -56,8 +56,8 @@ export function useEntityActivities(entityType: string, entityId: string) {
       }
 
       const { data, error } = await supabase
-        .from('activities')
-        .select('*')
+        .from('activities' as any)
+        .select('id, created_at, user_id, action, entity_type, entity_id, metadata, organization_id')
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .eq('organization_id', activeOrg.id)

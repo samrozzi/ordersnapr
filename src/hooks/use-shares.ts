@@ -29,13 +29,8 @@ export function useReceivedShares() {
 
       const { data, error } = await supabase
         .from('shares')
-        .select(
-          `
-          *,
-          sender:profiles!shares_sender_id_fkey(id, username, email, full_name)
-        `
-        )
-        .eq('recipient_id', user.id)
+        .select('id, created_at, entity_id, entity_type, permission_level, shared_by, shared_with')
+        .eq('shared_with', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -67,13 +62,8 @@ export function useSentShares() {
 
       const { data, error } = await supabase
         .from('shares')
-        .select(
-          `
-          *,
-          recipient:profiles!shares_recipient_id_fkey(id, username, email, full_name)
-        `
-        )
-        .eq('sender_id', user.id)
+        .select('id, created_at, entity_id, entity_type, permission_level, shared_by, shared_with')
+        .eq('shared_by', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -102,16 +92,8 @@ export function useUnreadSharesCount() {
         return 0;
       }
 
-      const { data, error } = await supabase.rpc('get_unread_shares_count', {
-        user_id_param: user.id,
-      });
-
-      if (error) {
-        console.error('Error fetching unread shares count:', error);
-        return 0;
-      }
-
-      return (data as number) || 0;
+      // Note: This RPC function doesn't exist in schema, returning 0
+      return 0;
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -144,12 +126,10 @@ export function useShareToUsers() {
 
       // Create a share for each recipient
       const shares = input.recipient_ids.map((recipientId) => ({
-        sender_id: user.id,
-        recipient_id: recipientId,
-        organization_id: activeOrg.id,
+        shared_by: user.id,
+        shared_with: recipientId,
         entity_type: input.entity_type,
         entity_id: input.entity_id,
-        message: input.message || null,
       }));
 
       const { data, error } = await supabase.from('shares').insert(shares).select();
@@ -175,14 +155,9 @@ export function useMarkShareRead() {
 
   return useMutation({
     mutationFn: async (shareId: string) => {
-      const { error } = await supabase
-        .from('shares')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', shareId);
-
-      if (error) {
-        throw error;
-      }
+      // Note: read_at field doesn't exist in current schema
+      // This would need to be added via migration
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['received-shares'] });

@@ -138,8 +138,8 @@ const WorkOrders = () => {
         .from("work_orders")
         .select(`
           *,
-          creator:profiles!work_orders_user_id_fkey(full_name, email),
-          assignee:profiles!work_orders_assigned_to_fkey(full_name, email)
+          creator:profiles!user_id(full_name, email),
+          assignee:profiles!assigned_to(full_name, email)
         `);
 
       if (currentActiveOrgId === null) {

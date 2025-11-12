@@ -63,10 +63,15 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
       onClick={onClick}
     >
       {note.banner_image && (
-        <div
-          className="h-24 bg-cover bg-center rounded-t-lg"
-          style={{ backgroundImage: `url(${note.banner_image})` }}
-        />
+        <div className="relative h-24 bg-muted rounded-t-lg overflow-hidden">
+          <img
+            src={note.banner_image}
+            alt={`${note.title} banner`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
       )}
 
       <CardHeader className="pb-3">

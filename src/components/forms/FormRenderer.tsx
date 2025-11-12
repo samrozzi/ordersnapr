@@ -28,6 +28,35 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
+// Helper: Normalize label for matching
+const normalizeLabel = (label: string): string => {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+};
+
+// Helper: Find table cell fields by label
+const findTableCellsByLabel = (tableField: any) => {
+  const cells: Record<string, any> = {};
+  if (!tableField.tableCells) return cells;
+  
+  Object.entries(tableField.tableCells).forEach(([cellKey, cell]: [string, any]) => {
+    if (cell.field?.label) {
+      const normalized = normalizeLabel(cell.field.label);
+      // Map common variations
+      if (normalized.includes('name') || normalized === 'tech_name') {
+        cells.name = { cellKey, field: cell.field };
+      } else if (normalized.includes('id') || normalized === 'tech_id') {
+        cells.id = { cellKey, field: cell.field };
+      } else if (normalized.includes('type') || normalized === 'tech_type') {
+        cells.type = { cellKey, field: cell.field };
+      } else if (normalized.includes('tn') || normalized.includes('phone') || normalized.includes('tel')) {
+        cells.tn = { cellKey, field: cell.field };
+      }
+    }
+  });
+  
+  return cells;
+};
+
 interface FormRendererProps {
   template: FormTemplate;
   submission?: FormSubmission;
@@ -341,6 +370,99 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         [parentKey]: updatedEntries
       }));
     };
+    
+    // Support table_layout inside repeating_group
+    if (subField.type === 'table_layout') {
+      const rows = subField.tableRows || 2;
+      const cols = subField.tableColumns || 2;
+      const tableCells = subField.tableCells || {};
+      const tableValue = value || {};
+
+      return (
+        <div key={subField.key} className="space-y-2">
+          {subField.label && (
+            <Label className="text-sm font-medium">{subField.label}</Label>
+          )}
+          <div 
+            className="grid gap-2 border rounded-lg p-4"
+            style={{ 
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gridTemplateRows: `repeat(${rows}, 1fr)`
+            }}
+          >
+            {Array.from({ length: rows }).map((_, rowIdx) =>
+              Array.from({ length: cols }).map((_, colIdx) => {
+                const cellKey = `${rowIdx}-${colIdx}`;
+                const cell = tableCells[cellKey];
+                const cellValue = tableValue[cellKey];
+
+                if (!cell || !cell.field) {
+                  return (
+                    <div key={cellKey} className="border rounded p-2 bg-muted/30 min-h-[60px]" />
+                  );
+                }
+
+                const cellField = cell.field;
+                const handleCellChange = (newValue: any) => {
+                  handleNestedChange(subField.key, {
+                    ...tableValue,
+                    [cellKey]: newValue
+                  });
+                };
+
+                return (
+                  <div key={cellKey} className="border rounded p-2 space-y-1">
+                    {cellField.label && (
+                      <Label className="text-xs">{cellField.label}</Label>
+                    )}
+                    {cellField.type === 'text' && (
+                      <Input
+                        value={cellValue || ''}
+                        onChange={(e) => handleCellChange(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    )}
+                    {cellField.type === 'number' && (
+                      <Input
+                        type="number"
+                        value={cellValue || ''}
+                        onChange={(e) => handleCellChange(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    )}
+                    {cellField.type === 'date' && (
+                      <Input
+                        type="date"
+                        value={cellValue || ''}
+                        onChange={(e) => handleCellChange(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Support smart_import inside repeating_group
+    if (subField.type === 'smart_import') {
+      return (
+        <div key={subField.key} className="space-y-2">
+          <SmartFormImport
+            formType="ride-along"
+            onDataExtracted={(importData) => {
+              const techRows = (importData as any).technicianRows || [];
+              if (techRows.length > 0) {
+                toast.success('Data extracted! Populating fields...');
+              }
+            }}
+          />
+        </div>
+      );
+    }
     
     switch (subField.type) {
       case "text":
@@ -864,88 +986,116 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 if (technicianRows && Array.isArray(technicianRows) && technicianRows.length > 0) {
                   console.log(`Found ${technicianRows.length} technician(s) - populating data`);
                   
-                  // Find a repeating group or table field
-                  let targetField: any = null;
-                  let fieldType: 'repeating_group' | 'table_layout' | null = null;
-                  let sectionWithField: any = null;
-
-                  template.schema.sections.forEach((section: any) => {
-                    (section.fields || []).forEach((f: any) => {
-                      if ((f.type === 'repeating_group' || f.type === 'table_layout') && !targetField) {
-                        targetField = f;
-                        fieldType = f.type;
-                        sectionWithField = section;
-                      }
-                    });
-                  });
-
-                  if (targetField && fieldType) {
-                    if (fieldType === 'repeating_group') {
-                      console.log('Populating repeating group with technician data');
-                      
-                      // Set the repeat count to match number of technicians
-                      setRepeatCounts(prev => ({
-                        ...prev,
-                        [targetField.key]: technicianRows.length
-                      }));
-
-                      // Populate each instance
-                      technicianRows.forEach((techRow: any, techIndex: number) => {
-                        // Find fields in the repeating group that match our data
-                        targetField.fields?.forEach((field: any) => {
-                          const fieldLabel = field.label?.toLowerCase();
-                          let value = null;
-
-                          if (fieldLabel?.includes('name')) value = techRow.techName;
-                          else if (fieldLabel?.includes('id')) value = techRow.techId;
-                          else if (fieldLabel?.includes('type')) value = techRow.techType;
-                          else if (fieldLabel?.includes('phone') || fieldLabel?.includes('tn')) value = techRow.techPhone;
-                          else if (fieldLabel?.includes('ban')) value = techRow.ban;
-
-                          if (value) {
-                            const instanceKey = `${field.key}_${techIndex}`;
-                            handleFieldChange(instanceKey, value);
-                          }
-                        });
-                      });
-
-                      toast.success(
-                        `Created ${technicianRows.length} technician entries!`,
-                        { duration: 4000 }
-                      );
-                    } else if (fieldType === 'table_layout') {
-                      console.log('Populating table cells with first technician data');
-                      
-                      // For table layout, populate the cells with first tech's data
-                      const firstTech = technicianRows[0];
-                      const cellMapping = {
-                        '0-0': { key: 'techName', label: 'Tech Name' },
-                        '0-1': { key: 'techId', label: 'Tech ID' },
-                        '1-0': { key: 'techType', label: 'Tech Type' },
-                        '1-1': { key: 'techPhone', label: 'Tech Tn' },
-                      };
-
-                      Object.entries(cellMapping).forEach(([cellKey, mapping]) => {
-                        const cell = targetField.tableCells?.[cellKey];
-                        if (cell?.field) {
-                          handleFieldChange(cell.field.key, firstTech[mapping.key] || '');
+                  // Find a repeating group with table layout or direct fields
+                  let targetRepeatingGroup: any = null;
+                  let targetTableField: any = null;
+                  
+                  // Look for repeating_group containing table_layout
+                  for (const section of template.schema.sections) {
+                    for (const field of section.fields) {
+                      if (field.type === 'repeating_group' && field.subFields) {
+                        const tableSubField = field.subFields.find((sf: any) => sf.type === 'table_layout');
+                        if (tableSubField) {
+                          targetRepeatingGroup = field;
+                          targetTableField = tableSubField;
+                          break;
                         }
-                      });
-
-                      if (technicianRows.length > 1) {
-                        toast.success(
-                          `Populated first technician. Found ${technicianRows.length} total - use a Repeating Group field to capture all.`,
-                          { duration: 6000 }
-                        );
-                      } else {
-                        toast.success('Successfully populated technician data!');
+                      }
+                    }
+                    if (targetRepeatingGroup) break;
+                  }
+                  
+                  // If found, populate the repeating group
+                  if (targetRepeatingGroup && targetTableField) {
+                    const fieldKey = targetRepeatingGroup.key;
+                    const tableKey = targetTableField.key;
+                    const maxInstances = targetRepeatingGroup.maxInstances || 50;
+                    const actualCount = Math.min(technicianRows.length, maxInstances);
+                    
+                    if (technicianRows.length > maxInstances) {
+                      toast.warning(`Created ${actualCount} of ${technicianRows.length} entries (max limit: ${maxInstances})`);
+                    }
+                    
+                    // Set repeat count to match number of technicians
+                    setRepeatCounts(prev => ({
+                      ...prev,
+                      [fieldKey]: actualCount
+                    }));
+                    
+                    // Populate each instance
+                    const newAnswers: any = {};
+                    technicianRows.slice(0, actualCount).forEach((tech: any, idx: number) => {
+                      if (!newAnswers[fieldKey]) newAnswers[fieldKey] = [];
+                      if (!newAnswers[fieldKey][idx]) newAnswers[fieldKey][idx] = {};
+                      
+                      // Find the cell fields by their labels
+                      const cellFields = findTableCellsByLabel(targetTableField);
+                      const tableCellData: Record<string, any> = {};
+                      
+                      if (cellFields.name) {
+                        tableCellData[cellFields.name.cellKey] = tech.techName || '';
+                      }
+                      if (cellFields.id) {
+                        tableCellData[cellFields.id.cellKey] = tech.techId || '';
+                      }
+                      if (cellFields.type) {
+                        tableCellData[cellFields.type.cellKey] = tech.techType || '';
+                      }
+                      if (cellFields.tn) {
+                        tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
+                      }
+                      
+                      newAnswers[fieldKey][idx][tableKey] = tableCellData;
+                    });
+                    
+                    setAnswers(prev => ({
+                      ...prev,
+                      ...newAnswers
+                    }));
+                    
+                    toast.success(`Created ${actualCount} technician ${actualCount === 1 ? 'entry' : 'entries'}!`);
+                  } else {
+                    // Fallback: Look for a top-level table_layout
+                    let topLevelTable: any = null;
+                    for (const section of template.schema.sections) {
+                      const tableField = section.fields.find((f: any) => f.type === 'table_layout');
+                      if (tableField) {
+                        topLevelTable = tableField;
+                        break;
                       }
                     }
                     
-                    // Don't process other fields if we handled population
-                    return;
-                  } else {
-                    toast.error('No compatible field found. Add a Repeating Group or Table Layout to your form.');
+                    if (topLevelTable) {
+                      const firstTech = technicianRows[0];
+                      const cellFields = findTableCellsByLabel(topLevelTable);
+                      const tableCellData: Record<string, any> = {};
+                      
+                      if (cellFields.name) {
+                        tableCellData[cellFields.name.cellKey] = firstTech.techName || '';
+                      }
+                      if (cellFields.id) {
+                        tableCellData[cellFields.id.cellKey] = firstTech.techId || '';
+                      }
+                      if (cellFields.type) {
+                        tableCellData[cellFields.type.cellKey] = firstTech.techType || '';
+                      }
+                      if (cellFields.tn) {
+                        tableCellData[cellFields.tn.cellKey] = firstTech.techPhone || firstTech.techTn || '';
+                      }
+                      
+                      setAnswers(prev => ({
+                        ...prev,
+                        [topLevelTable.key]: tableCellData
+                      }));
+                      
+                      if (technicianRows.length > 1) {
+                        toast.warning(`Populated table with first technician. Add a Repeating Group with Table Layout for all ${technicianRows.length} entries.`);
+                      } else {
+                        toast.success('Table populated with technician data!');
+                      }
+                    } else {
+                      toast.error("No compatible field found. Add a Repeating Group with Table Layout to your form.");
+                    }
                   }
                 }
 

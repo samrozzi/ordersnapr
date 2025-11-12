@@ -9,7 +9,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy, Eye, EyeOff, ArrowDown } from "lucide-react";
+import { GripVertical, Settings, Trash2, Plus, ChevronDown, ChevronRight, Edit2, Copy, Eye, EyeOff, ArrowDown, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FieldType } from "./FieldPalette";
 import { fieldTypes } from "./FieldPalette";
@@ -616,6 +616,7 @@ function DroppableCellPreview({
   sectionId,
   onCellFieldClick,
   onCellFieldRemove,
+  onCellFieldRename,
 }: {
   tableFieldId: string;
   cellKey: string;
@@ -626,7 +627,11 @@ function DroppableCellPreview({
   sectionId: string;
   onCellFieldClick: (sectionId: string, cellFieldId: string, parentTableId: string) => void;
   onCellFieldRemove: (sectionId: string, cellFieldId: string, parentTableId: string, cellKey: string) => void;
+  onCellFieldRename?: (sectionId: string, cellFieldId: string, tableFieldId: string, cellKey: string, newLabel: string) => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState('');
+  
   const { isOver, setNodeRef } = useDroppable({
     id: `table-${tableFieldId}-cell-${cellKey}`,
     data: {
@@ -635,6 +640,28 @@ function DroppableCellPreview({
       cellKey,
     },
   });
+
+  const handleStartEdit = () => {
+    if (cellField) {
+      setEditLabel(cellField.label);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (cellField && editLabel.trim() && editLabel !== cellField.label && onCellFieldRename) {
+      onCellFieldRename(sectionId, cellField.id, tableFieldId, cellKey, editLabel.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
 
   return (
     <td
@@ -657,10 +684,41 @@ function DroppableCellPreview({
               const CellIcon = cellFieldDef?.icon || Edit2;
               return <CellIcon className="h-3 w-3 text-primary flex-shrink-0" />;
             })()}
-            <span className="text-xs font-medium truncate">{cellField.label}</span>
+            {isEditing ? (
+              <Input
+                value={editLabel}
+                onChange={(e) => setEditLabel(e.target.value)}
+                onBlur={handleSaveEdit}
+                onKeyDown={handleKeyDown}
+                className="h-6 text-xs px-1 py-0"
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span 
+                className="text-xs font-medium truncate cursor-pointer hover:text-primary"
+                onDoubleClick={handleStartEdit}
+                title="Double-click to edit"
+              >
+                {cellField.label}
+              </span>
+            )}
           </div>
           {/* Action buttons - shown on hover */}
           <div className="flex items-center gap-0.5 opacity-0 group-hover/cell-field:opacity-100 transition-opacity">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStartEdit();
+              }}
+              title="Rename"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
             <Button
               type="button"
               variant="ghost"

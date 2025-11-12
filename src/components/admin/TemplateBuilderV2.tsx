@@ -68,7 +68,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
       .replace(/^_|_$/g, "");
   }, []);
 
-  // Load initial schema
+  // When the external schema changes, update our local state
   useEffect(() => {
     if (schema?.sections) {
       const loadedSections: Section[] = schema.sections.map((s: any) => ({
@@ -137,7 +137,21 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     }
   }, [schema, generateKey]);
 
-  // Update parent schema when sections change
+  // Debounced schema update to prevent excessive updates and avoid closing builder
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSchemaChange({
+        sections,
+        requireSignature,
+        useOrgTheme,
+        alternatingBackground,
+      });
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [sections, requireSignature, useOrgTheme, alternatingBackground]);
+
+  // Update parent schema when sections change (removed old immediate update)
   useEffect(() => {
     if (sections.length === 0 && !requireSignature) return; // Don't update on initial empty state
     

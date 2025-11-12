@@ -96,23 +96,44 @@ export function NavigationOrderPreferences() {
   useEffect(() => {
     if (!userId) return;
 
+    // Get user's enabled features from localStorage (respecting Sidebar Navigation settings)
+    const savedFeatures = localStorage.getItem(`user_features_${userId}`);
+    let userEnabledFeatures: string[] = [];
+
+    if (savedFeatures) {
+      try {
+        userEnabledFeatures = JSON.parse(savedFeatures);
+      } catch (e) {
+        console.error("Error parsing user features:", e);
+      }
+    }
+
     // Build default nav items with Dashboard always first
     const defaultItems: NavItem[] = [
       { id: "dashboard", label: "Dashboard", icon: "dashboard", fixed: true },
-      { id: "calendar", label: "Calendar", icon: "calendar" },
-      { id: "notes", label: "Notes", icon: "notes" },
     ];
 
-    // Add enabled feature items
+    // Only add calendar and notes if user has them enabled in sidebar
+    if (userEnabledFeatures.includes("calendar") || userEnabledFeatures.length === 0) {
+      defaultItems.push({ id: "calendar", label: "Calendar", icon: "calendar" });
+    }
+    // Notes is always available (not a feature module)
+    defaultItems.push({ id: "notes", label: "Notes", icon: "notes" });
+
+    // Add enabled feature items ONLY if they're enabled in Sidebar Navigation
     enabledNavItems.forEach(item => {
       if (!item.isLocked) {
-        // Convert path to id (e.g., "/work-orders" -> "work-orders")
-        const id = item.path.substring(1);
-        defaultItems.push({
-          id,
-          label: item.label,
-          icon: item.icon || "clipboard",
-        });
+        const featureModule = item.module;
+        // Only add if user has enabled this feature in Sidebar Navigation
+        if (userEnabledFeatures.includes(featureModule) || userEnabledFeatures.length === 0) {
+          // Convert path to id (e.g., "/work-orders" -> "work-orders")
+          const id = item.path.substring(1);
+          defaultItems.push({
+            id,
+            label: item.label,
+            icon: item.icon || "clipboard",
+          });
+        }
       }
     });
 
@@ -175,21 +196,44 @@ export function NavigationOrderPreferences() {
   };
 
   const handleReset = () => {
+    if (!userId) return;
+
+    // Get user's enabled features from localStorage (respecting Sidebar Navigation settings)
+    const savedFeatures = localStorage.getItem(`user_features_${userId}`);
+    let userEnabledFeatures: string[] = [];
+
+    if (savedFeatures) {
+      try {
+        userEnabledFeatures = JSON.parse(savedFeatures);
+      } catch (e) {
+        console.error("Error parsing user features:", e);
+      }
+    }
+
     // Reset to default order
     const defaultItems: NavItem[] = [
       { id: "dashboard", label: "Dashboard", icon: "dashboard", fixed: true },
-      { id: "calendar", label: "Calendar", icon: "calendar" },
-      { id: "notes", label: "Notes", icon: "notes" },
     ];
 
+    // Only add calendar and notes if user has them enabled in sidebar
+    if (userEnabledFeatures.includes("calendar") || userEnabledFeatures.length === 0) {
+      defaultItems.push({ id: "calendar", label: "Calendar", icon: "calendar" });
+    }
+    // Notes is always available
+    defaultItems.push({ id: "notes", label: "Notes", icon: "notes" });
+
+    // Only add items that are enabled in Sidebar Navigation
     enabledNavItems.forEach(item => {
       if (!item.isLocked) {
-        const id = item.path.substring(1);
-        defaultItems.push({
-          id,
-          label: item.label,
-          icon: item.icon || "clipboard",
-        });
+        const featureModule = item.module;
+        if (userEnabledFeatures.includes(featureModule) || userEnabledFeatures.length === 0) {
+          const id = item.path.substring(1);
+          defaultItems.push({
+            id,
+            label: item.label,
+            icon: item.icon || "clipboard",
+          });
+        }
       }
     });
 
@@ -202,8 +246,8 @@ export function NavigationOrderPreferences() {
       <CardHeader>
         <CardTitle>Navigation Order</CardTitle>
         <CardDescription>
-          Customize the order of navigation items in the sidebar. Dashboard always stays at the top.
-          Drag items to reorder them.
+          Customize the order of navigation items in the sidebar. Only items enabled in "Sidebar Navigation" above will appear here.
+          Dashboard always stays at the top. Drag items to reorder them.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -591,7 +591,19 @@ const Profile = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RadioGroup value={theme} onValueChange={setTheme} className="space-y-3">
+                <RadioGroup
+                  value={theme}
+                  onValueChange={(value) => {
+                    setTheme(value);
+                    // Explicitly save to localStorage to ensure persistence
+                    localStorage.setItem('ordersnapr-theme', value);
+                    toast({
+                      title: "Theme Updated",
+                      description: `Theme set to ${value}`,
+                    });
+                  }}
+                  className="space-y-3"
+                >
                   <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent transition-colors">
                     <RadioGroupItem value="light" id="light" />
                     <Label htmlFor="light" className="flex items-center gap-2 cursor-pointer flex-1">

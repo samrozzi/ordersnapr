@@ -527,7 +527,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
               // Save presentation mode to database
               try {
                 await updateNote({
-                  noteId: note.id,
+                  id: note.id,
                   updates: { is_presentation_mode: newMode },
                 });
                 toast.success(newMode ? "Presentation mode enabled" : "Presentation mode disabled");

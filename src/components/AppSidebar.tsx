@@ -1,6 +1,7 @@
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -38,6 +39,7 @@ import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useNotes } from "@/hooks/use-notes";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useSidebarState } from "@/hooks/use-sidebar-state";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
@@ -61,6 +63,7 @@ const iconMap: Record<string, React.ElementType> = {
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { enabledNavItems, isLoading: featuresLoading } = useFeatureNavigation();
   const { hasFeature } = useFeatureContext();
@@ -72,8 +75,8 @@ export function AppSidebar() {
   const { pinnedNotes, preferences, updatePreferences } = useNotes();
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
   const [userId, setUserId] = useState<string | null>(null);
-const { data: userPreferences } = useUserPreferences(userId);
-const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
+  const { data: userPreferences } = useUserPreferences(userId);
+  const { enabledToggles, featureToggleVersion } = useSidebarState(userId);
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -84,13 +87,6 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
       if (user) setUserId(user.id);
     };
     getUser();
-  }, []);
-
-  // Recompute when user features updated via preferences
-  useEffect(() => {
-    const handler = () => setFeatureToggleVersion((v) => v + 1);
-    window.addEventListener('userFeaturesUpdated', handler);
-    return () => window.removeEventListener('userFeaturesUpdated', handler);
   }, []);
 
   // Sync notes dropdown state with preferences
@@ -140,27 +136,23 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
     }
   };
 
+  // Prefetch page data on hover for instant navigation
+  const handlePrefetch = useCallback((path: string) => {
+    if (path === "/work-orders") {
+      queryClient.prefetchQuery({ queryKey: ["workOrders"] });
+    } else if (path === "/property-info") {
+      queryClient.prefetchQuery({ queryKey: ["properties"] });
+    } else if (path === "/notes") {
+      queryClient.prefetchQuery({ queryKey: ["notes"] });
+    } else if (path === "/customers") {
+      queryClient.prefetchQuery({ queryKey: ["customers"] });
+    } else if (path === "/invoices") {
+      queryClient.prefetchQuery({ queryKey: ["invoices"] });
+    }
+  }, [queryClient]);
+
   // Build ordered nav items based on user preferences and org-aware toggles
   const orderedNavItems = useMemo(() => {
-    // Read org-aware sidebar toggles from localStorage
-    const uid = userId;
-    const orgId = activeOrg?.id ?? null;
-    const storageKey = uid ? (orgId === null ? `user_features_${uid}_personal` : `user_features_${uid}_org_${orgId}`) : null;
-
-    const FREE_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
-    let enabledToggles: string[] = FREE_DEFAULTS;
-
-    if (storageKey) {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          enabledToggles = JSON.parse(saved);
-        } catch (e) {
-          console.warn("Failed to parse saved sidebar toggles, using defaults.", e);
-        }
-      }
-    }
-
     // Base items (Calendar, Notes)
     const baseItems: Array<{
       id: string;
@@ -207,7 +199,7 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
     }
 
     return allItems;
-  }, [enabledNavItems, hasFeature, userPreferences?.nav_order, userId, activeOrg?.id, featureToggleVersion]);
+  }, [enabledNavItems, hasFeature, userPreferences?.nav_order, enabledToggles, featureToggleVersion]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -274,7 +266,12 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
               {/* Dashboard always first */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
-                  <NavLink to="/dashboard" end onClick={handleNavClick}>
+                  <NavLink 
+                    to="/dashboard" 
+                    end 
+                    onClick={handleNavClick}
+                    onMouseEnter={() => handlePrefetch("/dashboard")}
+                  >
                     <LayoutDashboard className="h-5 w-5" />
                     <span>Dashboard</span>
                   </NavLink>
@@ -292,7 +289,12 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
                       <div className="flex flex-col">
                         <div className="flex items-center">
                           <SidebarMenuButton asChild isActive={isActive(item.path)} className="flex-1">
-                            <NavLink to={item.path} end onClick={handleNavClick}>
+                            <NavLink 
+                              to={item.path} 
+                              end 
+                              onClick={handleNavClick}
+                              onMouseEnter={() => handlePrefetch(item.path)}
+                            >
                               <Icon className="h-5 w-5" />
                               <span>{item.label}</span>
                             </NavLink>
@@ -361,7 +363,12 @@ const [featureToggleVersion, setFeatureToggleVersion] = useState(0);
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                      <NavLink to={item.path} end onClick={handleNavClick}>
+                      <NavLink 
+                        to={item.path} 
+                        end 
+                        onClick={handleNavClick}
+                        onMouseEnter={() => handlePrefetch(item.path)}
+                      >
                         <Icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </NavLink>

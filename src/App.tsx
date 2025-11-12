@@ -25,21 +25,23 @@ import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
-// Lazy load heavy page components
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+// Eager load frequently accessed pages for instant navigation
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import WorkOrders from "./pages/WorkOrders";
+import PropertyInfo from "./pages/PropertyInfo";
+import Notes from "./pages/Notes";
+
+// Lazy load less frequently accessed pages
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
 const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
-const Profile = lazy(() => import("./pages/Profile"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));
-const WorkOrders = lazy(() => import("./pages/WorkOrders"));
-const PropertyInfo = lazy(() => import("./pages/PropertyInfo"));
 const Forms = lazy(() => import("./pages/Forms"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const Customers = lazy(() => import("./pages/Customers"));
-const Notes = lazy(() => import("./pages/Notes"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
@@ -48,12 +50,12 @@ const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const FreeTierDashboard = lazy(() => import("./pages/FreeTierDashboard"));
 const PublicInvoice = lazy(() => import("./pages/PublicInvoice"));
 
-// Optimized React Query configuration
+// Optimized React Query configuration for speed
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      staleTime: 2 * 60 * 1000, // 2 minutes - data stays fresh longer
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       retry: 1,

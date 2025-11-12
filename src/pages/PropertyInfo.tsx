@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { FreeTierGuard } from "@/components/FreeTierGuard";
 import { PropertyTable } from "@/components/PropertyTable";
@@ -13,6 +11,7 @@ import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { useProperties } from "@/hooks/use-properties";
 
 interface Property {
   id: string;
@@ -26,16 +25,12 @@ interface Property {
 }
 
 const PropertyInfo = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const [session, setSession] = useState<Session | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { properties, isLoading, refetch } = useProperties();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
 
   // Export columns configuration
   const exportColumns: ExportColumn<Property>[] = [
@@ -58,88 +53,10 @@ const PropertyInfo = () => {
     },
   ];
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchProperties = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch user's active org context
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("active_org_id")
-        .eq("id", user.id)
-        .single();
-
-      const currentActiveOrgId = profile?.active_org_id || null;
-      setActiveOrgId(currentActiveOrgId);
-
-      console.log('Fetching properties:', {
-        activeOrgId: currentActiveOrgId,
-        isPersonal: currentActiveOrgId === null
-      });
-
-      // Build query with org filtering
-      let query = supabase.from("properties").select("*");
-
-      if (currentActiveOrgId === null) {
-        // Personal workspace: user's own properties with no organization
-        query = query.eq("user_id", user.id).is("organization_id", null);
-      } else {
-        // Organization workspace: all properties for that org
-        query = query.eq("organization_id", currentActiveOrgId);
-      }
-
-      const { data, error } = await query.order("property_name", { ascending: true });
-
-      if (error) {
-        console.error('Properties query error:', error);
-        throw error;
-      }
-      
-      console.log('Properties fetched:', data?.length || 0, 'records');
-      setProperties(data || []);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load properties",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (session) {
-      fetchProperties();
-    }
-  }, [session, activeOrgId]);
-
   // Handle opening property from URL parameter (e.g., from favorites)
   useEffect(() => {
     const propertyId = searchParams.get('property');
     if (propertyId && properties.length > 0) {
-      // For properties, we could scroll to it or highlight it
-      // For now, just clear the parameter to acknowledge it was handled
       setSearchParams({});
       toast({
         title: "Property",
@@ -182,7 +99,7 @@ const PropertyInfo = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-lg">Loading...</div>
@@ -192,7 +109,7 @@ const PropertyInfo = () => {
 
   return (
     <>
-      <PullToRefresh onRefresh={fetchProperties} />
+      <PullToRefresh onRefresh={async () => { await refetch(); }} />
       <div className="space-y-4 md:space-y-6">
         <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
@@ -210,7 +127,7 @@ const PropertyInfo = () => {
         <FreeTierGuard resource="properties" onAllowed={() => setIsDialogOpen(true)}>
           {({ onClick, disabled }) => (
             <>
-              <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled || loading}>
+              <Button size="sm" className="md:h-10" onClick={onClick} disabled={disabled || isLoading}>
                 <Plus className="md:mr-2 h-4 w-4" />
                 <span className="hidden md:inline">New Property</span>
               </Button>
@@ -226,7 +143,7 @@ const PropertyInfo = () => {
             <PropertyForm
               onSuccess={() => {
                 setIsDialogOpen(false);
-                fetchProperties();
+                refetch();
               }}
             />
           </DialogContent>
@@ -260,7 +177,7 @@ const PropertyInfo = () => {
 
       <PropertyTable
         properties={properties}
-        onUpdate={fetchProperties}
+        onUpdate={() => refetch()}
         userLocation={userLocation}
       />
       </div>

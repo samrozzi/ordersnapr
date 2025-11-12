@@ -74,12 +74,20 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content?.blocks || []);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [showSlashMenu, setShowSlashMenu] = useState(false);
-  const [slashMenuPosition, setSlashMenuPosition] = useState<{ top: number; left: number } | undefined>();
-  const [slashSearchQuery, setSlashSearchQuery] = useState("");
   const [presentationMode, setPresentationMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [slashMenuState, setSlashMenuState] = useState<{
+    visible: boolean;
+    position: { top: number; left: number };
+    searchQuery: string;
+    blockId: string | null;
+  }>({
+    visible: false,
+    position: { top: 0, left: 0 },
+    searchQuery: '',
+    blockId: null,
+  });
 
   // Debounced auto-save
   const [debouncedTitle] = useDebounce(title, 500);
@@ -247,13 +255,36 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     }));
   };
 
+  const handleSlashDetected = useCallback((blockId: string, position: { top: number; left: number }, searchQuery: string) => {
+    setSlashMenuState({
+      visible: true,
+      position,
+      searchQuery,
+      blockId,
+    });
+  }, []);
+
+  const handleSlashCancelled = useCallback(() => {
+    setSlashMenuState(prev => ({ ...prev, visible: false }));
+  }, []);
+
   const handleSlashCommand = useCallback((blockType: string) => {
-    if (!activeBlockId) return;
-    
+    if (!slashMenuState.blockId) return;
+
     setBlocks(produce(draft => {
-      const index = draft.findIndex(b => b.id === activeBlockId);
+      const index = draft.findIndex(b => b.id === slashMenuState.blockId);
       if (index !== -1) {
         const block: any = draft[index];
+        
+        // Remove the "/" and search text from content
+        if (typeof block.content === "string") {
+          const slashIndex = block.content.lastIndexOf('/');
+          if (slashIndex >= 0) {
+            block.content = block.content.slice(0, slashIndex);
+          }
+        }
+
+        // Convert block to new type
         block.type = blockType as any;
         if (blockType === "checklist") {
           block.content = { items: [{ id: crypto.randomUUID(), text: "", checked: false }] };
@@ -265,15 +296,26 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             headerRow: true,
             bordered: true
           };
+        } else if (blockType === "imageUpload") {
+          block.content = { url: "", alt: "" };
+        } else if (blockType === "date") {
+          block.content = { date: new Date().toISOString() };
+        } else if (blockType === "time") {
+          block.content = { time: new Date().toTimeString().slice(0, 5) };
+        } else if (blockType === "divider") {
+          block.content = {};
+        } else if (blockType === "heading") {
+          block.content = block.content || "";
         } else {
-          block.content = "";
+          block.content = block.content || "";
         }
       }
     }));
-    
-    setShowSlashMenu(false);
-    setSlashSearchQuery("");
-  }, [activeBlockId]);
+
+    // Close slash menu and keep focus on the block
+    setSlashMenuState({ visible: false, position: { top: 0, left: 0 }, searchQuery: '', blockId: null });
+    setActiveBlockId(slashMenuState.blockId);
+  }, [slashMenuState]);
 
   const handleToggleFavorite = () => {
     toggleFavorite(note.id);
@@ -300,6 +342,11 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
               onChange={(html) => updateBlock(block.id, { content: html })}
               placeholder="Heading..."
               className="text-2xl font-bold"
+              variant="heading"
+              autoFocus={block.id === activeBlockId}
+              onFocus={() => setActiveBlockId(block.id)}
+              onSlashDetected={(position, searchQuery) => handleSlashDetected(block.id, position, searchQuery)}
+              onSlashCancelled={handleSlashCancelled}
             />
           </div>
         );
@@ -315,6 +362,10 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             content={typeof block.content === "string" ? block.content : ""}
             onChange={(html) => updateBlock(block.id, { content: html })}
             placeholder="Type '/' for commands"
+            autoFocus={block.id === activeBlockId}
+            onFocus={() => setActiveBlockId(block.id)}
+            onSlashDetected={(position, searchQuery) => handleSlashDetected(block.id, position, searchQuery)}
+            onSlashCancelled={handleSlashCancelled}
           />
         );
 
@@ -529,15 +580,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         </div>
 
         {/* Slash Command Menu */}
-        {showSlashMenu && (
+        {slashMenuState.visible && (
           <SlashCommandMenu
             onSelect={handleSlashCommand}
-            onClose={() => {
-              setShowSlashMenu(false);
-              setSlashSearchQuery("");
-            }}
-            searchQuery={slashSearchQuery}
-            position={slashMenuPosition}
+            onClose={handleSlashCancelled}
+            searchQuery={slashMenuState.searchQuery}
+            position={slashMenuState.position}
           />
         )}
 

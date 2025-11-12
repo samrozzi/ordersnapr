@@ -49,6 +49,8 @@ interface RichTextEditorProps {
   onFocus?: () => void;
   onBlur?: () => void;
   disableEnterKey?: boolean;
+  onSlashDetected?: (position: { top: number; left: number }, searchQuery: string) => void;
+  onSlashCancelled?: () => void;
 }
 
 export const RichTextEditor = ({
@@ -61,6 +63,8 @@ export const RichTextEditor = ({
   onFocus,
   onBlur,
   disableEnterKey = false,
+  onSlashDetected,
+  onSlashCancelled,
 }: RichTextEditorProps) => {
   const { user } = useAuth();
   const { setActiveEditor, toolbarLocked } = useEditorFocus();
@@ -103,7 +107,43 @@ export const RichTextEditor = ({
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const text = editor.getText();
+      const html = editor.getHTML();
+      
+      // Detect slash command trigger
+      if (onSlashDetected && text.includes('/')) {
+        const cursorPos = editor.state.selection.$anchor.pos;
+        const textBeforeCursor = text.slice(0, cursorPos);
+        const lastSlashIndex = textBeforeCursor.lastIndexOf('/');
+        
+        // Check if slash is at start or after space/newline
+        if (lastSlashIndex >= 0) {
+          const charBeforeSlash = lastSlashIndex > 0 ? textBeforeCursor[lastSlashIndex - 1] : '';
+          const isValidSlashPosition = lastSlashIndex === 0 || charBeforeSlash === ' ' || charBeforeSlash === '\n';
+          
+          if (isValidSlashPosition) {
+            const searchQuery = textBeforeCursor.slice(lastSlashIndex + 1);
+            
+            // Get cursor position in viewport
+            const { view } = editor;
+            const coords = view.coordsAtPos(cursorPos);
+            
+            onSlashDetected(
+              { top: coords.bottom + 5, left: coords.left },
+              searchQuery
+            );
+            onChange(html);
+            return;
+          }
+        }
+      }
+      
+      // Cancel slash menu if slash was deleted
+      if (onSlashCancelled && !text.includes('/')) {
+        onSlashCancelled();
+      }
+      
+      onChange(html);
     },
     onFocus: () => {
       if (editor) {

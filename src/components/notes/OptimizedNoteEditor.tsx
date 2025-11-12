@@ -491,6 +491,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
   const handleSaveBanner = (position: { x: number; y: number; scale: number }) => {
     setBannerPosition(position);
+    setLocalBannerImage(bannerDialog.imageUrl);
     updateNote({
       id: note.id,
       updates: { 
@@ -507,6 +508,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
   };
 
   const handleRemoveBanner = () => {
+    setLocalBannerImage(null);
     updateNote({
       id: note.id,
       updates: { banner_image: null }
@@ -517,6 +519,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
   // Background color handler
   const handleBackgroundColorChange = (color: string | null) => {
+    setLocalBackgroundColor(color);
     updateNote({
       id: note.id,
       updates: { background_color: color }
@@ -527,10 +530,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
   // Icon handler
   const handleIconChange = (icon: string | null) => {
+    setLocalIcon(icon);
     updateNote({
       id: note.id,
       updates: { icon } as any
     });
+    setIconPickerOpen(false);
     toast.success(icon ? "Icon added!" : "Icon removed!");
   };
 
@@ -1225,49 +1230,58 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
         }}
         >
           <div className={cn("mx-auto space-y-4", fullWidth ? "max-w-full" : "max-w-4xl")}>
-        {/* Banner Image */}
-        {localBannerImage && (
-              <div className="relative -mt-8 -mx-8 mb-6 h-64 overflow-hidden group">
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${note.banner_image})`,
-                    backgroundSize: `${bannerPosition.scale * 100}%`,
-                    backgroundPosition: `${bannerPosition.x}% ${bannerPosition.y}%`,
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20" />
-                <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setBannerCropperOpen(true)}
-                  >
-                    Reposition
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRemoveBanner}
-                  >
-                    Remove
-                  </Button>
+            {/* Banner and Icon Container */}
+            <div className="relative">
+              {/* Banner Image */}
+              {localBannerImage && (
+                <div className="relative -mt-8 -mx-8 mb-6 h-64 overflow-hidden group">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${localBannerImage})`,
+                      backgroundSize: `${bannerPosition.scale * 100}%`,
+                      backgroundPosition: `${bannerPosition.x}% ${bannerPosition.y}%`,
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20" />
+                  <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setBannerCropperOpen(true)}
+                    >
+                      Reposition
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveBanner}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Icon and Title */}
-            <div className="space-y-4">
-              {(note as any).icon && (
+              {/* Icon with Notion-style overlay */}
+              {localIcon && (
                 <button
                   onClick={() => setIconPickerOpen(true)}
-                  className="text-5xl hover:scale-110 transition-transform cursor-pointer"
+                  className={cn(
+                    "text-5xl hover:scale-110 transition-transform cursor-pointer",
+                    localBannerImage 
+                      ? "absolute bottom-0 left-8 transform translate-y-1/2 bg-background rounded-lg p-2 shadow-lg" 
+                      : "block mb-4"
+                  )}
                   title="Change icon"
                 >
-                  {(note as any).icon}
+                  {localIcon}
                 </button>
               )}
-              
+            </div>
+
+            {/* Title */}
+            <div className={cn("space-y-4", localBannerImage && localIcon && "mt-8")}>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}

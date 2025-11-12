@@ -105,13 +105,17 @@ const WorkOrders = () => {
   }, [navigate]);
 
   const fetchWorkOrders = async () => {
+    console.log('🔄 fetchWorkOrders called');
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('❌ No user found');
         setLoading(false);
         return;
       }
+
+      console.log('✅ User found:', user.email);
 
       // Fetch user's active org context
       const { data: profile } = await supabase
@@ -153,34 +157,23 @@ const WorkOrders = () => {
         throw error;
       }
 
-      // Count query with same filters
-      let countQuery = supabase
-        .from("work_orders")
-        .select("*", { count: 'exact', head: true });
-
-      if (currentActiveOrgId === null) {
-        countQuery = countQuery.eq("user_id", user.id).is("organization_id", null);
-      } else {
-        countQuery = countQuery.eq("organization_id", currentActiveOrgId);
-      }
-
-      const { count } = await countQuery;
-
-      console.log('✅ Work orders fetched:', {
+      console.log('✅ Work orders fetched successfully:', {
         dataLength: data?.length || 0,
-        count: count || 0,
         workspace: currentActiveOrgId ? 'organization' : 'personal'
       });
 
       setWorkOrders(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error fetching work orders:", error);
       toast({
-        title: "Error",
-        description: "Failed to load work orders",
+        title: "Error Loading Work Orders",
+        description: error.message || "Failed to load work orders. Please try refreshing.",
         variant: "destructive",
       });
+      // Set empty array on error so UI can render
+      setWorkOrders([]);
     } finally {
+      console.log('✅ Setting loading to false');
       setLoading(false);
     }
   };
@@ -203,10 +196,20 @@ const WorkOrders = () => {
     }
   }, [searchParams, workOrders, setSearchParams, toast]);
 
+  console.log('🎨 Rendering WorkOrders:', { loading, workOrdersCount: workOrders.length, session: !!session });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Loading work orders...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-lg">Checking authentication...</div>
       </div>
     );
   }
@@ -403,15 +406,24 @@ const WorkOrders = () => {
 
       {/* Content views */}
       {viewMode === 'list' && (
-        <WorkOrderTable
-          workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
-          onUpdate={fetchWorkOrders}
-          selectedIds={bulkSelect.selected}
-          onToggleSelect={bulkSelect.toggleItem}
-          onToggleSelectAll={bulkSelect.toggleAll}
-          isAllSelected={bulkSelect.isAllSelected}
-          isSomeSelected={bulkSelect.isSomeSelected}
-        />
+        <>
+          {workOrders.length === 0 ? (
+            <div className="text-center py-12 bg-muted/50 rounded-lg">
+              <p className="text-lg text-muted-foreground">No work orders yet</p>
+              <p className="text-sm text-muted-foreground mt-2">Create your first work order to get started</p>
+            </div>
+          ) : (
+            <WorkOrderTable
+              workOrders={listTab === 'pending' ? pendingOrders : completedOrders}
+              onUpdate={fetchWorkOrders}
+              selectedIds={bulkSelect.selected}
+              onToggleSelect={bulkSelect.toggleItem}
+              onToggleSelectAll={bulkSelect.toggleAll}
+              isAllSelected={bulkSelect.isAllSelected}
+              isSomeSelected={bulkSelect.isSomeSelected}
+            />
+          )}
+        </>
       )}
 
       {viewMode === 'calendar' && (

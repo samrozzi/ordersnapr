@@ -97,6 +97,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           boldText: f.boldText ?? false,
           underlineText: f.underlineText ?? false,
           fontSize: f.fontSize,
+          // Table layout specific properties
+          tableRows: f.tableRows,
+          tableColumns: f.tableColumns,
+          borderStyle: f.borderStyle,
+          tableCells: f.tableCells,
           fields: (f.fields || []).map((sf: any) => ({
             id: sf.id || crypto.randomUUID(),
             key: sf.key || generateKey(sf.label || "untitled_field"),
@@ -162,6 +167,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           boldText: f.boldText ?? false,
           underlineText: f.underlineText ?? false,
           fontSize: f.fontSize,
+          // Table layout specific properties
+          tableRows: (f as any).tableRows,
+          tableColumns: (f as any).tableColumns,
+          borderStyle: (f as any).borderStyle,
+          tableCells: (f as any).tableCells,
           fields: f.fields ? f.fields.map((sf: any) => ({
             id: sf.id || crypto.randomUUID(),
             key: sf.key || generateKey(sf.label || "untitled_field"),

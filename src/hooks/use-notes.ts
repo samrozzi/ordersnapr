@@ -39,6 +39,7 @@ export interface Note {
   banner_image: string | null;
   is_favorite: boolean;
   is_pinned: boolean;
+  is_presentation_mode: boolean;
   kanban_position: number | null;
   kanban_column: string | null;
   view_mode: 'note' | 'checklist' | 'canvas' | 'table';

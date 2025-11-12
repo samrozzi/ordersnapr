@@ -135,11 +135,35 @@ export function AppSidebar() {
 
   // Build ordered nav items based on user preferences
   const getOrderedNavItems = () => {
-    // Always include calendar and notes
-    const baseItems = [
-      { id: "calendar", label: "Calendar", path: "/calendar", icon: "calendar", component: Calendar, isLocked: false },
-      { id: "notes", label: "Notes", path: "/notes", icon: "notes", component: StickyNote, isLocked: false },
-    ];
+    // Start with empty base items - respect user's sidebar preferences
+    const baseItems = [];
+
+    // Only add calendar if user has it enabled in sidebar preferences
+    if (hasFeature("calendar")) {
+      baseItems.push({ id: "calendar", label: "Calendar", path: "/calendar", icon: "calendar", component: Calendar, isLocked: false });
+    }
+
+    // Notes is always available by default (not a toggleable feature in preferences)
+    // Only hide it if user has explicitly saved an empty preferences array (wants nothing)
+    let showNotes = true;
+    if (userId) {
+      const savedFeatures = localStorage.getItem(`user_features_${userId}`);
+      if (savedFeatures) {
+        try {
+          const userFeatures = JSON.parse(savedFeatures);
+          // Only hide notes if user explicitly saved an empty array (wants nothing shown)
+          if (Array.isArray(userFeatures) && userFeatures.length === 0) {
+            showNotes = false;
+          }
+        } catch (e) {
+          // On error, show notes by default
+          showNotes = true;
+        }
+      }
+    }
+    if (showNotes) {
+      baseItems.push({ id: "notes", label: "Notes", path: "/notes", icon: "notes", component: StickyNote, isLocked: false });
+    }
 
     // Add enabled feature items
     const featureItems = enabledNavItems.map(item => ({

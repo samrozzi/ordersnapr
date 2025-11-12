@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 import { UnifiedPreferences } from "@/components/UnifiedPreferences";
 import { NavigationOrderPreferences } from "@/components/NavigationOrderPreferences";
+import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
 
 interface AuditLog {
   id: string;
@@ -74,9 +75,19 @@ const Profile = () => {
   const [fullName, setFullName] = useState("");
   const [currentFullName, setCurrentFullName] = useState("");
 
+  const { data: userPreferences } = useUserPreferences(userId || null);
+  const updatePreferences = useUpdateUserPreferences();
+
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  // Restore theme from database on mount
+  useEffect(() => {
+    if (userPreferences?.theme && userPreferences.theme !== theme) {
+      setTheme(userPreferences.theme);
+    }
+  }, [userPreferences, setTheme]);
 
   const fetchUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -593,14 +604,31 @@ const Profile = () => {
               <CardContent>
                 <RadioGroup
                   value={theme}
-                  onValueChange={(value) => {
+                  onValueChange={async (value) => {
+                    if (!userId) return;
+
                     setTheme(value);
-                    // Explicitly save to localStorage to ensure persistence
+                    // Save to localStorage for immediate effect
                     localStorage.setItem('ordersnapr-theme', value);
-                    toast({
-                      title: "Theme Updated",
-                      description: `Theme set to ${value}`,
-                    });
+
+                    // Save to database for persistence across logout/login
+                    try {
+                      await updatePreferences.mutateAsync({
+                        userId,
+                        theme: value,
+                      });
+                      toast({
+                        title: "Theme Updated",
+                        description: `Theme set to ${value} and saved to your account`,
+                      });
+                    } catch (error) {
+                      console.error("Failed to save theme:", error);
+                      toast({
+                        title: "Theme Set",
+                        description: `Theme set to ${value} (will reset on logout)`,
+                        variant: "default",
+                      });
+                    }
                   }}
                   className="space-y-3"
                 >

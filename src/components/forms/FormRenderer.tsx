@@ -866,48 +866,115 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   
                   // Find the table layout field
                   let tableField: any = null;
+                  let sectionWithTable: any = null;
 
                   template.schema.sections.forEach((section: any) => {
                     (section.fields || []).forEach((f: any) => {
                       if (f.type === 'table_layout') {
                         tableField = f;
+                        sectionWithTable = section;
                       }
                     });
                   });
 
-                  if (tableField) {
+                  if (tableField && sectionWithTable) {
                     const currentRows = tableField.tableRows || 2;
-                    const rowsToPopulate = Math.min(technicianRows.length, currentRows);
+                    const currentCols = tableField.tableColumns || 5;
                     
-                    console.log(`Populating ${rowsToPopulate} rows (table has ${currentRows} rows)`);
+                    console.log(`Table has ${currentRows} rows x ${currentCols} columns`);
 
-                    // Populate table cells with data
+                    // Helper to infer field type from column header
+                    const inferFieldType = (header: string): string => {
+                      const h = header.toLowerCase();
+                      if (h.includes('phone') || h.includes('tn')) return 'text';
+                      if (h.includes('email')) return 'text';
+                      if (h.includes('date')) return 'date';
+                      if (h.includes('id') || h.includes('ban') || h.includes('number')) return 'text';
+                      return 'text';
+                    };
+
+                    // Helper to format label from camelCase
+                    const formatLabel = (header: string): string => {
+                      return header
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, str => str.toUpperCase())
+                        .trim();
+                    };
+
+                    // Get column headers from first row
+                    const columnHeaders = Object.keys(technicianRows[0]);
+                    console.log('Column headers:', columnHeaders);
+
+                    // STEP 1: Auto-place fields in empty cells
+                    if (!tableField.tableCells) {
+                      tableField.tableCells = {};
+                    }
+
+                    columnHeaders.forEach((header, colIndex) => {
+                      if (colIndex >= currentCols) return; // Skip if exceeds table columns
+
+                      // Check if any cell in this column has a field
+                      const hasFieldsInColumn = Array.from({ length: currentRows }).some((_, rowIndex) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        return tableField.tableCells?.[cellKey]?.field;
+                      });
+
+                      if (!hasFieldsInColumn) {
+                        // Column is empty - auto-place fields in all rows of this column
+                        console.log(`Auto-placing field type for column ${colIndex}: ${header}`);
+                        const fieldType = inferFieldType(header);
+                        const label = formatLabel(header);
+
+                        Array.from({ length: currentRows }).forEach((_, rowIndex) => {
+                          const cellKey = `${rowIndex}-${colIndex}`;
+                          const fieldId = `${tableField.id}_cell_${cellKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                          const fieldKey = `${tableField.key}_${rowIndex}_${colIndex}`;
+
+                          tableField.tableCells[cellKey] = {
+                            field: {
+                              id: fieldId,
+                              key: fieldKey,
+                              type: fieldType,
+                              label: label,
+                              required: false,
+                            }
+                          };
+                        });
+                      }
+                    });
+
+                    // STEP 2: Populate the data
                     let populatedCount = 0;
-                    technicianRows.slice(0, rowsToPopulate).forEach((techRow: any, rowIndex: number) => {
-                      const columnMapping = {
-                        techId: 0,
-                        techName: 1,
-                        techPhone: 2,
-                        techType: 3,
-                        ban: 4,
-                      };
+                    const rowsToPopulate = Math.min(technicianRows.length, currentRows);
 
-                      Object.entries(columnMapping).forEach(([field, colIndex]) => {
+                    technicianRows.slice(0, rowsToPopulate).forEach((techRow: any, rowIndex: number) => {
+                      columnHeaders.forEach((header, colIndex) => {
+                        if (colIndex >= currentCols) return;
+
                         const cellKey = `${rowIndex}-${colIndex}`;
                         const cellField = tableField.tableCells?.[cellKey]?.field;
                         
-                        if (cellField && techRow[field]) {
-                          handleFieldChange(cellField.key, techRow[field]);
+                        if (cellField && techRow[header] !== undefined && techRow[header] !== null) {
+                          handleFieldChange(cellField.key, techRow[header]);
                           populatedCount++;
                         }
                       });
                     });
 
+                    console.log(`Populated ${populatedCount} cells across ${rowsToPopulate} rows`);
+
                     if (technicianRows.length > currentRows) {
-                      toast.success(`Populated ${rowsToPopulate} rows. Table has ${currentRows} rows, but ${technicianRows.length} were detected. Add more rows to the template to capture all data.`);
+                      toast.success(
+                        `Populated ${rowsToPopulate} rows with ${populatedCount} values. Found ${technicianRows.length} rows in total - expand the table to capture all data.`,
+                        { duration: 5000 }
+                      );
                     } else {
-                      toast.success(`Populated ${rowsToPopulate} rows with technician data`);
+                      toast.success(
+                        `Successfully populated ${rowsToPopulate} rows with ${populatedCount} values!`,
+                        { duration: 4000 }
+                      );
                     }
+                    
                     // Don't process other fields if we handled table population
                     return;
                   }

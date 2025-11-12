@@ -226,6 +226,12 @@ const WorkOrders = () => {
     }
   }, [searchParams, workOrders, setSearchParams, toast]);
 
+  // Bulk selection - must be called before any early returns
+  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
+  const completedOrders = workOrders.filter((order) => order.status === "completed");
+  const currentOrders = viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders;
+  const bulkSelect = useBulkSelect(currentOrders);
+
   console.log('🎨 Rendering WorkOrders:', { 
     loading, 
     workOrdersCount: workOrders.length, 
@@ -249,13 +255,6 @@ const WorkOrders = () => {
       </div>
     );
   }
-
-  const pendingOrders = workOrders.filter((order) => order.status === "pending" || order.status === "scheduled");
-  const completedOrders = workOrders.filter((order) => order.status === "completed");
-
-  // Bulk selection
-  const currentOrders = viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders;
-  const bulkSelect = useBulkSelect(currentOrders);
 
   // Bulk action handlers
   const handleBulkDelete = async () => {

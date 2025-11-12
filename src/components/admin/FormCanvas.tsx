@@ -708,8 +708,7 @@ function TableLayoutFieldCard({
       style={style}
       className={cn(
         "group relative rounded-xl border-2 border-accent bg-card transition-all",
-        isDragging && "shadow-lg",
-        isAnyFieldDragging && "pointer-events-none"
+        isDragging && "shadow-lg"
       )}
     >
       {/* Header */}

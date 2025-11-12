@@ -348,17 +348,33 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    console.log('[DND] start', {
+      activeId: event.active.id,
+      activeData: event.active.data?.current,
+    });
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
+    const { over, active } = event;
     setOverId(over ? (over.id as string) : null);
+    console.log('[DND] over', {
+      activeId: active.id,
+      overId: over?.id,
+      overData: over?.data?.current,
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
     setOverId(null);
+
+    console.log('[DND] end', {
+      activeId: active.id,
+      activeData: active.data?.current,
+      overId: over?.id,
+      overData: over?.data?.current,
+    });
     
     if (!over || active.id === over.id) return;
 

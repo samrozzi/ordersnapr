@@ -752,49 +752,62 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
     const { tableFieldId, cellKey } = selectedCell;
     
+    console.log('[CELL PICKER] Selecting field:', { tableFieldId, cellKey, fieldType });
+    
     // Find the section containing the table
     const tableSectionId = fieldToSectionMap.get(tableFieldId);
-    if (!tableSectionId) return;
+    console.log('[CELL PICKER] Table section ID:', tableSectionId);
+    
+    if (!tableSectionId) {
+      console.error('[CELL PICKER] Could not find section for table:', tableFieldId);
+      toast.error("Could not find table section");
+      return;
+    }
 
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
     const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
     const label = fieldDef?.label || "Field";
 
-    setSections(
-      sections.map((section) => {
-        if (section.id !== tableSectionId) return section;
+    console.log('[CELL PICKER] Creating new field:', { label, fieldType });
 
-        return {
-          ...section,
-          fields: section.fields.map((field) => {
-            if (field.id === tableFieldId && field.type === "table_layout") {
-              const newField: Field = {
-                id: `field-${timestamp}-${randomId}`,
-                key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
-                type: fieldType,
-                label: label,
-                placeholder: "",
-                required: false,
-              };
+    const newSections = sections.map((section) => {
+      if (section.id !== tableSectionId) return section;
 
-              const updatedCells = {
-                ...(field.tableCells || {}),
-                [cellKey]: {
-                  field: newField,
-                },
-              };
+      return {
+        ...section,
+        fields: section.fields.map((field) => {
+          if (field.id === tableFieldId && field.type === "table_layout") {
+            const newField: Field = {
+              id: `field-${timestamp}-${randomId}`,
+              key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
+              type: fieldType,
+              label: label,
+              placeholder: "",
+              required: false,
+            };
 
-              return {
-                ...field,
-                tableCells: updatedCells,
-              };
-            }
-            return field;
-          }),
-        };
-      })
-    );
+            const updatedCells = {
+              ...(field.tableCells || {}),
+              [cellKey]: {
+                field: newField,
+              },
+            };
+
+            console.log('[CELL PICKER] Updated cells:', updatedCells);
+
+            return {
+              ...field,
+              tableCells: updatedCells,
+            };
+          }
+          return field;
+        }),
+      };
+    });
+
+    console.log('[CELL PICKER] Setting new sections');
+    setSections(newSections);
     
     toast.success(`${label} added to table cell`);
     setSelectedCell(null);

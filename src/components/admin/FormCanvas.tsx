@@ -1,21 +1,7 @@
 import { useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragOverEvent,
-  DragOverlay,
-  DragStartEvent,
-  useDroppable,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -102,18 +88,6 @@ export function FormCanvas({
   onFieldClick,
   onAddSection,
 }: FormCanvasProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // Create a flat map of all fields with their section IDs and parent field IDs
   const fieldToSectionMap = new Map<string, string>();
   const fieldToParentMap = new Map<string, string>(); // Maps sub-field ID to parent repeating group ID
@@ -143,28 +117,6 @@ export function FormCanvas({
       }
     }
     return null;
-  };
-
-  const handleSectionTitleChange = (sectionId: string, title: string) => {
-    onSectionsChange(
-      sections.map((s) => (s.id === sectionId ? { ...s, title } : s))
-    );
-  };
-
-  const handleToggleCollapse = (sectionId: string) => {
-    onSectionsChange(
-      sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
-    );
-  };
-
-  const handleToggleHideTitle = (sectionId: string) => {
-    onSectionsChange(
-      sections.map((s) => (s.id === sectionId ? { ...s, hideTitle: !s.hideTitle } : s))
-    );
-  };
-
-  const handleRemoveSection = (sectionId: string) => {
-    onSectionsChange(sections.filter((s) => s.id !== sectionId));
   };
 
   const handleRemoveField = (sectionId: string, fieldId: string, parentFieldId?: string) => {
@@ -245,397 +197,26 @@ export function FormCanvas({
     );
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+  const handleSectionTitleChange = (sectionId: string, title: string) => {
+    onSectionsChange(
+      sections.map((s) => (s.id === sectionId ? { ...s, title } : s))
+    );
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    setOverId(over ? (over.id as string) : null);
+  const handleToggleCollapse = (sectionId: string) => {
+    onSectionsChange(
+      sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
+    );
   };
 
-  // Helper to create a new field from a palette field type
-  const createFieldFromType = (fieldType: FieldType): Field => {
-    const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 9);
-    const label = fieldDef?.label || "New Field";
-    
-    const isChoice = fieldType === "select" || fieldType === "radio" || fieldType === "checklist";
-    const isFile = fieldType === "file";
-
-    return {
-      id: `field-${timestamp}-${randomId}`,
-      key: label.toLowerCase().replace(/\s+/g, '_'),
-      type: fieldType,
-      label: label,
-      placeholder: "",
-      required: false,
-      options: isChoice ? ["Option 1"] : undefined,
-      responseOptions: fieldType === "checklist" ? ["OK", "DEV", "N/A"] : undefined,
-      maxFiles: isFile ? 10 : undefined,
-      accept: isFile ? ["image/*"] : undefined,
-    };
+  const handleToggleHideTitle = (sectionId: string) => {
+    onSectionsChange(
+      sections.map((s) => (s.id === sectionId ? { ...s, hideTitle: !s.hideTitle } : s))
+    );
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-    setOverId(null);
-    
-    if (!over || active.id === over.id) return;
-
-    const activeFieldId = active.id as string;
-    const overFieldId = over.id as string;
-    
-    // Check if dragging from palette (field type string) vs existing field (UUID)
-    const isDraggingFromPalette = !fieldToSectionMap.has(activeFieldId);
-    
-    const activeSectionId = fieldToSectionMap.get(activeFieldId);
-    const overSectionId = fieldToSectionMap.get(overFieldId);
-    
-    // Check if dropping into a repeating group drop zone
-    const isDropZone = overFieldId.endsWith('-drop-zone');
-    const targetRepeatingGroupId = isDropZone ? overFieldId.replace('-drop-zone', '') : overFieldId;
-    const effectiveOverSectionId = overSectionId ?? fieldToSectionMap.get(targetRepeatingGroupId);
-    
-    // Handle dropping from palette into table cell
-    if (isDraggingFromPalette && overFieldId.includes("-cell-")) {
-      const overData = over.data?.current as any;
-      if (overData?.type === 'table-cell') {
-        const tableFieldId = overData.tableFieldId;
-        const cellKey = overData.cellKey;
-        const fieldType = activeFieldId as FieldType;
-        
-        // Only allow simple field types in table cells
-        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
-        if (!allowedTypes.includes(fieldType)) {
-          return;
-        }
-
-        const tableSectionId = fieldToSectionMap.get(tableFieldId);
-        if (!tableSectionId) return;
-
-        const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substr(2, 9);
-        const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
-        const label = fieldDef?.label || "Field";
-
-        onSectionsChange(
-          sections.map((section) => {
-            if (section.id !== tableSectionId) return section;
-
-            return {
-              ...section,
-              fields: section.fields.map((field) => {
-                if (field.id === tableFieldId && field.type === "table_layout") {
-                  const newField: Field = {
-                    id: `field-${timestamp}-${randomId}`,
-                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
-                    type: fieldType,
-                    label: label,
-                    placeholder: "",
-                    required: false,
-                  };
-
-                  const updatedCells = {
-                    ...(field.tableCells || {}),
-                    [cellKey]: {
-                      ...(field.tableCells?.[cellKey] || {}),
-                      field: newField,
-                    },
-                  };
-
-                  return {
-                    ...field,
-                    tableCells: updatedCells,
-                  };
-                }
-                return field;
-              }),
-            };
-          })
-        );
-        return;
-      }
-    }
-
-    // Handle dragging existing field into table cell
-    if (!isDraggingFromPalette && overFieldId.includes("-cell-")) {
-      const overData = over.data?.current as any;
-      if (overData?.type === 'table-cell') {
-        const tableFieldId = overData.tableFieldId;
-        const cellKey = overData.cellKey;
-        
-        const activeField = findFieldById(activeFieldId);
-        if (!activeField) return;
-        
-        // Only allow simple field types in table cells
-        const allowedTypes: FieldType[] = ['text', 'number', 'date', 'time', 'select', 'checkbox', 'radio'];
-        if (!allowedTypes.includes(activeField.type)) {
-          return;
-        }
-
-        const tableSectionId = fieldToSectionMap.get(tableFieldId);
-        if (!tableSectionId) return;
-
-        const activeSectionId = fieldToSectionMap.get(activeFieldId);
-        if (!activeSectionId) return;
-
-        const activeParentId = fieldToParentMap.get(activeFieldId);
-
-        onSectionsChange(
-          sections.map((section) => {
-            let updatedFields = [...section.fields];
-
-            // Remove from source location
-            if (section.id === activeSectionId) {
-              if (activeParentId) {
-                // Remove from repeating group
-                updatedFields = updatedFields.map(f => {
-                  if (f.id === activeParentId && f.fields) {
-                    return { ...f, fields: f.fields.filter(sf => sf.id !== activeFieldId) };
-                  }
-                  return f;
-                });
-              } else {
-                // Remove from section
-                updatedFields = updatedFields.filter(f => f.id !== activeFieldId);
-              }
-            }
-
-            // Add to table cell
-            if (section.id === tableSectionId) {
-              updatedFields = updatedFields.map((field) => {
-                if (field.id === tableFieldId && field.type === "table_layout") {
-                  const movedField: Field = {
-                    ...activeField,
-                    id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${activeField.label.toLowerCase().replace(/\s+/g, '_')}`,
-                  };
-
-                  const updatedCells = {
-                    ...(field.tableCells || {}),
-                    [cellKey]: {
-                      ...(field.tableCells?.[cellKey] || {}),
-                      field: movedField,
-                    },
-                  };
-
-                  return {
-                    ...field,
-                    tableCells: updatedCells,
-                  };
-                }
-                return field;
-              });
-            }
-
-            return { ...section, fields: updatedFields };
-          })
-        );
-        return;
-      }
-    }
-    
-    // Handle dropping from palette into repeating group drop zone
-    if (isDraggingFromPalette && isDropZone && targetRepeatingGroupId) {
-      const targetSectionId = fieldToSectionMap.get(targetRepeatingGroupId);
-      if (!targetSectionId) return;
-      
-      // Prevent nested repeating groups
-      if (activeFieldId === "repeating_group") return;
-      
-      const newField = createFieldFromType(activeFieldId as FieldType);
-      
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id !== effectiveOverSectionId) return section;
-          
-          return {
-            ...section,
-            fields: section.fields.map(f => {
-              if (f.id === targetRepeatingGroupId) {
-                return {
-                  ...f,
-                  fields: [...(f.fields || []), newField]
-                };
-              }
-              return f;
-            })
-          };
-        })
-      );
-      return;
-    }
-    
-    // For existing field movements, require section IDs
-    if (!isDraggingFromPalette && (!activeSectionId || !effectiveOverSectionId)) return;
-    
-    const activeParentId = fieldToParentMap.get(activeFieldId);
-    const overParentId = fieldToParentMap.get(overFieldId);
-    const overField = findFieldById(targetRepeatingGroupId);
-    
-    // Prevent dropping repeating group into another repeating group
-    const activeField = findFieldById(activeFieldId);
-    if (activeField?.type === "repeating_group" && (overParentId || isDropZone)) {
-      return; // Can't nest repeating groups
-    }
-
-    // Scenario: Dropping INTO a repeating group container (either on the container or its drop zone)
-    if (overField?.type === "repeating_group" && !overParentId) {
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id !== effectiveOverSectionId) return section;
-
-          // Remove from source
-          const removeFromFields = (fields: Field[]): Field[] => {
-            return fields.filter(f => {
-              if (f.id === activeFieldId) return false;
-              if (f.fields) {
-                f.fields = removeFromFields(f.fields);
-              }
-              return true;
-            });
-          };
-
-          const cleanedFields = removeFromFields([...section.fields]);
-
-          // Add to target repeating group
-          return {
-            ...section,
-            fields: cleanedFields.map(f => {
-              if (f.id === targetRepeatingGroupId && activeField) {
-                return {
-                  ...f,
-                  fields: [...(f.fields || []), { ...activeField, id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }]
-                };
-              }
-              return f;
-            })
-          };
-        })
-      );
-      return;
-    }
-
-    // Scenario: Moving within the same repeating group
-    if (activeParentId && overParentId && activeParentId === overParentId) {
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id !== activeSectionId) return section;
-
-          return {
-            ...section,
-            fields: section.fields.map(f => {
-              if (f.id !== activeParentId || !f.fields) return f;
-
-              const oldIndex = f.fields.findIndex(sf => sf.id === activeFieldId);
-              const newIndex = f.fields.findIndex(sf => sf.id === overFieldId);
-
-              return {
-                ...f,
-                fields: arrayMove(f.fields, oldIndex, newIndex),
-              };
-            })
-          };
-        })
-      );
-      return;
-    }
-
-    // Scenario: Moving from repeating group to section or vice versa
-    if (activeParentId || overParentId) {
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id !== activeSectionId && section.id !== effectiveOverSectionId) return section;
-
-          let updatedFields = [...section.fields];
-
-          // Remove from source
-          if (activeParentId && section.id === activeSectionId) {
-            updatedFields = updatedFields.map(f => {
-              if (f.id === activeParentId && f.fields) {
-                return { ...f, fields: f.fields.filter(sf => sf.id !== activeFieldId) };
-              }
-              return f;
-            });
-          } else if (!activeParentId && section.id === activeSectionId) {
-            updatedFields = updatedFields.filter(f => f.id !== activeFieldId);
-          }
-
-          // Add to target
-          if (overParentId && section.id === effectiveOverSectionId && activeField) {
-            updatedFields = updatedFields.map(f => {
-              if (f.id === overParentId && f.fields) {
-                const overIndex = f.fields.findIndex(sf => sf.id === overFieldId);
-                const newFields = [...f.fields];
-                newFields.splice(overIndex, 0, activeField);
-                return { ...f, fields: newFields };
-              }
-              return f;
-            });
-          } else if (!overParentId && section.id === effectiveOverSectionId && activeField) {
-            const overIndex = updatedFields.findIndex(f => f.id === overFieldId);
-            updatedFields.splice(overIndex, 0, activeField);
-          }
-
-          return { ...section, fields: updatedFields };
-        })
-      );
-      return;
-    }
-
-    // Regular section-level movement (existing logic)
-    if (activeSectionId === overSectionId) {
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id !== activeSectionId) return section;
-
-          const oldIndex = section.fields.findIndex((f) => f.id === activeFieldId);
-          const newIndex = section.fields.findIndex((f) => f.id === overFieldId);
-
-          return {
-            ...section,
-            fields: arrayMove(section.fields, oldIndex, newIndex),
-          };
-        })
-      );
-    } else {
-      const activeSection = sections.find(s => s.id === activeSectionId);
-      const overSection = sections.find(s => s.id === overSectionId);
-      
-      if (!activeSection || !overSection) return;
-      
-      const activeField = activeSection.fields.find(f => f.id === activeFieldId);
-      if (!activeField) return;
-      
-      const overIndex = overSection.fields.findIndex(f => f.id === overFieldId);
-      
-      onSectionsChange(
-        sections.map((section) => {
-          if (section.id === activeSectionId) {
-            return {
-              ...section,
-              fields: section.fields.filter(f => f.id !== activeFieldId),
-            };
-          } else if (section.id === overSectionId) {
-            const newFields = [...section.fields];
-            newFields.splice(overIndex, 0, activeField);
-            return {
-              ...section,
-              fields: newFields,
-            };
-          }
-          return section;
-        })
-      );
-    }
-  };
-
-  const handleDragCancel = () => {
-    setActiveId(null);
-    setOverId(null);
+  const handleRemoveSection = (sectionId: string) => {
+    onSectionsChange(sections.filter((s) => s.id !== sectionId));
   };
 
   if (sections.length === 0) {
@@ -652,42 +233,12 @@ export function FormCanvas({
     );
   }
 
-  // Get all field IDs for DndContext (including nested and drop zones)
-  const allFieldIds: string[] = [];
-  sections.forEach(section => {
-    section.fields.forEach(field => {
-      allFieldIds.push(field.id);
-      if (field.type === "repeating_group") {
-        allFieldIds.push(`${field.id}-drop-zone`); // Add drop zone ID
-      }
-      if (field.fields) {
-        field.fields.forEach(subField => allFieldIds.push(subField.id));
-      }
-    });
-  });
-  
-  const activeField = activeId ? findFieldById(activeId) : null;
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <Card 
-            key={section.id} 
-            className={cn(
-              "overflow-hidden transition-all",
-              overId && fieldToSectionMap.get(overId) === section.id && "ring-2 ring-primary"
-            )}
-          >
-            {/* Section Header */}
-            <div className="bg-muted/50 border-b px-4 py-3 flex items-center gap-3">
+    <div className="space-y-6">
+      {sections.map((section) => (
+        <Card key={section.id} className="overflow-hidden transition-all">
+          {/* Section Header */}
+          <div className="bg-muted/50 border-b px-4 py-3 flex items-center gap-3">
               <Button
                 type="button"
                 variant="ghost"
@@ -784,23 +335,6 @@ export function FormCanvas({
           Add Section
         </Button>
       </div>
-
-      <DragOverlay>
-        {activeField ? (
-          <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-card shadow-lg opacity-90">
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              {(() => {
-                const fieldDef = fieldTypes.find((ft) => ft.type === activeField.type);
-                const Icon = fieldDef?.icon || Edit2;
-                return <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />;
-              })()}
-            </div>
-            <div className="font-medium text-sm">{activeField.label}</div>
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
   );
 }
 

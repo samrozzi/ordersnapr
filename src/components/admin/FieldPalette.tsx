@@ -15,6 +15,7 @@ import {
   Sparkles,
   Table2,
 } from "lucide-react";
+import { useDraggable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -72,12 +73,24 @@ export function FieldPalette({ onFieldSelect, className }: FieldPaletteProps) {
       <div className="grid gap-2">
         {fieldTypes.map((field) => {
           const Icon = field.icon;
+          
+          const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+            id: field.type,
+            data: { source: 'palette', fieldType: field.type }
+          });
+          
           return (
             <button
               key={field.type}
+              ref={setNodeRef}
+              {...listeners}
+              {...attributes}
               type="button"
               onClick={() => onFieldSelect(field.type)}
-              className="group relative flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary transition-all duration-200 text-left"
+              className={cn(
+                "group relative flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary transition-all duration-200 text-left cursor-grab active:cursor-grabbing",
+                isDragging && "opacity-50"
+              )}
               title={`Add ${field.label}`}
             >
               <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">

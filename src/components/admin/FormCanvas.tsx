@@ -81,6 +81,7 @@ interface FormCanvasProps {
   onFieldClick: (sectionId: string, fieldId: string) => void;
   onAddSection: () => void;
   isAnyFieldDragging?: boolean;
+  onTableCellClick?: (tableFieldId: string, cellKey: string) => void;
 }
 
 export function FormCanvas({
@@ -89,6 +90,7 @@ export function FormCanvas({
   onFieldClick,
   onAddSection,
   isAnyFieldDragging = false,
+  onTableCellClick,
 }: FormCanvasProps) {
   // Create a flat map of all fields with their section IDs and parent field IDs
   const fieldToSectionMap = new Map<string, string>();
@@ -315,6 +317,7 @@ export function FormCanvas({
                           onCopy={handleCopyField}
                           onRemove={handleRemoveField}
                           isAnyFieldDragging={isAnyFieldDragging}
+                          onCellClick={onTableCellClick}
                         />
                       ) : (
                         <SortableFieldCard
@@ -606,12 +609,14 @@ function DroppableCellPreview({
   cellField,
   borderStyle,
   isAnyFieldDragging,
+  onCellClick,
 }: {
   tableFieldId: string;
   cellKey: string;
   cellField?: Field;
   borderStyle: string;
   isAnyFieldDragging?: boolean;
+  onCellClick?: (tableFieldId: string, cellKey: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: `table-${tableFieldId}-cell-${cellKey}`,
@@ -625,10 +630,11 @@ function DroppableCellPreview({
   return (
     <td
       ref={setNodeRef}
+      onClick={() => !cellField && onCellClick?.(tableFieldId, cellKey)}
       className={cn(
         "relative z-10 p-3 md:p-4 min-w-[120px] md:min-w-[150px] min-h-[60px] transition-all duration-200 pointer-events-auto",
         borderStyle === 'all' && "border border-border",
-        !cellField && "border-2 border-dashed border-muted-foreground/30",
+        !cellField && "border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/70 hover:bg-primary/5",
         isOver && "bg-primary/20 border-primary border-2 scale-105 shadow-lg",
         isAnyFieldDragging && !cellField && "border-primary/50 bg-primary/5"
       )}
@@ -658,7 +664,10 @@ function DroppableCellPreview({
               <span>Drop field here</span>
             </>
           ) : (
-            <span>Empty</span>
+            <>
+              <Plus className="h-4 w-4" />
+              <span>Click to add</span>
+            </>
           )}
         </div>
       )}
@@ -673,6 +682,7 @@ function TableLayoutFieldCard({
   onCopy,
   onRemove,
   isAnyFieldDragging,
+  onCellClick,
 }: {
   field: Field;
   sectionId: string;
@@ -680,6 +690,7 @@ function TableLayoutFieldCard({
   onCopy: (sectionId: string, fieldId: string) => void;
   onRemove: (sectionId: string, fieldId: string) => void;
   isAnyFieldDragging?: boolean;
+  onCellClick?: (tableFieldId: string, cellKey: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ 
@@ -799,6 +810,7 @@ function TableLayoutFieldCard({
                         cellField={cellField}
                         borderStyle={borderStyle}
                         isAnyFieldDragging={isAnyFieldDragging}
+                        onCellClick={onCellClick}
                       />
                     );
                   })}

@@ -21,6 +21,7 @@ import { FieldPalette, type FieldType, fieldTypes } from "./FieldPalette";
 import { FormCanvas, type Section, type Field } from "./FormCanvas";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
 import { FormRenderer } from "@/components/forms/FormRenderer";
+import { CellFieldPickerDialog } from "./CellFieldPickerDialog";
 import { toast } from "sonner";
 
 interface TemplateBuilderV2Props {
@@ -41,6 +42,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   } | null>(null);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
   const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
+  
+  // Cell picker dialog state
+  const [cellPickerOpen, setCellPickerOpen] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{
+    tableFieldId: string;
+    cellKey: string;
+  } | null>(null);
   
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -734,6 +742,64 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     setOverId(null);
   };
 
+  const handleTableCellClick = (tableFieldId: string, cellKey: string) => {
+    setSelectedCell({ tableFieldId, cellKey });
+    setCellPickerOpen(true);
+  };
+
+  const handleCellFieldSelect = (fieldType: FieldType) => {
+    if (!selectedCell) return;
+
+    const { tableFieldId, cellKey } = selectedCell;
+    
+    // Find the section containing the table
+    const tableSectionId = fieldToSectionMap.get(tableFieldId);
+    if (!tableSectionId) return;
+
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const fieldDef = fieldTypes.find(ft => ft.type === fieldType);
+    const label = fieldDef?.label || "Field";
+
+    setSections(
+      sections.map((section) => {
+        if (section.id !== tableSectionId) return section;
+
+        return {
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.id === tableFieldId && field.type === "table_layout") {
+              const newField: Field = {
+                id: `field-${timestamp}-${randomId}`,
+                key: `${field.key}_row${cellKey.split('-')[0]}_col${cellKey.split('-')[1]}_${label.toLowerCase().replace(/\s+/g, '_')}`,
+                type: fieldType,
+                label: label,
+                placeholder: "",
+                required: false,
+              };
+
+              const updatedCells = {
+                ...(field.tableCells || {}),
+                [cellKey]: {
+                  field: newField,
+                },
+              };
+
+              return {
+                ...field,
+                tableCells: updatedCells,
+              };
+            }
+            return field;
+          }),
+        };
+      })
+    );
+    
+    toast.success(`${label} added to table cell`);
+    setSelectedCell(null);
+  };
+
   const activeField = activeId ? findFieldById(activeId) : null;
   const activeFieldType = activeId && !activeField ? (activeId as FieldType) : null;
 
@@ -833,6 +899,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               onFieldClick={handleFieldClick}
               onAddSection={handleAddSection}
               isAnyFieldDragging={!!activeId}
+              onTableCellClick={handleTableCellClick}
             />
           </div>
         </div>
@@ -919,6 +986,13 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           field={currentField}
           onOpenChange={setPropertiesPanelOpen}
           onFieldUpdate={handleFieldUpdate}
+        />
+
+        {/* Cell Field Picker Dialog */}
+        <CellFieldPickerDialog
+          open={cellPickerOpen}
+          onOpenChange={setCellPickerOpen}
+          onFieldSelect={handleCellFieldSelect}
         />
       </div>
 

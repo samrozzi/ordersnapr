@@ -4,14 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
-import ordersnaprLogo from "@/assets/ordersnapr-logo-new.png";
+import logoDark from "@/assets/logo-dark.png";
+import logoLight from "@/assets/logo-light.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -106,11 +109,15 @@ const Auth = () => {
 
   return (
     <div className="auth-page min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <img src={ordersnaprLogo} alt="ordersnapr" className="w-48 mx-auto mb-2" />
-          <p className="text-muted-foreground">Sign in to manage orders</p>
+      <div className="w-full max-w-md space-y-4">
+        <div className="bg-card p-6 rounded-lg border flex items-center justify-center">
+          <img 
+            src={theme === 'dark' ? logoDark : logoLight} 
+            alt="ordersnapr" 
+            className="h-16 w-auto"
+          />
         </div>
+        <p className="text-center text-muted-foreground">Sign in to manage orders</p>
         <div className="bg-card p-8 rounded-lg shadow-lg border">
           {showForgotPassword ? (
             <div className="space-y-4">

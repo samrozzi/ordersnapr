@@ -97,7 +97,7 @@ export function useSavedReports() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return data as SavedReport[];
+      return (data as unknown as SavedReport[]) || [];
     },
     enabled: !!activeOrg?.id,
   });
@@ -113,7 +113,7 @@ export function useSavedReports() {
         .insert([{
           name: report.name,
           description: report.description,
-          configuration: report.configuration,
+          configuration: report.configuration as any,
           is_public: report.is_public || false,
           is_favorite: report.is_favorite || false,
           created_by: user.id,
@@ -123,7 +123,7 @@ export function useSavedReports() {
         .single();
 
       if (error) throw error;
-      return data as SavedReport;
+      return data as unknown as SavedReport;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved_reports'] });
@@ -134,13 +134,13 @@ export function useSavedReports() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<SavedReport> }) => {
       const { data, error } = await supabase
         .from('saved_reports')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as SavedReport;
+      return data as unknown as SavedReport;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved_reports'] });
@@ -163,15 +163,12 @@ export function useSavedReports() {
 
   const toggleFavorite = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('saved_reports')
         .update({ is_favorite: isFavorite })
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
 
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved_reports'] });
@@ -203,12 +200,12 @@ export function useReportSchedules() {
 
       const { data, error } = await supabase
         .from('report_schedules')
-        .select('*, saved_reports(name)')
+        .select('*')
         .eq('organization_id', activeOrg.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as ReportSchedule[];
+      return (data as unknown as ReportSchedule[]) || [];
     },
     enabled: !!activeOrg?.id,
   });
@@ -220,14 +217,14 @@ export function useReportSchedules() {
       const { data, error } = await supabase
         .from('report_schedules')
         .insert([{
-          ...schedule,
+          ...schedule as any,
           organization_id: activeOrg.id,
         }])
         .select()
         .single();
 
       if (error) throw error;
-      return data as ReportSchedule;
+      return data as unknown as ReportSchedule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report_schedules'] });
@@ -238,13 +235,13 @@ export function useReportSchedules() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ReportSchedule> }) => {
       const { data, error } = await supabase
         .from('report_schedules')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as ReportSchedule;
+      return data as unknown as ReportSchedule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report_schedules'] });

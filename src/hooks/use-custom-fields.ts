@@ -50,10 +50,10 @@ export function useCustomFields({ entityType, orgId }: UseCustomFieldsOptions) {
 
       const { data, error } = await supabase
         .from('custom_fields')
-        .insert({
-          ...field,
-          created_by: userData.user?.id,
-        })
+        .insert([{
+          ...field as any,
+          field_config: field.field_config as any,
+        }])
         .select()
         .single();
 
@@ -82,7 +82,10 @@ export function useCustomFields({ entityType, orgId }: UseCustomFieldsOptions) {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CustomField> }) => {
       const { data, error } = await supabase
         .from('custom_fields')
-        .update(updates)
+        .update({
+          ...updates,
+          field_config: updates.field_config as any,
+        })
         .eq('id', id)
         .select()
         .single();

@@ -35,7 +35,7 @@ export function useActivities(limit: number = 50) {
         return [];
       }
 
-      return (data as Activity[]) || [];
+      return (data as unknown as Activity[]) || [];
     },
     enabled: !!activeOrg?.id,
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -57,12 +57,7 @@ export function useEntityActivities(entityType: string, entityId: string) {
 
       const { data, error } = await supabase
         .from('activities')
-        .select(
-          `
-          *,
-          user:profiles!activities_user_id_fkey(id, username, email, full_name)
-        `
-        )
+        .select('*')
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .eq('organization_id', activeOrg.id)
@@ -74,12 +69,7 @@ export function useEntityActivities(entityType: string, entityId: string) {
         return [];
       }
 
-      return (data as any[]).map((activity) => ({
-        ...activity,
-        username: activity.user?.username,
-        user_full_name: activity.user?.full_name,
-        user_email: activity.user?.email,
-      })) as Activity[];
+      return (data as unknown as Activity[]) || [];
     },
     enabled: !!activeOrg?.id && !!entityId,
   });

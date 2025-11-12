@@ -121,12 +121,8 @@ export function CustomerForm({ customer, onSuccess, onCancel }: CustomerFormProp
         await updateCustomer({ id: customer.id, updates: customerData });
         customerId = customer.id;
       } else {
-        const { data: newCustomer } = await supabase
-          .from("customers")
-          .insert(customerData)
-          .select()
-          .single();
-        customerId = newCustomer!.id;
+        const newCustomer = await createCustomer(customerData);
+        customerId = newCustomer.id;
       }
 
       // Save custom field values if any

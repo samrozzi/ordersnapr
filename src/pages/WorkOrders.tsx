@@ -12,8 +12,8 @@ import { WorkOrderTable } from "@/components/WorkOrderTable";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 
 // Lazy load heavy subcomponents
-const CalendarView = React.lazy(() => import("@/components/CalendarView").then(m => ({ default: m.CalendarView })));
-const JobKanbanBoard = React.lazy(() => import("@/components/JobKanbanBoard").then(m => ({ default: m.JobKanbanBoard })));
+const CalendarView = React.lazy(() => import("@/components/CalendarView"));
+const JobKanbanBoard = React.lazy(() => import("@/components/JobKanbanBoard"));
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { ExportButton } from "@/components/ExportButton";

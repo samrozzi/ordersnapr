@@ -95,7 +95,7 @@ function JobCard({ order, onClick }: { order: WorkOrder; onClick: () => void }) 
   );
 }
 
-export function JobKanbanBoard({ workOrders, statuses, onUpdate, onJobClick }: JobKanbanBoardProps) {
+export default function JobKanbanBoard({ workOrders, statuses, onUpdate, onJobClick }: JobKanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarView } from "@/components/CalendarView";
+import CalendarView from "@/components/CalendarView";
 import { WorkOrderDetails } from "@/components/WorkOrderDetails";
 import { CalendarEventDetails } from "@/components/CalendarEventDetails";
 import { AddEventDialog } from "@/components/AddEventDialog";

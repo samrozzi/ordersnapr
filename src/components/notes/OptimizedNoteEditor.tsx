@@ -7,7 +7,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragSta
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock } from "lucide-react";
+import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock, Image as ImageIcon, Palette, Smile, Link as LinkIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { MemoizedBlock } from "./MemoizedBlock";
 import { SlashCommandMenu } from "./SlashCommandMenu";
@@ -227,6 +227,32 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
       } else if (isMod && e.shiftKey && e.key === "ArrowDown") {
         e.preventDefault();
         moveBlockDown();
+      } else if (isMod && e.key === "ArrowUp") {
+        // Navigate to previous block
+        e.preventDefault();
+        const currentIndex = blocks.findIndex(b => b.id === activeBlockId);
+        if (currentIndex > 0) {
+          const prevBlockId = blocks[currentIndex - 1].id;
+          setActiveBlockId(prevBlockId);
+          // Scroll into view
+          setTimeout(() => {
+            const element = document.querySelector(`[data-block-id="${prevBlockId}"]`);
+            element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 0);
+        }
+      } else if (isMod && e.key === "ArrowDown") {
+        // Navigate to next block
+        e.preventDefault();
+        const currentIndex = blocks.findIndex(b => b.id === activeBlockId);
+        if (currentIndex < blocks.length - 1) {
+          const nextBlockId = blocks[currentIndex + 1].id;
+          setActiveBlockId(nextBlockId);
+          // Scroll into view
+          setTimeout(() => {
+            const element = document.querySelector(`[data-block-id="${nextBlockId}"]`);
+            element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 0);
+        }
       } else if (isMod && e.key === "p") {
         e.preventDefault();
         setPresentationMode(!presentationMode);
@@ -235,7 +261,7 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activeBlockId, addBlockBelow, addBlockAbove, duplicateBlock, moveBlockUp, moveBlockDown, presentationMode]);
+  }, [activeBlockId, addBlockBelow, addBlockAbove, duplicateBlock, moveBlockUp, moveBlockDown, presentationMode, blocks]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveBlockId(event.active.id as string);
@@ -678,12 +704,36 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 Saved {format(lastSaved, "h:mm a")}
               </span>
             )}
-            {onCustomize && (
-              <Button variant="outline" size="sm" onClick={onCustomize}>
-                <Edit3 className="h-3 w-3 mr-2" />
-                Customize
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => toast.info("Banner feature coming soon!")}>
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Add Banner
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Background color feature coming soon!")}>
+                  <Palette className="h-4 w-4 mr-2" />
+                  Change Background
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Icon picker coming soon!")}>
+                  <Smile className="h-4 w-4 mr-2" />
+                  Add Icon
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info("Link to entity coming soon!")}>
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  Link to Entity
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info("Export feature coming soon!")}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Note
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -709,17 +759,58 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
               <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2">
                   {blocks.map((block, index) => (
-                    <SortableBlock
-                      key={block.id}
-                      block={block}
-                      index={index}
-                      isActive={block.id === activeBlockId}
-                      onFocus={() => setActiveBlockId(block.id)}
-                      onDelete={() => deleteBlock(block.id)}
-                      onAddBelow={() => addBlockBelow(block.id)}
-                    >
-                      {renderBlock(block, index)}
-                    </SortableBlock>
+                    <div key={block.id} data-block-id={block.id}>
+                      <SortableBlock
+                        block={block}
+                        index={index}
+                        isActive={block.id === activeBlockId}
+                        onFocus={() => setActiveBlockId(block.id)}
+                        onDelete={() => deleteBlock(block.id)}
+                        onAddBelow={() => addBlockBelow(block.id)}
+                        onDuplicate={() => {
+                          const blockIndex = blocks.findIndex(b => b.id === block.id);
+                          if (blockIndex !== -1) {
+                            const duplicated = { ...blocks[blockIndex], id: crypto.randomUUID() };
+                            setBlocks(produce(draft => {
+                              draft.splice(blockIndex + 1, 0, duplicated);
+                            }));
+                          }
+                        }}
+                        onMoveUp={() => {
+                          const blockIndex = blocks.findIndex(b => b.id === block.id);
+                          if (blockIndex > 0) {
+                            setBlocks(produce(draft => {
+                              [draft[blockIndex - 1], draft[blockIndex]] = [draft[blockIndex], draft[blockIndex - 1]];
+                            }));
+                          }
+                        }}
+                        onMoveDown={() => {
+                          const blockIndex = blocks.findIndex(b => b.id === block.id);
+                          if (blockIndex < blocks.length - 1) {
+                            setBlocks(produce(draft => {
+                              [draft[blockIndex], draft[blockIndex + 1]] = [draft[blockIndex + 1], draft[blockIndex]];
+                            }));
+                          }
+                        }}
+                        onConvertType={(newType: string) => {
+                          const updatedBlock: any = { 
+                            type: newType as any,
+                            content: newType === "checklist" 
+                              ? { items: [{ id: crypto.randomUUID(), text: "", checked: false }] }
+                              : newType === "table"
+                              ? { rows: 2, cols: 2, cells: Array(4).fill(""), headerRow: true }
+                              : ""
+                          };
+                          updateBlock(block.id, updatedBlock);
+                        }}
+                        onCopyLink={() => {
+                          navigator.clipboard.writeText(`#block-${block.id}`);
+                          toast.success("Block link copied!");
+                        }}
+                      >
+                        {renderBlock(block, index)}
+                      </SortableBlock>
+                    </div>
                   ))}
                 </div>
               </SortableContext>

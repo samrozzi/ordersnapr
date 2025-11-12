@@ -118,7 +118,18 @@ export function SlashCommandMenu({ onSelect, onClose, searchQuery = "", position
   }, [selectedIndex, filteredCommands, onSelect, onClose]);
 
   if (filteredCommands.length === 0) {
-    return null;
+    return (
+      <div
+        ref={menuRef}
+        className="fixed z-50 w-80 rounded-lg border border-border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 p-4"
+        style={position ? { top: position.top, left: position.left } : {}}
+      >
+        <div className="text-sm text-muted-foreground text-center">
+          <p className="font-medium mb-1">No blocks found for "{searchQuery}"</p>
+          <p className="text-xs">Try: heading, text, table, checklist, image, date</p>
+        </div>
+      </div>
+    );
   }
 
   return (

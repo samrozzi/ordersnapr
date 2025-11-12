@@ -193,6 +193,7 @@ export const MemoizedBlock = memo(function MemoizedBlock({
     JSON.stringify(prevProps.block.content) === JSON.stringify(nextProps.block.content) &&
     prevProps.isActive === nextProps.isActive &&
     prevProps.isDragging === nextProps.isDragging &&
-    prevProps.index === nextProps.index
+    prevProps.index === nextProps.index &&
+    prevProps.isLocked === nextProps.isLocked
   );
 });

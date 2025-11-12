@@ -7,7 +7,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, DragSta
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus } from "lucide-react";
+import { X, Star, Pin, Eye, Edit3, Sparkles, MoreVertical, Plus, Calendar, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { MemoizedBlock } from "./MemoizedBlock";
 import { SlashCommandMenu } from "./SlashCommandMenu";
@@ -276,47 +276,76 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
       if (index !== -1) {
         const block: any = draft[index];
         
-        // Preserve existing content and remove only the "/" and search text
-        let preservedContent = "";
+        // Extract content before "/" and check if line is empty
+        let textBeforeSlash = "";
         if (typeof block.content === "string") {
           const slashIndex = block.content.lastIndexOf('/');
           if (slashIndex >= 0) {
-            preservedContent = block.content.slice(0, slashIndex).trim();
+            textBeforeSlash = block.content.slice(0, slashIndex).trim();
           } else {
-            preservedContent = block.content.trim();
+            textBeforeSlash = block.content.trim();
           }
         }
+        
+        // Remove HTML tags to check if truly empty
+        const cleanText = textBeforeSlash.replace(/<[^>]*>/g, '').trim();
+        const isEmptyLine = cleanText === "";
 
-        // Convert block to new type while preserving content
-        block.type = blockType as any;
-        if (blockType === "checklist") {
-          block.content = { items: [{ id: crypto.randomUUID(), text: preservedContent, checked: false }] };
-        } else if (blockType === "table") {
-          block.content = {
-            rows: 2,
-            cols: 2,
-            cells: Array(4).fill(""),
-            headerRow: true,
-            bordered: true
-          };
-        } else if (blockType === "imageUpload") {
-          block.content = { url: "", alt: preservedContent };
-        } else if (blockType === "date") {
-          block.content = { date: new Date().toISOString() };
-        } else if (blockType === "time") {
-          block.content = { time: new Date().toTimeString().slice(0, 5) };
-        } else if (blockType === "divider") {
-          block.content = {};
+        if (isEmptyLine) {
+          // Empty line: Convert current block to new type
+          block.type = blockType as any;
+          if (blockType === "checklist") {
+            block.content = { items: [{ id: crypto.randomUUID(), text: "", checked: false }] };
+          } else if (blockType === "table") {
+            block.content = {
+              rows: 2,
+              cols: 2,
+              cells: Array(4).fill(""),
+              headerRow: true
+            };
+          } else if (blockType === "date") {
+            block.content = { date: new Date().toISOString() };
+          } else if (blockType === "time") {
+            block.content = { time: new Date().toTimeString().slice(0, 5) };
+          } else if (blockType === "imageUpload") {
+            block.content = { url: "", alt: "" };
+          } else if (blockType === "divider") {
+            block.content = {};
+          } else {
+            block.content = "";
+          }
         } else {
-          // For heading, paragraph, etc - preserve the text
-          block.content = preservedContent;
+          // Has content before slash: Keep current block and insert new one below
+          block.content = textBeforeSlash;
+          
+          const newBlock: any = {
+            id: crypto.randomUUID(),
+            type: blockType as any,
+            content: blockType === "checklist" 
+              ? { items: [{ id: crypto.randomUUID(), text: "", checked: false }] }
+              : blockType === "table"
+              ? { rows: 2, cols: 2, cells: Array(4).fill(""), headerRow: true }
+              : blockType === "date"
+              ? { date: new Date().toISOString() }
+              : blockType === "time"
+              ? { time: new Date().toTimeString().slice(0, 5) }
+              : blockType === "imageUpload"
+              ? { url: "", alt: "" }
+              : blockType === "divider"
+              ? {}
+              : ""
+          };
+          
+          draft.splice(index + 1, 0, newBlock);
+          
+          // Set active to new block
+          setTimeout(() => setActiveBlockId(newBlock.id), 0);
         }
       }
     }));
 
-    // Close slash menu and keep focus on the block
+    // Close slash menu
     setSlashMenuState({ visible: false, position: { top: 0, left: 0 }, searchQuery: '', blockId: null });
-    setActiveBlockId(slashMenuState.blockId);
   }, [slashMenuState]);
 
   const handleToggleFavorite = () => {
@@ -411,6 +440,143 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                 </div>
               </div>
             ))}
+          </div>
+        );
+
+      case "date":
+        const dateContent = block.content ?? {};
+        const dateValue = (typeof dateContent === "object" && "date" in dateContent)
+          ? (dateContent as { date: string }).date
+          : new Date().toISOString();
+
+        return (
+          <div className="flex items-center gap-2 p-3 bg-accent/10 rounded-lg border border-border">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={dateValue.split('T')[0]}
+              onChange={(e) => {
+                const updatedBlock: any = { content: { date: new Date(e.target.value).toISOString() } };
+                updateBlock(block.id, updatedBlock);
+              }}
+              disabled={presentationMode}
+              className="border-none shadow-none focus-visible:ring-0 bg-transparent"
+            />
+          </div>
+        );
+
+      case "time":
+        const timeContent = block.content ?? {};
+        const timeValue = (typeof timeContent === "object" && "time" in timeContent)
+          ? (timeContent as { time: string }).time
+          : new Date().toTimeString().slice(0, 5);
+
+        return (
+          <div className="flex items-center gap-2 p-3 bg-accent/10 rounded-lg border border-border">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Input
+              type="time"
+              value={timeValue}
+              onChange={(e) => {
+                const updatedBlock: any = { content: { time: e.target.value } };
+                updateBlock(block.id, updatedBlock);
+              }}
+              disabled={presentationMode}
+              className="border-none shadow-none focus-visible:ring-0 bg-transparent"
+            />
+          </div>
+        );
+
+      case "table":
+        const tableContent = block.content ?? {};
+        const tableData = (typeof tableContent === "object" && "cells" in tableContent)
+          ? (tableContent as { rows: number; cols: number; cells: string[]; headerRow?: boolean })
+          : { rows: 2, cols: 2, cells: Array(4).fill(""), headerRow: true };
+
+        return (
+          <div className="space-y-2">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-border rounded-lg">
+                <tbody>
+                  {Array.from({ length: tableData.rows }).map((_, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Array.from({ length: tableData.cols }).map((_, colIndex) => {
+                        const cellIndex = rowIndex * tableData.cols + colIndex;
+                        const isHeader = rowIndex === 0 && tableData.headerRow;
+                        
+                        return isHeader ? (
+                          <th key={colIndex} className="border border-border p-2 bg-accent/20 font-semibold text-left">
+                            <Input
+                              value={tableData.cells[cellIndex] || ""}
+                              onChange={(e) => {
+                                const newCells = [...tableData.cells];
+                                newCells[cellIndex] = e.target.value;
+                                const updatedBlock: any = { content: { ...tableData, cells: newCells } };
+                                updateBlock(block.id, updatedBlock);
+                              }}
+                              placeholder={`Header ${colIndex + 1}`}
+                              disabled={presentationMode}
+                              className="border-none shadow-none focus-visible:ring-0 bg-transparent font-semibold"
+                            />
+                          </th>
+                        ) : (
+                          <td key={colIndex} className="border border-border p-2">
+                            <Input
+                              value={tableData.cells[cellIndex] || ""}
+                              onChange={(e) => {
+                                const newCells = [...tableData.cells];
+                                newCells[cellIndex] = e.target.value;
+                                const updatedBlock: any = { content: { ...tableData, cells: newCells } };
+                                updateBlock(block.id, updatedBlock);
+                              }}
+                              placeholder="Cell"
+                              disabled={presentationMode}
+                              className="border-none shadow-none focus-visible:ring-0 bg-transparent"
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!presentationMode && (
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    const newCells = [...tableData.cells, ...Array(tableData.cols).fill("")];
+                    const updatedBlock: any = { 
+                      content: { ...tableData, rows: tableData.rows + 1, cells: newCells } 
+                    };
+                    updateBlock(block.id, updatedBlock);
+                  }}
+                >
+                  Add Row
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    const newCells = [];
+                    for (let i = 0; i < tableData.rows; i++) {
+                      newCells.push(
+                        ...tableData.cells.slice(i * tableData.cols, (i + 1) * tableData.cols),
+                        ""
+                      );
+                    }
+                    const updatedBlock: any = { 
+                      content: { ...tableData, cols: tableData.cols + 1, cells: newCells } 
+                    };
+                    updateBlock(block.id, updatedBlock);
+                  }}
+                >
+                  Add Column
+                </Button>
+              </div>
+            )}
           </div>
         );
 

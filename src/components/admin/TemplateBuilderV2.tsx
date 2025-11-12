@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Plus, GripVertical } from "lucide-react";
 import { FieldPalette, type FieldType, fieldTypes } from "./FieldPalette";
-import { FormCanvas, type Section, type Field } from "./FormCanvas";
+import { FormCanvas, type Section, type Field, type TableCell } from "./FormCanvas";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { CellFieldPickerDialog } from "./CellFieldPickerDialog";
@@ -269,19 +269,43 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         if (section.id !== selectedField.sectionId) return section;
 
         if (selectedField.parentFieldId) {
-          // Update nested field
+          // Update nested field (repeating groups or table cells)
           return {
             ...section,
-            fields: section.fields.map((f) =>
-              f.id === selectedField.parentFieldId && f.fields
-                ? {
+            fields: section.fields.map((f) => {
+              if (f.id === selectedField.parentFieldId) {
+                // Handle repeating group sub-fields
+                if (f.type === 'repeating_group' && f.fields) {
+                  return {
                     ...f,
                     fields: f.fields.map((sf) =>
                       sf.id === selectedField.fieldId ? updatedField : sf
                     ),
-                  }
-                : f
-            ),
+                  };
+                }
+                
+                // Handle table layout cell fields
+                if (f.type === 'table_layout' && f.tableCells) {
+                  const updatedCells = Object.entries(f.tableCells).reduce((acc, [cellKey, cell]) => {
+                    if (cell.field?.id === selectedField.fieldId) {
+                      acc[cellKey] = {
+                        ...cell,
+                        field: updatedField,
+                      };
+                    } else {
+                      acc[cellKey] = cell;
+                    }
+                    return acc;
+                  }, {} as Record<string, any>);
+                  
+                  return {
+                    ...f,
+                    tableCells: updatedCells,
+                  };
+                }
+              }
+              return f;
+            }),
           };
         } else {
           // Update top-level field
@@ -305,7 +329,22 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
         if (selectedField.parentFieldId) {
           const parentField = section.fields.find((f) => f.id === selectedField.parentFieldId);
-          return parentField?.fields?.find((sf) => sf.id === selectedField.fieldId) || null;
+          
+          // Check if it's a repeating group
+          if (parentField?.fields) {
+            return parentField.fields.find((sf) => sf.id === selectedField.fieldId) || null;
+          }
+          
+          // Check if it's a table layout
+          if (parentField?.type === 'table_layout' && parentField.tableCells) {
+            for (const cell of Object.values(parentField.tableCells)) {
+              if (cell.field?.id === selectedField.fieldId) {
+                return cell.field;
+              }
+            }
+          }
+          
+          return null;
         } else {
           return section.fields.find((f) => f.id === selectedField.fieldId) || null;
         }
@@ -815,6 +854,34 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     setCellPickerOpen(false);
   };
 
+  const handleCellFieldRemove = (sectionId: string, cellFieldId: string, tableFieldId: string, cellKey: string) => {
+    setSections(sections.map(section => {
+      if (section.id !== sectionId) return section;
+
+      return {
+        ...section,
+        fields: section.fields.map(field => {
+          if (field.id === tableFieldId && field.type === "table_layout") {
+            const updatedCells = {
+              ...(field.tableCells || {}),
+              [cellKey]: {
+                field: undefined,
+              },
+            };
+
+            return {
+              ...field,
+              tableCells: updatedCells,
+            };
+          }
+          return field;
+        }),
+      };
+    }));
+    
+    toast.success("Field removed from cell");
+  };
+
   const activeField = activeId ? findFieldById(activeId) : null;
   const activeFieldType = activeId && !activeField ? (activeId as FieldType) : null;
 
@@ -915,6 +982,7 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               onAddSection={handleAddSection}
               isAnyFieldDragging={!!activeId}
               onTableCellClick={handleTableCellClick}
+              onCellFieldRemove={handleCellFieldRemove}
             />
           </div>
         </div>

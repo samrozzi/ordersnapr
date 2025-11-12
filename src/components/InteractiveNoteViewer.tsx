@@ -50,7 +50,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [checklistMoveCompleted, setChecklistMoveCompleted] = useState(preferences?.checklist_move_completed ?? true);
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [isPresentationMode, setIsPresentationMode] = useState(note.is_presentation_mode || false);
 
   // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
@@ -521,7 +521,23 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsPresentationMode(!isPresentationMode)}
+            onClick={async () => {
+              const newMode = !isPresentationMode;
+              setIsPresentationMode(newMode);
+              // Save presentation mode to database
+              try {
+                await updateNote({
+                  noteId: note.id,
+                  updates: { is_presentation_mode: newMode },
+                });
+                toast.success(newMode ? "Presentation mode enabled" : "Presentation mode disabled");
+              } catch (error) {
+                console.error("Failed to save presentation mode:", error);
+                toast.error("Failed to save presentation mode");
+                // Revert on error
+                setIsPresentationMode(!newMode);
+              }
+            }}
             title={isPresentationMode ? "Exit presentation mode - Enable editing" : "Enter presentation mode - Lock note for viewing"}
           >
             {isPresentationMode ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -54,6 +54,9 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  
+  // Track internal updates to prevent infinite loop
+  const isInternalUpdate = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -71,6 +74,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
   // When the external schema changes, update our local state
   useEffect(() => {
+    // Skip if this schema change came from our own debounced update
+    if (isInternalUpdate.current) {
+      return;
+    }
+    
     if (schema?.sections) {
       const loadedSections: Section[] = schema.sections.map((s: any) => ({
         id: s.id || crypto.randomUUID(),
@@ -143,6 +151,9 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     if (sections.length === 0 && !requireSignature) return; // Don't update on initial empty state
     
     const timer = setTimeout(() => {
+      // Set flag to prevent reload loop
+      isInternalUpdate.current = true;
+      
       const newSchema = {
         sections: sections.map((s) => ({
           id: s.id,
@@ -207,6 +218,11 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
         alternatingBackground,
       };
       onSchemaChange(newSchema);
+      
+      // Reset flag after React processes the update
+      setTimeout(() => {
+        isInternalUpdate.current = false;
+      }, 0);
     }, 500);
     
     return () => clearTimeout(timer);

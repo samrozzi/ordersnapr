@@ -103,7 +103,8 @@ export const generateFormPDF = async (
       for (const field of section.fields) {
         const answer = submission.answers?.[field.key];
         
-        if (!answer) continue;
+        // Skip empty non-checklist fields (always show checklist questions even if unanswered)
+        if (!answer && field.type !== "checklist") continue;
 
         checkPageBreak(10);
 

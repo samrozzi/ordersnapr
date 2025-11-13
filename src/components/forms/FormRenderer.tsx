@@ -793,7 +793,18 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       
       targetSection.fields.forEach((field: any, index: number) => {
         const label = (field.label || '').toLowerCase();
-        if (label.includes('tech') || label.includes('call') || field.type === 'table_layout') {
+        // Include tech fields, call fields, time fields, note fields, and table_layout types
+        // Also include textarea, time, and text field types that might be related
+        const isRelevantField = 
+          label.includes('tech') || 
+          label.includes('call') || 
+          label.includes('time') ||
+          label.includes('note') ||
+          field.type === 'table_layout' ||
+          (field.type === 'textarea' && index > 0 && targetSection.fields[index - 1]?.label?.toLowerCase().includes('call')) ||
+          (field.type === 'text' && (label.includes('name') || label.includes('id')));
+        
+        if (isRelevantField) {
           techFieldIndices.push(index);
           techFields.push(field);
         }

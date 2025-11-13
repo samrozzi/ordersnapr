@@ -356,6 +356,30 @@ export function FormSubmissionViewer({
                   {(field.fields || []).map((subField: any) => {
                     const subValue = entry[subField.key];
                     if (!subValue && subValue !== 0) return null;
+                    
+                    // Handle table_layout fields specially
+                    if (subField.type === 'table_layout' && typeof subValue === 'object') {
+                      const cellValues = Object.entries(subValue)
+                        .map(([cellKey, cellValue]) => {
+                          // Extract readable label from cell key (e.g., "cell_tech_name" -> "Tech Name")
+                          const label = cellKey
+                            .replace(/^cell_/, '')
+                            .replace(/_/g, ' ')
+                            .split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                          return `${label}: ${cellValue}`;
+                        })
+                        .join(' | ');
+                      
+                      return (
+                        <div key={subField.key} className="text-sm">
+                          {!subField.hideLabel && <span className="font-medium">{subField.label}: </span>}
+                          <span>{cellValues}</span>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <div key={subField.key} className="text-sm">
                         {!subField.hideLabel && <span className="font-medium">{subField.label}: </span>}

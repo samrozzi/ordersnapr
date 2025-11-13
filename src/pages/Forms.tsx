@@ -708,7 +708,19 @@ export default function Forms() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => { if (submissionToDelete) { await deleteMutation.mutateAsync(submissionToDelete); setDeleteDialogOpen(false); if (sheetMode === "view") setSheetMode(null); }}}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={async () => { 
+              if (submissionToDelete) { 
+                try {
+                  await deleteMutation.mutateAsync(submissionToDelete);
+                  toast.success("Form submission deleted");
+                } catch (error: any) {
+                  console.error("Delete error:", error);
+                  toast.error(error.message || "Failed to delete submission. Check permissions.");
+                }
+                setDeleteDialogOpen(false); 
+                if (sheetMode === "view") setSheetMode(null); 
+              }
+            }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

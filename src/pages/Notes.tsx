@@ -47,6 +47,13 @@ const Notes = () => {
     }
   }, [searchParams, notes, setSearchParams]);
 
+  // Persist sort preference
+  useEffect(() => {
+    if (preferences && sortBy !== preferences.list_sort_by) {
+      updatePreferences({ list_sort_by: sortBy });
+    }
+  }, [sortBy, preferences, updatePreferences]);
+
   // Filter notes by search query (title and content)
   const filteredNotes = notes.filter((note) => {
     const query = searchQuery.toLowerCase();

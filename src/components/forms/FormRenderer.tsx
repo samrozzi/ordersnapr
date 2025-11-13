@@ -546,6 +546,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 tableCellData['0-0'] = firstTech.techName || firstTech.name || '';
               }
               
+              console.log('Smart Import (repeating-group) - Applying tableCellData keys:', Object.keys(tableCellData));
+              
               if (cellFields.id) {
                 tableCellData[cellFields.id.cellKey] = firstTech.techId || firstTech.id || '';
               } else {
@@ -754,6 +756,244 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             required={subField.required}
           />
         );
+        
+      case "table_layout": {
+        const rows = subField.tableRows || 2;
+        const columns = subField.tableColumns || 2;
+        const tableCells = subField.tableCells || {};
+        const borderStyle = subField.borderStyle || 'all';
+        const tableValue = value || {};
+
+        return (
+          <div key={subField.key} className="space-y-2">
+            {!subField.hideLabel && (
+              <Label>
+                {subField.label} {subField.required && <span className="text-destructive">*</span>}
+              </Label>
+            )}
+            <div className="overflow-x-auto">
+              <table className={cn(
+                "w-full border-collapse",
+                borderStyle === 'all' && "border border-border",
+                borderStyle === 'outer' && "border-2 border-border"
+              )}>
+                <tbody>
+                  {Array.from({ length: rows }).map((_, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Array.from({ length: columns }).map((_, colIndex) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        const cell = tableCells[cellKey];
+                        const cellField = cell?.field;
+                        const cellValue = tableValue[cellKey];
+                        
+                        if (!cellField) {
+                          // Fallback: render input with positional label for 2x2 grids
+                          const positionalLabels: Record<string, string> = {
+                            '0-0': 'Tech Name',
+                            '0-1': 'Tech ID',
+                            '1-0': 'Tech Type',
+                            '1-1': 'Tech TN'
+                          };
+                          const fallbackLabel = positionalLabels[cellKey] || `Row ${rowIndex + 1}, Col ${colIndex + 1}`;
+                          
+                          return (
+                            <td
+                              key={colIndex}
+                              className={cn(
+                                "p-3 min-w-[120px]",
+                                borderStyle === 'all' && "border border-border"
+                              )}
+                            >
+                              <div className="space-y-1">
+                                <Label className="text-xs">{fallbackLabel}</Label>
+                                <Input
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </td>
+                          );
+                        }
+
+                        const cellId = `${parentKey}-${instanceIndex}-${subField.key}-${cellKey}`;
+
+                        return (
+                          <td
+                            key={colIndex}
+                            className={cn(
+                              "p-3 min-w-[120px]",
+                              borderStyle === 'all' && "border border-border"
+                            )}
+                          >
+                            {cellField.type === "text" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "number" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="number"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "date" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="date"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "time" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  type="time"
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+
+                            {cellField.type === "select" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Select
+                                  value={cellValue || ""}
+                                  onValueChange={(val) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: val,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                >
+                                  <SelectTrigger id={cellId} className="h-8 text-sm">
+                                    <SelectValue placeholder="Select" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(cellField.options || []).map((option: string, idx: number) => (
+                                      <SelectItem key={idx} value={option}>
+                                        {option}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                            
+                            {/* Fallback for unrecognized field type */}
+                            {cellField.type !== "text" && 
+                             cellField.type !== "number" && 
+                             cellField.type !== "date" && 
+                             cellField.type !== "time" && 
+                             cellField.type !== "select" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleNestedChange(subField.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      }
         
       default:
         return (
@@ -1391,6 +1631,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                           tableCellData['1-1'] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
                         }
                         
+                        console.log('Smart Import (top-level) - Applying tableCellData keys:', Object.keys(tableCellData));
                         instanceData[tableKey] = tableCellData;
                         
                         // Populate Call time if present

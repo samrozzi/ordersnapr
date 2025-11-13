@@ -819,6 +819,38 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         }
       });
       
+      // Ensure Notes field exists after Call time
+      const hasNotes = techFields.some(f => 
+        f.type === 'textarea' || 
+        (f.label && /note/i.test(f.label)) || 
+        (f.key && /note/i.test(f.key))
+      );
+      
+      if (!hasNotes) {
+        // Find the Call time field index
+        const callTimeIndex = techFields.findIndex(f => 
+          f.type === 'time' || 
+          (f.label && /call.*time/i.test(f.label)) ||
+          (f.key && /call.*time/i.test(f.key))
+        );
+        
+        // Create Notes field
+        const notesField = {
+          type: 'textarea',
+          key: 'call_notes',
+          label: 'Notes',
+          placeholder: 'Notes about the call',
+          required: false
+        };
+        
+        // Insert after call time, or at the end if call time not found
+        if (callTimeIndex >= 0) {
+          techFields.splice(callTimeIndex + 1, 0, notesField);
+        } else {
+          techFields.push(notesField);
+        }
+      }
+      
       // Create new repeating group with those fields
       const repeatingGroup = {
         type: 'repeating_group',
@@ -864,9 +896,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             if (cellFields.tn) tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
             
             instanceData[field.key] = tableCellData;
-          } else if (field.key?.includes('call_time')) {
+          } else if (field.type === 'time' || field.key?.includes('call_time') || field.key?.includes('time')) {
             instanceData[field.key] = tech.callTime || '';
-          } else if (field.key?.includes('notes') || field.key?.includes('call')) {
+          } else if (field.type === 'textarea' || field.key?.includes('notes') || field.key?.includes('note')) {
             instanceData[field.key] = tech.notes || '';
           } else {
             instanceData[field.key] = '';

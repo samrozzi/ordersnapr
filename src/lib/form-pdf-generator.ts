@@ -306,68 +306,43 @@ export const generateFormPDF = async (
                   }
                   
                   // Build table from table_layout data
-                  const rows = subField.rows || [];
-                  const columns = subField.columns || [];
+                  // Determine dimensions from subField or infer from data
+                  const numRows = subField.tableRows || 2;
+                  const numCols = subField.tableColumns || 2;
                   
-                  console.log(`[PDF] Table layout data:`, {
-                    label: subField.label,
-                    rowsLength: rows.length,
-                    columnsLength: columns.length,
-                    valueKeys: Object.keys(subValue)
+                  // Build table body with labels from tableCells
+                  const tableBody: string[][] = [];
+                  const entries = Object.entries(subValue);
+                  
+                  // Organize cells into rows
+                  for (let r = 0; r < numRows; r++) {
+                    const row: string[] = [];
+                    for (let c = 0; c < numCols; c++) {
+                      const cellKey = `${r}-${c}`;
+                      const cellValue = entries.find(([k]) => k === cellKey)?.[1] || '';
+                      
+                      // Get label from tableCells if available
+                      const cellConfig = subField.tableCells?.[cellKey];
+                      const label = cellConfig?.field?.label || `Cell ${r}-${c}`;
+                      
+                      row.push(`${label}: ${cellValue}`);
+                    }
+                    tableBody.push(row);
+                  }
+                  
+                  // Render using autoTable
+                  (pdf as any).autoTable({
+                    startY: yPos,
+                    body: tableBody,
+                    theme: 'grid',
+                    styles: {
+                      fontSize: 9,
+                      cellPadding: 3,
+                    },
+                    margin: { left: margin + 16 },
                   });
                   
-                  if (rows.length > 0 && columns.length > 0) {
-                    const tableData: any[][] = [];
-                    
-                    rows.forEach((row: any, rowIndex: number) => {
-                      const rowData: any[] = [];
-                      columns.forEach((col: any, colIndex: number) => {
-                        const cellKey = `${rowIndex}-${colIndex}`;
-                        rowData.push(subValue[cellKey] || '');
-                      });
-                      tableData.push(rowData);
-                    });
-                    
-                    const headers = columns.map((col: any) => col.label || col.key || '');
-                    
-                    (pdf as any).autoTable({
-                      head: [headers],
-                      body: tableData,
-                      startY: yPos,
-                      theme: 'grid',
-                      styles: { fontSize: 9, cellPadding: 3 },
-                      headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
-                      margin: { left: margin + 12, right: margin },
-                    });
-                    
-                    yPos = (pdf as any).lastAutoTable.finalY + 6;
-                  } else {
-                    // Fallback: Render as inline text if table structure not properly defined
-                    console.log(`[PDF] Using fallback - rendering table_layout as text`);
-                    pdf.setFontSize(9);
-                    pdf.setFont("helvetica", "normal");
-                    
-                    const cellText = Object.entries(subValue)
-                      .map(([cellKey, cellValue]) => {
-                        const label = cellKey
-                          .replace(/^cell_/, '')
-                          .replace(/^(\d+)-(\d+)$/, 'Cell $1-$2')
-                          .replace(/_/g, ' ')
-                          .split(' ')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
-                        return `${label}: ${cellValue}`;
-                      })
-                      .join(' | ');
-                    
-                    const lines = pdf.splitTextToSize(cellText, pageWidth - margin - 25);
-                    lines.forEach((line: string) => {
-                      checkPageBreak(6);
-                      pdf.text(line, margin + 16, yPos);
-                      yPos += 5;
-                    });
-                    yPos += 3;
-                  }
+                  yPos = (pdf as any).lastAutoTable.finalY + 6;
                 } else {
                   // Regular field rendering
                   const fontStyle = subField.boldText ? "bold" : "normal";

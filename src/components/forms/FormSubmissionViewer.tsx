@@ -357,25 +357,39 @@ export function FormSubmissionViewer({
                     const subValue = entry[subField.key];
                     if (!subValue && subValue !== 0) return null;
                     
-                    // Handle table_layout fields specially
+                    // Handle table_layout fields specially - render as grid
                     if (subField.type === 'table_layout' && typeof subValue === 'object') {
-                      const cellValues = Object.entries(subValue)
-                        .map(([cellKey, cellValue]) => {
-                          // Extract readable label from cell key (e.g., "cell_tech_name" -> "Tech Name")
-                          const label = cellKey
-                            .replace(/^cell_/, '')
-                            .replace(/_/g, ' ')
-                            .split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return `${label}: ${cellValue}`;
-                        })
-                        .join(' | ');
+                      // Determine grid dimensions
+                      const rows = subField.tableRows || 2;
+                      const cols = subField.tableColumns || 2;
                       
                       return (
-                        <div key={subField.key} className="text-sm">
-                          {!subField.hideLabel && <span className="font-medium">{subField.label}: </span>}
-                          <span>{cellValues}</span>
+                        <div key={subField.key} className="mt-2">
+                          {!subField.hideLabel && <p className="text-xs font-medium mb-1.5">{subField.label}</p>}
+                          <div 
+                            className="grid gap-2 border rounded-lg p-3 bg-background/50"
+                            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+                          >
+                            {Object.entries(subValue).map(([cellKey, cellValue]) => {
+                              // Get label from tableCells if available
+                              const cellConfig = subField.tableCells?.[cellKey];
+                              const label = cellConfig?.field?.label || 
+                                cellKey
+                                  .replace(/^cell_/, '')
+                                  .replace(/^(\d+)-(\d+)$/, 'Cell $1-$2')
+                                  .replace(/_/g, ' ')
+                                  .split(' ')
+                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              
+                              return (
+                                <div key={cellKey} className="space-y-1">
+                                  <p className="text-xs text-muted-foreground">{label}</p>
+                                  <p className="text-sm font-medium">{String(cellValue)}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     }

@@ -261,66 +261,65 @@ export const generateFormDOCX = async (
               if (subValue !== null && subValue !== undefined && subValue !== "") {
                 // Special handling for table_layout - render as actual table
                 if (subField.type === 'table_layout' && typeof subValue === 'object') {
-                  const rows = subField.rows || [];
-                  const columns = subField.columns || [];
+                  // Determine dimensions from subField or infer from data
+                  const numRows = subField.tableRows || 2;
+                  const numCols = subField.tableColumns || 2;
                   
-                  if (rows.length > 0 && columns.length > 0) {
-                    // Add table label if not hidden
-                    if (!subField.hideLabel && subField.label) {
-                      sections.push(
-                        new Paragraph({
+                  // Add table label if not hidden
+                  if (!subField.hideLabel && subField.label) {
+                    sections.push(
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: subField.label,
+                            bold: true,
+                          }),
+                        ],
+                        spacing: { before: 100, after: 50 },
+                      })
+                    );
+                  }
+                  
+                  // Build table rows with labels from tableCells
+                  const tableRows: any[] = [];
+                  
+                  // Organize cells into rows
+                  for (let r = 0; r < numRows; r++) {
+                    const rowCells: any[] = [];
+                    for (let c = 0; c < numCols; c++) {
+                      const cellKey = `${r}-${c}`;
+                      const cellValue = subValue[cellKey] || '';
+                      
+                      // Get label from tableCells if available
+                      const cellConfig = subField.tableCells?.[cellKey];
+                      const label = cellConfig?.field?.label || `Cell ${r}-${c}`;
+                      
+                      rowCells.push(
+                        new TableCell({
                           children: [
-                            new TextRun({
-                              text: subField.label,
-                              bold: true,
+                            new Paragraph({
+                              children: [
+                                new TextRun({ text: `${label}: `, bold: true }),
+                                new TextRun({ text: String(cellValue) }),
+                              ],
                             }),
                           ],
-                          spacing: { before: 100, after: 50 },
+                          shading: { fill: 'FAFAFA' },
                         })
                       );
                     }
-                    
-                    // Build table rows
-                    const tableRows: any[] = [];
-                    
-                    // Header row
-                    tableRows.push(
-                      new TableRow({
-                        children: columns.map((col: any) => 
-                          new TableCell({
-                            children: [new Paragraph({ 
-                              children: [new TextRun({ text: col.label || col.key || '', bold: true })],
-                            })],
-                            shading: { fill: 'F0F0F0' },
-                          })
-                        ),
-                      })
-                    );
-                    
-                    // Data rows
-                    rows.forEach((row: any, rowIndex: number) => {
-                      tableRows.push(
-                        new TableRow({
-                          children: columns.map((col: any, colIndex: number) => {
-                            const cellKey = `${rowIndex}-${colIndex}`;
-                            return new TableCell({
-                              children: [new Paragraph(String(subValue[cellKey] || ''))],
-                            });
-                          }),
-                        })
-                      );
-                    });
-                    
-                    sections.push(
-                      new Table({
-                        rows: tableRows,
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        margins: { left: 200 },
-                      })
-                    );
-                    
-                    return; // Skip regular rendering for table_layout
+                    tableRows.push(new TableRow({ children: rowCells }));
                   }
+                  
+                  sections.push(
+                    new Table({
+                      rows: tableRows,
+                      width: { size: 100, type: WidthType.PERCENTAGE },
+                      margins: { left: 200 },
+                    })
+                  );
+                  
+                  return; // Skip regular rendering for table_layout
                 }
                 
                 // Regular field rendering

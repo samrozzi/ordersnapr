@@ -1289,17 +1289,18 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         const cellFields = findTableCellsByLabel(targetTableField);
                         const tableCellData: Record<string, any> = {};
                         
+                        // Use broader key variants to match AI extraction output
                         if (cellFields.name) {
-                          tableCellData[cellFields.name.cellKey] = tech.techName || '';
+                          tableCellData[cellFields.name.cellKey] = tech.techName || tech.name || '';
                         }
                         if (cellFields.id) {
-                          tableCellData[cellFields.id.cellKey] = tech.techId || '';
+                          tableCellData[cellFields.id.cellKey] = tech.techId || tech.id || '';
                         }
                         if (cellFields.type) {
-                          tableCellData[cellFields.type.cellKey] = tech.techType || '';
+                          tableCellData[cellFields.type.cellKey] = tech.techType || tech.type || '';
                         }
                         if (cellFields.tn) {
-                          tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
+                          tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
                         }
                         
                         instanceData[tableKey] = tableCellData;
@@ -1348,10 +1349,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       technicianRows.slice(0, actualCount).forEach((tech: any) => {
                         const instanceData: any = {};
                         
-                        if (nameField) instanceData[nameField.key] = tech.techName || '';
-                        if (idField) instanceData[idField.key] = tech.techId || '';
-                        if (typeField) instanceData[typeField.key] = tech.techType || '';
-                        if (tnField) instanceData[tnField.key] = tech.techPhone || tech.techTn || '';
+                        // Use broader key variants to match AI extraction output
+                        if (nameField) instanceData[nameField.key] = tech.techName || tech.name || '';
+                        if (idField) instanceData[idField.key] = tech.techId || tech.id || '';
+                        if (typeField) instanceData[typeField.key] = tech.techType || tech.type || '';
+                        if (tnField) instanceData[tnField.key] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
                         
                         // Initialize remaining fields
                         children.forEach((subField: any) => {

@@ -139,81 +139,76 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
 
   // Debounced schema update to prevent excessive updates and avoid closing builder
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSchemaChange({
-        sections,
-        requireSignature,
-        useOrgTheme,
-        alternatingBackground,
-      });
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [sections, requireSignature, useOrgTheme, alternatingBackground]);
-
-  // Update parent schema when sections change (removed old immediate update)
-  useEffect(() => {
     if (sections.length === 0 && !requireSignature) return; // Don't update on initial empty state
     
-    const newSchema = {
-      sections: sections.map((s) => ({
-        id: s.id,
-        title: s.title,
-        hideTitle: s.hideTitle,
-        fields: s.fields.map((f) => ({
-          id: f.id,
-          key: f.key,
-          type: f.type,
-          label: f.label,
-          placeholder: f.placeholder,
-          required: f.required,
-          options: f.options,
-          items: f.items, // Preserve items for backwards compatibility
-          responseOptions: f.responseOptions, // Save response options
-          maxLength: f.maxLength,
-          min: f.min,
-          max: f.max,
-          accept: f.accept,
-          maxFiles: f.maxFiles,
-          allowCaptions: f.allowCaptions,
-          default: f.default,
-          hideLabel: f.hideLabel ?? false, // Default to false if missing
-          boldText: f.boldText ?? false,
-          underlineText: f.underlineText ?? false,
-          fontSize: f.fontSize,
-          // Table layout specific properties
-          tableRows: (f as any).tableRows,
-          tableColumns: (f as any).tableColumns,
-          borderStyle: (f as any).borderStyle,
-          tableCells: (f as any).tableCells,
-          fields: f.fields ? f.fields.map((sf: any) => ({
-            id: sf.id || crypto.randomUUID(),
-            key: sf.key || generateKey(sf.label || "untitled_field"),
-            type: sf.type || "text",
-            label: sf.label || "Untitled Field",
-            placeholder: sf.placeholder,
-            required: sf.required || false,
-            options: sf.options,
-            maxLength: sf.maxLength,
-            min: sf.min,
-            max: sf.max,
-            hideLabel: sf.hideLabel ?? false,
-            boldText: sf.boldText ?? false,
-            underlineText: sf.underlineText ?? false,
-            fontSize: sf.fontSize,
-          })) : undefined,
-          minInstances: (f as any).minInstances,
-          maxInstances: (f as any).maxInstances,
+    const timer = setTimeout(() => {
+      const newSchema = {
+        sections: sections.map((s) => ({
+          id: s.id,
+          title: s.title,
+          hideTitle: s.hideTitle,
+          fields: s.fields.map((f) => ({
+            id: f.id,
+            key: f.key,
+            type: f.type,
+            label: f.label,
+            placeholder: f.placeholder,
+            required: f.required,
+            options: f.options,
+            items: f.items, // Preserve items for backwards compatibility
+            responseOptions: f.responseOptions, // Save response options
+            maxLength: f.maxLength,
+            min: f.min,
+            max: f.max,
+            accept: f.accept,
+            maxFiles: f.maxFiles,
+            allowCaptions: f.allowCaptions,
+            default: f.default,
+            hideLabel: f.hideLabel ?? false, // Default to false if missing
+            boldText: f.boldText ?? false,
+            underlineText: f.underlineText ?? false,
+            fontSize: f.fontSize,
+            // Table layout specific properties
+            tableRows: (f as any).tableRows,
+            tableColumns: (f as any).tableColumns,
+            borderStyle: (f as any).borderStyle,
+            tableCells: (f as any).tableCells,
+            fields: f.fields ? f.fields.map((sf: any) => ({
+              id: sf.id || crypto.randomUUID(),
+              key: sf.key || generateKey(sf.label || "untitled_field"),
+              type: sf.type || "text",
+              label: sf.label || "Untitled Field",
+              placeholder: sf.placeholder,
+              required: sf.required || false,
+              options: sf.options,
+              maxLength: sf.maxLength,
+              min: sf.min,
+              max: sf.max,
+              hideLabel: sf.hideLabel ?? false,
+              boldText: sf.boldText ?? false,
+              underlineText: sf.underlineText ?? false,
+              fontSize: sf.fontSize,
+              // Table layout for nested tables
+              tableRows: (sf as any).tableRows,
+              tableColumns: (sf as any).tableColumns,
+              borderStyle: (sf as any).borderStyle,
+              tableCells: (sf as any).tableCells,
+            })) : undefined,
+            minInstances: (f as any).minInstances,
+            maxInstances: (f as any).maxInstances,
+          })),
         })),
-      })),
-      require_signature: requireSignature, // Use snake_case for consistency
-      requireSignature, // Keep both for backwards compatibility
-      use_org_theme: useOrgTheme, // Use snake_case for consistency
-      useOrgTheme, // Keep both for backwards compatibility
-      alternating_background: alternatingBackground, // Global alternating background toggle
-      alternatingBackground, // Backwards compatibility
-    };
-    onSchemaChange(newSchema);
+        require_signature: requireSignature,
+        requireSignature,
+        use_org_theme: useOrgTheme,
+        useOrgTheme,
+        alternating_background: alternatingBackground,
+        alternatingBackground,
+      };
+      onSchemaChange(newSchema);
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [sections, requireSignature, useOrgTheme, alternatingBackground, onSchemaChange, generateKey]);
 
   const handleAddSection = () => {
@@ -290,15 +285,37 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               if (f.id === selectedField.parentFieldId) {
                 // Handle repeating group sub-fields
                 if (f.type === 'repeating_group' && f.fields) {
-                  return {
-                    ...f,
-                    fields: f.fields.map((sf) =>
-                      sf.id === selectedField.fieldId ? updatedField : sf
-                    ),
-                  };
+                  // Check if the field being updated is inside a table within the repeating group
+                  const updatedSubFields = f.fields.map((sf) => {
+                    if (sf.id === selectedField.fieldId) {
+                      return updatedField;
+                    }
+                    // Check if this sub-field is a table layout with the field we're updating
+                    if (sf.type === 'table_layout' && sf.tableCells) {
+                      let foundInTable = false;
+                      const updatedTableCells = { ...sf.tableCells };
+                      
+                      Object.keys(updatedTableCells).forEach(cellKey => {
+                        if (updatedTableCells[cellKey]?.field?.id === selectedField.fieldId) {
+                          updatedTableCells[cellKey] = {
+                            ...updatedTableCells[cellKey],
+                            field: updatedField,
+                          };
+                          foundInTable = true;
+                        }
+                      });
+
+                      if (foundInTable) {
+                        return { ...sf, tableCells: updatedTableCells };
+                      }
+                    }
+                    return sf;
+                  });
+
+                  return { ...f, fields: updatedSubFields };
                 }
                 
-                // Handle table layout cell fields
+                // Handle table layout cell fields at top level
                 if (f.type === 'table_layout' && f.tableCells) {
                   const updatedCells = Object.entries(f.tableCells).reduce((acc, [cellKey, cell]) => {
                     if (cell.field?.id === selectedField.fieldId) {
@@ -346,7 +363,21 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
           
           // Check if it's a repeating group
           if (parentField?.fields) {
-            return parentField.fields.find((sf) => sf.id === selectedField.fieldId) || null;
+            // First check direct sub-fields
+            const directSubField = parentField.fields.find((sf) => sf.id === selectedField.fieldId);
+            if (directSubField) return directSubField;
+            
+            // Then check if any sub-field is a table layout containing the field
+            for (const subField of parentField.fields) {
+              if (subField.type === 'table_layout' && subField.tableCells) {
+                for (const cell of Object.values(subField.tableCells)) {
+                  if (cell.field?.id === selectedField.fieldId) {
+                    return cell.field;
+                  }
+                }
+              }
+            }
+            return null;
           }
           
           // Check if it's a table layout

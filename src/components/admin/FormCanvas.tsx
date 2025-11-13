@@ -309,6 +309,8 @@ export function FormCanvas({
                           onFieldClick={onFieldClick}
                           onCopy={handleCopyField}
                           onRemove={handleRemoveField}
+                          onTableCellClick={onTableCellClick}
+                          onCellFieldRemove={onCellFieldRemove}
                         />
                       ) : field.type === "table_layout" ? (
                         <TableLayoutFieldCard
@@ -353,12 +355,16 @@ function RepeatingGroupFieldCard({
   onFieldClick,
   onCopy,
   onRemove,
+  onTableCellClick,
+  onCellFieldRemove,
 }: {
   field: Field;
   sectionId: string;
   onFieldClick: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
   onCopy: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
   onRemove: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
+  onTableCellClick?: (tableFieldId: string, cellKey: string) => void;
+  onCellFieldRemove?: (sectionId: string, cellFieldId: string, tableFieldId: string, cellKey: string) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -458,17 +464,19 @@ function RepeatingGroupFieldCard({
       </div>
 
       {/* Nested Fields */}
-      {isExpanded && <DropZoneForRepeatingGroup field={field} sectionId={sectionId} onFieldClick={onFieldClick} onCopy={onCopy} onRemove={onRemove} />}
+      {isExpanded && <DropZoneForRepeatingGroup field={field} sectionId={sectionId} onFieldClick={onFieldClick} onCopy={onCopy} onRemove={onRemove} onTableCellClick={onTableCellClick} onCellFieldRemove={onCellFieldRemove} />}
     </div>
   );
 }
 
-function DropZoneForRepeatingGroup({ field, sectionId, onFieldClick, onCopy, onRemove }: {
+function DropZoneForRepeatingGroup({ field, sectionId, onFieldClick, onCopy, onRemove, onTableCellClick, onCellFieldRemove }: {
   field: Field;
   sectionId: string;
   onFieldClick: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
   onCopy: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
   onRemove: (sectionId: string, fieldId: string, parentFieldId?: string) => void;
+  onTableCellClick?: (tableFieldId: string, cellKey: string) => void;
+  onCellFieldRemove?: (sectionId: string, cellFieldId: string, tableFieldId: string, cellKey: string) => void;
 }) {
   const dropZoneId = `${field.id}-drop-zone`;
   const { setNodeRef, isOver } = useDroppable({ id: dropZoneId });
@@ -480,16 +488,33 @@ function DropZoneForRepeatingGroup({ field, sectionId, onFieldClick, onCopy, onR
           items={field.fields.map((f) => f.id)}
           strategy={verticalListSortingStrategy}
         >
-          {field.fields.map((subField) => (
-            <SortableFieldCard
-              key={subField.id}
-              field={subField}
-              onFieldClick={() => onFieldClick(sectionId, subField.id, field.id)}
-              onCopy={() => onCopy(sectionId, subField.id, field.id)}
-              onRemove={() => onRemove(sectionId, subField.id, field.id)}
-              isNested
-            />
-          ))}
+          {field.fields.map((subField) => {
+            if (subField.type === 'table_layout') {
+              return (
+                <TableLayoutFieldCard
+                  key={subField.id}
+                  field={subField}
+                  sectionId={sectionId}
+                  onFieldClick={(secId, fieldId) => onFieldClick(secId, fieldId, field.id)}
+                  onCopy={(secId, fieldId) => onCopy(secId, fieldId, field.id)}
+                  onRemove={(secId, fieldId) => onRemove(secId, fieldId, field.id)}
+                  onCellClick={onTableCellClick}
+                  onCellFieldRemove={onCellFieldRemove}
+                  isNested
+                />
+              );
+            }
+            return (
+              <SortableFieldCard
+                key={subField.id}
+                field={subField}
+                onFieldClick={() => onFieldClick(sectionId, subField.id, field.id)}
+                onCopy={() => onCopy(sectionId, subField.id, field.id)}
+                onRemove={() => onRemove(sectionId, subField.id, field.id)}
+                isNested
+              />
+            );
+          })}
         </SortableContext>
       ) : (
         <div
@@ -783,6 +808,7 @@ function TableLayoutFieldCard({
   isAnyFieldDragging,
   onCellClick,
   onCellFieldRemove,
+  isNested = false,
 }: {
   field: Field;
   sectionId: string;
@@ -792,6 +818,7 @@ function TableLayoutFieldCard({
   isAnyFieldDragging?: boolean;
   onCellClick?: (tableFieldId: string, cellKey: string) => void;
   onCellFieldRemove?: (sectionId: string, cellFieldId: string, tableFieldId: string, cellKey: string) => void;
+  isNested?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ 
@@ -820,7 +847,8 @@ function TableLayoutFieldCard({
       style={style}
       className={cn(
         "group relative rounded-xl border-2 border-accent bg-card transition-all",
-        isDragging && "shadow-lg"
+        isDragging && "shadow-lg",
+        isNested && "border-l-4 border-l-primary/50"
       )}
     >
       {/* Header */}

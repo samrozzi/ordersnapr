@@ -412,81 +412,6 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       }));
     };
     
-    // Support table_layout inside repeating_group
-    if (subField.type === 'table_layout') {
-      const rows = subField.tableRows || 2;
-      const cols = subField.tableColumns || 2;
-      const tableCells = subField.tableCells || {};
-      const tableValue = value || {};
-
-      return (
-        <div key={subField.key} className="space-y-2">
-          {subField.label && (
-            <Label className="text-sm font-medium">{subField.label}</Label>
-          )}
-          <div 
-            className="grid gap-2 border rounded-lg p-4"
-            style={{ 
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, 1fr)`
-            }}
-          >
-            {Array.from({ length: rows }).map((_, rowIdx) =>
-              Array.from({ length: cols }).map((_, colIdx) => {
-                const cellKey = `${rowIdx}-${colIdx}`;
-                const cell = tableCells[cellKey];
-                const cellValue = tableValue[cellKey];
-
-                if (!cell || !cell.field) {
-                  return (
-                    <div key={cellKey} className="border rounded p-2 bg-muted/30 min-h-[60px]" />
-                  );
-                }
-
-                const cellField = cell.field;
-                const handleCellChange = (newValue: any) => {
-                  handleNestedChange(subField.key, {
-                    ...tableValue,
-                    [cellKey]: newValue
-                  });
-                };
-
-                return (
-                  <div key={cellKey} className="border rounded p-2 space-y-1">
-                    {cellField.label && (
-                      <Label className="text-xs">{cellField.label}</Label>
-                    )}
-                    {cellField.type === 'text' && (
-                      <Input
-                        value={cellValue || ''}
-                        onChange={(e) => handleCellChange(e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    )}
-                    {cellField.type === 'number' && (
-                      <Input
-                        type="number"
-                        value={cellValue || ''}
-                        onChange={(e) => handleCellChange(e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    )}
-                    {cellField.type === 'date' && (
-                      <Input
-                        type="date"
-                        value={cellValue || ''}
-                        onChange={(e) => handleCellChange(e.target.value)}
-                        className="h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      );
-    }
 
     // Support smart_import inside repeating_group
     if (subField.type === 'smart_import') {
@@ -763,6 +688,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         const tableCells = subField.tableCells || {};
         const borderStyle = subField.borderStyle || 'all';
         const tableValue = value || {};
+        
+        console.debug('[RG][table_layout] rendering', {
+          parentKey,
+          subKey: subField.key,
+          instanceIndex,
+          keys: Object.keys(tableValue || {})
+        });
 
         return (
           <div key={subField.key} className="space-y-2">

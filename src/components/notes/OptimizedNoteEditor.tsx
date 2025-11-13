@@ -1241,7 +1241,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
           backgroundColor: localBackgroundColor || 'transparent'
         }}
         >
-          <div className={cn("mx-auto space-y-4", fullWidth ? "max-w-full" : "max-w-4xl")}>
+          <div className={cn(
+            "mx-auto space-y-4",
+            fullWidth
+              ? "max-w-full -mx-6 md:-mx-8"
+              : "max-w-4xl"
+          )}>
             {/* Banner and Icon Container */}
             <div className="relative">
               {/* Banner Image */}
@@ -1403,17 +1408,6 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
           />
         )}
 
-        {/* Formatting Toolbar */}
-        {!locked && (
-          <div
-            className={cn(
-              "transition-all duration-200",
-              isMobile && keyboardHeight > 0 && "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
-            )}
-          >
-            <SharedFormattingToolbar />
-          </div>
-        )}
 
         {/* Icon Picker Dialog */}
         <Dialog open={iconPickerOpen} onOpenChange={setIconPickerOpen}>

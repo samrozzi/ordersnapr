@@ -509,7 +509,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose} className="mr-1">
+          <Button variant="outline" size="sm" onClick={onClose} className="mr-1">
             <X className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={handleToggleFavorite}>
@@ -546,31 +546,15 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
               <LockOpen className="h-4 w-4" />
             )}
           </Button>
-          {linkedEntityName && (
-            <Badge variant="outline" className="gap-1">
-              <LinkIcon className="h-3 w-3" />
-              {linkedEntityName}
-            </Badge>
-          )}
-          <div className="text-xs text-muted-foreground ml-2">
-            {isSaving ? (
-              <span className="flex items-center gap-1">Saving...</span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                Saved {lastSaved.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-2">
+          
+          {/* More Options Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="start" className="w-64">
               <div className="px-2 py-3 space-y-3">
                 <div className="text-sm font-medium">Checklist Options</div>
                 <div className="flex items-center justify-between">
@@ -601,6 +585,23 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {linkedEntityName && (
+            <Badge variant="outline" className="gap-1">
+              <LinkIcon className="h-3 w-3" />
+              {linkedEntityName}
+            </Badge>
+          )}
+          <div className="text-xs text-muted-foreground ml-2">
+            {isSaving ? (
+              <span className="flex items-center gap-1">Saving...</span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

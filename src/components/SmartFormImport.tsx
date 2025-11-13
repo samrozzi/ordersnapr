@@ -22,7 +22,7 @@ interface ExtractedFormData {
 }
 
 interface SmartFormImportProps {
-  formType: "job-audit" | "ride-along";
+  formType: "job-audit" | "ride-along" | "overrun-report";
   onDataExtracted: (data: ExtractedFormData) => void;
 }
 

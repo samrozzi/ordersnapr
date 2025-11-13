@@ -23,10 +23,11 @@ serve(async (req) => {
     const { image, formType } = await req.json();
     
     if (!image || !formType) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: image and formType' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Missing image or formType in request body');
+    }
+
+    if (!['job-audit', 'ride-along', 'overrun-report'].includes(formType)) {
+      throw new Error('Invalid formType. Must be "job-audit", "ride-along", or "overrun-report"');
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -37,50 +38,69 @@ serve(async (req) => {
     console.log(`Processing ${formType} form extraction`);
 
     // Define the extraction schema based on form type
-    const schema = formType === 'job-audit' 
+    const schema = formType === 'job-audit'
       ? {
           type: "object",
           properties: {
-            technicianName: { type: "string", description: "AT&T field technician's full name (person who performed the work)" },
-            accountNumber: { type: "string", description: "Account number or BAN (typically 9-10 digits)" },
-            serviceDate: { type: "string", description: "Date of service in YYYY-MM-DD format" },
-            address: { type: "string", description: "Full service address including street, city, state, zip" },
-            customerName: { type: "string", description: "Customer's full name (homeowner/business receiving AT&T service, e.g., McKinzey Sayers)" },
-            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" },
+            serviceDate: { type: "string", description: "Service date in YYYY-MM-DD format" },
+            address: { type: "string", description: "Service address or location" },
+            customerName: { type: "string", description: "Customer/homeowner name" },
+            canBeReached: { type: "string", description: "Customer contact info (phone/email)" },
+            technicianName: { type: "string", description: "Primary technician name from first data row" },
+            accountNumber: { type: "string", description: "Account or BAN number" },
             technicianRows: {
               type: "array",
-              description: "Array of technician schedule rows if multiple technicians are present in a table",
+              description: "Extract ALL technician rows from the table",
               items: {
                 type: "object",
                 properties: {
-                  techId: { type: "string", description: "Technician ID code" },
-                  techName: { type: "string", description: "Technician full name" },
-                  techPhone: { type: "string", description: "Technician phone number" },
-                  techType: { type: "string", description: "Technician type or classification" },
+                  techId: { type: "string", description: "Tech ID" },
+                  techName: { type: "string", description: "Technician name" },
+                  techPhone: { type: "string", description: "Tech phone number" },
+                  techType: { type: "string", description: "Tech type/classification (e.g., PT, ST)" },
                   ban: { type: "string", description: "BAN or account number" }
                 }
               }
             }
           },
-          required: ["technicianName", "accountNumber", "serviceDate", "address", "customerName", "canBeReached"]
+          required: ["serviceDate"]
+        }
+      : formType === 'overrun-report'
+      ? {
+          type: "object",
+          properties: {
+            technicianRows: {
+              type: "array",
+              description: "Extract ALL technician rows from the table",
+              items: {
+                type: "object",
+                properties: {
+                  techName: { type: "string", description: "Full technician name (e.g., 'Adside, Devy' → 'Devy Adside')" },
+                  techId: { type: "string", description: "Tech ID (e.g., 'DA4436')" },
+                  techPhone: { type: "string", description: "Tech phone number" },
+                  techType: { type: "string", description: "Tech type/classification (e.g., 'PT', 'ST')" }
+                }
+              }
+            }
+          },
+          required: ["technicianRows"]
         }
       : {
           type: "object",
           properties: {
-            accountNumber: { type: "string", description: "Account number or BAN (typically 9-10 digits)" },
-            address: { type: "string", description: "Full service address including street, city, state, zip" },
-            customerName: { type: "string", description: "Customer's full name (homeowner/business receiving AT&T service, e.g., McKinzey Sayers)" },
-            technicianName: { type: "string", description: "AT&T field technician's full name (person being observed during installation)" },
-            observerName: { type: "string", description: "Field manager conducting ride-along observation (Sam Rozzi, Josh Ghebremichael, or Christopher Badger)" },
-            canBeReached: { type: "string", description: "Customer contact method (phone number, email, or how to reach the customer)" },
-            date: { type: "string", description: "Date in YYYY-MM-DD format" },
-            startTime: { type: "string", description: "Start time in HH:MM format (24-hour)" },
-            endTime: { type: "string", description: "End time in HH:MM format (24-hour)" }
+            observationDate: { type: "string", description: "Observation date in YYYY-MM-DD format" },
+            technicianName: { type: "string", description: "Technician being observed" },
+            observerName: { type: "string", description: "Observer/supervisor name" },
+            startTime: { type: "string", description: "Start time in HH:MM format (24h)" },
+            endTime: { type: "string", description: "End time in HH:MM format (24h)" },
+            location: { type: "string", description: "Location or address" },
+            performanceRating: { type: "string", description: "Overall performance rating if visible" },
+            notes: { type: "string", description: "Any additional notes or comments" }
           },
-          required: ["accountNumber", "address", "customerName", "technicianName", "observerName", "canBeReached", "date", "startTime", "endTime"]
+          required: ["observationDate"]
         };
 
-    const systemPrompt = formType === 'job-audit' 
+    const systemPrompt = formType === 'job-audit'
       ? `Extract data from AT&T job audit inspection form.
 
 IMPORTANT - PERSON ROLES:
@@ -107,7 +127,30 @@ Then:
 - technicianRows = [Row 1 object, Row 2 object, ...]
 
 Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only.`
-      : `Extract data from AT&T ride-along observation form. 
+      : formType === 'overrun-report'
+      ? `Extract technician data from AT&T technician table only.
+
+TECHNICIAN TABLE EXTRACTION:
+Extract ALL rows from the technician table into technicianRows array.
+If you see a table with columns like "Tech ID", "Tech Name", "Phone", "Type":
+1. Skip any header rows that just repeat column names
+2. Extract ALL data rows as objects with: techName, techId, techPhone, techType
+3. Format names properly (e.g., "Adside, Devy" → "Devy Adside")
+
+Example table:
+- Row 1: DA4435 | Adside, Devy | 704-605-4138 | PT
+- Row 2: EB6080 | Barber, Elmer | 704-724-5817 | ST
+- Row 3: GM710S | McCrary, Guy | 704-450-3157 | PT
+
+Return:
+technicianRows = [
+  { techName: "Devy Adside", techId: "DA4435", techPhone: "704-605-4138", techType: "PT" },
+  { techName: "Elmer Barber", techId: "EB6080", techPhone: "704-724-5817", techType: "ST" },
+  { techName: "Guy McCrary", techId: "GM710S", techPhone: "704-450-3157", techType: "PT" }
+]
+
+Only extract technician table data - ignore any customer names, addresses, or other form fields.`
+      : `Extract data from AT&T ride-along observation form.
 THREE DISTINCT PEOPLE:
 1. CUSTOMER = homeowner/business receiving service (e.g., McKinzey Sayers)
 2. TECHNICIAN = AT&T field tech being observed during installation 

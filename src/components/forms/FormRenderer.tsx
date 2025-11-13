@@ -449,15 +449,71 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
     // Support smart_import inside repeating_group
     if (subField.type === 'smart_import') {
+      // Determine formType based on template name
+      const formType = template.name?.toLowerCase().includes('overrun') 
+        ? 'overrun-report' 
+        : 'job-audit';
+        
       return (
         <div key={subField.key} className="space-y-2">
           <SmartFormImport
-            formType="ride-along"
+            formType={formType}
             onDataExtracted={(importData) => {
               const techRows = (importData as any).technicianRows || [];
-              if (techRows.length > 0) {
-                toast.success('Data extracted! Populating fields...');
+              
+              if (techRows.length === 0) {
+                toast.error('No technician data found');
+                return;
               }
+              
+              // Get first technician
+              const firstTech = techRows[0];
+              
+              // Find the parent repeating_group field to locate the table_layout
+              const section = template.schema.sections?.find((s: any) => 
+                s.fields?.some((f: any) => f.key === parentKey && f.type === 'repeating_group')
+              );
+              
+              let tableField: any = null;
+              if (section) {
+                const parentField = section.fields?.find((f: any) => 
+                  f.key === parentKey && f.type === 'repeating_group'
+                );
+                
+                if (parentField?.fields) {
+                  tableField = parentField.fields.find((f: any) => 
+                    f.type === 'table_layout'
+                  );
+                }
+              }
+              
+              if (!tableField) {
+                toast.error('Table layout not found');
+                return;
+              }
+              
+              // Map extracted data to table cells
+              const cellFields = findTableCellsByLabel(tableField);
+              const tableKey = tableField.key;
+              const tableCellData: Record<string, any> = {};
+              
+              if (cellFields.name) {
+                tableCellData[cellFields.name.cellKey] = firstTech.techName || '';
+              }
+              if (cellFields.id) {
+                tableCellData[cellFields.id.cellKey] = firstTech.techId || '';
+              }
+              if (cellFields.type) {
+                tableCellData[cellFields.type.cellKey] = firstTech.techType || '';
+              }
+              if (cellFields.tn) {
+                tableCellData[cellFields.tn.cellKey] = firstTech.techPhone || '';
+              }
+              
+              // Apply to the current instance
+              handleNestedChange(tableKey, tableCellData);
+              
+              toast.success(`Imported ${firstTech.techName}'s data!`);
             }}
           />
         </div>

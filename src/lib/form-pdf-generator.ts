@@ -300,7 +300,19 @@ export const generateFormPDF = async (
                 pdf.setFontSize(fontSize);
                 
                 let displayValue = typeof subValue === 'boolean' 
-                  ? (subValue ? 'Yes' : 'No') 
+                  ? (subValue ? 'Yes' : 'No')
+                  : (subField.type === 'table_layout' && typeof subValue === 'object')
+                    ? Object.entries(subValue)
+                        .map(([cellKey, cellValue]) => {
+                          const label = cellKey
+                            .replace(/^cell_/, '')
+                            .replace(/_/g, ' ')
+                            .split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                          return `${label}: ${cellValue}`;
+                        })
+                        .join(' | ')
                   : String(subValue);
                 
                 // Apply formatting

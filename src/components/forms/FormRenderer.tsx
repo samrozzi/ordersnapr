@@ -793,16 +793,25 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       
       targetSection.fields.forEach((field: any, index: number) => {
         const label = (field.label || '').toLowerCase();
-        // Include tech fields, call fields, time fields, note fields, and table_layout types
-        // Also include textarea, time, and text field types that might be related
+        const key = (field.key || '').toLowerCase();
+        
+        // More inclusive criteria for capturing technician-related fields
         const isRelevantField = 
+          // Tech-related fields
           label.includes('tech') || 
+          key.includes('tech') ||
+          // Call/time/note fields
           label.includes('call') || 
           label.includes('time') ||
           label.includes('note') ||
+          key.includes('call') ||
+          key.includes('time') ||
+          key.includes('note') ||
+          // Table layouts
           field.type === 'table_layout' ||
-          (field.type === 'textarea' && index > 0 && targetSection.fields[index - 1]?.label?.toLowerCase().includes('call')) ||
-          (field.type === 'text' && (label.includes('name') || label.includes('id')));
+          // Any textarea or time field (likely notes or call time)
+          field.type === 'textarea' ||
+          field.type === 'time';
         
         if (isRelevantField) {
           techFieldIndices.push(index);
@@ -1244,9 +1253,23 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         
                         instanceData[tableKey] = tableCellData;
                         
-                        // Initialize other fields
+                        // Initialize other fields with extracted data
                         children.filter((sf: any) => sf.type !== 'table_layout').forEach((subField: any) => {
-                          instanceData[subField.key] = '';
+                          const key = (subField.key || '').toLowerCase();
+                          const label = (subField.label || '').toLowerCase();
+                          
+                          // Populate call_time
+                          if ((key.includes('call') && key.includes('time')) || (label.includes('call') && label.includes('time'))) {
+                            instanceData[subField.key] = tech.callTime || '';
+                          }
+                          // Populate notes
+                          else if (key.includes('note') || label.includes('note') || subField.type === 'textarea') {
+                            instanceData[subField.key] = tech.notes || '';
+                          }
+                          // Default: empty string
+                          else {
+                            instanceData[subField.key] = '';
+                          }
                         });
                         
                         newInstancesArray.push(instanceData);

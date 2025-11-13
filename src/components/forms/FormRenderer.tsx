@@ -1048,15 +1048,32 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   let targetRepeatingGroup: any = null;
                   let targetTableField: any = null;
                   
-                  // Look for repeating_group containing table_layout
+                  // Look for repeating_group containing table_layout or direct fields
                   for (const section of template.schema.sections) {
                     for (const field of section.fields) {
-                      if (field.type === 'repeating_group' && field.subFields) {
-                        const tableSubField = field.subFields.find((sf: any) => sf.type === 'table_layout');
+                      if (field.type === 'repeating_group') {
+                        // Check both field.fields and field.subFields (schema might use either)
+                        const children = field.fields || field.subFields || [];
+                        console.log(`Smart Import - Found repeating group "${field.label}" with ${children.length} children`);
+                        
+                        const tableSubField = children.find((sf: any) => sf.type === 'table_layout');
                         if (tableSubField) {
                           targetRepeatingGroup = field;
                           targetTableField = tableSubField;
+                          console.log('Smart Import - Using repeating group with table_layout');
                           break;
+                        }
+                        
+                        // If no table found but has tech-related fields, track it
+                        if (!targetRepeatingGroup) {
+                          const hasTechFields = children.some((sf: any) => {
+                            const label = (sf.label || '').toLowerCase();
+                            return label.includes('tech') || label.includes('name') || label.includes('id');
+                          });
+                          if (hasTechFields) {
+                            targetRepeatingGroup = field;
+                            console.log('Smart Import - Using repeating group with direct fields');
+                          }
                         }
                       }
                     }
@@ -1064,69 +1081,116 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   }
                   
                   // If found, populate the repeating group
-                  if (targetRepeatingGroup && targetTableField) {
+                  if (targetRepeatingGroup) {
                     const fieldKey = targetRepeatingGroup.key;
-                    const tableKey = targetTableField.key;
                     const maxInstances = targetRepeatingGroup.maxInstances || 50;
                     const actualCount = Math.min(technicianRows.length, maxInstances);
+                    const children = targetRepeatingGroup.fields || targetRepeatingGroup.subFields || [];
                     
                     console.log(`Smart Import - Processing ${technicianRows.length} technicians (max: ${maxInstances})`);
                     console.log('Smart Import - Target repeating group:', fieldKey);
-                    console.log('Smart Import - Target table field:', tableKey);
                     
                     if (technicianRows.length > maxInstances) {
                       toast.warning(`Created ${actualCount} of ${technicianRows.length} entries (max limit: ${maxInstances})`);
                     }
                     
-                    // Build the complete answers array - repeatCounts will be derived from this array's length
+                    // Build the complete answers array
                     const newInstancesArray: any[] = [];
                     
-                    technicianRows.slice(0, actualCount).forEach((tech: any, idx: number) => {
-                      const instanceData: any = {};
+                    // Case A: Table layout inside repeating group
+                    if (targetTableField) {
+                      const tableKey = targetTableField.key;
+                      console.log('Smart Import - Using table_layout approach, table key:', tableKey);
                       
-                      // Find the cell fields by their labels
-                      const cellFields = findTableCellsByLabel(targetTableField);
-                      const tableCellData: Record<string, any> = {};
+                      technicianRows.slice(0, actualCount).forEach((tech: any) => {
+                        const instanceData: any = {};
+                        
+                        // Find and populate table cell fields
+                        const cellFields = findTableCellsByLabel(targetTableField);
+                        const tableCellData: Record<string, any> = {};
+                        
+                        if (cellFields.name) {
+                          tableCellData[cellFields.name.cellKey] = tech.techName || '';
+                        }
+                        if (cellFields.id) {
+                          tableCellData[cellFields.id.cellKey] = tech.techId || '';
+                        }
+                        if (cellFields.type) {
+                          tableCellData[cellFields.type.cellKey] = tech.techType || '';
+                        }
+                        if (cellFields.tn) {
+                          tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
+                        }
+                        
+                        instanceData[tableKey] = tableCellData;
+                        
+                        // Initialize other fields
+                        children.filter((sf: any) => sf.type !== 'table_layout').forEach((subField: any) => {
+                          instanceData[subField.key] = '';
+                        });
+                        
+                        newInstancesArray.push(instanceData);
+                      });
+                    } 
+                    // Case B: Direct fields inside repeating group (no table)
+                    else {
+                      console.log('Smart Import - Using direct fields approach');
                       
-                      if (cellFields.name) {
-                        tableCellData[cellFields.name.cellKey] = tech.techName || '';
-                      }
-                      if (cellFields.id) {
-                        tableCellData[cellFields.id.cellKey] = tech.techId || '';
-                      }
-                      if (cellFields.type) {
-                        tableCellData[cellFields.type.cellKey] = tech.techType || '';
-                      }
-                      if (cellFields.tn) {
-                        tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
-                      }
-                      
-                      instanceData[tableKey] = tableCellData;
-                      
-                      // Initialize all other fields in the repeating group with empty values
-                      const otherSubFields = targetRepeatingGroup.subFields?.filter(
-                        (sf: any) => sf.type !== 'table_layout'
-                      ) || [];
-                      
-                      otherSubFields.forEach((subField: any) => {
-                        instanceData[subField.key] = '';
+                      // Find fields by label similarity
+                      const nameField = children.find((sf: any) => 
+                        normalizeLabel(sf.label || '').includes('name')
+                      );
+                      const idField = children.find((sf: any) => 
+                        normalizeLabel(sf.label || '').includes('id')
+                      );
+                      const typeField = children.find((sf: any) => 
+                        normalizeLabel(sf.label || '').includes('type')
+                      );
+                      const tnField = children.find((sf: any) => {
+                        const label = normalizeLabel(sf.label || '');
+                        return label.includes('tn') || label.includes('phone');
                       });
                       
-                      newInstancesArray.push(instanceData);
-                    });
+                      technicianRows.slice(0, actualCount).forEach((tech: any) => {
+                        const instanceData: any = {};
+                        
+                        if (nameField) instanceData[nameField.key] = tech.techName || '';
+                        if (idField) instanceData[idField.key] = tech.techId || '';
+                        if (typeField) instanceData[typeField.key] = tech.techType || '';
+                        if (tnField) instanceData[tnField.key] = tech.techPhone || tech.techTn || '';
+                        
+                        // Initialize remaining fields
+                        children.forEach((subField: any) => {
+                          if (!(subField.key in instanceData)) {
+                            instanceData[subField.key] = '';
+                          }
+                        });
+                        
+                        newInstancesArray.push(instanceData);
+                      });
+                    }
                     
                     console.log(`Smart Import - Created ${actualCount} instances`);
                     console.log('Smart Import - Array length:', newInstancesArray.length);
                     console.log('Smart Import - Sample first entry:', newInstancesArray[0]);
                     
-                    // Set answers with the complete array - this will trigger repeatCounts update
+                    // Set answers atomically
                     setAnswers(prev => ({
                       ...prev,
                       [fieldKey]: newInstancesArray
                     }));
                     
                     toast.success(`Created ${actualCount} technician ${actualCount === 1 ? 'section' : 'sections'}!`);
+                    
+                    // Return early for Overrun Report to prevent generic mapping
+                    if (template.name?.toLowerCase().includes('overrun')) {
+                      return;
+                    }
                   } else {
+                    // No repeating group found - inform user
+                    console.warn('Smart Import - No repeating group found for multiple technicians');
+                    toast.warning(`Multiple technicians detected (${technicianRows.length}). Add a "Repeating Group" to your template to import all entries.`);
+                    // Continue to fallback to populate first tech only
                     // Fallback: Look for a top-level table_layout
                     let topLevelTable: any = null;
                     for (const section of template.schema.sections) {

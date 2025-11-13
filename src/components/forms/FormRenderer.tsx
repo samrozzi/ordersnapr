@@ -1104,14 +1104,30 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       }
                       
                       newAnswers[fieldKey][idx][tableKey] = tableCellData;
+                      
+                      // Initialize all other fields in the repeating group with empty values
+                      const otherSubFields = targetRepeatingGroup.subFields?.filter(
+                        (sf: any) => sf.type !== 'table_layout'
+                      ) || [];
+                      
+                      otherSubFields.forEach((subField: any) => {
+                        // Initialize with empty values so fields render correctly
+                        if (!(subField.key in newAnswers[fieldKey][idx])) {
+                          newAnswers[fieldKey][idx][subField.key] = '';
+                        }
+                      });
                     });
+                    
+                    console.log(`Smart Import - Created ${actualCount} technician sections`);
+                    console.log('Smart Import - Populated fields:', Object.keys(newAnswers[fieldKey]?.[0] || {}));
+                    console.log('Smart Import - Sample first entry:', newAnswers[fieldKey]?.[0]);
                     
                     setAnswers(prev => ({
                       ...prev,
                       ...newAnswers
                     }));
                     
-                    toast.success(`Created ${actualCount} technician ${actualCount === 1 ? 'entry' : 'entries'}!`);
+                    toast.success(`Created ${actualCount} technician ${actualCount === 1 ? 'section' : 'sections'}!`);
                   } else {
                     // Fallback: Look for a top-level table_layout
                     let topLevelTable: any = null;

@@ -371,16 +371,28 @@ export function FormSubmissionViewer({
                             style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
                           >
                             {Object.entries(subValue).map(([cellKey, cellValue]) => {
-                              // Get label from tableCells if available
+                              // Get label from tableCells if available, with positional fallback
                               const cellConfig = subField.tableCells?.[cellKey];
-                              const label = cellConfig?.field?.label || 
-                                cellKey
-                                  .replace(/^cell_/, '')
-                                  .replace(/^(\d+)-(\d+)$/, 'Cell $1-$2')
-                                  .replace(/_/g, ' ')
-                                  .split(' ')
-                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                  .join(' ');
+                              let label = cellConfig?.field?.label;
+                              
+                              // Positional fallback labels for tech table
+                              if (!label) {
+                                const [r, c] = cellKey.split('-').map(Number);
+                                if (!isNaN(r) && !isNaN(c)) {
+                                  if (r === 0 && c === 0) label = 'Tech Name';
+                                  else if (r === 0 && c === 1) label = 'Tech ID';
+                                  else if (r === 1 && c === 0) label = 'Tech Type';
+                                  else if (r === 1 && c === 1) label = 'Tech TN';
+                                  else label = `Cell ${r}-${c}`;
+                                } else {
+                                  label = cellKey
+                                    .replace(/^cell_/, '')
+                                    .replace(/_/g, ' ')
+                                    .split(' ')
+                                    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+                                }
+                              }
                               
                               return (
                                 <div key={cellKey} className="space-y-1">

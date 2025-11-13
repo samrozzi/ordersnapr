@@ -886,18 +886,37 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         // Populate each field in the repeating group
         techFields.forEach((field: any) => {
           if (field.type === 'table_layout') {
-            // Populate table cells
+            // Populate table cells - try label-based first, then positional fallback
             const cellFields = findTableCellsByLabel(field);
             const tableCellData: Record<string, any> = {};
             
-            if (cellFields.name) tableCellData[cellFields.name.cellKey] = tech.techName || '';
-            if (cellFields.id) tableCellData[cellFields.id.cellKey] = tech.techId || '';
-            if (cellFields.type) tableCellData[cellFields.type.cellKey] = tech.techType || '';
-            if (cellFields.tn) tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
+            // Label-based mapping with broader key variants
+            if (cellFields.name) {
+              tableCellData[cellFields.name.cellKey] = tech.techName || tech.name || '';
+            }
+            if (cellFields.id) {
+              tableCellData[cellFields.id.cellKey] = tech.techId || tech.id || '';
+            }
+            if (cellFields.type) {
+              tableCellData[cellFields.type.cellKey] = tech.techType || tech.type || '';
+            }
+            if (cellFields.tn) {
+              tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
+            }
+            
+            // Positional fallback if label-based mapping didn't work
+            if (Object.keys(tableCellData).length === 0 && field.tableCells) {
+              // Try positional mapping: 0-0=name, 0-1=id, 1-0=type, 1-1=tn
+              const cellKeys = Object.keys(field.tableCells);
+              if (cellKeys.includes('0-0')) tableCellData['0-0'] = tech.techName || tech.name || '';
+              if (cellKeys.includes('0-1')) tableCellData['0-1'] = tech.techId || tech.id || '';
+              if (cellKeys.includes('1-0')) tableCellData['1-0'] = tech.techType || tech.type || '';
+              if (cellKeys.includes('1-1')) tableCellData['1-1'] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
+            }
             
             instanceData[field.key] = tableCellData;
           } else if (field.type === 'time' || field.key?.includes('call_time') || field.key?.includes('time')) {
-            instanceData[field.key] = tech.callTime || '';
+            instanceData[field.key] = tech.callTime || tech.time || '';
           } else if (field.type === 'textarea' || field.key?.includes('notes') || field.key?.includes('note')) {
             instanceData[field.key] = tech.notes || '';
           } else {

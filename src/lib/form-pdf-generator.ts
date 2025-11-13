@@ -305,44 +305,67 @@ export const generateFormPDF = async (
                     yPos += 6;
                   }
                   
-                  // Build table from table_layout data
-                  // Determine dimensions from subField or infer from data
-                  const numRows = subField.tableRows || 2;
-                  const numCols = subField.tableColumns || 2;
-                  
-                  // Build table body with labels from tableCells
-                  const tableBody: string[][] = [];
-                  const entries = Object.entries(subValue);
-                  
-                  // Organize cells into rows
-                  for (let r = 0; r < numRows; r++) {
-                    const row: string[] = [];
-                    for (let c = 0; c < numCols; c++) {
-                      const cellKey = `${r}-${c}`;
-                      const cellValue = entries.find(([k]) => k === cellKey)?.[1] || '';
-                      
-                      // Get label from tableCells if available
-                      const cellConfig = subField.tableCells?.[cellKey];
-                      const label = cellConfig?.field?.label || `Cell ${r}-${c}`;
-                      
-                      row.push(`${label}: ${cellValue}`);
+                  try {
+                    // Build table from table_layout data
+                    // Determine dimensions from subField or infer from data
+                    const numRows = subField.tableRows || 2;
+                    const numCols = subField.tableColumns || 2;
+                    
+                    // Build table body with labels from tableCells
+                    const tableBody: string[][] = [];
+                    const entries = Object.entries(subValue);
+                    
+                    // Organize cells into rows
+                    for (let r = 0; r < numRows; r++) {
+                      const row: string[] = [];
+                      for (let c = 0; c < numCols; c++) {
+                        const cellKey = `${r}-${c}`;
+                        const cellValue = entries.find(([k]) => k === cellKey)?.[1] || '';
+                        
+                        // Get label from tableCells if available, with positional fallback
+                        const cellConfig = subField.tableCells?.[cellKey];
+                        let label = cellConfig?.field?.label;
+                        
+                        // Positional fallback labels
+                        if (!label) {
+                          if (r === 0 && c === 0) label = 'Tech Name';
+                          else if (r === 0 && c === 1) label = 'Tech ID';
+                          else if (r === 1 && c === 0) label = 'Tech Type';
+                          else if (r === 1 && c === 1) label = 'Tech TN';
+                          else label = `Cell ${r}-${c}`;
+                        }
+                        
+                        row.push(`${label}: ${cellValue}`);
+                      }
+                      tableBody.push(row);
                     }
-                    tableBody.push(row);
+                    
+                    // Render using autoTable
+                    (pdf as any).autoTable({
+                      startY: yPos,
+                      body: tableBody,
+                      theme: 'grid',
+                      styles: {
+                        fontSize: 9,
+                        cellPadding: 3,
+                      },
+                      margin: { left: margin + 16 },
+                    });
+                    
+                    yPos = (pdf as any).lastAutoTable.finalY + 6;
+                  } catch (error) {
+                    console.error('[PDF] Error rendering table, using fallback:', error);
+                    // Fallback to bulleted list
+                    pdf.setFontSize(9);
+                    pdf.setFont("helvetica", "normal");
+                    Object.entries(subValue).forEach(([cellKey, cellValue]) => {
+                      const cellConfig = subField.tableCells?.[cellKey];
+                      const label = cellConfig?.field?.label || cellKey;
+                      pdf.text(`• ${label}: ${cellValue}`, margin + 16, yPos);
+                      yPos += 5;
+                    });
+                    yPos += 4;
                   }
-                  
-                  // Render using autoTable
-                  (pdf as any).autoTable({
-                    startY: yPos,
-                    body: tableBody,
-                    theme: 'grid',
-                    styles: {
-                      fontSize: 9,
-                      cellPadding: 3,
-                    },
-                    margin: { left: margin + 16 },
-                  });
-                  
-                  yPos = (pdf as any).lastAutoTable.finalY + 6;
                 } else {
                   // Regular field rendering
                   const fontStyle = subField.boldText ? "bold" : "normal";

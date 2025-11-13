@@ -290,9 +290,18 @@ export const generateFormDOCX = async (
                       const cellKey = `${r}-${c}`;
                       const cellValue = subValue[cellKey] || '';
                       
-                      // Get label from tableCells if available
+                      // Get label from tableCells if available, with positional fallback
                       const cellConfig = subField.tableCells?.[cellKey];
-                      const label = cellConfig?.field?.label || `Cell ${r}-${c}`;
+                      let label = cellConfig?.field?.label;
+                      
+                      // Positional fallback labels
+                      if (!label) {
+                        if (r === 0 && c === 0) label = 'Tech Name';
+                        else if (r === 0 && c === 1) label = 'Tech ID';
+                        else if (r === 1 && c === 0) label = 'Tech Type';
+                        else if (r === 1 && c === 1) label = 'Tech TN';
+                        else label = `Cell ${r}-${c}`;
+                      }
                       
                       rowCells.push(
                         new TableCell({

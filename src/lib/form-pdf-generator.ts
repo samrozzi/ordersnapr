@@ -156,6 +156,24 @@ export const generateFormPDF = async (
             });
           }
           yPos += 3;
+        } else if (field.type === "checkbox") {
+          const isChecked = answer === true || answer === 'true';
+          
+          checkPageBreak(8);
+          
+          if (!field.hideLabel) {
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(10);
+            pdf.text(`${field.label}:`, margin + 5, yPos);
+            yPos += 6;
+          }
+          
+          // Draw checkbox with label
+          drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, false);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(9);
+          pdf.text(isChecked ? 'Checked' : 'Unchecked', margin + 15, yPos);
+          yPos += 8;
         } else if (field.type === "file" && Array.isArray(answer)) {
           // Photos will be added at the end
           pdf.setFontSize(10);
@@ -281,7 +299,7 @@ export const generateFormPDF = async (
             const yStart = yPos;
             
             // Check if alternating background should be applied
-            const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 0 && options.themeColor);
+            const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor);
             
             // Draw single background rectangle for entire entry BEHIND content
             if (applyAltBg) {

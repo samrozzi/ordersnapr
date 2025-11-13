@@ -301,12 +301,12 @@ export default function Forms() {
               </CarouselContent>
             </Carousel>
           ) : (
-            <div className="flex items-center gap-2 md:gap-1">
+            <div className="flex items-center gap-2 md:gap-1 overflow-x-auto scrollbar-hide">
               <Button
                 variant={activeTab === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('all')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 All
               </Button>
@@ -314,7 +314,7 @@ export default function Forms() {
                 variant={activeTab === 'mine' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('mine')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 Mine
               </Button>
@@ -322,7 +322,7 @@ export default function Forms() {
                 variant={activeTab === 'drafts' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('drafts')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 Drafts
               </Button>
@@ -330,7 +330,7 @@ export default function Forms() {
                 variant={activeTab === 'submitted' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('submitted')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 Submitted
               </Button>
@@ -338,7 +338,7 @@ export default function Forms() {
                 variant={activeTab === 'logged' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('logged')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 Logged
               </Button>
@@ -346,8 +346,11 @@ export default function Forms() {
                 variant={activeTab === 'templates' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setActiveTab('templates')}
-                className="text-sm"
+                className="text-sm whitespace-nowrap flex-shrink-0"
               >
+                Templates
+              </Button>
+            </div>
                 Templates
               </Button>
             </div>
@@ -441,7 +444,7 @@ export default function Forms() {
                   <div className="space-y-2">
                     <label className="text-xs md:text-sm font-medium">Form Type</label>
                     <select
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="w-full h-12 min-h-[48px] rounded-md border border-input bg-background px-4 py-3 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring touch-manipulation"
                       value={formTypeFilter}
                       onChange={(e) => setFormTypeFilter(e.target.value)}
                     >

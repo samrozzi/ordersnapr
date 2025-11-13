@@ -136,15 +136,24 @@ export const generateFormPDF = async (
               pdf.text(label, margin + 15, yPos);
               yPos += 6;
             });
-          } else if (checklistValue && typeof checklistValue === "object") {
-            // Handle object format with checkbox rendering
-            const questions = (field as any).items || (field as any).options || [];
+        } else {
+          // Handle checklist fields - always show all questions
+          const questions = (field as any).items || (field as any).options || [];
+          
+          if (questions && questions.length > 0) {
+            // Get the checklist values if they exist
+            const checklistData = checklistValue && typeof checklistValue === "object" ? checklistValue : {};
+            
             questions.forEach((label: string, idx: number) => {
               checkPageBreak(8);
-              const status = checklistValue[idx];
+              const status = checklistData[idx];
               const statusStr = String(status || '').toUpperCase();
+              
+              // Only show checkmark for explicitly checked values
               const isChecked = statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE';
+              // Only show X for explicit N/A
               const isNA = statusStr === 'N/A';
+              // For NO, undefined, null, or empty - show empty checkbox
               
               // Draw checkbox
               drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);
@@ -156,6 +165,7 @@ export const generateFormPDF = async (
               yPos += 6;
             });
           }
+        }
           yPos += 3;
         } else if (field.type === "checkbox") {
           const isChecked = answer === true || answer === 'true';

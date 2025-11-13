@@ -1033,9 +1033,11 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               </p>
             )}
             <SmartFormImport
-              formType="job-audit"
+              formType={template.name?.toLowerCase().includes('overrun') ? 'overrun-report' : 'job-audit'}
               onDataExtracted={(data) => {
                 console.log('Smart Import - Raw extracted data:', data);
+                console.log('Template name:', template.name);
+                console.log('Detected formType:', template.name?.toLowerCase().includes('overrun') ? 'overrun-report' : 'job-audit');
 
                 // Handle dynamic population for technicianRows (if detected)
                 const technicianRows = (data as any).technicianRows;
@@ -1153,9 +1155,15 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       toast.error("No compatible field found. Add a Repeating Group with Table Layout to your form.");
                     }
                   }
+                  
+                  // For overrun-report, we're done - skip generic mapping to prevent data loss
+                  if (template.name?.toLowerCase().includes('overrun')) {
+                    console.log('Overrun report detected - skipping generic mapping to preserve technician data');
+                    return;
+                  }
                 }
 
-                // Create a mapping of extracted keys to form field keys
+                // Create a mapping of extracted keys to form field keys (for job-audit and ride-along)
                 const keyMapping: Record<string, string> = {};
                 
                 // Build mapping by finding fields with matching labels or keys (including table cells)

@@ -441,7 +441,7 @@ export default function Forms() {
                   <div className="space-y-2">
                     <label className="text-xs md:text-sm font-medium">Form Type</label>
                     <select
-                      className="w-full h-12 min-h-[48px] rounded-md border border-input bg-background px-4 py-3 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring touch-manipulation"
+                      className="w-full h-12 min-h-[48px] rounded-md border border-input bg-background px-4 py-3 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring touch-manipulation cursor-pointer relative z-20 pointer-events-auto active:scale-[0.98]"
                       value={formTypeFilter}
                       onChange={(e) => setFormTypeFilter(e.target.value)}
                     >

@@ -293,53 +293,86 @@ export const generateFormPDF = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
-                const fontStyle = subField.boldText ? "bold" : "normal";
-                const fontSize = parseFontSize(subField.fontSize);
-                console.log(`[PDF] Rendering subfield "${subField.label}" with fontSize: ${fontSize}pt, bold: ${subField.boldText}`);
-                pdf.setFont("helvetica", fontStyle);
-                pdf.setFontSize(fontSize);
-                
-                let displayValue = typeof subValue === 'boolean' 
-                  ? (subValue ? 'Yes' : 'No')
-                  : (subField.type === 'table_layout' && typeof subValue === 'object')
-                    ? Object.entries(subValue)
-                        .map(([cellKey, cellValue]) => {
-                          const label = cellKey
-                            .replace(/^cell_/, '')
-                            .replace(/_/g, ' ')
-                            .split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return `${label}: ${cellValue}`;
-                        })
-                        .join(' | ')
-                  : String(subValue);
-                
-                // Apply formatting
-                if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
-                  displayValue = normalizeTime(displayValue);
-                }
-                if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
-                  displayValue = formatDate(displayValue);
-                }
-                
-                // Build text with or without label
-                const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
-                const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
-                
-                lines.forEach((line: string) => {
-                  const xPosition = margin + 12;
-                  pdf.text(line, xPosition, yPos);
+                // Special handling for table_layout - render as actual table
+                if (subField.type === 'table_layout' && typeof subValue === 'object') {
+                  checkPageBreak(30);
                   
-                  // Add underline if needed
-                  if (subField.underlineText) {
-                    const textWidth = pdf.getTextWidth(line);
-                    pdf.setLineWidth(0.3);
-                    pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+                  // Show label if not hidden
+                  if (!subField.hideLabel && subField.label) {
+                    pdf.setFontSize(10);
+                    pdf.setFont("helvetica", "bold");
+                    pdf.text(subField.label, margin + 12, yPos);
+                    yPos += 6;
                   }
                   
-                  yPos += 5;
-                });
+                  // Build table from table_layout data
+                  const rows = subField.rows || [];
+                  const columns = subField.columns || [];
+                  
+                  if (rows.length > 0 && columns.length > 0) {
+                    const tableData: any[][] = [];
+                    
+                    rows.forEach((row: any, rowIndex: number) => {
+                      const rowData: any[] = [];
+                      columns.forEach((col: any, colIndex: number) => {
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        rowData.push(subValue[cellKey] || '');
+                      });
+                      tableData.push(rowData);
+                    });
+                    
+                    const headers = columns.map((col: any) => col.label || col.key || '');
+                    
+                    (pdf as any).autoTable({
+                      head: [headers],
+                      body: tableData,
+                      startY: yPos,
+                      theme: 'grid',
+                      styles: { fontSize: 9, cellPadding: 3 },
+                      headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+                      margin: { left: margin + 12, right: margin },
+                    });
+                    
+                    yPos = (pdf as any).lastAutoTable.finalY + 6;
+                  }
+                } else {
+                  // Regular field rendering
+                  const fontStyle = subField.boldText ? "bold" : "normal";
+                  const fontSize = parseFontSize(subField.fontSize);
+                  console.log(`[PDF] Rendering subfield "${subField.label}" with fontSize: ${fontSize}pt, bold: ${subField.boldText}`);
+                  pdf.setFont("helvetica", fontStyle);
+                  pdf.setFontSize(fontSize);
+                  
+                  let displayValue = typeof subValue === 'boolean' 
+                    ? (subValue ? 'Yes' : 'No')
+                    : String(subValue);
+                  
+                  // Apply formatting
+                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                    displayValue = normalizeTime(displayValue);
+                  }
+                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                    displayValue = formatDate(displayValue);
+                  }
+                  
+                  // Build text with or without label
+                  const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
+                  const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
+                  
+                  lines.forEach((line: string) => {
+                    const xPosition = margin + 12;
+                    pdf.text(line, xPosition, yPos);
+                  
+                    // Add underline if needed
+                    if (subField.underlineText) {
+                      const textWidth = pdf.getTextWidth(line);
+                      pdf.setLineWidth(0.3);
+                      pdf.line(xPosition, yPos + 0.5, xPosition + textWidth, yPos + 0.5);
+                    }
+                    
+                    yPos += 5;
+                  });
+                }
               }
             });
             

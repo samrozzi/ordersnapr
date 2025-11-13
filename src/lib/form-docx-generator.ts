@@ -259,20 +259,73 @@ export const generateFormDOCX = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
+                // Special handling for table_layout - render as actual table
+                if (subField.type === 'table_layout' && typeof subValue === 'object') {
+                  const rows = subField.rows || [];
+                  const columns = subField.columns || [];
+                  
+                  if (rows.length > 0 && columns.length > 0) {
+                    // Add table label if not hidden
+                    if (!subField.hideLabel && subField.label) {
+                      sections.push(
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: subField.label,
+                              bold: true,
+                            }),
+                          ],
+                          spacing: { before: 100, after: 50 },
+                        })
+                      );
+                    }
+                    
+                    // Build table rows
+                    const tableRows: any[] = [];
+                    
+                    // Header row
+                    tableRows.push(
+                      new TableRow({
+                        children: columns.map((col: any) => 
+                          new TableCell({
+                            children: [new Paragraph({ 
+                              children: [new TextRun({ text: col.label || col.key || '', bold: true })],
+                            })],
+                            shading: { fill: 'F0F0F0' },
+                          })
+                        ),
+                      })
+                    );
+                    
+                    // Data rows
+                    rows.forEach((row: any, rowIndex: number) => {
+                      tableRows.push(
+                        new TableRow({
+                          children: columns.map((col: any, colIndex: number) => {
+                            const cellKey = `${rowIndex}-${colIndex}`;
+                            return new TableCell({
+                              children: [new Paragraph(String(subValue[cellKey] || ''))],
+                            });
+                          }),
+                        })
+                      );
+                    });
+                    
+                    sections.push(
+                      new Table({
+                        rows: tableRows,
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        margins: { left: 200 },
+                      })
+                    );
+                    
+                    return; // Skip regular rendering for table_layout
+                  }
+                }
+                
+                // Regular field rendering
                 let displayValue = typeof subValue === 'boolean' 
                   ? (subValue ? 'Yes' : 'No')
-                  : (subField.type === 'table_layout' && typeof subValue === 'object')
-                    ? Object.entries(subValue)
-                        .map(([cellKey, cellValue]) => {
-                          const label = cellKey
-                            .replace(/^cell_/, '')
-                            .replace(/_/g, ' ')
-                            .split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return `${label}: ${cellValue}`;
-                        })
-                        .join(' | ')
                   : String(subValue);
                 
                 // Normalize time format

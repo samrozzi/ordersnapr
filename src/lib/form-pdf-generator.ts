@@ -142,8 +142,9 @@ export const generateFormPDF = async (
             questions.forEach((label: string, idx: number) => {
               checkPageBreak(8);
               const status = checklistValue[idx];
-              const isChecked = status === 'Yes' || status === 'OK' || status === 'true';
-              const isNA = status === 'N/A';
+              const statusStr = String(status || '').toUpperCase();
+              const isChecked = statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE';
+              const isNA = statusStr === 'N/A';
               
               // Draw checkbox
               drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);

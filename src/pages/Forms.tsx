@@ -428,7 +428,7 @@ export default function Forms() {
           <div className="md:hidden">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="default" className="w-full gap-2 h-10 px-4 text-sm">
+                <Button variant="outline" size="default" className="w-full gap-2 h-12 px-4 text-base min-h-[48px]">
                   <Filter className="h-4 w-4" />
                   Filters
                   {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}

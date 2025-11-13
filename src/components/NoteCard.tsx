@@ -58,7 +58,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow relative"
+      className="cursor-pointer hover:shadow-md transition-shadow relative max-w-full"
       style={{ backgroundColor: note.background_color || undefined }}
       onClick={onClick}
     >

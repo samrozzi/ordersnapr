@@ -183,42 +183,42 @@ const Notes = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-1 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
         <Card>
-          <CardHeader className="pb-0.5 px-2 md:pb-2 md:px-6">
-            <CardDescription className="text-xs md:text-sm">Total Notes</CardDescription>
+          <CardHeader className="pb-1 px-1.5 md:pb-2 md:px-6">
+            <CardDescription className="text-[10px] md:text-sm">Total Notes</CardDescription>
           </CardHeader>
-          <CardContent className="pt-1 px-2 md:pt-3 md:px-6">
-            <div className="text-xl md:text-2xl font-bold">{notes.length}</div>
+          <CardContent className="pt-0 px-1.5 md:pt-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold">{notes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-0.5 px-2 md:pb-2 md:px-6">
-            <CardDescription className="text-xs md:text-sm">Pinned</CardDescription>
+          <CardHeader className="pb-1 px-1.5 md:pb-2 md:px-6">
+            <CardDescription className="text-[10px] md:text-sm">Pinned</CardDescription>
           </CardHeader>
-          <CardContent className="pt-1 px-2 md:pt-3 md:px-6">
-            <div className="text-xl md:text-2xl font-bold">{pinnedNotes.length}</div>
+          <CardContent className="pt-0 px-1.5 md:pt-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold">{pinnedNotes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-0.5 px-2 md:pb-2 md:px-6">
-            <CardDescription className="text-xs md:text-sm">Favorites</CardDescription>
+          <CardHeader className="pb-1 px-1.5 md:pb-2 md:px-6">
+            <CardDescription className="text-[10px] md:text-sm">Favorites</CardDescription>
           </CardHeader>
-          <CardContent className="pt-1 px-2 md:pt-3 md:px-6">
-            <div className="text-xl md:text-2xl font-bold">{favoriteNotes.length}</div>
+          <CardContent className="pt-0 px-1.5 md:pt-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold">{favoriteNotes.length}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-0.5 px-2 md:pb-2 md:px-6">
-            <CardDescription className="text-xs md:text-sm">
+          <CardHeader className="pb-1 px-1.5 md:pb-2 md:px-6">
+            <CardDescription className="text-[10px] md:text-sm">
               {canCreateNote ? "Notes Remaining" : "Upgrade for Unlimited"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-1 px-2 md:pt-3 md:px-6">
-            <div className="text-xl md:text-2xl font-bold">
+          <CardContent className="pt-0 px-1.5 md:pt-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold">
               {notesRemaining === Infinity ? "∞" : notesRemaining}
             </div>
           </CardContent>
@@ -291,7 +291,7 @@ const Notes = () => {
 
         <TabsContent value="all" className="mt-4">
           {viewMode === 'list' ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {sortedNotes.map((note) => (
                 <NoteCard
                   key={note.id}
@@ -315,7 +315,7 @@ const Notes = () => {
 
         <TabsContent value="pinned" className="mt-4">
           {viewMode === 'list' ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {pinnedNotes.map((note) => (
                 <NoteCard
                   key={note.id}
@@ -339,7 +339,7 @@ const Notes = () => {
 
         <TabsContent value="favorites" className="mt-4">
           {viewMode === 'list' ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {favoriteNotes.map((note) => (
                 <NoteCard
                   key={note.id}

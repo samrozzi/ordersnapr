@@ -6,6 +6,7 @@ import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useFreeTierLimits } from "@/hooks/use-free-tier-limits";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import { useNotes } from "@/hooks/use-notes";
 import { FreeTierBadge } from "@/components/FreeTierBadge";
 import { FeatureModule } from "@/hooks/use-features";
 import {
@@ -29,6 +30,7 @@ import {
   FolderOpen,
   ShoppingCart,
   BarChart3,
+  StickyNote,
 } from "lucide-react";
 
 interface QuickAction {
@@ -62,6 +64,7 @@ export function QuickAddButton() {
   const { isAtLimit } = useFreeTierLimits();
   const { enabledNavItems } = useFeatureNavigation();
   const { activeOrgId } = useActiveOrg();
+  const { canCreateNote, createNote } = useNotes();
 
   // Helper function to get org-aware localStorage key
   const getUserFeaturesKey = (userId: string, activeOrgId: string | null): string => {
@@ -150,6 +153,23 @@ export function QuickAddButton() {
     navigate(path);
   };
 
+  const handleNewNote = async () => {
+    setOpen(false);
+    if (!canCreateNote) {
+      navigate('/notes');
+      return;
+    }
+    try {
+      const newNote = await createNote({
+        title: "Untitled Note",
+        content: { blocks: [{ id: `block-${Date.now()}`, type: 'paragraph', content: '' }] },
+      });
+      navigate(`/notes?id=${newNote.id}`);
+    } catch (error) {
+      navigate('/notes');
+    }
+  };
+
   if (actions.length === 0) {
     return null;
   }
@@ -160,7 +180,11 @@ export function QuickAddButton() {
         <DropdownMenuTrigger asChild>
           <Button
             size="lg"
-            className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+            className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all"
+            style={{
+              transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+              transition: 'transform 200ms ease'
+            }}
           >
             <Plus className="h-6 w-6" />
           </Button>
@@ -168,6 +192,18 @@ export function QuickAddButton() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>Quick Add</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          
+          {/* New Note - Always first */}
+          <DropdownMenuItem
+            onClick={handleNewNote}
+            className="flex items-center gap-2"
+          >
+            <StickyNote className="h-4 w-4" />
+            <span>New Note</span>
+          </DropdownMenuItem>
+          
+          {actions.length > 0 && <DropdownMenuSeparator />}
+          
           {actions.map((action) => {
             const Icon = action.icon;
             const config = FEATURE_CONFIG[action.feature];

@@ -309,6 +309,13 @@ export const generateFormPDF = async (
                   const rows = subField.rows || [];
                   const columns = subField.columns || [];
                   
+                  console.log(`[PDF] Table layout data:`, {
+                    label: subField.label,
+                    rowsLength: rows.length,
+                    columnsLength: columns.length,
+                    valueKeys: Object.keys(subValue)
+                  });
+                  
                   if (rows.length > 0 && columns.length > 0) {
                     const tableData: any[][] = [];
                     
@@ -334,6 +341,32 @@ export const generateFormPDF = async (
                     });
                     
                     yPos = (pdf as any).lastAutoTable.finalY + 6;
+                  } else {
+                    // Fallback: Render as inline text if table structure not properly defined
+                    console.log(`[PDF] Using fallback - rendering table_layout as text`);
+                    pdf.setFontSize(9);
+                    pdf.setFont("helvetica", "normal");
+                    
+                    const cellText = Object.entries(subValue)
+                      .map(([cellKey, cellValue]) => {
+                        const label = cellKey
+                          .replace(/^cell_/, '')
+                          .replace(/^(\d+)-(\d+)$/, 'Cell $1-$2')
+                          .replace(/_/g, ' ')
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ');
+                        return `${label}: ${cellValue}`;
+                      })
+                      .join(' | ');
+                    
+                    const lines = pdf.splitTextToSize(cellText, pageWidth - margin - 25);
+                    lines.forEach((line: string) => {
+                      checkPageBreak(6);
+                      pdf.text(line, margin + 16, yPos);
+                      yPos += 5;
+                    });
+                    yPos += 3;
                   }
                 } else {
                   // Regular field rendering

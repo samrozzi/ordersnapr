@@ -81,6 +81,7 @@ export const SharedFormattingToolbar = ({
     <div 
       data-formatting-toolbar
       className="relative z-20 bg-background/95 backdrop-blur-sm border-b border-border p-2 shadow-sm"
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button

@@ -1239,9 +1239,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             fontStyle === 'mono' && "font-mono",
             smallText && "text-sm"
           )}
-        style={{
-          backgroundColor: localBackgroundColor || 'transparent'
-        }}
+          style={{
+            backgroundColor: localBackgroundColor || 'transparent',
+            touchAction: 'manipulation',
+            userSelect: 'text',
+            WebkitUserSelect: 'text'
+          }}
         >
           <div className={cn(
             "mx-auto space-y-4",

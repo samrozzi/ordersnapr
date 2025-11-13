@@ -120,20 +120,41 @@ export const generateFormPDF = async (
           }
           
           if (Array.isArray(checklistValue)) {
-            // Handle array format with checkbox rendering
+            // Handle array format with badge rendering
             checklistValue.forEach((item: any) => {
               checkPageBreak(8);
               const label = item.label || 'Item';
-              const isChecked = item.checked === true || item.status === 'Yes' || item.status === 'OK';
-              const isNA = item.status === 'N/A';
+              const statusStr = String(item.status || '').toUpperCase();
               
-              // Draw checkbox
-              drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);
+              let responseText = '';
+              let responseColor: [number, number, number] = [128, 128, 128];
               
-              // Draw label
+              if (statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE') {
+                responseText = 'YES';
+                responseColor = [34, 197, 94];
+              } else if (statusStr === 'NO') {
+                responseText = 'NO';
+                responseColor = [239, 68, 68];
+              } else if (statusStr === 'N/A') {
+                responseText = 'N/A';
+                responseColor = [107, 114, 128];
+              }
+              
               pdf.setFont("helvetica", "normal");
               pdf.setFontSize(9);
-              pdf.text(label, margin + 15, yPos);
+              pdf.setTextColor(40, 40, 40);
+              pdf.text(label, margin + 5, yPos);
+              
+              if (responseText) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(9);
+                pdf.setTextColor(responseColor[0], responseColor[1], responseColor[2]);
+                const textWidth = pdf.getTextWidth(responseText);
+                const rightMargin = pageWidth - margin - 10;
+                pdf.text(responseText, rightMargin - textWidth, yPos);
+              }
+              
+              pdf.setTextColor(40, 40, 40);
               yPos += 6;
             });
         } else {
@@ -149,19 +170,39 @@ export const generateFormPDF = async (
               const status = checklistData[idx];
               const statusStr = String(status || '').toUpperCase();
               
-              // Only show checkmark for explicitly checked values
-              const isChecked = statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE';
-              // Only show X for explicit N/A
-              const isNA = statusStr === 'N/A';
-              // For NO, undefined, null, or empty - show empty checkbox
+              // Determine response text and color
+              let responseText = '';
+              let responseColor: [number, number, number] = [128, 128, 128]; // Default grey for blank
               
-              // Draw checkbox
-              drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);
+              if (statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE') {
+                responseText = 'YES';
+                responseColor = [34, 197, 94]; // Green
+              } else if (statusStr === 'NO') {
+                responseText = 'NO';
+                responseColor = [239, 68, 68]; // Red
+              } else if (statusStr === 'N/A') {
+                responseText = 'N/A';
+                responseColor = [107, 114, 128]; // Grey
+              }
               
-              // Draw label
+              // Draw question label on the left
               pdf.setFont("helvetica", "normal");
               pdf.setFontSize(9);
-              pdf.text(label, margin + 15, yPos);
+              pdf.setTextColor(40, 40, 40);
+              pdf.text(label, margin + 5, yPos);
+              
+              // Draw response badge on the right if there is a response
+              if (responseText) {
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(9);
+                pdf.setTextColor(responseColor[0], responseColor[1], responseColor[2]);
+                const textWidth = pdf.getTextWidth(responseText);
+                const rightMargin = pageWidth - margin - 10;
+                pdf.text(responseText, rightMargin - textWidth, yPos);
+              }
+              
+              // Reset text color
+              pdf.setTextColor(40, 40, 40);
               yPos += 6;
             });
           }

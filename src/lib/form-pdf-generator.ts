@@ -102,9 +102,17 @@ export const generateFormPDF = async (
       // Field details
       for (const field of section.fields) {
         const answer = submission.answers?.[field.key];
-        
-        // Skip empty non-checklist fields (always show checklist questions even if unanswered)
-        if (!answer && field.type !== "checklist") continue;
+
+        // Robust emptiness check; do not skip checklist/checkbox fields
+        const isNullish = answer === undefined || answer === null;
+        const isEmptyString = typeof answer === 'string' && answer.trim() === '';
+        const isEmptyArray = Array.isArray(answer) && answer.length === 0;
+        const isPlainObject = typeof answer === 'object' && answer !== null && !Array.isArray(answer);
+        const isEmptyObject = isPlainObject && Object.keys(answer).length === 0;
+
+        if ((isNullish || isEmptyString || isEmptyArray || isEmptyObject) && field.type !== 'checklist' && field.type !== 'checkbox') {
+          continue;
+        }
 
         checkPageBreak(10);
 
@@ -121,15 +129,23 @@ export const generateFormPDF = async (
           }
           
           if (Array.isArray(checklistValue)) {
-            // Handle array format with badge rendering
-            checklistValue.forEach((item: any) => {
+            // Ensure we render all questions from the template, mapping answers by label
+            const questions = (field as any).items || (field as any).options || [];
+            const answerMap = new Map<string, any>(
+              (Array.isArray(checklistValue) ? checklistValue : [])
+                .filter((i: any) => i && typeof i.label === 'string')
+                .map((i: any) => [String(i.label).trim().toLowerCase(), i])
+            );
+
+            questions.forEach((label: string) => {
               checkPageBreak(8);
-              const label = item.label || 'Item';
-              const statusStr = String(item.status || '').toUpperCase();
-              
+              const key = String(label).trim().toLowerCase();
+              const item = answerMap.get(key);
+              const statusStr = String(item?.status || '').toUpperCase();
+
               let responseText = '';
               let responseColor: [number, number, number] = [128, 128, 128];
-              
+
               if (statusStr === 'YES' || statusStr === 'OK' || statusStr === 'TRUE') {
                 responseText = 'YES';
                 responseColor = [34, 197, 94];
@@ -140,12 +156,12 @@ export const generateFormPDF = async (
                 responseText = 'N/A';
                 responseColor = [107, 114, 128];
               }
-              
+
               pdf.setFont("helvetica", "normal");
               pdf.setFontSize(9);
               pdf.setTextColor(40, 40, 40);
               pdf.text(label, margin + 5, yPos);
-              
+
               if (responseText) {
                 pdf.setFont("helvetica", "bold");
                 pdf.setFontSize(9);
@@ -154,7 +170,7 @@ export const generateFormPDF = async (
                 const rightMargin = pageWidth - margin - 10;
                 pdf.text(responseText, rightMargin - textWidth, yPos);
               }
-              
+
               pdf.setTextColor(40, 40, 40);
               yPos += 6;
             });

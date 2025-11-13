@@ -382,7 +382,7 @@ const Notes = () => {
 
       {/* Optimized Note Editor */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && handleCloseNote()}>
-        <DialogContent hideClose className="max-w-5xl h-screen md:h-[90vh] p-0 md:rounded-lg rounded-none">
+        <DialogContent hideClose className="max-w-5xl h-[100svh] md:h-[90vh] p-0 md:rounded-lg rounded-none">
           {selectedNote && (
             <OptimizedNoteEditor
               note={selectedNote}

@@ -974,11 +974,11 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
 
   return (
     <EditorFocusProvider>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-[100svh] md:h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={onClose}>
+        <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-1">
@@ -1055,19 +1055,19 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
                     <Type className="h-3 w-3 mr-1" />
                     Serif
                   </Button>
-                  <Button 
-                    variant={fontStyle === 'mono' ? "default" : "outline"} 
-                    size="sm" 
-                    className="flex-1 text-xs"
-                    onClick={() => handleFontStyleChange('mono')}
-                  >
-                    <Type className="h-3 w-3 mr-1" />
-                    Mono
-                  </Button>
-                </div>
+            <Button 
+              variant={fontStyle === 'mono' ? "default" : "outline"} 
+              size="sm" 
+              className="flex-1 text-xs"
+              onClick={() => handleFontStyleChange('mono')}
+            >
+              <Type className="h-3 w-3 mr-1" />
+              Mono
+            </Button>
+          </div>
 
-                {/* Customization */}
-                <div className="py-1">
+          {/* Customization */}
+          <div className="py-1">
                   <DropdownMenuItem onClick={handleAddBanner}>
                     <ImageIcon className="h-4 w-4 mr-2" />
                     Add Banner
@@ -1228,15 +1228,18 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
           </div>
         </div>
 
+        {/* Formatting Toolbar - Only show when not locked */}
+        {!locked && <SharedFormattingToolbar />}
+
         {/* Content */}
         <div 
           className={cn(
-            "flex-1 overflow-y-auto overflow-x-hidden p-8 transition-colors duration-200",
+            "flex-1 overflow-y-auto overflow-x-hidden p-8 transition-colors duration-200 pb-safe",
             fontStyle === 'serif' && "font-serif",
             fontStyle === 'mono' && "font-mono",
             smallText && "text-sm"
           )}
-        style={{ 
+        style={{
           backgroundColor: localBackgroundColor || 'transparent'
         }}
         >

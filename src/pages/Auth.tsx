@@ -21,70 +21,60 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        // Check user profile for onboarding status and approval
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("approval_status, onboarding_completed, organization_id")
-          .eq("id", session.user.id)
-          .single();
-
-        // If onboarding not completed, redirect to onboarding
-        if (!profile?.onboarding_completed) {
-          navigate("/onboarding");
-          return;
-        }
-
-        // If user has an organization
-        if (profile.organization_id) {
-          // Organization users need approval
-          if (profile.approval_status === "approved") {
-            navigate("/dashboard");
-          } else {
-            navigate("/pending-approval");
-          }
-        } else {
-          // Free tier users (no organization) go to dashboard
-          navigate("/dashboard");
-        }
+    // Set up auth state listener FIRST (synchronous, no async calls)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
       }
-    });
+    );
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) {
-        // Check user profile for onboarding status and approval
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("approval_status, onboarding_completed, organization_id")
-          .eq("id", session.user.id)
-          .single();
-
-        // If onboarding not completed, redirect to onboarding
-        if (!profile?.onboarding_completed) {
-          navigate("/onboarding");
-          return;
-        }
-
-        // If user has an organization
-        if (profile.organization_id) {
-          // Organization users need approval
-          if (profile.approval_status === "approved") {
-            navigate("/dashboard");
-          } else {
-            navigate("/pending-approval");
-          }
-        } else {
-          // Free tier users (no organization) go to dashboard
-          navigate("/dashboard");
-        }
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
+
+  // Separate effect to handle redirects based on session
+  useEffect(() => {
+    if (!session) return;
+
+    // Defer Supabase queries to prevent deadlock
+    const timeoutId = setTimeout(async () => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approval_status, onboarding_completed, organization_id")
+          .eq("id", session.user.id)
+          .single();
+
+        // If onboarding not completed, redirect to onboarding
+        if (!profile?.onboarding_completed) {
+          navigate("/onboarding");
+          return;
+        }
+
+        // If user has an organization
+        if (profile.organization_id) {
+          // Organization users need approval
+          if (profile.approval_status === "approved") {
+            navigate("/dashboard");
+          } else {
+            navigate("/pending-approval");
+          }
+        } else {
+          // Free tier users (no organization) go to dashboard
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking profile:", error);
+        toast.error("Failed to check profile status");
+      }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [session, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();

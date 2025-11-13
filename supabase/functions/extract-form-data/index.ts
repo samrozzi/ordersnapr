@@ -81,15 +81,30 @@ serve(async (req) => {
         };
 
     const systemPrompt = formType === 'job-audit' 
-      ? `Extract data from AT&T job audit inspection form. 
-CUSTOMER = homeowner/business receiving service (e.g., McKinzey Sayers).
-TECHNICIAN = AT&T field tech who performed the work.
-CAN BE REACHED = phone, email, or contact method for customer.
+      ? `Extract data from AT&T job audit inspection form.
 
-IMPORTANT - DETECT TABULAR DATA:
-If you see a table with multiple rows of technicians (columns like Tech ID, Tech Name, Phone, Type, BAN), 
-extract ALL rows as an array in technicianRows. Each row should be an object with: techId, techName, techPhone, techType, ban.
-Example: If table has 4 technicians, return array with 4 objects. If 20 technicians, return 20 objects.
+IMPORTANT - PERSON ROLES:
+- CUSTOMER/ACCOUNT HOLDER = Person whose name appears at the top or in account info area (e.g., "HARRIS, ANTHONY" above a table). This is NOT the technician.
+- TECHNICIAN = Field tech from the FIRST DATA ROW of any technician table (not header row).
+
+TECHNICIAN TABLE EXTRACTION:
+If you see a table with columns like "Tech ID", "Tech Name", "Phone", "Type", "BAN":
+1. Skip any header rows that just repeat column names
+2. Extract the FIRST DATA ROW as the primary technician:
+   - technicianName = full name from first data row (e.g., "Adside, Devy" → format as "Devy Adside")
+   - Extract corresponding Tech ID, Phone, Type from that same row
+3. Extract ALL data rows (including the first) into technicianRows array
+
+Example:
+If table shows:
+- Header: "HARRIS, ANTHONY November 12, 2025"  ← This is the customer/account
+- Row 1: DA4435 | Adside, Devy | 704-605-4138 | PT  ← Extract this for primary fields
+- Row 2: EB6080 | Barber, Elmer | 704-724-5817 | ST
+Then:
+- customerName = "Anthony Harris"
+- technicianName = "Devy Adside"
+- accountNumber from top area if present
+- technicianRows = [Row 1 object, Row 2 object, ...]
 
 Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits only.`
       : `Extract data from AT&T ride-along observation form. 

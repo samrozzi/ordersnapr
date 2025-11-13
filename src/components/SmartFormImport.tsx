@@ -318,24 +318,26 @@ export const SmartFormImport = ({ formType, onDataExtracted }: SmartFormImportPr
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm">Extracted Data (Review & Edit)</h4>
                   <div className="grid gap-3">
-                    {Object.entries(extractedData).map(([key, value]) => (
-                      <div key={key} className="space-y-1">
-                        <Label htmlFor={`extracted-${key}`} className="text-xs">
-                          {getFieldLabel(key)}
-                        </Label>
-                        <Input
-                          id={`extracted-${key}`}
-                          value={value as string}
-                          onChange={(e) => {
-                            setExtractedData({
-                              ...extractedData,
-                              [key]: e.target.value
-                            });
-                          }}
-                          className="h-9"
-                        />
-                      </div>
-                    ))}
+                    {Object.entries(extractedData)
+                      .filter(([key]) => key !== 'technicianRows')
+                      .map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <Label htmlFor={`extracted-${key}`} className="text-xs">
+                            {getFieldLabel(key)}
+                          </Label>
+                          <Input
+                            id={`extracted-${key}`}
+                            value={value as string}
+                            onChange={(e) => {
+                              setExtractedData({
+                                ...extractedData,
+                                [key]: e.target.value
+                              });
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                      ))}
                   </div>
                 </div>
               </ScrollArea>

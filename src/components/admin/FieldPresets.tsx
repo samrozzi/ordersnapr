@@ -84,7 +84,7 @@ export const fieldPresets: PresetStructure[] = [
       {
         id: crypto.randomUUID(),
         key: "call_notes",
-        type: "text",
+        type: "textarea",
         label: "",
         hideLabel: true,
         placeholder: "Add notes here...",

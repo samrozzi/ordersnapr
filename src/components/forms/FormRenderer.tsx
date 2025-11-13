@@ -14,7 +14,7 @@ import { FileUploadField } from "./FileUploadField";
 import { SignatureField } from "./SignatureField";
 import { AddressField, AddressValue } from "./AddressField";
 import { SmartFormImport } from "@/components/SmartFormImport";
-import { FormTemplate } from "@/hooks/use-form-templates";
+import { FormTemplate, useUpdateTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
 import { Loader2, Plus, X, CloudOff, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -79,10 +79,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [isSaving, setIsSaving] = useState(false);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [recoverableData, setRecoverableData] = useState<any>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<any>(null);
   
   const { isOnline, lastOnline } = useOnlineStatus();
   const createMutation = useCreateSubmission();
   const updateMutation = useUpdateSubmission();
+  const updateTemplate = useUpdateTemplate();
   const creatingDraftRef = useRef(false);
 
   // Helper function to initialize checklist with N/A defaults
@@ -773,6 +776,70 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     }
   };
 
+  const handleUpgradeTemplate = async () => {
+    if (!template || !pendingImportData) return;
+    
+    setShowUpgradeDialog(false);
+    toast.loading('Upgrading template...');
+    
+    try {
+      // Find the section with technician fields
+      const updatedSchema = JSON.parse(JSON.stringify(template.schema));
+      let targetSection = updatedSchema.sections[0]; // Usually first section
+      
+      // Find existing tech fields to move into repeating group
+      const techFieldIndices: number[] = [];
+      const techFields: any[] = [];
+      
+      targetSection.fields.forEach((field: any, index: number) => {
+        const label = (field.label || '').toLowerCase();
+        if (label.includes('tech') || label.includes('call') || field.type === 'table_layout') {
+          techFieldIndices.push(index);
+          techFields.push(field);
+        }
+      });
+      
+      // Create new repeating group with those fields
+      const repeatingGroup = {
+        type: 'repeating_group',
+        key: 'technicians',
+        label: 'Technician Entry',
+        required: false,
+        minInstances: 1,
+        maxInstances: 50,
+        fields: techFields.map((f: any) => ({ ...f }))
+      };
+      
+      // Remove old fields (in reverse order to maintain indices)
+      techFieldIndices.reverse().forEach(index => {
+        targetSection.fields.splice(index, 1);
+      });
+      
+      // Add repeating group
+      targetSection.fields.push(repeatingGroup);
+      
+      // Update template
+      await updateTemplate.mutateAsync({
+        id: template.id,
+        schema: updatedSchema
+      });
+      
+      toast.dismiss();
+      toast.success('Template upgraded! Please re-import your image.');
+      setPendingImportData(null);
+      
+      // Force page reload to get updated template
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Template upgrade failed:', error);
+      toast.dismiss();
+      toast.error('Failed to upgrade template');
+    }
+  };
+
   const renderField = (field: any) => {
     const value = answers[field.key];
 
@@ -1187,53 +1254,13 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       return;
                     }
                   } else {
-                    // No repeating group found - inform user
-                    console.warn('Smart Import - No repeating group found for multiple technicians');
-                    toast.warning(`Multiple technicians detected (${technicianRows.length}). Add a "Repeating Group" to your template to import all entries.`);
-                    // Continue to fallback to populate first tech only
-                    // Fallback: Look for a top-level table_layout
-                    let topLevelTable: any = null;
-                    for (const section of template.schema.sections) {
-                      const tableField = section.fields.find((f: any) => f.type === 'table_layout');
-                      if (tableField) {
-                        topLevelTable = tableField;
-                        break;
-                      }
-                    }
-                    
-                    if (topLevelTable) {
-                      const firstTech = technicianRows[0];
-                      const cellFields = findTableCellsByLabel(topLevelTable);
-                      const tableCellData: Record<string, any> = {};
-                      
-                      if (cellFields.name) {
-                        tableCellData[cellFields.name.cellKey] = firstTech.techName || '';
-                      }
-                      if (cellFields.id) {
-                        tableCellData[cellFields.id.cellKey] = firstTech.techId || '';
-                      }
-                      if (cellFields.type) {
-                        tableCellData[cellFields.type.cellKey] = firstTech.techType || '';
-                      }
-                      if (cellFields.tn) {
-                        tableCellData[cellFields.tn.cellKey] = firstTech.techPhone || firstTech.techTn || '';
-                      }
-                      
-                      setAnswers(prev => ({
-                        ...prev,
-                        [topLevelTable.key]: tableCellData
-                      }));
-                      
-                      if (technicianRows.length > 1) {
-                        toast.warning(`Populated table with first technician. Add a Repeating Group with Table Layout for all ${technicianRows.length} entries.`);
-                      } else {
-                        toast.success('Table populated with technician data!');
-                      }
-                    } else {
-                      toast.error("No compatible field found. Add a Repeating Group with Table Layout to your form.");
-                    }
+                    // No repeating group found - offer to upgrade template
+                    console.log('Smart Import - No repeating group found, offering template upgrade');
+                    setPendingImportData({ technicianRows, extractedData: data });
+                    setShowUpgradeDialog(true);
+                    return;
                   }
-                  
+                   
                   // For overrun-report, we're done - skip generic mapping to prevent data loss
                   if (template.name?.toLowerCase().includes('overrun')) {
                     console.log('Overrun report detected - skipping generic mapping to preserve technician data');
@@ -1837,6 +1864,33 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
           Submit
         </Button>
       </div>
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upgrade Template for Multiple Entries?</AlertDialogTitle>
+            <AlertDialogDescription>
+              We detected {pendingImportData?.technicianRows?.length || 0} technicians in your image, but this template can only store one entry.
+              <br /><br />
+              Would you like to automatically upgrade the template to support multiple technician entries? This will:
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>Create a "Technician Entry" repeating section</li>
+                <li>Move existing tech fields into this section</li>
+                <li>Allow you to add up to 50 technician entries</li>
+                <li>Require you to re-import after upgrade</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setShowUpgradeDialog(false); setPendingImportData(null); }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpgradeTemplate}>
+              Upgrade Template
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

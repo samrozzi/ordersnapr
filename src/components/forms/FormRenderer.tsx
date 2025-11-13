@@ -352,6 +352,44 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     }));
   };
 
+  // Helper to guarantee Notes field after Call time
+  const ensureNotesAfterCallTime = (subFields: any[]) => {
+    const orderedFields = [...subFields];
+    
+    // Find Call time field (time type or label contains "call" + "time")
+    const callTimeIdx = orderedFields.findIndex((f: any) => {
+      if (f.type === 'time') return true;
+      const label = (f.label || '').toLowerCase();
+      return label.includes('call') && label.includes('time');
+    });
+    
+    if (callTimeIdx === -1) return orderedFields;
+    
+    // Check if Notes field already exists right after Call time
+    const nextIdx = callTimeIdx + 1;
+    const nextField = orderedFields[nextIdx];
+    
+    if (nextField) {
+      const label = (nextField.label || '').toLowerCase();
+      const key = (nextField.key || '').toLowerCase();
+      if (nextField.type === 'textarea' || label.includes('note') || key.includes('note')) {
+        return orderedFields; // Already has Notes
+      }
+    }
+    
+    // Inject synthetic Notes textarea after Call time
+    const notesField = {
+      type: 'textarea',
+      key: 'call_notes',
+      label: 'Notes',
+      placeholder: 'Notes about this entry',
+      rows: 3
+    };
+    
+    orderedFields.splice(callTimeIdx + 1, 0, notesField);
+    return orderedFields;
+  };
+
   const renderRepeatingSubField = (
     subField: any,
     value: any,
@@ -495,28 +533,67 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 return;
               }
               
-              // Map extracted data to table cells
+              // Map extracted data to table cells (label-based, then positional fallback)
               const cellFields = findTableCellsByLabel(tableField);
               const tableKey = tableField.key;
               const tableCellData: Record<string, any> = {};
               
+              // Label-based mapping with broader key variants
               if (cellFields.name) {
-                tableCellData[cellFields.name.cellKey] = firstTech.techName || '';
+                tableCellData[cellFields.name.cellKey] = firstTech.techName || firstTech.name || '';
+              } else {
+                // Positional fallback: 0-0 = name
+                tableCellData['0-0'] = firstTech.techName || firstTech.name || '';
               }
+              
               if (cellFields.id) {
-                tableCellData[cellFields.id.cellKey] = firstTech.techId || '';
+                tableCellData[cellFields.id.cellKey] = firstTech.techId || firstTech.id || '';
+              } else {
+                // Positional fallback: 0-1 = id
+                tableCellData['0-1'] = firstTech.techId || firstTech.id || '';
               }
+              
               if (cellFields.type) {
-                tableCellData[cellFields.type.cellKey] = firstTech.techType || '';
+                tableCellData[cellFields.type.cellKey] = firstTech.techType || firstTech.type || '';
+              } else {
+                // Positional fallback: 1-0 = type
+                tableCellData['1-0'] = firstTech.techType || firstTech.type || '';
               }
+              
               if (cellFields.tn) {
-                tableCellData[cellFields.tn.cellKey] = firstTech.techPhone || '';
+                tableCellData[cellFields.tn.cellKey] = firstTech.techPhone || firstTech.phone || firstTech.techTn || firstTech.tn || '';
+              } else {
+                // Positional fallback: 1-1 = tn/phone
+                tableCellData['1-1'] = firstTech.techPhone || firstTech.phone || firstTech.techTn || firstTech.tn || '';
               }
               
               // Apply to the current instance
               handleNestedChange(tableKey, tableCellData);
               
-              toast.success(`Imported ${firstTech.techName}'s data!`);
+              // Also populate Call time and Notes if present
+              const parentField = section?.fields?.find((f: any) => f.key === parentKey);
+              if (parentField?.fields) {
+                // Find Call time field
+                const callTimeField = parentField.fields.find((f: any) => {
+                  const label = (f.label || '').toLowerCase();
+                  return f.type === 'time' || (label.includes('call') && label.includes('time'));
+                });
+                if (callTimeField && (firstTech.callTime || firstTech.time)) {
+                  handleNestedChange(callTimeField.key, firstTech.callTime || firstTech.time);
+                }
+                
+                // Find Notes field
+                const notesField = parentField.fields.find((f: any) => {
+                  const label = (f.label || '').toLowerCase();
+                  const key = (f.key || '').toLowerCase();
+                  return f.type === 'textarea' || label.includes('note') || key.includes('note');
+                });
+                if (notesField && firstTech.notes) {
+                  handleNestedChange(notesField.key, firstTech.notes);
+                }
+              }
+              
+              toast.success(`Imported ${firstTech.techName || firstTech.name || 'technician'}'s data!`);
             }}
           />
         </div>
@@ -1289,21 +1366,51 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         const cellFields = findTableCellsByLabel(targetTableField);
                         const tableCellData: Record<string, any> = {};
                         
-                        // Use broader key variants to match AI extraction output
+                        // Label-based mapping with broader key variants, then positional fallback
                         if (cellFields.name) {
                           tableCellData[cellFields.name.cellKey] = tech.techName || tech.name || '';
+                        } else {
+                          tableCellData['0-0'] = tech.techName || tech.name || '';
                         }
+                        
                         if (cellFields.id) {
                           tableCellData[cellFields.id.cellKey] = tech.techId || tech.id || '';
+                        } else {
+                          tableCellData['0-1'] = tech.techId || tech.id || '';
                         }
+                        
                         if (cellFields.type) {
                           tableCellData[cellFields.type.cellKey] = tech.techType || tech.type || '';
+                        } else {
+                          tableCellData['1-0'] = tech.techType || tech.type || '';
                         }
+                        
                         if (cellFields.tn) {
                           tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
+                        } else {
+                          tableCellData['1-1'] = tech.techPhone || tech.phone || tech.techTn || tech.tn || '';
                         }
                         
                         instanceData[tableKey] = tableCellData;
+                        
+                        // Populate Call time if present
+                        const callTimeField = children.find((f: any) => {
+                          const label = (f.label || '').toLowerCase();
+                          return f.type === 'time' || (label.includes('call') && label.includes('time'));
+                        });
+                        if (callTimeField && (tech.callTime || tech.time)) {
+                          instanceData[callTimeField.key] = tech.callTime || tech.time;
+                        }
+                        
+                        // Populate Notes if present
+                        const notesField = children.find((f: any) => {
+                          const label = (f.label || '').toLowerCase();
+                          const key = (f.key || '').toLowerCase();
+                          return f.type === 'textarea' || label.includes('note') || key.includes('note');
+                        });
+                        if (notesField && tech.notes) {
+                          instanceData[notesField.key] = tech.notes;
+                        }
                         
                         // Initialize other fields with extracted data
                         children.filter((sf: any) => sf.type !== 'table_layout').forEach((subField: any) => {
@@ -1818,7 +1925,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   </CardHeader>
                 )}
                 <CardContent className={showEntryLabels[field.key] ? "space-y-3" : "pt-6 space-y-3"}>
-                  {(field.fields || []).map((subField: any) => {
+                  {ensureNotesAfterCallTime(field.fields || []).map((subField: any) => {
                     const subValue = entries[instanceIndex]?.[subField.key];
                     return renderRepeatingSubField(
                       subField,

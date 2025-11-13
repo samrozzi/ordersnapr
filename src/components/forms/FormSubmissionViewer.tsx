@@ -347,75 +347,90 @@ export function FormSubmissionViewer({
         }
         return (
           <div className="space-y-3">
-            {value.map((entry: any, idx: number) => (
-              <div key={idx} className="border rounded-lg p-3 bg-muted/30">
-                {submission.metadata?.entryLabelPreferences?.[field.key] && (
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Entry {idx + 1}</p>
-                )}
-                <div className="space-y-2">
-                  {(field.fields || []).map((subField: any) => {
-                    const subValue = entry[subField.key];
-                    if (!subValue && subValue !== 0) return null;
-                    
-                    // Handle table_layout fields specially - render as grid
-                    if (subField.type === 'table_layout' && typeof subValue === 'object') {
-                      // Determine grid dimensions
-                      const rows = subField.tableRows || 2;
-                      const cols = subField.tableColumns || 2;
+            {value.map((entry: any, idx: number) => {
+              const subFields = field.fields || [];
+              
+              // Find table_layout, call_time, and notes fields
+              const tableField = subFields.find((f: any) => f.type === 'table_layout');
+              const callTimeField = subFields.find((f: any) => {
+                const label = (f.label || '').toLowerCase();
+                return f.type === 'time' || (label.includes('call') && label.includes('time'));
+              });
+              const notesField = subFields.find((f: any) => {
+                const label = (f.label || '').toLowerCase();
+                const key = (f.key || '').toLowerCase();
+                return f.type === 'textarea' || label.includes('note') || key.includes('note');
+              });
+              
+              return (
+                <div key={idx} className="border rounded-lg p-3 bg-muted/30 space-y-2">
+                  {submission.metadata?.entryLabelPreferences?.[field.key] && (
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Entry {idx + 1}</p>
+                  )}
+                  
+                  {/* Render table_layout as grid */}
+                  {tableField && entry[tableField.key] && (
+                    <div className="mb-2">
+                      {!tableField.hideLabel && tableField.label && (
+                        <p className="text-xs font-medium mb-1.5">{tableField.label}</p>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 border rounded-lg p-3 bg-background/50">
+                        {['0-0', '0-1', '1-0', '1-1'].map((cellKey, cellIdx) => {
+                          const cellValue = entry[tableField.key]?.[cellKey];
+                          const cellMeta = tableField.tableCells?.[cellKey];
+                          const defaultLabels = ['Tech Name', 'Tech ID', 'Tech Type', 'Tech TN'];
+                          const label = cellMeta?.field?.label || defaultLabels[cellIdx];
+                          
+                          return (
+                            <div key={cellKey} className="space-y-1">
+                              <p className="text-xs text-muted-foreground">{label}</p>
+                              <p className="text-sm font-medium">{cellValue || '—'}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Render Call time */}
+                  {callTimeField && entry[callTimeField.key] && (
+                    <div className="text-sm">
+                      {!callTimeField.hideLabel && <span className="font-medium">{callTimeField.label}: </span>}
+                      <span>{entry[callTimeField.key]}</span>
+                    </div>
+                  )}
+                  
+                  {/* Render Notes */}
+                  {notesField && entry[notesField.key] && (
+                    <div className="text-sm">
+                      {!notesField.hideLabel && <span className="font-medium">{notesField.label}:</span>}
+                      <div className="mt-1 whitespace-pre-wrap text-muted-foreground">
+                        {entry[notesField.key]}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Render other fields (excluding table, call_time, notes) */}
+                  {subFields
+                    .filter((f: any) => 
+                      f !== tableField && 
+                      f !== callTimeField && 
+                      f !== notesField
+                    )
+                    .map((subField: any) => {
+                      const subValue = entry[subField.key];
+                      if (!subValue && subValue !== 0) return null;
                       
                       return (
-                        <div key={subField.key} className="mt-2">
-                          {!subField.hideLabel && <p className="text-xs font-medium mb-1.5">{subField.label}</p>}
-                          <div 
-                            className="grid gap-2 border rounded-lg p-3 bg-background/50"
-                            style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-                          >
-                            {Object.entries(subValue).map(([cellKey, cellValue]) => {
-                              // Get label from tableCells if available, with positional fallback
-                              const cellConfig = subField.tableCells?.[cellKey];
-                              let label = cellConfig?.field?.label;
-                              
-                              // Positional fallback labels for tech table
-                              if (!label) {
-                                const [r, c] = cellKey.split('-').map(Number);
-                                if (!isNaN(r) && !isNaN(c)) {
-                                  if (r === 0 && c === 0) label = 'Tech Name';
-                                  else if (r === 0 && c === 1) label = 'Tech ID';
-                                  else if (r === 1 && c === 0) label = 'Tech Type';
-                                  else if (r === 1 && c === 1) label = 'Tech TN';
-                                  else label = `Cell ${r}-${c}`;
-                                } else {
-                                  label = cellKey
-                                    .replace(/^cell_/, '')
-                                    .replace(/_/g, ' ')
-                                    .split(' ')
-                                    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                    .join(' ');
-                                }
-                              }
-                              
-                              return (
-                                <div key={cellKey} className="space-y-1">
-                                  <p className="text-xs text-muted-foreground">{label}</p>
-                                  <p className="text-sm font-medium">{String(cellValue)}</p>
-                                </div>
-                              );
-                            })}
-                          </div>
+                        <div key={subField.key} className="text-sm">
+                          {!subField.hideLabel && <span className="font-medium">{subField.label}: </span>}
+                          <span>{String(subValue)}</span>
                         </div>
                       );
-                    }
-                    
-                    return (
-                      <div key={subField.key} className="text-sm">
-                        {!subField.hideLabel && <span className="font-medium">{subField.label}: </span>}
-                        <span>{String(subValue)}</span>
-                      </div>
-                    );
-                  })}
+                    })}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
 

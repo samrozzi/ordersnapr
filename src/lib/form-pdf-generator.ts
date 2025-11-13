@@ -292,6 +292,99 @@ export const generateFormPDF = async (
             // Render subfields
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
+              
+              // Find table_layout, call_time, and notes fields
+              const isTableField = subField.type === 'table_layout';
+              const isCallTimeField = (() => {
+                const label = (subField.label || '').toLowerCase();
+                return subField.type === 'time' || (label.includes('call') && label.includes('time'));
+              })();
+              const isNotesField = (() => {
+                const label = (subField.label || '').toLowerCase();
+                const key = (subField.key || '').toLowerCase();
+                return subField.type === 'textarea' || label.includes('note') || key.includes('note');
+              })();
+              
+              // Render table_layout as 2x2 grid using autoTable
+              if (isTableField && subValue && typeof subValue === 'object') {
+                const defaultLabels = ['Tech Name', 'Tech ID', 'Tech Type', 'Tech TN'];
+                const cellKeys = ['0-0', '0-1', '1-0', '1-1'];
+                
+                // Build 2x2 body array with labels from tableCells or positional defaults
+                const bodyData = [
+                  [
+                    `${subField.tableCells?.['0-0']?.field?.label || defaultLabels[0]}: ${subValue['0-0'] || ''}`,
+                    `${subField.tableCells?.['0-1']?.field?.label || defaultLabels[1]}: ${subValue['0-1'] || ''}`
+                  ],
+                  [
+                    `${subField.tableCells?.['1-0']?.field?.label || defaultLabels[2]}: ${subValue['1-0'] || ''}`,
+                    `${subField.tableCells?.['1-1']?.field?.label || defaultLabels[3]}: ${subValue['1-1'] || ''}`
+                  ]
+                ];
+                
+                try {
+                  checkPageBreak(20);
+                  (pdf as any).autoTable({
+                    startY: yPos,
+                    head: subField.label ? [[{ content: subField.label, colSpan: 2, styles: { halign: 'left', fontStyle: 'bold' } }]] : undefined,
+                    body: bodyData,
+                    theme: 'grid',
+                    styles: { fontSize: 9, cellPadding: 2 },
+                    margin: { left: margin + 12 },
+                    tableWidth: pageWidth - 2 * margin - 12
+                  });
+                  yPos = (pdf as any).lastAutoTable.finalY + 5;
+                } catch (error) {
+                  console.error('autoTable failed, using fallback:', error);
+                  // Fallback: render as bulleted list
+                  checkPageBreak(8);
+                  if (subField.label) {
+                    pdf.setFont("helvetica", "bold");
+                    pdf.text(subField.label, margin + 12, yPos);
+                    yPos += 5;
+                  }
+                  cellKeys.forEach((cellKey, idx) => {
+                    const label = subField.tableCells?.[cellKey]?.field?.label || defaultLabels[idx];
+                    const value = subValue[cellKey] || '';
+                    checkPageBreak(5);
+                    pdf.setFont("helvetica", "normal");
+                    pdf.text(`• ${label}: ${value}`, margin + 15, yPos);
+                    yPos += 5;
+                  });
+                  yPos += 3;
+                }
+                return;
+              }
+              
+              // Render Call time
+              if (isCallTimeField && subValue) {
+                checkPageBreak(5);
+                pdf.setFont("helvetica", "bold");
+                pdf.text(`${subField.label}:`, margin + 12, yPos);
+                pdf.setFont("helvetica", "normal");
+                pdf.text(String(subValue), margin + 42, yPos);
+                yPos += 5;
+                return;
+              }
+              
+              // Render Notes
+              if (isNotesField && subValue) {
+                checkPageBreak(8);
+                pdf.setFont("helvetica", "bold");
+                pdf.text(`${subField.label}:`, margin + 12, yPos);
+                yPos += 5;
+                pdf.setFont("helvetica", "normal");
+                const notesLines = pdf.splitTextToSize(String(subValue), pageWidth - 2 * margin - 15);
+                notesLines.forEach((line: string) => {
+                  checkPageBreak(5);
+                  pdf.text(line, margin + 15, yPos);
+                  yPos += 5;
+                });
+                yPos += 2;
+                return;
+              }
+              
+              // Render other fields normally
               if (subValue !== null && subValue !== undefined && subValue !== "") {
                 // Special handling for table_layout - render as actual table
                 if (subField.type === 'table_layout' && typeof subValue === 'object') {

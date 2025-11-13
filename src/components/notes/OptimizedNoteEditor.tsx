@@ -1237,14 +1237,13 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
             smallText && "text-sm"
           )}
         style={{ 
-          maxHeight: 'calc(100vh - 200px)',
           backgroundColor: localBackgroundColor || 'transparent'
         }}
         >
           <div className={cn(
             "mx-auto space-y-4",
             fullWidth
-              ? "max-w-full -mx-6 md:-mx-8"
+              ? "max-w-none -mx-8 sm:-mx-10 md:-mx-12"
               : "max-w-4xl"
           )}>
             {/* Banner and Icon Container */}

@@ -80,7 +80,7 @@ export const SharedFormattingToolbar = ({
   return (
     <div 
       data-formatting-toolbar
-      className="sticky top-[73px] left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-2 shadow-sm"
+      className="relative z-20 bg-background/95 backdrop-blur-sm border-b border-border p-2 shadow-sm"
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button

@@ -505,10 +505,10 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
   return (
     <EditorFocusProvider>
-      <div className="flex flex-col h-[90vh] max-h-screen">
+      <div className="flex flex-col h-[100svh] md:h-[90vh]">
         {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={onClose} className="mr-1">
             <X className="h-4 w-4" />
           </Button>

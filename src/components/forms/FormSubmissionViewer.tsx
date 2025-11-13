@@ -446,6 +446,15 @@ export function FormSubmissionViewer({
           />
         );
 
+      case "checkbox":
+        const isChecked = value === true || value === 'true';
+        return (
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">{isChecked ? '☑' : '☐'}</span>
+            <span className="text-sm">{isChecked ? 'Checked' : 'Unchecked'}</span>
+          </div>
+        );
+
       case "file":
         if (!Array.isArray(value) || value.length === 0) {
           return <p className="text-muted-foreground">No files attached</p>;

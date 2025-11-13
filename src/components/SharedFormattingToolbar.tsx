@@ -22,7 +22,6 @@ import { useRef } from "react";
 import { uploadNoteImage } from "@/lib/note-image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 interface SharedFormattingToolbarProps {
   onInsertChecklist?: () => void;
@@ -40,7 +39,6 @@ export const SharedFormattingToolbar = ({
   const { activeEditor, setToolbarLocked } = useEditorFocus();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const keyboardHeight = useKeyboardHeight();
 
   const getCurrentFontSize = () => {
     if (!activeEditor) return "1rem";
@@ -82,11 +80,7 @@ export const SharedFormattingToolbar = ({
   return (
     <div 
       data-formatting-toolbar
-      className="fixed left-0 right-0 z-50 bg-background border-t border-border p-2 animate-in slide-in-from-bottom-2"
-      style={{ 
-        bottom: `${keyboardHeight}px`,
-        transition: 'bottom 0.3s ease-out'
-      }}
+      className="sticky top-[73px] left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-2 shadow-sm"
     >
       <div className="flex items-center gap-1 overflow-x-auto pb-safe">
         <Button

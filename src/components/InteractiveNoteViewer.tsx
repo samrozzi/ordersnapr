@@ -505,7 +505,7 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
 
   return (
     <EditorFocusProvider>
-      <div className="flex flex-col h-[90vh] max-h-screen pb-16">
+      <div className="flex flex-col h-[90vh] max-h-screen">
         {/* Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
         <div className="flex items-center gap-2">
@@ -604,6 +604,14 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
         </div>
       </div>
 
+      {/* Formatting Toolbar - Only show in edit mode */}
+      {!isPresentationMode && (
+        <SharedFormattingToolbar
+          onInsertChecklist={insertChecklistBlock}
+          onConvertSelectionToChecklist={convertSelectionToChecklist}
+        />
+      )}
+
       {/* Note Content */}
       <div
         className="flex-1 overflow-y-auto p-6"
@@ -640,13 +648,6 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
           <p>Last updated: {lastSaved.toLocaleString()}</p>
         </div>
       </div>
-
-      {!isPresentationMode && (
-        <SharedFormattingToolbar
-          onInsertChecklist={insertChecklistBlock}
-          onConvertSelectionToChecklist={convertSelectionToChecklist}
-        />
-      )}
     </div>
     </EditorFocusProvider>
   );

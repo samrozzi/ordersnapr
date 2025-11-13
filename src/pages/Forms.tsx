@@ -351,9 +351,6 @@ export default function Forms() {
                 Templates
               </Button>
             </div>
-                Templates
-              </Button>
-            </div>
           )}
 
           {/* Desktop Filter Button (inline with tabs) */}

@@ -406,6 +406,15 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       
       updatedEntries[instanceIndex][subKey] = newValue;
       
+      console.log('[FormRenderer][handleNestedChange]', {
+        parentKey,
+        instanceIndex,
+        subKey,
+        newValue,
+        updatedEntry: updatedEntries[instanceIndex],
+        allEntries: updatedEntries
+      });
+      
       setAnswers(prev => ({
         ...prev,
         [parentKey]: updatedEntries
@@ -553,7 +562,16 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <Textarea
               id={`${parentKey}-${instanceIndex}-${subField.key}`}
               value={value || ""}
-              onChange={(e) => handleNestedChange(subField.key, e.target.value)}
+              onChange={(e) => {
+                console.log('[FormRenderer][textarea] onChange', {
+                  parentKey,
+                  instanceIndex,
+                  subFieldKey: subField.key,
+                  newValue: e.target.value,
+                  valueLength: e.target.value.length
+                });
+                handleNestedChange(subField.key, e.target.value);
+              }}
               placeholder={subField.placeholder}
               rows={3}
               className={getFieldClasses(subField)}
@@ -952,6 +970,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   };
 
   const handleSaveDraft = async () => {
+    console.log('[FormRenderer][handleSaveDraft] Saving with answers:', JSON.stringify(answers, null, 2));
+    
     if (!userId) {
       toast.error("User not authenticated");
       return;
@@ -986,6 +1006,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
+    
+    console.log('[FormRenderer][handleSubmit] Submitting with answers:', JSON.stringify(answers, null, 2));
     
     if (!userId) {
       toast.error("User not authenticated");

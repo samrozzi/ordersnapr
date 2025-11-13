@@ -271,7 +271,7 @@ export const generateFormPDF = async (
             const yStart = yPos;
             
             // Check if alternating background should be applied
-            const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 1 && options.themeColor);
+            const applyAltBg = ((((field as any).alternatingBackground) || (submission.form_templates?.schema as any)?.alternating_background || (submission.form_templates?.schema as any)?.alternatingBackground) && idx % 2 === 0 && options.themeColor);
             
             // Draw single background rectangle for entire entry BEHIND content
             if (applyAltBg) {
@@ -302,7 +302,9 @@ export const generateFormPDF = async (
               const isNotesField = (() => {
                 const label = (subField.label || '').toLowerCase();
                 const key = (subField.key || '').toLowerCase();
-                return subField.type === 'textarea' || label.includes('note') || key.includes('note');
+                const result = subField.type === 'textarea' || label.includes('note') || key.includes('note');
+                console.log('[PDF][isNotesField]', { subFieldKey: subField.key, subFieldLabel: subField.label, type: subField.type, isNotes: result });
+                return result;
               })();
               
               // Render table_layout as 2x2 grid using autoTable
@@ -369,6 +371,7 @@ export const generateFormPDF = async (
               
               // Render Notes
               if (isNotesField && subValue) {
+                console.log('[PDF][renderNotes]', { key: subField.key, value: subValue, hasValue: !!subValue });
                 checkPageBreak(8);
                 pdf.setFont("helvetica", "bold");
                 pdf.text(`${subField.label}:`, margin + 12, yPos);

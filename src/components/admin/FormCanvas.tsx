@@ -231,7 +231,7 @@ export function FormCanvas({
         <p className="text-muted-foreground mb-4 text-center max-w-md">
           Drag a field type here or click + Add Section to start building your form
         </p>
-        <Button onClick={onAddSection} variant="outline">
+        <Button type="button" onClick={onAddSection} variant="outline">
           <Plus className="h-4 w-4 mr-2" />
           Add Section
         </Button>
@@ -341,7 +341,7 @@ export function FormCanvas({
           </Card>
         ))}
 
-        <Button onClick={onAddSection} variant="outline" className="w-full">
+        <Button type="button" onClick={onAddSection} variant="outline" className="w-full">
           <Plus className="h-4 w-4 mr-2" />
           Add Section
         </Button>

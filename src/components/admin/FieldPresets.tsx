@@ -109,6 +109,7 @@ export function FieldPresets({ onPresetSelect, className }: FieldPresetsProps) {
           return (
             <Button
               key={preset.id}
+              type="button"
               variant="outline"
               className="w-full justify-start gap-3 h-auto py-3 px-3"
               onClick={() => onPresetSelect(preset)}

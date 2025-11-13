@@ -824,14 +824,56 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
         schema: updatedSchema
       });
       
+      // Auto-populate with imported data
+      const { technicianRows } = pendingImportData;
+      const newInstancesArray: any[] = [];
+      
+      technicianRows.forEach((tech: any) => {
+        const instanceData: any = {};
+        
+        // Populate each field in the repeating group
+        techFields.forEach((field: any) => {
+          if (field.type === 'table_layout') {
+            // Populate table cells
+            const cellFields = findTableCellsByLabel(field);
+            const tableCellData: Record<string, any> = {};
+            
+            if (cellFields.name) tableCellData[cellFields.name.cellKey] = tech.techName || '';
+            if (cellFields.id) tableCellData[cellFields.id.cellKey] = tech.techId || '';
+            if (cellFields.type) tableCellData[cellFields.type.cellKey] = tech.techType || '';
+            if (cellFields.tn) tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
+            
+            instanceData[field.key] = tableCellData;
+          } else if (field.key?.includes('call_time')) {
+            instanceData[field.key] = tech.callTime || '';
+          } else if (field.key?.includes('notes') || field.key?.includes('call')) {
+            instanceData[field.key] = tech.notes || '';
+          } else {
+            instanceData[field.key] = '';
+          }
+        });
+        
+        newInstancesArray.push(instanceData);
+      });
+      
+      // Update answers state with populated instances
+      setAnswers(prev => ({
+        ...prev,
+        technicians: newInstancesArray
+      }));
+      
+      // Update repeat counts
+      setRepeatCounts(prev => ({
+        ...prev,
+        technicians: newInstancesArray.length
+      }));
+      
       toast.dismiss();
-      toast.success('Template upgraded! Please re-import your image.');
+      toast.success(`Template upgraded and ${technicianRows.length} technician section${technicianRows.length > 1 ? 's' : ''} created!`);
       setPendingImportData(null);
       
-      // Force page reload to get updated template
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Ensure draft is saved with new data
+      await ensureDraft();
       
     } catch (error) {
       console.error('Template upgrade failed:', error);

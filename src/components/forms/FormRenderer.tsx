@@ -1070,21 +1070,19 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     const maxInstances = targetRepeatingGroup.maxInstances || 50;
                     const actualCount = Math.min(technicianRows.length, maxInstances);
                     
+                    console.log(`Smart Import - Processing ${technicianRows.length} technicians (max: ${maxInstances})`);
+                    console.log('Smart Import - Target repeating group:', fieldKey);
+                    console.log('Smart Import - Target table field:', tableKey);
+                    
                     if (technicianRows.length > maxInstances) {
                       toast.warning(`Created ${actualCount} of ${technicianRows.length} entries (max limit: ${maxInstances})`);
                     }
                     
-                    // Set repeat count to match number of technicians
-                    setRepeatCounts(prev => ({
-                      ...prev,
-                      [fieldKey]: actualCount
-                    }));
+                    // Build the complete answers array - repeatCounts will be derived from this array's length
+                    const newInstancesArray: any[] = [];
                     
-                    // Populate each instance
-                    const newAnswers: any = {};
                     technicianRows.slice(0, actualCount).forEach((tech: any, idx: number) => {
-                      if (!newAnswers[fieldKey]) newAnswers[fieldKey] = [];
-                      if (!newAnswers[fieldKey][idx]) newAnswers[fieldKey][idx] = {};
+                      const instanceData: any = {};
                       
                       // Find the cell fields by their labels
                       const cellFields = findTableCellsByLabel(targetTableField);
@@ -1103,7 +1101,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         tableCellData[cellFields.tn.cellKey] = tech.techPhone || tech.techTn || '';
                       }
                       
-                      newAnswers[fieldKey][idx][tableKey] = tableCellData;
+                      instanceData[tableKey] = tableCellData;
                       
                       // Initialize all other fields in the repeating group with empty values
                       const otherSubFields = targetRepeatingGroup.subFields?.filter(
@@ -1111,20 +1109,20 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       ) || [];
                       
                       otherSubFields.forEach((subField: any) => {
-                        // Initialize with empty values so fields render correctly
-                        if (!(subField.key in newAnswers[fieldKey][idx])) {
-                          newAnswers[fieldKey][idx][subField.key] = '';
-                        }
+                        instanceData[subField.key] = '';
                       });
+                      
+                      newInstancesArray.push(instanceData);
                     });
                     
-                    console.log(`Smart Import - Created ${actualCount} technician sections`);
-                    console.log('Smart Import - Populated fields:', Object.keys(newAnswers[fieldKey]?.[0] || {}));
-                    console.log('Smart Import - Sample first entry:', newAnswers[fieldKey]?.[0]);
+                    console.log(`Smart Import - Created ${actualCount} instances`);
+                    console.log('Smart Import - Array length:', newInstancesArray.length);
+                    console.log('Smart Import - Sample first entry:', newInstancesArray[0]);
                     
+                    // Set answers with the complete array - this will trigger repeatCounts update
                     setAnswers(prev => ({
                       ...prev,
-                      ...newAnswers
+                      [fieldKey]: newInstancesArray
                     }));
                     
                     toast.success(`Created ${actualCount} technician ${actualCount === 1 ? 'section' : 'sections'}!`);

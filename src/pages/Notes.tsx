@@ -195,8 +195,8 @@ const Notes = () => {
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Total</CardDescription>
           </CardHeader>
-          <CardContent className="p-1 md:pt-3 md:px-6 text-center">
-            <div className="text-base md:text-2xl font-bold">{notes.length}</div>
+          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+            <div className="text-base md:text-2xl font-bold text-center w-full">{notes.length}</div>
           </CardContent>
         </Card>
 
@@ -204,8 +204,8 @@ const Notes = () => {
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Pinned</CardDescription>
           </CardHeader>
-          <CardContent className="p-1 md:pt-3 md:px-6 text-center">
-            <div className="text-base md:text-2xl font-bold">{pinnedNotes.length}</div>
+          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+            <div className="text-base md:text-2xl font-bold text-center w-full">{pinnedNotes.length}</div>
           </CardContent>
         </Card>
 
@@ -213,8 +213,8 @@ const Notes = () => {
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Favs</CardDescription>
           </CardHeader>
-          <CardContent className="p-1 md:pt-3 md:px-6 text-center">
-            <div className="text-base md:text-2xl font-bold">{favoriteNotes.length}</div>
+          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+            <div className="text-base md:text-2xl font-bold text-center w-full">{favoriteNotes.length}</div>
           </CardContent>
         </Card>
 
@@ -224,8 +224,8 @@ const Notes = () => {
               {canCreateNote ? "Left" : "Upgrade"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-1 md:pt-3 md:px-6 text-center">
-            <div className="text-base md:text-2xl font-bold">
+          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+            <div className="text-base md:text-2xl font-bold text-center w-full">
               {notesRemaining === Infinity ? "∞" : notesRemaining}
             </div>
           </CardContent>

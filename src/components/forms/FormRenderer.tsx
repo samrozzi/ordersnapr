@@ -1724,21 +1724,45 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                         const cell = tableCells[cellKey];
                         const cellField = cell?.field;
                         
+                        // Get cell value even if field definition is missing
+                        const cellValue = tableValue[cellKey];
+                        
                         if (!cellField) {
+                          // Fallback: render input with positional label for 2x2 grids
+                          const positionalLabels: Record<string, string> = {
+                            '0-0': 'Tech Name',
+                            '0-1': 'Tech ID',
+                            '1-0': 'Tech Type',
+                            '1-1': 'Tech TN'
+                          };
+                          const fallbackLabel = positionalLabels[cellKey] || `Row ${rowIndex + 1}, Col ${colIndex + 1}`;
+                          
                           return (
                             <td
                               key={colIndex}
                               className={cn(
-                                "p-3 min-w-[120px] bg-muted/20",
+                                "p-3 min-w-[120px]",
                                 borderStyle === 'all' && "border border-border"
                               )}
                             >
-                              {/* Empty cell */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">{fallbackLabel}</Label>
+                                <Input
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
                             </td>
                           );
                         }
 
-                        const cellValue = tableValue[cellKey];
                         const cellId = `${field.key}-${cellKey}-${cellField.key}`;
 
                         return (
@@ -1872,6 +1896,34 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              </div>
+                            )}
+                            
+                            {/* Fallback for any unrecognized field type */}
+                            {cellField.type !== "text" && 
+                             cellField.type !== "number" && 
+                             cellField.type !== "date" && 
+                             cellField.type !== "time" && 
+                             cellField.type !== "select" && (
+                              <div className="space-y-1">
+                                {!cellField.hideLabel && (
+                                  <Label htmlFor={cellId} className="text-xs">
+                                    {cellField.label}
+                                  </Label>
+                                )}
+                                <Input
+                                  id={cellId}
+                                  value={cellValue || ""}
+                                  onChange={(e) => {
+                                    const newTableValue = {
+                                      ...tableValue,
+                                      [cellKey]: e.target.value,
+                                    };
+                                    handleFieldChange(field.key, newTableValue);
+                                  }}
+                                  placeholder={cellField.placeholder}
+                                  className="h-8 text-sm"
+                                />
                               </div>
                             )}
                           </td>

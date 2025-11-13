@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Plus, GripVertical } from "lucide-react";
 import { FieldPalette, type FieldType, fieldTypes } from "./FieldPalette";
 import { FormCanvas, type Section, type Field, type TableCell } from "./FormCanvas";
+import { FieldPresets, type PresetStructure } from "./FieldPresets";
 import { FieldPropertiesPanel } from "./FieldPropertiesPanel";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { CellFieldPickerDialog } from "./CellFieldPickerDialog";
@@ -263,6 +264,54 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
     );
 
     toast.success("Field added");
+  };
+
+  const handlePresetSelect = (preset: PresetStructure) => {
+    if (sections.length === 0) {
+      // Auto-create first section
+      const newSection: Section = {
+        id: crypto.randomUUID(),
+        title: "Section 1",
+        fields: [],
+        collapsed: false,
+        hideTitle: false,
+      };
+      setSections([newSection]);
+      setTargetSectionId(newSection.id);
+    }
+
+    // Determine which section to add the preset fields to
+    const targetId = targetSectionId || sections[sections.length - 1]?.id;
+    if (!targetId) return;
+
+    // Regenerate IDs for all fields to ensure uniqueness
+    const fieldsToAdd = preset.fields.map(field => ({
+      ...field,
+      id: crypto.randomUUID(),
+      // If it's a table, regenerate IDs for cell fields too
+      ...(field.type === 'table_layout' && field.tableCells ? {
+        tableCells: Object.entries(field.tableCells).reduce((acc, [cellKey, cell]) => {
+          acc[cellKey] = {
+            ...cell,
+            field: cell.field ? {
+              ...cell.field,
+              id: crypto.randomUUID(),
+            } : undefined
+          };
+          return acc;
+        }, {} as Record<string, any>)
+      } : {})
+    }));
+
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === targetId
+          ? { ...section, fields: [...section.fields, ...fieldsToAdd] }
+          : section
+      )
+    );
+
+    toast.success(`${preset.name} added successfully!`);
   };
 
   const handleFieldClick = (sectionId: string, fieldId: string, parentFieldId?: string) => {
@@ -1016,6 +1065,10 @@ export function TemplateBuilderV2({ schema, onSchemaChange }: TemplateBuilderV2P
               </div>
             )}
             <FieldPalette onFieldSelect={handleFieldSelect} />
+            
+            {/* Separator and Presets */}
+            <div className="my-6 border-t border-border" />
+            <FieldPresets onPresetSelect={handlePresetSelect} />
           </div>
 
           {/* Center: Canvas */}

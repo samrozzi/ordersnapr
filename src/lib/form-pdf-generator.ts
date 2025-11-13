@@ -29,6 +29,25 @@ export const generateFormPDF = async (
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 15;
 
+  // Helper function to draw a checkbox in the PDF
+  const drawCheckbox = (pdf: any, x: number, y: number, checked: boolean, size: number = 4, na: boolean = false) => {
+    // Draw the box
+    pdf.rect(x, y - size + 1, size, size);
+    
+    if (na) {
+      // Draw an X for N/A
+      pdf.line(x, y - size + 1, x + size, y + 1);
+      pdf.line(x, y + 1, x + size, y - size + 1);
+    } else if (checked) {
+      // Draw a checkmark
+      const oldLineWidth = pdf.getLineWidth();
+      pdf.setLineWidth(0.6);
+      pdf.line(x + 0.8, y - size / 2 + 1, x + size / 2, y);
+      pdf.line(x + size / 2, y, x + size - 0.8, y - size + 1.2);
+      pdf.setLineWidth(oldLineWidth);
+    }
+  };
+
   // Helper to check if we need a new page
   const checkPageBreak = (neededSpace: number) => {
     if (yPos + neededSpace > pageHeight - margin) {
@@ -89,6 +108,55 @@ export const generateFormPDF = async (
         checkPageBreak(10);
 
         if (field.type === "checklist") {
+          // Render checklist with actual checkboxes instead of "true/false"
+          const checklistValue = answer as Record<number, string> | Array<{ label: string; checked?: boolean; status?: string }>;
+          
+          if (!field.hideLabel) {
+            checkPageBreak(8);
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`${field.label}:`, margin + 5, yPos);
+            yPos += 6;
+          }
+          
+          if (Array.isArray(checklistValue)) {
+            // Handle array format with checkbox rendering
+            checklistValue.forEach((item: any) => {
+              checkPageBreak(8);
+              const label = item.label || 'Item';
+              const isChecked = item.checked === true || item.status === 'Yes' || item.status === 'OK';
+              const isNA = item.status === 'N/A';
+              
+              // Draw checkbox
+              drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);
+              
+              // Draw label
+              pdf.setFont("helvetica", "normal");
+              pdf.setFontSize(9);
+              pdf.text(label, margin + 15, yPos);
+              yPos += 6;
+            });
+          } else if (checklistValue && typeof checklistValue === "object") {
+            // Handle object format with checkbox rendering
+            const questions = (field as any).items || (field as any).options || [];
+            questions.forEach((label: string, idx: number) => {
+              checkPageBreak(8);
+              const status = checklistValue[idx];
+              const isChecked = status === 'Yes' || status === 'OK' || status === 'true';
+              const isNA = status === 'N/A';
+              
+              // Draw checkbox
+              drawCheckbox(pdf, margin + 8, yPos, isChecked, 4, isNA);
+              
+              // Draw label
+              pdf.setFont("helvetica", "normal");
+              pdf.setFontSize(9);
+              pdf.text(label, margin + 15, yPos);
+              yPos += 6;
+            });
+          }
+          yPos += 3;
+        } else if (field.type === "repeating_group" && Array.isArray(answer)) {
           // Normalize checklist answers into a consistent table format
           // Supports two formats:
           // 1) Array of { label, checked, status }
@@ -260,6 +328,19 @@ export const generateFormPDF = async (
               }
             });
             
+            // Add height for call_notes if it exists and wasn't counted in schema fields
+            const hasNotesInSchema = (field.fields || []).some((sf: any) => {
+              const label = (sf.label || '').toLowerCase();
+              const key = (sf.key || '').toLowerCase();
+              return sf.type === 'textarea' || label.includes('note') || key.includes('note');
+            });
+            
+            if (!hasNotesInSchema && entry.call_notes) {
+              height += 8; // Notes label + spacing
+              const notesLines = Math.ceil(String(entry.call_notes).length / 60);
+              height += notesLines * 5 + 2;
+            }
+            
             return height;
           };
           
@@ -288,6 +369,9 @@ export const generateFormPDF = async (
               pdf.text(`Entry ${idx + 1}:`, margin + 8, yPos);
               yPos += 6;
             }
+            
+            // Track if notes were printed from a schema field
+            let notesPrinted = false;
             
             // Render subfields
             (field.fields || []).forEach((subField: any) => {
@@ -384,6 +468,7 @@ export const generateFormPDF = async (
                   yPos += 5;
                 });
                 yPos += 2;
+                notesPrinted = true;
                 return;
               }
               
@@ -502,6 +587,22 @@ export const generateFormPDF = async (
                 }
               }
             });
+            
+            // Fallback: Render call_notes if not already rendered from a schema field
+            if (!notesPrinted && entry.call_notes) {
+              checkPageBreak(8);
+              pdf.setFont("helvetica", "bold");
+              pdf.text("Notes:", margin + 12, yPos);
+              yPos += 5;
+              pdf.setFont("helvetica", "normal");
+              const notesLines = pdf.splitTextToSize(String(entry.call_notes), pageWidth - 2 * margin - 15);
+              notesLines.forEach((line: string) => {
+                checkPageBreak(5);
+                pdf.text(line, margin + 15, yPos);
+                yPos += 5;
+              });
+              yPos += 2;
+            }
             
             yPos += SPACING_AFTER;
             console.log(`[PDF] Entry ${idx + 1} rendered from y=${yStart} to y=${yPos}, measured=${entryHeight}`);

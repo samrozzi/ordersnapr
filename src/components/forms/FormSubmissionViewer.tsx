@@ -401,11 +401,11 @@ export function FormSubmissionViewer({
                   )}
                   
                   {/* Render Notes */}
-                  {notesField && entry[notesField.key] && (
+                  {((notesField && entry[notesField.key]) || entry.call_notes) && (
                     <div className="text-sm">
-                      {!notesField.hideLabel && <span className="font-medium">{notesField.label}:</span>}
+                      {!notesField?.hideLabel && <span className="font-medium">{notesField?.label || 'Notes'}:</span>}
                       <div className="mt-1 whitespace-pre-wrap text-muted-foreground">
-                        {entry[notesField.key]}
+                        {entry[notesField?.key] || entry.call_notes}
                       </div>
                     </div>
                   )}

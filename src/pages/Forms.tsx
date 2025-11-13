@@ -428,10 +428,10 @@ export default function Forms() {
           <div className="md:hidden">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="default" className="w-full gap-2 h-12 px-4 text-base min-h-[48px]">
-                  <Filter className="h-4 w-4" />
+                <Button variant="outline" size="lg" className="w-full gap-2 h-14 px-6 text-lg font-medium min-h-[56px] touch-manipulation active:scale-95 transition-transform">
+                  <Filter className="h-5 w-5" />
                   Filters
-                  {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
+                  {(dateFilter || timeFilter || formTypeFilter) && <span className="text-sm ml-1">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 bg-background">
@@ -531,17 +531,18 @@ export default function Forms() {
       {activeTab === 'templates' ? (
         <TemplateManager orgId={orgId} />
       ) : (
-        <div className="w-full border rounded-lg overflow-x-auto touch-pan-x">
-          <Table className="min-w-max">
-            <TableHeader>
-              <TableRow>
-                <TableHead><SortButton field="name" label="Form Name" /></TableHead>
-                <TableHead><SortButton field="creator" label="Created By" /></TableHead>
-                <TableHead><SortButton field="status" label="Status" /></TableHead>
-                <TableHead><SortButton field="date" label="Date & Time" /></TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+        <div className="w-full max-w-full border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]"><SortButton field="name" label="Form Name" /></TableHead>
+                  <TableHead className="hidden sm:table-cell min-w-[100px]"><SortButton field="creator" label="Created By" /></TableHead>
+                  <TableHead className="min-w-[80px]"><SortButton field="status" label="Status" /></TableHead>
+                  <TableHead className="hidden md:table-cell min-w-[140px]"><SortButton field="date" label="Date & Time" /></TableHead>
+                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {submissionsLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
@@ -550,10 +551,10 @@ export default function Forms() {
                 ) : (
                   sortedSubmissions.map((submission) => (
                   <TableRow key={submission.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}>
-                      <TableCell className="font-medium text-xs md:text-sm">{submission.form_templates?.name || "Unknown Form"}</TableCell>
-                      <TableCell className="text-xs md:text-sm">{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
-                      <TableCell><Badge variant={getStatusColor(submission.status)} className="text-xs">{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
-                      <TableCell className="text-xs md:text-sm">{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
+                      <TableCell className="font-medium text-xs md:text-sm max-w-[150px] truncate">{submission.form_templates?.name || "Unknown Form"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs md:text-sm max-w-[120px] truncate">{submission.creator_profile?.full_name || submission.creator_profile?.email || "Unknown"}</TableCell>
+                      <TableCell><Badge variant={getStatusColor(submission.status)} className="text-xs whitespace-nowrap">{submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}</Badge></TableCell>
+                      <TableCell className="hidden md:table-cell text-xs md:text-sm whitespace-nowrap">{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
                        <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
@@ -583,8 +584,17 @@ export default function Forms() {
                           )}
                           {canDeleteSubmission(submission) && (
                             <>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSubmissionToDelete(submission.id); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex" onClick={() => { setSelectedSubmission(submission); setSelectedTemplate(templates.find(t => t.id === submission.form_template_id)); setSheetMode("edit-submission"); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={async (e) => { 
+                                e.stopPropagation();
+                                try {
+                                  await deleteMutation.mutateAsync(submission.id);
+                                  toast.success("Form deleted successfully");
+                                } catch (error: any) {
+                                  console.error("Delete error:", error);
+                                  toast.error(error.message || "Failed to delete form. Please check your permissions.");
+                                }
+                              }}><Trash2 className="h-4 w-4" /></Button>
                             </>
                           )}
                         </div>
@@ -594,6 +604,7 @@ export default function Forms() {
                 )}
               </TableBody>
             </Table>
+          </div>
         </div>
       )}
 

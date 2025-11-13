@@ -180,7 +180,7 @@ export function QuickAddButton() {
         <DropdownMenuTrigger asChild>
           <Button
             size="lg"
-            className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all"
+            className="h-12 w-12 rounded-lg shadow-lg hover:shadow-xl transition-all"
             style={{
               transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
               transition: 'transform 200ms ease'

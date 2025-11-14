@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { StickyNote, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useNotes } from "@/hooks/use-notes";
+import { useNotes, type Note } from "@/hooks/use-notes";
 import { formatDistanceToNow } from "date-fns";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { InteractiveNoteViewer } from "@/components/InteractiveNoteViewer";
 
 interface RecentNotesWidgetProps {
   size: "M" | "L";
@@ -10,11 +13,18 @@ interface RecentNotesWidgetProps {
 export const RecentNotesWidget = ({ size }: RecentNotesWidgetProps) => {
   const navigate = useNavigate();
   const { notes, isLoading } = useNotes();
+  const [open, setOpen] = useState(false);
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
   
   const maxItems = size === "M" ? 5 : 8;
   const recentNotes = notes
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, maxItems);
+
+  const handleNoteClick = (note: Note) => {
+    setActiveNote(note);
+    setOpen(true);
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -42,7 +52,7 @@ export const RecentNotesWidget = ({ size }: RecentNotesWidgetProps) => {
           recentNotes.map((note) => (
             <button
               key={note.id}
-              onClick={() => navigate(`/notes?id=${note.id}`)}
+              onClick={() => handleNoteClick(note)}
               className="w-full flex items-center gap-3 text-left bg-card/50 hover:bg-accent/20 rounded-lg p-2.5 transition-colors group"
             >
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
@@ -66,6 +76,19 @@ export const RecentNotesWidget = ({ size }: RecentNotesWidgetProps) => {
           </div>
         )}
       </div>
+
+      {/* Note Viewer Modal */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl w-[95vw] h-[80vh] p-0">
+          {activeNote && (
+            <InteractiveNoteViewer
+              note={activeNote}
+              onClose={() => setOpen(false)}
+              onCustomize={() => {}}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

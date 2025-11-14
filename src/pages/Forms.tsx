@@ -104,6 +104,19 @@ export default function Forms() {
     }
   }, [searchParams, submissions, templates, setSearchParams]);
 
+  // Handle opening form view from URL parameter (e.g., from pinned forms widget/sidebar)
+  useEffect(() => {
+    const viewId = searchParams.get('view');
+    if (viewId && submissions.length > 0 && templates.length > 0) {
+      const viewToOpen = submissions.find(s => s.id === viewId);
+      if (viewToOpen) {
+        setSelectedSubmission(viewToOpen);
+        setSelectedTemplate(templates.find(t => t.id === viewToOpen.form_template_id));
+        setSheetMode('view');
+      }
+    }
+  }, [searchParams, submissions, templates]);
+
   // Handle opening template directly from URL parameter (for favorited templates)
   useEffect(() => {
     const templateId = searchParams.get('template');

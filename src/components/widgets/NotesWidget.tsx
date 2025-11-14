@@ -40,8 +40,16 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [debouncedContent] = useDebounce(stickyContent, 1000);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
+  const [isLoadingTitles, setIsLoadingTitles] = useState(false);
 
   const textColor = getContrastColor(bgColor);
+
+  // Sync state with settings prop (handles persistence)
+  useEffect(() => {
+    setSelectedNoteId(settings?.noteId ?? null);
+    setBgColor(settings?.bgColor ?? "#FFEB3B");
+    setStickyContent(settings?.stickyContent ?? "");
+  }, [settings?.noteId, settings?.bgColor, settings?.stickyContent]);
 
   useEffect(() => {
     if (selectedNoteId) {
@@ -54,6 +62,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
     const fetchNoteTitles = async () => {
       if (favorites.length === 0) return;
       
+      setIsLoadingTitles(true);
       const noteIds = favorites.map(fav => fav.entity_id);
       const { data } = await supabase
         .from("notes")
@@ -67,6 +76,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
         });
         setNotesMap(map);
       }
+      setIsLoadingTitles(false);
     };
     
     fetchNoteTitles();
@@ -109,6 +119,11 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
     const newNoteId = noteId === "none" ? null : noteId;
     setSelectedNoteId(newNoteId);
     saveSettingsWithParams(newNoteId, bgColor, stickyContent);
+    if (newNoteId) {
+      fetchNote(newNoteId);
+    } else {
+      setNoteData(null);
+    }
   };
 
   const handleColorChange = (color: string) => {
@@ -159,13 +174,19 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
                   <SelectTrigger>
                     <SelectValue placeholder="None (Sticky Note Mode)" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[60] bg-popover shadow-md">
                     <SelectItem value="none">None (Sticky Note Mode)</SelectItem>
-                    {favorites.map((fav) => (
-                      <SelectItem key={fav.entity_id} value={fav.entity_id}>
-                        {notesMap[fav.entity_id] || "Loading..."}
-                      </SelectItem>
-                    ))}
+                    {isLoadingTitles ? (
+                      <SelectItem value="loading" disabled>Loading titles...</SelectItem>
+                    ) : favorites.length === 0 ? (
+                      <SelectItem value="no-favorites" disabled>No favorite notes</SelectItem>
+                    ) : (
+                      favorites.map((fav) => (
+                        <SelectItem key={fav.entity_id} value={fav.entity_id}>
+                          {notesMap[fav.entity_id] || "Untitled Note"}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

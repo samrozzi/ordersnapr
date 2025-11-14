@@ -84,6 +84,7 @@ const Dashboard = () => {
           x: layoutData.x ?? 0,
           y: layoutData.y ?? 0,
           position: w.position ?? index,
+          settings: (w.settings as any) || {},
         };
       });
       

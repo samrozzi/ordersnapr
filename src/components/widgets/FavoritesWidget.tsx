@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, Plus } from "lucide-react";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,9 @@ import { useState, useEffect, memo } from "react";
 import { useWorkOrderDialog } from "@/contexts/WorkOrderDialogContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FormRenderer } from "@/components/forms/FormRenderer";
+import { useNotes } from "@/hooks/use-notes";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface FavoriteItem {
   id: string;
@@ -22,6 +25,8 @@ export const FavoritesWidget = memo(() => {
   const [selectedFormTemplate, setSelectedFormTemplate] = useState<any>(null);
   const navigate = useNavigate();
   const { openWorkOrderDialog } = useWorkOrderDialog();
+  const { createNote } = useNotes();
+  const { toggleFavorite } = useFavorites("note", "");
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -135,6 +140,33 @@ export const FavoritesWidget = memo(() => {
 
     fetchFavorites();
   }, []);
+
+  const handleCreateNote = async () => {
+    try {
+      const newNote = await createNote({
+        title: "Untitled Note",
+        content: { blocks: [] },
+      });
+
+      if (newNote) {
+        // Favorite the new note
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("user_favorites").insert({
+            user_id: user.id,
+            entity_type: "note",
+            entity_id: newNote.id,
+          });
+        }
+
+        toast.success("New note created and favorited!");
+        navigate(`/notes?note=${newNote.id}`);
+      }
+    } catch (error) {
+      console.error("Error creating note:", error);
+      toast.error("Failed to create note");
+    }
+  };
 
   const handleClick = async (item: FavoriteItem) => {
     // Open dialog for work orders, navigate for other types

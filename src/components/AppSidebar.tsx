@@ -38,8 +38,10 @@ import {
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
 import { useFeatureContext } from "@/contexts/FeatureContext";
 import { useNotes } from "@/hooks/use-notes";
+import { usePinnedForms } from "@/hooks/use-form-submissions-pin";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useSidebarState } from "@/hooks/use-sidebar-state";
+import { Button } from "@/components/ui/button";
 import ordersnaprLogo from "@/assets/ordersnapr-horizontal.png";
 import ordersnaprLogoDark from "@/assets/ordersnapr-horizontal-dark.png";
 import ordersnaprIcon from "@/assets/ordersnapr-icon-light.png";
@@ -73,7 +75,9 @@ export function AppSidebar() {
   const orgName = activeOrg?.name || "";
   const [lockedFeatureName, setLockedFeatureName] = useState<string | null>(null);
   const { pinnedNotes, preferences, updatePreferences } = useNotes();
+  const { data: pinnedForms } = usePinnedForms(activeOrg?.id || null);
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
+  const [formsDropdownOpen, setFormsDropdownOpen] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const { data: userPreferences } = useUserPreferences(userId);
   const { enabledToggles, featureToggleVersion } = useSidebarState(userId);
@@ -355,6 +359,59 @@ export function AppSidebar() {
                           <Lock className="h-3 w-3 text-muted-foreground" />
                         </span>
                       </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                // Special handling for Forms with pinned dropdown
+                if (item.id === "forms" && pinnedForms && pinnedForms.length > 0) {
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          <SidebarMenuButton asChild isActive={isActive(item.path)} className="flex-1">
+                            <NavLink 
+                              to={item.path} 
+                              end 
+                              onClick={handleNavClick}
+                              onMouseEnter={() => handlePrefetch(item.path)}
+                            >
+                              <Icon className="h-5 w-5" />
+                              <span>{item.label}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                          {state !== "collapsed" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 ml-auto"
+                              onClick={() => setFormsDropdownOpen(!formsDropdownOpen)}
+                            >
+                              {formsDropdownOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                        {state !== "collapsed" && formsDropdownOpen && (
+                          <div className="ml-9 mt-1 space-y-1">
+                            {pinnedForms.map((form) => (
+                              <button
+                                key={form.id}
+                                onClick={() => {
+                                  handleNavClick();
+                                  navigate(`/forms?form=${form.id}`);
+                                }}
+                                className="w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-muted/50 truncate"
+                              >
+                                {form.form_templates?.name || 'Untitled Form'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </SidebarMenuItem>
                   );
                 }

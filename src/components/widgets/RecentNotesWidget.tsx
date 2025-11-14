@@ -42,7 +42,7 @@ export const RecentNotesWidget = ({ size }: RecentNotesWidgetProps) => {
           recentNotes.map((note) => (
             <button
               key={note.id}
-              onClick={() => navigate(`/notes/${note.id}`)}
+              onClick={() => navigate(`/notes?id=${note.id}`)}
               className="w-full flex items-center gap-3 text-left bg-card/50 hover:bg-accent/20 rounded-lg p-2.5 transition-colors group"
             >
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">

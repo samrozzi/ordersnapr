@@ -39,6 +39,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
   const [noteData, setNoteData] = useState<any>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [debouncedContent] = useDebounce(stickyContent, 1000);
+  const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
   const textColor = getContrastColor(bgColor);
 
@@ -49,8 +50,31 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
   }, [selectedNoteId]);
 
   useEffect(() => {
+    // Fetch note titles for all favorites
+    const fetchNoteTitles = async () => {
+      if (favorites.length === 0) return;
+      
+      const noteIds = favorites.map(fav => fav.entity_id);
+      const { data } = await supabase
+        .from("notes")
+        .select("id, title")
+        .in("id", noteIds);
+      
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(note => {
+          map[note.id] = note.title;
+        });
+        setNotesMap(map);
+      }
+    };
+    
+    fetchNoteTitles();
+  }, [favorites]);
+
+  useEffect(() => {
     if (debouncedContent !== (settings?.stickyContent || "")) {
-      saveSettings();
+      saveSettingsWithParams(selectedNoteId, bgColor, debouncedContent);
     }
   }, [debouncedContent]);
 
@@ -66,29 +90,30 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
     }
   };
 
-  const saveSettings = async () => {
+  const saveSettingsWithParams = async (noteId: string | null, color: string, content: string) => {
     if (!user) return;
 
     await supabase
       .from("dashboard_widgets")
       .update({
         settings: {
-          noteId: selectedNoteId,
-          bgColor,
-          stickyContent,
+          noteId,
+          bgColor: color,
+          stickyContent: content,
         },
       })
       .eq("id", widgetId);
   };
 
   const handleNoteSelect = (noteId: string) => {
-    setSelectedNoteId(noteId === "none" ? null : noteId);
-    saveSettings();
+    const newNoteId = noteId === "none" ? null : noteId;
+    setSelectedNoteId(newNoteId);
+    saveSettingsWithParams(newNoteId, bgColor, stickyContent);
   };
 
   const handleColorChange = (color: string) => {
     setBgColor(color);
-    saveSettings();
+    saveSettingsWithParams(selectedNoteId, color, stickyContent);
   };
 
   const getPreviewText = () => {
@@ -108,10 +133,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
 
   return (
     <div
-      className={cn(
-        "h-full relative rounded-lg shadow-lg transition-all duration-200",
-        "transform rotate-[-1deg]"
-      )}
+      className="h-full relative rounded-lg shadow-lg transition-all duration-200"
       style={{ backgroundColor: bgColor }}
     >
       <div className="absolute top-2 right-2 z-10">
@@ -141,7 +163,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
                     <SelectItem value="none">None (Sticky Note Mode)</SelectItem>
                     {favorites.map((fav) => (
                       <SelectItem key={fav.entity_id} value={fav.entity_id}>
-                        {fav.entity_id}
+                        {notesMap[fav.entity_id] || "Loading..."}
                       </SelectItem>
                     ))}
                   </SelectContent>

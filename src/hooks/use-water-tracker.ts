@@ -3,17 +3,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
 import { toast } from "sonner";
 
+interface WaterIntakeLog {
+  id: string;
+  user_id: string;
+  date: string;
+  oz_consumed: number;
+  daily_goal: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useWaterTracker() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
-  const { data: todayIntake, isLoading } = useQuery({
+  const { data: todayIntake, isLoading } = useQuery<WaterIntakeLog | null>({
     queryKey: ["water-intake", user?.id, today],
     queryFn: async () => {
       if (!user) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("water_intake_log")
         .select("*")
         .eq("user_id", user.id)
@@ -26,7 +36,7 @@ export function useWaterTracker() {
 
       // If no entry exists, create one
       if (!data) {
-        const { data: newData, error: insertError } = await supabase
+        const { data: newData, error: insertError } = await (supabase as any)
           .from("water_intake_log")
           .insert({
             user_id: user.id,
@@ -38,10 +48,10 @@ export function useWaterTracker() {
           .single();
 
         if (insertError) throw insertError;
-        return newData;
+        return newData as WaterIntakeLog;
       }
 
-      return data;
+      return data as WaterIntakeLog;
     },
     enabled: !!user,
     staleTime: 30000, // 30 seconds
@@ -61,7 +71,7 @@ export function useWaterTracker() {
         updates.daily_goal = newGoal;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("water_intake_log")
         .update(updates)
         .eq("id", todayIntake.id)
@@ -80,7 +90,7 @@ export function useWaterTracker() {
     },
   });
 
-  const { data: weekHistory } = useQuery({
+  const { data: weekHistory } = useQuery<Pick<WaterIntakeLog, 'date' | 'oz_consumed' | 'daily_goal'>[]>({
     queryKey: ["water-intake-week", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -88,7 +98,7 @@ export function useWaterTracker() {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("water_intake_log")
         .select("date, oz_consumed, daily_goal")
         .eq("user_id", user.id)
@@ -96,7 +106,7 @@ export function useWaterTracker() {
         .order("date", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as Pick<WaterIntakeLog, 'date' | 'oz_consumed' | 'daily_goal'>[];
     },
     enabled: !!user,
     staleTime: 60000, // 1 minute

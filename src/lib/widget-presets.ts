@@ -31,6 +31,9 @@ export const WIDGET_ALLOWED: Record<string, WidgetSize[]> = {
   "calendar-large": ["L"],
   "favorites": ["S", "M"],
   "upcoming-work-orders": ["M", "L"],
+  "pinned-forms": ["S", "M", "L"],
+  "recent-notes": ["M", "L"],
+  "quick-stats": ["S", "M"],
 };
 
 export function getPreset(size: WidgetSize, bp: Breakpoint): Preset {

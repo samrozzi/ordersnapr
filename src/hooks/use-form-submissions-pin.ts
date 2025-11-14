@@ -13,7 +13,7 @@ export const useToggleFormPin = () => {
         .update({ 
           is_pinned: !isPinned,
           pinned_at: !isPinned ? new Date().toISOString() : null
-        })
+        } as any)
         .eq("id", id);
 
       if (error) throw error;
@@ -30,9 +30,9 @@ export const useToggleFormPin = () => {
 };
 
 export const usePinnedForms = (orgId: string | null) => {
-  return useQuery({
+  return useQuery<FormSubmission[]>({
     queryKey: ["pinned-forms", orgId],
-    queryFn: async () => {
+    queryFn: async (): Promise<FormSubmission[]> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
@@ -41,7 +41,9 @@ export const usePinnedForms = (orgId: string | null) => {
         .select(`
           *,
           form_templates (name, schema)
-        `)
+        `) as any;
+      
+      query = query
         .eq("is_pinned", true)
         .order("pinned_at", { ascending: false })
         .limit(7);
@@ -55,7 +57,7 @@ export const usePinnedForms = (orgId: string | null) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      return data as FormSubmission[];
+      return (data || []) as FormSubmission[];
     },
   });
 };

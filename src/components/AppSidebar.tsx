@@ -402,7 +402,7 @@ export function AppSidebar() {
                                 key={form.id}
                                 onClick={() => {
                                   handleNavClick();
-                                  navigate(`/forms?form=${form.id}`);
+                                  navigate(`/forms?view=${form.id}`);
                                 }}
                                 className="w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-muted/50 truncate"
                               >

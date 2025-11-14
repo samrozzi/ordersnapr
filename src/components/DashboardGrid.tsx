@@ -43,6 +43,7 @@ export interface Widget {
   x: number;
   y: number;
   position: number;
+  settings?: any;
 }
 
 interface DashboardGridProps {
@@ -234,7 +235,7 @@ const WidgetCard = memo(({
       case "quick-stats":
         return <QuickStatsWidget size={widget.size as "S" | "M"} />;
       case "notes-sticky":
-        return <NotesWidget widgetId={widget.id} size={widget.size} settings={(widget as any).settings} />;
+        return <NotesWidget widgetId={widget.id} size={widget.size} settings={widget.settings} />;
       case "water-tracker":
         return <WaterTrackerWidget size={widget.size} />;
       case "motivational-quote":

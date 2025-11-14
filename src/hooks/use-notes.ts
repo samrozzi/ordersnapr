@@ -63,6 +63,15 @@ export interface NoteTemplate {
   is_system: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: string | null;
+  org_id?: string | null;
+  visibility?: string | null;
+  preview_image?: string | null;
+  theme_config?: {
+    background_color?: string;
+    banner_image?: string;
+    [key: string]: any;
+  } | null;
 }
 
 export interface LinkedEntity {

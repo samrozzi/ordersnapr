@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Plus,
+  Square,
   Briefcase,
   Home,
   FileText,

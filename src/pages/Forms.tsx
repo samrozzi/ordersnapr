@@ -87,6 +87,7 @@ export default function Forms() {
   const submissionFilter = activeTab === "mine" ? { createdBy: userId || "" } : activeTab === "drafts" ? { status: "draft" } : activeTab === "submitted" ? { status: "submitted" } : activeTab === "logged" ? { status: "logged" } : undefined;
   const { data: submissions = [], isLoading: submissionsLoading } = useFormSubmissions(orgId, submissionFilter);
   const deleteMutation = useDeleteSubmission();
+  const toggleFormPin = useToggleFormPin();
 
   // Handle opening form draft from URL parameter (e.g., from favorites)
   useEffect(() => {
@@ -558,9 +559,18 @@ export default function Forms() {
                       <TableCell className="hidden md:table-cell text-xs md:text-sm whitespace-nowrap">{format(new Date(submission.created_at), "MMM d, yyyy h:mm a")}</TableCell>
                        <TableCell className="text-right">
                         <div className="flex gap-1 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => toggleFormPin.mutate({ id: submission.id, isPinned: submission.is_pinned || false })}
+                            title={submission.is_pinned ? "Unpin from dashboard" : "Pin to dashboard"}
+                          >
+                            <Pin className={`h-4 w-4 ${submission.is_pinned ? 'fill-current' : ''}`} />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSubmission(submission); setSheetMode("view"); }}><Eye className="h-4 w-4" /></Button>
                           {submission.status === 'submitted' && (
-                            <Button 
+                            <Button
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" 

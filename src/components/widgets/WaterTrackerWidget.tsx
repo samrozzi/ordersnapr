@@ -15,6 +15,7 @@ export const WaterTrackerWidget = ({ size }: WaterTrackerWidgetProps) => {
   const { todayIntake, isLoading, updateIntake, isUpdating } = useWaterTracker();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [customGoal, setCustomGoal] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
 
   if (isLoading) {
     return (
@@ -31,6 +32,14 @@ export const WaterTrackerWidget = ({ size }: WaterTrackerWidgetProps) => {
 
   const addWater = (oz: number) => {
     updateIntake({ ozToAdd: oz });
+  };
+
+  const addCustomAmount = () => {
+    const amount = parseInt(customAmount);
+    if (amount > 0 && amount <= 64) {
+      addWater(amount);
+      setCustomAmount("");
+    }
   };
 
   const setGoal = () => {
@@ -166,40 +175,61 @@ export const WaterTrackerWidget = ({ size }: WaterTrackerWidgetProps) => {
         </div>
 
         {size !== "S" && (
-          <div className="flex gap-2 justify-center">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => addWater(8)}
-              disabled={isUpdating}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              8oz
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => addWater(16)}
-              disabled={isUpdating}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              16oz
-            </Button>
-            {size === "L" && (
+          <>
+            <div className="flex gap-2 justify-center">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => addWater(32)}
+                onClick={() => addWater(8)}
                 disabled={isUpdating}
                 className="flex-1"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                32oz
+                8oz
               </Button>
-            )}
-          </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => addWater(16)}
+                disabled={isUpdating}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                16oz
+              </Button>
+              {size === "L" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => addWater(32)}
+                  disabled={isUpdating}
+                  className="flex-1"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  32oz
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                placeholder="Custom oz"
+                min="1"
+                max="64"
+                className="flex-1 h-9"
+              />
+              <Button
+                size="sm"
+                onClick={addCustomAmount}
+                disabled={isUpdating || !customAmount}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+          </>
         )}
 
         {size === "S" && (

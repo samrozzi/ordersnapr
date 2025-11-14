@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, Lock, LockOpen } from "lucide-react";
+import { Star, Pin, Settings, Check, Link as LinkIcon, MoreHorizontal, X, Upload, Lock, LockOpen, FileStack } from "lucide-react";
 import { useNotes, type Note, type NoteBlock } from "@/hooks/use-notes";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditorFocusProvider } from "@/contexts/EditorFocusContext";
 import { SharedFormattingToolbar } from "@/components/SharedFormattingToolbar";
+import { SaveAsTemplateDialog } from "@/components/notes/SaveAsTemplateDialog";
+import { useUserPermissions } from "@/hooks/use-user-permissions";
 
 interface InteractiveNoteViewerProps {
   note: Note;
@@ -40,6 +42,7 @@ function debounce<T extends (...args: any[]) => any>(
 
 export function InteractiveNoteViewer({ note, onClose, onCustomize }: InteractiveNoteViewerProps) {
   const { updateNote, toggleFavorite, togglePin, fetchLinkedEntity, preferences, updatePreferences } = useNotes();
+  const { data: permissions } = useUserPermissions();
   const [title, setTitle] = useState(note.title);
   const [blocks, setBlocks] = useState<NoteBlock[]>(note.content.blocks);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,6 +54,9 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
   const [isPinned, setIsPinned] = useState(note.is_pinned);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
   const [isPresentationMode, setIsPresentationMode] = useState(note.is_presentation_mode || false);
+  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
+  
+  const canSaveAsTemplate = permissions?.isSuperAdmin || permissions?.isOrgAdmin;
 
   // Clean up checklist items - remove empty or placeholder text, but keep at least one empty item per checklist
   const cleanChecklistItems = (blocks: NoteBlock[]): NoteBlock[] => {
@@ -583,6 +589,15 @@ export function InteractiveNoteViewer({ note, onClose, onCustomize }: Interactiv
                 <Settings className="h-4 w-4 mr-2" />
                 Customize Note
               </DropdownMenuItem>
+              {canSaveAsTemplate && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSaveAsTemplateOpen(true)}>
+                    <FileStack className="h-4 w-4 mr-2" />
+                    Save as Template
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           

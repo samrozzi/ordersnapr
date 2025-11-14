@@ -430,8 +430,16 @@ export const generateFormPDF = async (
                     startY: yPos,
                     head: subField.label ? [[{ content: subField.label, colSpan: 2, styles: { halign: 'left', fontStyle: 'bold' } }]] : undefined,
                     body: bodyData,
-                    theme: 'grid',
-                    styles: { fontSize: 9, cellPadding: 2 },
+                    theme: 'plain',
+                    styles: { 
+                      fontSize: 9, 
+                      cellPadding: 2,
+                      fillColor: applyAltBg ? getMutedColorRGB(options.themeColor!, 0.10) : [255, 255, 255]
+                    },
+                    headStyles: {
+                      fillColor: applyAltBg ? getMutedColorRGB(options.themeColor!, 0.10) : [240, 240, 240],
+                      fontStyle: 'bold'
+                    },
                     margin: { left: margin + 12 },
                     tableWidth: pageWidth - 2 * margin - 12
                   });
@@ -541,10 +549,11 @@ export const generateFormPDF = async (
                     (pdf as any).autoTable({
                       startY: yPos,
                       body: tableBody,
-                      theme: 'grid',
+                      theme: 'plain',
                       styles: {
                         fontSize: 9,
                         cellPadding: 3,
+                        fillColor: applyAltBg ? getMutedColorRGB(options.themeColor!, 0.10) : [255, 255, 255]
                       },
                       margin: { left: margin + 16 },
                     });

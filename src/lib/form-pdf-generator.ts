@@ -29,6 +29,40 @@ export const generateFormPDF = async (
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 15;
 
+  // Helper to estimate autoTable height accurately
+  const estimateAutoTableHeight = (
+    head: any[] | undefined,
+    body: any[][],
+    styles: any,
+    leftMargin: number,
+    width: number
+  ): number => {
+    try {
+      const scratch = new jsPDF({
+        unit: (pdf as any).internal.getUnit(),
+        format: (pdf as any).internal.pageSize.getFormat()
+      });
+      const startY = 10;
+      autoTable(scratch as any, {
+        startY,
+        head,
+        body,
+        theme: 'plain',
+        styles,
+        margin: { left: leftMargin },
+        tableWidth: width,
+      });
+      const finalY = (scratch as any).lastAutoTable?.finalY ?? startY;
+      return (finalY - startY) + 5; // Plus spacing after table
+    } catch (error) {
+      console.warn('[PDF] Failed to estimate autoTable height, using fallback', error);
+      // Fallback: estimate based on rows
+      const headerHeight = head ? 5 : 0;
+      const bodyHeight = body.length * 5;
+      return headerHeight + bodyHeight + 5;
+    }
+  };
+
   // Helper function to draw a checkbox in the PDF
   const drawCheckbox = (pdf: any, x: number, y: number, checked: boolean, size: number = 4, na: boolean = false) => {
     // Draw the box
@@ -309,38 +343,50 @@ export const generateFormPDF = async (
             (field.fields || []).forEach((subField: any) => {
               const subValue = entry[subField.key];
               if (subValue !== null && subValue !== undefined && subValue !== "") {
-                // Set correct font size for accurate measurement
-                const fontSize = parseFontSize(subField.fontSize);
-                pdf.setFontSize(fontSize);
-                console.log(`[PDF] Measuring subfield "${subField.label}" with fontSize: ${fontSize}pt`);
-                
-                let displayValue = typeof subValue === 'boolean' 
-                  ? (subValue ? 'Yes' : 'No')
-                  : (subField.type === 'table_layout' && typeof subValue === 'object')
-                    ? Object.entries(subValue)
-                        .map(([cellKey, cellValue]) => {
-                          const label = cellKey
-                            .replace(/^cell_/, '')
-                            .replace(/_/g, ' ')
-                            .split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return `${label}: ${cellValue}`;
-                        })
-                        .join(' | ')
-                  : String(subValue);
-                
-                // Apply formatting
-                if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
-                  displayValue = normalizeTime(displayValue);
+                // Special handling for table_layout fields
+                if (subField.type === 'table_layout' && typeof subValue === 'object') {
+                  const defaultLabels = ['Tech Name', 'Tech ID', 'Tech Type', 'Tech TN'];
+                  const bodyData = [
+                    [
+                      `${subField.tableCells?.['0-0']?.field?.label || defaultLabels[0]}: ${subValue['0-0'] || ''}`,
+                      `${subField.tableCells?.['0-1']?.field?.label || defaultLabels[1]}: ${subValue['0-1'] || ''}`
+                    ],
+                    [
+                      `${subField.tableCells?.['1-0']?.field?.label || defaultLabels[2]}: ${subValue['1-0'] || ''}`,
+                      `${subField.tableCells?.['1-1']?.field?.label || defaultLabels[3]}: ${subValue['1-1'] || ''}`
+                    ]
+                  ];
+                  
+                  const head = subField.label ? [[{ content: subField.label, colSpan: 2 }]] : undefined;
+                  height += estimateAutoTableHeight(
+                    head,
+                    bodyData,
+                    { fontSize: 9, cellPadding: 2 },
+                    margin + 12,
+                    pageWidth - 2 * margin - 12
+                  );
+                } else {
+                  // Set correct font size for accurate measurement
+                  const fontSize = parseFontSize(subField.fontSize);
+                  pdf.setFontSize(fontSize);
+                  console.log(`[PDF] Measuring subfield "${subField.label}" with fontSize: ${fontSize}pt`);
+                  
+                  let displayValue = typeof subValue === 'boolean' 
+                    ? (subValue ? 'Yes' : 'No')
+                    : String(subValue);
+                  
+                  // Apply formatting
+                  if (subField?.type === 'time' || /time/i.test(subField?.label || '') || /time/i.test(subField?.key || '')) {
+                    displayValue = normalizeTime(displayValue);
+                  }
+                  if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
+                    displayValue = formatDate(displayValue);
+                  }
+                  
+                  const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
+                  const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
+                  height += lines.length * 5;
                 }
-                if (subField?.type === 'date' || /date/i.test(subField?.label || '') || /date/i.test(subField?.key || '')) {
-                  displayValue = formatDate(displayValue);
-                }
-                
-                const text = subField.hideLabel ? displayValue : `${subField.label}: ${displayValue}`;
-                const lines = pdf.splitTextToSize(text, pageWidth - margin - 25);
-                height += lines.length * 5;
               }
             });
             

@@ -169,132 +169,139 @@ const Notes = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Notes</h1>
-          <p className="text-muted-foreground">
-            Your personal workspace for ideas, lists, and more
-          </p>
-          {!canCreateNote && (
-            <p className="text-sm text-destructive mt-1">
-              Free tier limit reached ({notesRemaining} notes remaining). Upgrade for unlimited notes.
+      {/* Sticky Header Container */}
+      <div className="sticky top-12 md:top-14 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-6 px-6 pb-4 border-b">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-6">
+          <div>
+            <h1 className="text-3xl font-bold">Notes</h1>
+            <p className="text-muted-foreground">
+              Your personal workspace for ideas, lists, and more
             </p>
-          )}
+            {!canCreateNote && (
+              <p className="text-sm text-destructive mt-1">
+                Free tier limit reached ({notesRemaining} notes remaining). Upgrade for unlimited notes.
+              </p>
+            )}
+          </div>
+
+          <Button onClick={handleCreateNote} disabled={!canCreateNote}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Note
+          </Button>
         </div>
 
-        <Button onClick={handleCreateNote} disabled={!canCreateNote}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Note
-        </Button>
-      </div>
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-1.5 md:gap-4 mt-6">
+          <Card className="h-14 md:h-auto flex flex-col">
+            <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
+              <CardDescription className="text-[9px] md:text-sm">Total</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
+              <div className="text-base md:text-2xl font-bold text-center w-full">{notes.length}</div>
+            </CardContent>
+          </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-1.5 md:gap-4">
-        <Card className="h-14 md:h-auto flex flex-col">
-          <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
-            <CardDescription className="text-[9px] md:text-sm">Total</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
-            <div className="text-base md:text-2xl font-bold text-center w-full">{notes.length}</div>
-          </CardContent>
-        </Card>
+          <Card className="h-14 md:h-auto flex flex-col">
+            <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
+              <CardDescription className="text-[9px] md:text-sm">Pinned</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
+              <div className="text-base md:text-2xl font-bold text-center w-full">{pinnedNotes.length}</div>
+            </CardContent>
+          </Card>
 
-        <Card className="h-14 md:h-auto flex flex-col">
-          <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
-            <CardDescription className="text-[9px] md:text-sm">Pinned</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
-            <div className="text-base md:text-2xl font-bold text-center w-full">{pinnedNotes.length}</div>
-          </CardContent>
-        </Card>
+          <Card className="h-14 md:h-auto flex flex-col">
+            <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
+              <CardDescription className="text-[9px] md:text-sm">Favs</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
+              <div className="text-base md:text-2xl font-bold text-center w-full">{favoriteNotes.length}</div>
+            </CardContent>
+          </Card>
 
-        <Card className="h-14 md:h-auto flex flex-col">
-          <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
-            <CardDescription className="text-[9px] md:text-sm">Favs</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
-            <div className="text-base md:text-2xl font-bold text-center w-full">{favoriteNotes.length}</div>
-          </CardContent>
-        </Card>
+          <Card className="h-14 md:h-auto flex flex-col">
+            <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
+              <CardDescription className="text-[9px] md:text-sm">
+                {canCreateNote ? "Left" : "Upgrade"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
+              <div className="text-base md:text-2xl font-bold text-center w-full">
+                {notesRemaining === Infinity ? "∞" : notesRemaining}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="h-14 md:h-auto flex flex-col">
-          <CardHeader className="pt-0.5 pb-0 px-1 md:pt-6 md:pb-2 md:px-6 text-center">
-            <CardDescription className="text-[9px] md:text-sm">
-              {canCreateNote ? "Left" : "Upgrade"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center p-0 md:pt-3 md:px-6">
-            <div className="text-base md:text-2xl font-bold text-center w-full">
-              {notesRemaining === Infinity ? "∞" : notesRemaining}
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="z-[60] bg-popover">
+                <SelectItem value="updated_at">Last Updated</SelectItem>
+                <SelectItem value="created_at">Date Created</SelectItem>
+                <SelectItem value="title">Title</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('list')}
+                className="rounded-r-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('kanban')}
+                className="rounded-l-none"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="updated_at">Last Updated</SelectItem>
-              <SelectItem value="created_at">Date Created</SelectItem>
-              <SelectItem value="title">Title</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleViewModeChange('list')}
-              className="rounded-r-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleViewModeChange('kanban')}
-              className="rounded-l-none"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
           </div>
         </div>
+
+        {/* Tabs Navigation */}
+        <div className="mt-4">
+          <TabsList>
+            <TabsTrigger value="all">All ({notes.length})</TabsTrigger>
+            <TabsTrigger value="pinned">
+              <Pin className="h-3 w-3 mr-1" />
+              Pinned ({pinnedNotes.length})
+            </TabsTrigger>
+            <TabsTrigger value="favorites">
+              <Star className="h-3 w-3 mr-1" />
+              Favorites ({favoriteNotes.length})
+            </TabsTrigger>
+            <TabsTrigger value="archived">
+              <Archive className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Archived ({archivedNotes.length})</span>
+              <span className="sm:hidden">({archivedNotes.length})</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </div>
 
-      {/* Notes Content */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">All ({notes.length})</TabsTrigger>
-          <TabsTrigger value="pinned">
-            <Pin className="h-3 w-3 mr-1" />
-            Pinned ({pinnedNotes.length})
-          </TabsTrigger>
-          <TabsTrigger value="favorites">
-            <Star className="h-3 w-3 mr-1" />
-            Favorites ({favoriteNotes.length})
-          </TabsTrigger>
-          <TabsTrigger value="archived">
-            <Archive className="h-3 w-3 mr-1" />
-            <span className="hidden sm:inline">Archived ({archivedNotes.length})</span>
-            <span className="sm:hidden">({archivedNotes.length})</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Scrollable Notes Content */}
+      <Tabs defaultValue="all" className="w-full mt-6">
 
         <TabsContent value="all" className="mt-4">
           {viewMode === 'list' ? (

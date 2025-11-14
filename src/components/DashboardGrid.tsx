@@ -14,6 +14,9 @@ import { UpcomingWorkOrdersWidget } from "./widgets/UpcomingWorkOrdersWidget";
 import { PinnedFormsWidget } from "./widgets/PinnedFormsWidget";
 import { RecentNotesWidget } from "./widgets/RecentNotesWidget";
 import { QuickStatsWidget } from "./widgets/QuickStatsWidget";
+import { NotesWidget } from "./widgets/NotesWidget";
+import { WaterTrackerWidget } from "./widgets/WaterTrackerWidget";
+import { MotivationalQuoteWidget } from "./widgets/MotivationalQuoteWidget";
 import {
   DndContext,
   closestCenter,
@@ -35,7 +38,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 export interface Widget {
   id: string;
-  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders" | "pinned-forms" | "recent-notes" | "quick-stats";
+  type: "calendar-small" | "calendar-medium" | "calendar-large" | "weather" | "favorites" | "upcoming-work-orders" | "pinned-forms" | "recent-notes" | "quick-stats" | "notes-sticky" | "water-tracker" | "motivational-quote";
   size: WidgetSize;
   x: number;
   y: number;
@@ -230,6 +233,12 @@ const WidgetCard = memo(({
         return <RecentNotesWidget size={widget.size as "M" | "L"} />;
       case "quick-stats":
         return <QuickStatsWidget size={widget.size as "S" | "M"} />;
+      case "notes-sticky":
+        return <NotesWidget widgetId={widget.id} size={widget.size} settings={(widget as any).settings} />;
+      case "water-tracker":
+        return <WaterTrackerWidget size={widget.size} />;
+      case "motivational-quote":
+        return <MotivationalQuoteWidget size={widget.size} />;
       default:
         return null;
     }

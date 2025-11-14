@@ -21,6 +21,48 @@ export const WeatherWidget = () => {
   const [manualZip, setManualZip] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Load cached weather on mount
+  useEffect(() => {
+    const cached = localStorage.getItem("weather-cache");
+    const cacheTime = localStorage.getItem("weather-cache-time");
+    
+    if (cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      // Use cache if less than 30 minutes old
+      if (age < 30 * 60 * 1000) {
+        setWeather(JSON.parse(cached));
+        setLoading(false);
+        return;
+      }
+    }
+    
+    // Fallback to fetching if no valid cache
+    const savedZip = localStorage.getItem("weather-zip");
+    if (savedZip) {
+      setZipCode(savedZip);
+      fetchWeatherByZip(savedZip);
+    } else {
+      setLoading(true);
+      setError(null);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            await fetchWeatherByCoords(latitude, longitude);
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            setError("Enable location access or enter ZIP");
+            setLoading(false);
+          }
+        );
+      } else {
+        setError("Geolocation not supported");
+        setLoading(false);
+      }
+    }
+  }, []);
+
   const fetchWeatherByCoords = async (latitude: number, longitude: number) => {
     try {
       // Use Open-Meteo API (free, no API key needed)
@@ -45,13 +87,20 @@ export const WeatherWidget = () => {
         71: "Light Snow", 73: "Snow", 75: "Heavy Snow", 95: "Thunderstorm"
       };
       
-      setWeather({
+      const weatherObj = {
         temp: Math.round(weatherData.current.temperature_2m),
         condition: conditionMap[weatherCode] || "Unknown",
         high: Math.round(weatherData.daily.temperature_2m_max[0]),
         low: Math.round(weatherData.daily.temperature_2m_min[0]),
         location: locationData.address.city || locationData.address.town || "Current Location"
-      });
+      };
+      
+      setWeather(weatherObj);
+      
+      // Cache weather data
+      localStorage.setItem("weather-cache", JSON.stringify(weatherObj));
+      localStorage.setItem("weather-cache-time", Date.now().toString());
+      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching weather:", error);
@@ -82,6 +131,7 @@ export const WeatherWidget = () => {
       
       await fetchWeatherByCoords(latitude, longitude);
       setZipCode(zip);
+      localStorage.setItem("weather-zip", zip);
     } catch (error) {
       console.error("Error fetching weather by ZIP:", error);
       setError("Unable to load weather");
@@ -121,25 +171,6 @@ export const WeatherWidget = () => {
     }
   };
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          await fetchWeatherByCoords(latitude, longitude);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          setError("Location access denied");
-          setLoading(false);
-        }
-      );
-    } else {
-      setError("Geolocation not supported");
-      setLoading(false);
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -148,65 +179,82 @@ export const WeatherWidget = () => {
     );
   }
 
-  if (error || !weather) {
+  if (error) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-4">
-        <Cloud className="h-12 w-12 text-muted-foreground opacity-50" />
-        <p className="text-sm text-muted-foreground">{error || "Unable to load weather"}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.location.reload()}
-        >
-          <MapPin className="h-4 w-4 mr-2" />
-          Allow Location
-        </Button>
+      <div className="h-full flex flex-col items-center justify-center gap-3 p-4">
+        <Cloud className="h-12 w-12 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground text-center">{error}</p>
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Set Location
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Weather Location</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="zipCode">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  value={manualZip}
+                  onChange={(e) => setManualZip(e.target.value)}
+                  placeholder="Enter ZIP code"
+                />
+              </div>
+              <Button onClick={handleManualLocation} className="w-full">
+                Update Location
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
+  if (!weather) return null;
+
   return (
-    <div className="h-full flex flex-col min-h-[160px]">
-      {/* Header with location and controls */}
-      <div className="flex items-center justify-between mb-2 shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-sm text-muted-foreground truncate">{weather.location}</span>
+    <div className="h-full flex flex-col justify-between p-4">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{weather.location}</span>
         </div>
-        <div className="flex gap-1 ml-2 shrink-0">
+        <div className="flex gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 flex-shrink-0"
+            className="h-7 w-7 rounded-full"
             onClick={handleRefresh}
-            disabled={loading}
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className="h-4 w-4" />
           </Button>
-          
           <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
                 <Settings className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Weather Location</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="zipcode">ZIP Code</Label>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="zipCode">ZIP Code</Label>
                   <Input
-                    id="zipcode"
-                    placeholder="Enter ZIP code"
+                    id="zipCode"
                     value={manualZip}
                     onChange={(e) => setManualZip(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleManualLocation()}
+                    placeholder={zipCode || "Enter ZIP code"}
                   />
                 </div>
                 <Button onClick={handleManualLocation} className="w-full">
-                  Set Location
+                  Update Location
                 </Button>
               </div>
             </DialogContent>
@@ -214,23 +262,24 @@ export const WeatherWidget = () => {
         </div>
       </div>
 
-      {/* Main temp - centered with flexible sizing */}
-      <div className="flex-1 flex items-center justify-center py-2 min-h-0 overflow-hidden">
+      <div className="flex items-center justify-center flex-1">
         <div className="text-center">
-          <div className="text-4xl md:text-5xl font-bold leading-none">{weather.temp}°</div>
-          <div className="text-sm md:text-base text-muted-foreground mt-1 line-clamp-1">{weather.condition}</div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Cloud className="h-12 w-12 text-primary" />
+            <span className="text-5xl font-bold">{weather.temp}°F</span>
+          </div>
+          <p className="text-lg text-muted-foreground">{weather.condition}</p>
         </div>
       </div>
 
-      {/* High/Low - wraps on small heights */}
-      <div className="flex justify-center gap-4 text-sm shrink-0 flex-wrap">
+      <div className="flex justify-around text-sm">
         <div className="text-center">
-          <div className="text-muted-foreground text-xs">High</div>
-          <div className="font-semibold">{weather.high}°</div>
+          <p className="text-muted-foreground">High</p>
+          <p className="font-semibold">{weather.high}°</p>
         </div>
         <div className="text-center">
-          <div className="text-muted-foreground text-xs">Low</div>
-          <div className="font-semibold">{weather.low}°</div>
+          <p className="text-muted-foreground">Low</p>
+          <p className="font-semibold">{weather.low}°</p>
         </div>
       </div>
     </div>

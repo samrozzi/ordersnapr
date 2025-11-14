@@ -131,6 +131,9 @@ const Dashboard = () => {
       const getDefaultSize = (t: Widget["type"]): WidgetSize => {
         if (t === "calendar-small") return "S";
         if (t === "calendar-large") return "L";
+        if (t === "pinned-forms") return "M";
+        if (t === "recent-notes") return "M";
+        if (t === "quick-stats") return "S";
         return "M";
       };
 

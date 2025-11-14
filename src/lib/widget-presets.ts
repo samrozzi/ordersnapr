@@ -34,6 +34,9 @@ export const WIDGET_ALLOWED: Record<string, WidgetSize[]> = {
   "pinned-forms": ["S", "M", "L"],
   "recent-notes": ["M", "L"],
   "quick-stats": ["S", "M"],
+  "notes-sticky": ["S", "M", "L"],
+  "water-tracker": ["S", "M", "L"],
+  "motivational-quote": ["S", "M", "L"],
 };
 
 export function getPreset(size: WidgetSize, bp: Breakpoint): Preset {

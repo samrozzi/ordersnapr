@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Pin, MoreVertical, Trash2 } from "lucide-react";
+import { Star, Pin, MoreVertical, Trash2, FileStack } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotes, type Note } from "@/hooks/use-notes";
 import { format } from "date-fns";
+import { SaveAsTemplateDialog } from "@/components/notes/SaveAsTemplateDialog";
+import { useUserPermissions } from "@/hooks/use-user-permissions";
 
 interface NoteCardProps {
   note: Note;
@@ -19,6 +22,10 @@ interface NoteCardProps {
 
 export function NoteCard({ note, onClick }: NoteCardProps) {
   const { toggleFavorite, togglePin, archiveNote } = useNotes();
+  const { data: permissions } = useUserPermissions();
+  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
+  
+  const canSaveAsTemplate = permissions?.isSuperAdmin || permissions?.isOrgAdmin;
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();

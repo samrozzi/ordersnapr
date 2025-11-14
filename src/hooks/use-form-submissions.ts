@@ -15,6 +15,49 @@ export interface FormSubmission {
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
+  is_pinned?: boolean;
+  pinned_at?: string | null;
+  metadata?: {
+    entryLabelPreferences?: Record<string, boolean>;
+  };
+  form_templates?: {
+    name: string;
+    schema: any;
+  };
+  creator_profile?: {
+    full_name: string | null;
+    email: string | null;
+  };
+}
+
+export const useFormSubmissions = (orgId: string | null, filter?: {
+  status?: string;
+  createdBy?: string;
+}) => {
+  return useQuery({
+    queryKey: ["form-submissions", orgId, filter],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
+      let query = supabase
+        .from("form_submissions")
+        .select(`
+          *,
+          form_templates (name, schema)
+        `)
+        .order("created_at", { ascending: false });
+  created_by: string;
+  job_id: string | null;
+  status: "draft" | "submitted" | "approved" | "rejected" | "logged";
+  answers: Record<string, any>;
+  attachments: any[];
+  signature: any | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  is_pinned?: boolean;
+  pinned_at?: string | null;
   metadata?: {
     entryLabelPreferences?: Record<string, boolean>;
   };

@@ -532,9 +532,11 @@ export type Database = {
           created_by: string
           form_template_id: string
           id: string
+          is_pinned: boolean | null
           job_id: string | null
           metadata: Json | null
           org_id: string | null
+          pinned_at: string | null
           signature: Json | null
           status: string | null
           submitted_at: string | null
@@ -547,9 +549,11 @@ export type Database = {
           created_by: string
           form_template_id: string
           id?: string
+          is_pinned?: boolean | null
           job_id?: string | null
           metadata?: Json | null
           org_id?: string | null
+          pinned_at?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -562,9 +566,11 @@ export type Database = {
           created_by?: string
           form_template_id?: string
           id?: string
+          is_pinned?: boolean | null
           job_id?: string | null
           metadata?: Json | null
           org_id?: string | null
+          pinned_at?: string | null
           signature?: Json | null
           status?: string | null
           submitted_at?: string | null
@@ -757,6 +763,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          created_by: string | null
           default_blocks: Json
           default_title: string
           description: string | null
@@ -764,11 +771,16 @@ export type Database = {
           id: string
           is_system: boolean
           name: string
+          org_id: string | null
+          preview_image: string | null
+          theme_config: Json | null
           updated_at: string
+          visibility: string | null
         }
         Insert: {
           category: string
           created_at?: string
+          created_by?: string | null
           default_blocks?: Json
           default_title: string
           description?: string | null
@@ -776,11 +788,16 @@ export type Database = {
           id?: string
           is_system?: boolean
           name: string
+          org_id?: string | null
+          preview_image?: string | null
+          theme_config?: Json | null
           updated_at?: string
+          visibility?: string | null
         }
         Update: {
           category?: string
           created_at?: string
+          created_by?: string | null
           default_blocks?: Json
           default_title?: string
           description?: string | null
@@ -788,9 +805,21 @@ export type Database = {
           id?: string
           is_system?: boolean
           name?: string
+          org_id?: string | null
+          preview_image?: string | null
+          theme_config?: Json | null
           updated_at?: string
+          visibility?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "note_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notes: {
         Row: {
@@ -1357,6 +1386,36 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      water_intake_log: {
+        Row: {
+          created_at: string | null
+          daily_goal: number | null
+          date: string
+          id: string
+          oz_consumed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_goal?: number | null
+          date?: string
+          id?: string
+          oz_consumed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_goal?: number | null
+          date?: string
+          id?: string
+          oz_consumed?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

@@ -191,40 +191,40 @@ const Notes = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-1.5 md:gap-4">
-        <Card className="h-14 md:h-auto">
+        <Card className="h-14 md:h-auto flex flex-col">
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Total</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+          <CardContent className="flex-1 flex items-center justify-center p-1 md:pt-3 md:px-6">
             <div className="text-base md:text-2xl font-bold text-center w-full">{notes.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="h-14 md:h-auto">
+        <Card className="h-14 md:h-auto flex flex-col">
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Pinned</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+          <CardContent className="flex-1 flex items-center justify-center p-1 md:pt-3 md:px-6">
             <div className="text-base md:text-2xl font-bold text-center w-full">{pinnedNotes.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="h-14 md:h-auto">
+        <Card className="h-14 md:h-auto flex flex-col">
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">Favs</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+          <CardContent className="flex-1 flex items-center justify-center p-1 md:pt-3 md:px-6">
             <div className="text-base md:text-2xl font-bold text-center w-full">{favoriteNotes.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="h-14 md:h-auto">
+        <Card className="h-14 md:h-auto flex flex-col">
           <CardHeader className="pb-0 px-1 md:pb-2 md:px-6 text-center">
             <CardDescription className="text-[9px] md:text-sm">
               {canCreateNote ? "Left" : "Upgrade"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center p-1 md:pt-3 md:px-6">
+          <CardContent className="flex-1 flex items-center justify-center p-1 md:pt-3 md:px-6">
             <div className="text-base md:text-2xl font-bold text-center w-full">
               {notesRemaining === Infinity ? "∞" : notesRemaining}
             </div>

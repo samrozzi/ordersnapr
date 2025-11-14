@@ -364,14 +364,14 @@ export default function Forms() {
                     {(dateFilter || timeFilter || formTypeFilter) && <span className="text-xs">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 bg-background">
+                <PopoverContent className="w-80 bg-background z-50 pointer-events-auto shadow-lg border border-border">
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
                     
                     <div className="space-y-2">
                       <label className="text-xs md:text-sm font-medium">Form Type</label>
                       <select
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="w-full h-12 min-h-[48px] rounded-md border border-input bg-background px-4 py-3 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring touch-manipulation cursor-pointer relative z-20 pointer-events-auto active:scale-[0.98]"
                         value={formTypeFilter}
                         onChange={(e) => setFormTypeFilter(e.target.value)}
                       >
@@ -434,7 +434,7 @@ export default function Forms() {
                   {(dateFilter || timeFilter || formTypeFilter) && <span className="text-sm ml-1">({[dateFilter, timeFilter, formTypeFilter].filter(Boolean).length})</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 bg-background">
+              <PopoverContent className="w-80 bg-background z-50 pointer-events-auto shadow-lg border border-border">
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm md:text-base">Filter Submissions</h4>
                   

@@ -195,9 +195,13 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
 
     const success = await saveOpenAIApiKey(apiKey.trim());
     if (success) {
-      toast.success('API key saved successfully!');
+      toast.success('API key saved to database successfully!');
     } else {
-      toast.error('Failed to save to database, but saved locally');
+      // Check browser console for details
+      toast.warning('Saved to browser only. Database migration pending.', {
+        description: 'Your API key is saved locally. Check console (F12) for details.',
+        duration: 6000,
+      });
     }
     setApiKey('');
     setState('idle');

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
-import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKey, saveOpenAIApiKey } from '@/lib/openai-service';
+import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKeyAsync, saveOpenAIApiKey } from '@/lib/openai-service';
 import { toast } from 'sonner';
 
 interface VoiceAssistantModalProps {
@@ -52,11 +52,14 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
   // Check for API key when modal opens
   useEffect(() => {
     if (open) {
-      if (!hasOpenAIApiKey()) {
-        setState('no-api-key');
-      } else {
-        setState('idle');
-      }
+      // Check async for API key from database
+      hasOpenAIApiKeyAsync().then((hasKey) => {
+        if (!hasKey) {
+          setState('no-api-key');
+        } else {
+          setState('idle');
+        }
+      });
     } else {
       // Reset when modal closes
       handleReset();
@@ -67,7 +70,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     setState('processing');
 
     try {
-      const apiKey = getOpenAIApiKey();
+      const apiKey = await getOpenAIApiKey();
       if (!apiKey) {
         throw new Error('OpenAI API key not configured');
       }
@@ -165,7 +168,10 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     resetRecording();
     setTranscription('');
     setError('');
-    setState(hasOpenAIApiKey() ? 'idle' : 'no-api-key');
+    // Check async for API key
+    hasOpenAIApiKeyAsync().then((hasKey) => {
+      setState(hasKey ? 'idle' : 'no-api-key');
+    });
   }
 
   function handleClose() {
@@ -176,7 +182,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     onOpenChange(false);
   }
 
-  function handleSaveApiKey() {
+  async function handleSaveApiKey() {
     if (!apiKey.trim()) {
       toast.error('Please enter an API key');
       return;
@@ -187,8 +193,12 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
       return;
     }
 
-    saveOpenAIApiKey(apiKey.trim());
-    toast.success('API key saved successfully!');
+    const success = await saveOpenAIApiKey(apiKey.trim());
+    if (success) {
+      toast.success('API key saved successfully!');
+    } else {
+      toast.error('Failed to save to database, but saved locally');
+    }
     setApiKey('');
     setState('idle');
   }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText, DollarSign, Clock, CheckCircle } from "lucide-react";
@@ -28,20 +28,46 @@ const Invoices = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [viewingInvoice, setViewingInvoice] = useState<any>(null);
 
-  // Filter invoices by status
-  const draftInvoices = invoices.filter((inv: any) => inv.status === 'draft');
-  const sentInvoices = invoices.filter((inv: any) => inv.status === 'sent');
-  const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid');
-  const overdueInvoices = invoices.filter((inv: any) => {
-    if (inv.status === 'paid' || inv.status === 'void' || inv.status === 'cancelled') return false;
-    if (!inv.due_date) return false;
-    return new Date(inv.due_date) < new Date();
-  });
+  // Filter invoices by status (memoized for performance)
+  const draftInvoices = useMemo(() =>
+    invoices.filter((inv: any) => inv.status === 'draft'),
+    [invoices]
+  );
 
-  // Calculate totals
-  const totalOutstanding = sentInvoices.reduce((sum: number, inv: any) => sum + (inv.total_cents || 0), 0);
-  const totalPaid = paidInvoices.reduce((sum: number, inv: any) => sum + (inv.paid_amount_cents || 0), 0);
-  const totalOverdue = overdueInvoices.reduce((sum: number, inv: any) => sum + (inv.total_cents || 0), 0);
+  const sentInvoices = useMemo(() =>
+    invoices.filter((inv: any) => inv.status === 'sent'),
+    [invoices]
+  );
+
+  const paidInvoices = useMemo(() =>
+    invoices.filter((inv: any) => inv.status === 'paid'),
+    [invoices]
+  );
+
+  const overdueInvoices = useMemo(() =>
+    invoices.filter((inv: any) => {
+      if (inv.status === 'paid' || inv.status === 'void' || inv.status === 'cancelled') return false;
+      if (!inv.due_date) return false;
+      return new Date(inv.due_date) < new Date();
+    }),
+    [invoices]
+  );
+
+  // Calculate totals (memoized for performance)
+  const totalOutstanding = useMemo(() =>
+    sentInvoices.reduce((sum: number, inv: any) => sum + (inv.total_cents || 0), 0),
+    [sentInvoices]
+  );
+
+  const totalPaid = useMemo(() =>
+    paidInvoices.reduce((sum: number, inv: any) => sum + (inv.paid_amount_cents || 0), 0),
+    [paidInvoices]
+  );
+
+  const totalOverdue = useMemo(() =>
+    overdueInvoices.reduce((sum: number, inv: any) => sum + (inv.total_cents || 0), 0),
+    [overdueInvoices]
+  );
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {

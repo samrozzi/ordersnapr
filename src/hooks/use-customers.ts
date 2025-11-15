@@ -71,43 +71,42 @@ export function useCustomers(options?: { includeStats?: boolean }) {
         throw error;
       }
 
-      // If stats are requested, fetch them separately for each customer
-      if (options?.includeStats && data) {
-        const customersWithStats = await Promise.all(
-          data.map(async (customer) => {
-            // Fetch invoice stats
-            const { data: invoiceStats } = await supabase
-              .from("invoices")
-              .select("total_cents, paid_amount_cents, status")
-              .eq("customer_id", customer.id);
+      // If stats are requested, fetch them in bulk (optimized - no N+1 queries)
+      if (options?.includeStats && data && data.length > 0) {
+        const customerIds = data.map(c => c.id);
 
-            // Fetch work order count  
-            const workOrdersQuery: any = supabase.from("work_orders");
-            const workOrdersResult = await workOrdersQuery
-              .select("id")
-              .eq("customer_id", customer.id);
-            
-            const workOrderCount = workOrdersResult.data?.length || 0;
+        // Fetch ALL invoice stats in one query
+        const { data: allInvoices } = await supabase
+          .from("invoices")
+          .select("customer_id, total_cents, paid_amount_cents, status")
+          .in("customer_id", customerIds);
 
-            const invoice_count = invoiceStats?.length || 0;
-            const total_invoiced_cents = invoiceStats?.reduce(
-              (sum, inv) => sum + (inv.total_cents || 0),
-              0
-            ) || 0;
-            const total_paid_cents = invoiceStats?.reduce(
-              (sum, inv) => sum + (inv.paid_amount_cents || 0),
-              0
-            ) || 0;
+        // Fetch ALL work order counts in one query
+        const workOrdersQuery: any = supabase.from("work_orders");
+        const { data: allWorkOrders } = await workOrdersQuery
+          .select("customer_id, id")
+          .in("customer_id", customerIds);
 
-            return {
-              ...customer,
-              invoice_count,
-              work_order_count: workOrderCount || 0,
-              total_invoiced_cents,
-              total_paid_cents,
-            } as CustomerWithStats;
-          })
-        );
+        // Aggregate stats by customer ID
+        const statsByCustomer = customerIds.reduce((acc, customerId) => {
+          const customerInvoices = allInvoices?.filter(inv => inv.customer_id === customerId) || [];
+          const customerWorkOrders = allWorkOrders?.filter(wo => wo.customer_id === customerId) || [];
+
+          acc[customerId] = {
+            invoice_count: customerInvoices.length,
+            work_order_count: customerWorkOrders.length,
+            total_invoiced_cents: customerInvoices.reduce((sum, inv) => sum + (inv.total_cents || 0), 0),
+            total_paid_cents: customerInvoices.reduce((sum, inv) => sum + (inv.paid_amount_cents || 0), 0),
+          };
+
+          return acc;
+        }, {} as Record<string, any>);
+
+        // Combine customer data with stats
+        const customersWithStats = data.map(customer => ({
+          ...customer,
+          ...statsByCustomer[customer.id],
+        })) as CustomerWithStats[];
 
         return customersWithStats;
       }

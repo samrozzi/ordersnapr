@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles, Key, Trash2 } from "lucide-react";
 import { getOpenAIApiKey, saveOpenAIApiKey, hasOpenAIApiKey } from "@/lib/openai-service";
+import { useSetUsername, validateUsername } from "@/hooks/use-username";
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -75,11 +76,16 @@ const Profile = () => {
   const [fullName, setFullName] = useState("");
   const [currentFullName, setCurrentFullName] = useState("");
   const [username, setUsername] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [lastUsernameChange, setLastUsernameChange] = useState<string | null>(null);
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
 
   const { data: userPreferences } = useUserPreferences(userId || null);
   const updatePreferences = useUpdateUserPreferences();
+  const setUsernameMutation = useSetUsername();
 
   useEffect(() => {
     fetchUserData();
@@ -113,6 +119,7 @@ const Profile = () => {
         organization_id,
         full_name,
         username,
+        last_username_change,
         organizations!organization_id (
           id,
           name
@@ -126,6 +133,7 @@ const Profile = () => {
       setCurrentFullName(data.full_name || '');
       setFullName(data.full_name || '');
       setUsername(data.username || '');
+      setLastUsernameChange(data.last_username_change || null);
       if (data.organizations) {
         setOrganization(data.organizations as Organization);
       }
@@ -173,7 +181,7 @@ const Profile = () => {
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
         title: "Error",
@@ -183,10 +191,30 @@ const Profile = () => {
       return;
     }
 
+    if (!currentPasswordForEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter your current password to confirm this change",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      // Verify current password first
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: currentPasswordForEmail,
+      });
+
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Update email
       const { error } = await supabase.auth.updateUser({ email });
-      
+
       if (error) throw error;
 
       toast({
@@ -194,6 +222,7 @@ const Profile = () => {
         description: "Check your new email for a confirmation link",
       });
       setEmail("");
+      setCurrentPasswordForEmail("");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -207,7 +236,16 @@ const Profile = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!currentPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter your current password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newPassword || !confirmPassword) {
       toast({
         title: "Error",
@@ -264,16 +302,28 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ 
-        password: newPassword 
+      // Verify current password first
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: currentPassword,
       });
-      
+
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
       if (error) throw error;
 
       toast({
         title: "Success",
         description: "Password updated successfully",
       });
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
@@ -448,6 +498,74 @@ const Profile = () => {
     });
   };
 
+  const handleUpdateUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newUsername.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a username",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Client-side validation
+    const validation = validateUsername(newUsername);
+    if (!validation.isValid) {
+      toast({
+        title: "Error",
+        description: validation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await setUsernameMutation.mutateAsync(newUsername);
+
+      if (result.success) {
+        setUsername(newUsername);
+        setNewUsername("");
+        setLastUsernameChange(new Date().toISOString());
+        toast({
+          title: "Success",
+          description: "Username updated successfully",
+        });
+        // Refresh profile data
+        await fetchProfile(userId);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update username",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update username",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate days until username can be changed again
+  const getDaysUntilUsernameChange = (): number | null => {
+    if (!lastUsernameChange) return null;
+    const daysSinceChange = (Date.now() - new Date(lastUsernameChange).getTime()) / (1000 * 60 * 60 * 24);
+    const daysRemaining = 7 - daysSinceChange;
+    return daysRemaining > 0 ? Math.ceil(daysRemaining) : 0;
+  };
+
+  const canChangeUsername = (): boolean => {
+    const daysRemaining = getDaysUntilUsernameChange();
+    return daysRemaining === null || daysRemaining <= 0;
+  };
+
   const getEntityName = (log: AuditLog) => {
     if (log.entity_type === "work_orders") {
       return log.changes?.new?.customer_name || log.changes?.customer_name || "Work Order";
@@ -582,6 +700,46 @@ const Profile = () => {
               </CardContent>
             </Card>
 
+            {username && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Change Username</CardTitle>
+                  <CardDescription>
+                    Your unique username for @mentions and sharing. Can be changed once every 7 days.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUpdateUsername} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newUsername">New Username</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-medium">@</span>
+                        <Input
+                          id="newUsername"
+                          type="text"
+                          value={newUsername}
+                          onChange={(e) => setNewUsername(e.target.value)}
+                          placeholder={username}
+                          disabled={loading || !canChangeUsername()}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Current: @{username}
+                      </p>
+                      {!canChangeUsername() && (
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          You can change your username in {getDaysUntilUsernameChange()} day(s)
+                        </p>
+                      )}
+                    </div>
+                    <Button type="submit" disabled={loading || !canChangeUsername()}>
+                      {loading ? "Updating..." : "Update Username"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Update Email</CardTitle>
@@ -602,6 +760,20 @@ const Profile = () => {
                       disabled={loading}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPasswordForEmail">Current Password</Label>
+                    <Input
+                      id="currentPasswordForEmail"
+                      type="password"
+                      value={currentPasswordForEmail}
+                      onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                      placeholder="Enter your current password"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required to confirm this change
+                    </p>
+                  </div>
                   <Button type="submit" disabled={loading}>
                     {loading ? "Updating..." : "Update Email"}
                   </Button>
@@ -618,6 +790,20 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleUpdatePassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter your current password"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required to confirm this change
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input

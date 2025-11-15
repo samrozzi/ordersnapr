@@ -185,12 +185,8 @@ export function InvoiceForm({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         await updateInvoice({ id: invoice.id, updates: invoiceData });
         invoiceId = invoice.id;
       } else {
-        const { data: newInvoice } = await supabase
-          .from("invoices")
-          .insert([{ ...invoiceData, org_id: orgId }])
-          .select()
-          .single();
-        invoiceId = newInvoice!.id;
+        const newInvoice = await createInvoice(invoiceData);
+        invoiceId = newInvoice.id;
       }
 
       // Save custom field values if any

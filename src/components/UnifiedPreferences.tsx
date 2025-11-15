@@ -186,14 +186,15 @@ export function UnifiedPreferences() {
         // No saved preferences - initialize with all accessible features
         // For org users: include all available features (they'll see locked UI for disabled ones)
         // For free users: only free features
-        const defaults = hasPremiumAccess() || (features && features.length > 0)
+        const hasAccess = hasPremiumAccess();
+        const defaults = hasAccess || (features && features.length > 0)
           ? AVAILABLE_FEATURES.map((f) => f.id) // Enable all features by default
           : AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id); // Free tier only
         setEnabledFeatures(defaults);
       }
       setFeaturesReady(true);
     }
-  }, [user, activeOrgId, features, hasPremiumAccess]); // Re-run when activeOrgId or features change
+  }, [user, activeOrgId, features]); // Re-run when activeOrgId or features change
 
   // Load branding preferences from database (for premium users)
   useEffect(() => {

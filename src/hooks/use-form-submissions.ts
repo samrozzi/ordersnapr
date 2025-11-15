@@ -154,7 +154,44 @@ export const useDeleteSubmission = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // TODO: Delete associated files from storage
+      // First, fetch the submission to get attachments
+      const { data: submission, error: fetchError } = await supabase
+        .from("form_submissions")
+        .select("answers")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete associated files from storage
+      if (submission?.answers) {
+        const filesToDelete: string[] = [];
+
+        // Extract file IDs from all fields in answers
+        Object.values(submission.answers).forEach((answer: any) => {
+          if (answer && typeof answer === 'object' && Array.isArray(answer)) {
+            // Handle array of file objects
+            answer.forEach((item: any) => {
+              if (item && typeof item === 'object' && item.id) {
+                filesToDelete.push(item.id);
+              }
+            });
+          }
+        });
+
+        // Delete files from storage if any found
+        if (filesToDelete.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from('form-attachments')
+            .remove(filesToDelete);
+
+          if (storageError) {
+            console.error('Failed to delete submission files from storage:', storageError);
+          }
+        }
+      }
+
+      // Now delete the submission
       const { error } = await supabase
         .from("form_submissions")
         .delete()

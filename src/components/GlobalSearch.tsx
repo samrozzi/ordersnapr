@@ -85,7 +85,6 @@ export function GlobalSearch() {
     }
 
     const performSearch = async () => {
-      console.log("🔍 Starting search for:", search);
       setLoading(true);
       const searchResults: SearchResult[] = [];
 
@@ -95,7 +94,6 @@ export function GlobalSearch() {
         const ilikeSearchTerm = `%${search}%`;
 
         // Search work orders - filter by current org/personal space
-        console.log("🔍 Searching work orders for:", search, "in org:", activeOrgId);
         let workOrdersQuery = supabase
           .from("work_orders")
           .select("id, customer_name, job_id, status, notes, organization_id")
@@ -111,12 +109,9 @@ export function GlobalSearch() {
         const { data: workOrders, error: woError } = await workOrdersQuery.limit(5);
 
         if (woError) {
-          console.error("❌ Work orders search error:", woError);
-        } else {
-          console.log("✅ Found work orders:", workOrders?.length || 0);
-          if (workOrders && workOrders.length > 0) {
-            console.log("📋 Work order data sample:", workOrders[0]);
-            workOrders.forEach((wo: any) => {
+          console.error("Work orders search error:", woError);
+        } else if (workOrders && workOrders.length > 0) {
+          workOrders.forEach((wo: any) => {
               searchResults.push({
                 id: wo.id,
                 title: wo.customer_name || `Job ${wo.job_id || wo.id.substring(0, 8)}`,
@@ -127,11 +122,9 @@ export function GlobalSearch() {
                 itemId: wo.id, // For opening the dialog
               });
             });
-          }
         }
 
         // Search properties - filter by current user (properties are user-based, not org-based)
-        console.log("🔍 Searching properties...");
         const { data: properties, error: propError } = await supabase
           .from("properties")
           .select("id, property_name, address, user_id")
@@ -141,10 +134,8 @@ export function GlobalSearch() {
 
         if (propError) {
           console.error("Properties search error:", propError);
-        } else {
-          console.log("✅ Found properties:", properties?.length || 0);
-          if (properties) {
-            properties.forEach((prop: any) => {
+        } else if (properties) {
+          properties.forEach((prop: any) => {
               searchResults.push({
                 id: prop.id,
                 title: prop.property_name || "Unnamed Property",
@@ -155,11 +146,9 @@ export function GlobalSearch() {
                 itemId: prop.id,
               });
             });
-          }
         }
 
         // Search form templates - filter by current org/personal space
-        console.log("🔍 Searching forms...");
         let formsQuery = supabase
           .from("form_templates")
           .select("id, name, org_id, scope, created_by")
@@ -176,10 +165,8 @@ export function GlobalSearch() {
 
         if (formError) {
           console.error("Forms search error:", formError);
-        } else {
-          console.log("✅ Found forms:", forms?.length || 0);
-          if (forms) {
-            forms.forEach((form: any) => {
+        } else if (forms) {
+          forms.forEach((form: any) => {
               searchResults.push({
                 id: form.id,
                 title: form.name,
@@ -190,11 +177,9 @@ export function GlobalSearch() {
                 itemId: form.id,
               });
             });
-          }
         }
 
         // Search calendar events - filter by current org/personal space
-        console.log("🔍 Searching calendar events...");
         let eventsQuery = supabase
           .from("calendar_events")
           .select("id, title, event_date, organization_id")
@@ -211,10 +196,8 @@ export function GlobalSearch() {
 
         if (eventError) {
           console.error("Calendar events search error:", eventError);
-        } else {
-          console.log("✅ Found events:", events?.length || 0);
-          if (events) {
-            events.forEach((event: any) => {
+        } else if (events) {
+          events.forEach((event: any) => {
               searchResults.push({
                 id: event.id,
                 title: event.title,
@@ -225,11 +208,9 @@ export function GlobalSearch() {
                 itemId: event.id,
               });
             });
-          }
         }
 
         // Search profiles - filter by current org/personal space
-        console.log("🔍 Searching profiles...");
         let profilesQuery = supabase
           .from("profiles")
           .select("id, full_name, email, organization_id, active_org_id")
@@ -248,10 +229,8 @@ export function GlobalSearch() {
 
         if (customerError) {
           console.error("Profiles search error:", customerError);
-        } else {
-          console.log("✅ Found profiles:", customers?.length || 0);
-          if (customers) {
-            customers.forEach((customer: any) => {
+        } else if (customers) {
+          customers.forEach((customer: any) => {
               searchResults.push({
                 id: customer.id,
                 title: customer.full_name || customer.email || "Unknown User",
@@ -261,13 +240,11 @@ export function GlobalSearch() {
                 path: `/profile`,
               });
             });
-          }
         }
 
-        console.log("📊 Total results:", searchResults.length);
         setResults(searchResults);
       } catch (error) {
-        console.error("❌ Search error:", error);
+        console.error("Search error:", error);
       } finally {
         setLoading(false);
       }

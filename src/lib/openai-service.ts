@@ -2,6 +2,8 @@
  * OpenAI API service for voice transcription using Whisper
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface TranscriptionResult {
   text: string;
   duration?: number;
@@ -73,35 +75,117 @@ export async function transcribeAudio(
 }
 
 /**
- * Get OpenAI API key from environment or localStorage
- * Priority: 1. Environment variable, 2. localStorage
+ * Get OpenAI API key from database or environment or localStorage
+ * Priority: 1. Database, 2. Environment variable, 3. localStorage (legacy)
  */
-export function getOpenAIApiKey(): string | null {
-  // First check environment variable
+export async function getOpenAIApiKey(): Promise<string | null> {
+  // First try to get from database
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('openai_api_key')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!error && data?.openai_api_key) {
+        return data.openai_api_key;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching API key from database:', error);
+  }
+
+  // Fallback to environment variable
   const envKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (envKey) {
     return envKey;
   }
 
-  // Fallback to localStorage (user can set it in settings)
+  // Last fallback to localStorage (legacy support)
   const localKey = localStorage.getItem('openai_api_key');
   return localKey;
 }
 
 /**
- * Save OpenAI API key to localStorage
+ * Synchronous version for backwards compatibility
+ * Only checks localStorage and environment
  */
-export function saveOpenAIApiKey(apiKey: string): void {
-  if (apiKey) {
-    localStorage.setItem('openai_api_key', apiKey);
-  } else {
-    localStorage.removeItem('openai_api_key');
+export function getOpenAIApiKeySync(): string | null {
+  // Check environment variable
+  const envKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (envKey) {
+    return envKey;
+  }
+
+  // Fallback to localStorage
+  const localKey = localStorage.getItem('openai_api_key');
+  return localKey;
+}
+
+/**
+ * Save OpenAI API key to database (preferred) and localStorage (fallback)
+ */
+export async function saveOpenAIApiKey(apiKey: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Save to database
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert({
+        user_id: user.id,
+        openai_api_key: apiKey || null,
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      console.error('Error saving API key to database:', error);
+      // Fall back to localStorage if database save fails
+      if (apiKey) {
+        localStorage.setItem('openai_api_key', apiKey);
+      } else {
+        localStorage.removeItem('openai_api_key');
+      }
+      return false;
+    }
+
+    // Also save to localStorage for offline access
+    if (apiKey) {
+      localStorage.setItem('openai_api_key', apiKey);
+    } else {
+      localStorage.removeItem('openai_api_key');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error saving API key:', error);
+    // Fall back to localStorage
+    if (apiKey) {
+      localStorage.setItem('openai_api_key', apiKey);
+    } else {
+      localStorage.removeItem('openai_api_key');
+    }
+    return false;
   }
 }
 
 /**
- * Check if OpenAI API key is configured
+ * Check if OpenAI API key is configured (synchronous check)
  */
 export function hasOpenAIApiKey(): boolean {
-  return !!getOpenAIApiKey();
+  return !!getOpenAIApiKeySync();
+}
+
+/**
+ * Check if OpenAI API key is configured (async check including database)
+ */
+export async function hasOpenAIApiKeyAsync(): Promise<boolean> {
+  const key = await getOpenAIApiKey();
+  return !!key;
 }

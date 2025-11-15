@@ -74,6 +74,7 @@ const Profile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [currentFullName, setCurrentFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [hasApiKey, setHasApiKey] = useState(false);
 
@@ -111,6 +112,7 @@ const Profile = () => {
         approval_status,
         organization_id,
         full_name,
+        username,
         organizations!organization_id (
           id,
           name
@@ -118,11 +120,12 @@ const Profile = () => {
       `)
       .eq("id", uid)
       .maybeSingle();
-    
+
     if (data) {
       setApprovalStatus(data.approval_status || '');
       setCurrentFullName(data.full_name || '');
       setFullName(data.full_name || '');
+      setUsername(data.username || '');
       if (data.organizations) {
         setOrganization(data.organizations as Organization);
       }
@@ -395,7 +398,7 @@ const Profile = () => {
     }
   };
 
-  const handleSaveApiKey = (e: React.FormEvent) => {
+  const handleSaveApiKey = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!openaiApiKey.trim()) {
@@ -416,24 +419,32 @@ const Profile = () => {
       return;
     }
 
-    saveOpenAIApiKey(openaiApiKey.trim());
+    const success = await saveOpenAIApiKey(openaiApiKey.trim());
     setHasApiKey(true);
     setOpenaiApiKey("");
 
-    toast({
-      title: "Success",
-      description: "OpenAI API key saved successfully",
-    });
+    if (success) {
+      toast({
+        title: "Success",
+        description: "OpenAI API key saved successfully to your account",
+      });
+    } else {
+      toast({
+        title: "Saved Locally",
+        description: "API key saved to your browser only",
+        variant: "default",
+      });
+    }
   };
 
-  const handleRemoveApiKey = () => {
-    localStorage.removeItem('openai_api_key');
+  const handleRemoveApiKey = async () => {
+    await saveOpenAIApiKey(''); // Empty string removes it from database
     setHasApiKey(false);
     setOpenaiApiKey("");
 
     toast({
       title: "Success",
-      description: "OpenAI API key removed",
+      description: "OpenAI API key removed from your account",
     });
   };
 
@@ -499,6 +510,18 @@ const Profile = () => {
                   <Label>Email Address</Label>
                   <Input value={currentEmail} disabled className="bg-muted" />
                 </div>
+                {username && (
+                  <div className="space-y-2">
+                    <Label>Username</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">@</span>
+                      <Input value={username} disabled className="bg-muted font-medium" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Your unique username for @mentions and sharing
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>User ID</Label>
                   <Input value={userId.substring(0, 8) + '...'} disabled className="bg-muted font-mono text-xs" />

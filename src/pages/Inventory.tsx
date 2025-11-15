@@ -18,6 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Package,
   Plus,
   Search,
@@ -25,10 +32,19 @@ import {
   Trash2,
   PackageOpen,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Inventory() {
   const { activeOrg } = useActiveOrg();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+
+  const handleAddItem = () => {
+    toast.info("Inventory feature coming soon", {
+      description: "The inventory management system is currently under development. Stay tuned!",
+    });
+    setIsAddItemDialogOpen(false);
+  };
 
   // Placeholder data - in a real implementation, this would come from the database
   const inventoryItems = [];
@@ -57,7 +73,7 @@ export default function Inventory() {
             Manage your parts and materials
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsAddItemDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Item
         </Button>
@@ -91,7 +107,7 @@ export default function Inventory() {
                   : "Get started by adding your first inventory item"}
               </p>
               {!searchQuery && (
-                <Button className="mt-4">
+                <Button className="mt-4" onClick={() => setIsAddItemDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Item
                 </Button>
@@ -118,6 +134,32 @@ export default function Inventory() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Item Dialog */}
+      <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inventory Coming Soon</DialogTitle>
+            <DialogDescription>
+              The inventory management system is currently under development. This feature will allow you to:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+              <li>Track parts, materials, and supplies</li>
+              <li>Monitor stock levels and quantities</li>
+              <li>Set reorder points and alerts</li>
+              <li>Link inventory to work orders</li>
+              <li>Generate inventory reports</li>
+            </ul>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { AddWidgetDialog } from "@/components/AddWidgetDialog";
 import { Button } from "@/components/ui/button";
 import { Edit, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SectionErrorBoundary } from "@/components/SectionErrorBoundary";
 import type { WidgetSize } from "@/lib/widget-presets";
 import { getPreset } from "@/lib/widget-presets";
 import { useActiveOrg } from "@/hooks/use-active-org";
@@ -298,13 +299,19 @@ const Dashboard = () => {
       </div>
 
       {widgets.length > 0 ? (
-        <DashboardGrid 
-          widgets={widgets}
-          isEditMode={isEditMode}
-          onSizeChange={handleSizeChange}
-          onRemoveWidget={handleRemoveWidget}
-          onWidgetsReorder={handleWidgetsReorder}
-        />
+        <SectionErrorBoundary
+          sectionName="Dashboard Widgets"
+          fallbackMessage="Your dashboard widgets couldn't be loaded. Try refreshing the page."
+          showDetails={true}
+        >
+          <DashboardGrid
+            widgets={widgets}
+            isEditMode={isEditMode}
+            onSizeChange={handleSizeChange}
+            onRemoveWidget={handleRemoveWidget}
+            onWidgetsReorder={handleWidgetsReorder}
+          />
+        </SectionErrorBoundary>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg">
           <p className="text-muted-foreground mb-4">No widgets yet. Add your first widget to get started!</p>

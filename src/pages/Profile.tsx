@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles } from "lucide-react";
+import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles, Key, Trash2 } from "lucide-react";
+import { getOpenAIApiKey, saveOpenAIApiKey, hasOpenAIApiKey } from "@/lib/openai-service";
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -73,12 +74,15 @@ const Profile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [currentFullName, setCurrentFullName] = useState("");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [hasApiKey, setHasApiKey] = useState(false);
 
   const { data: userPreferences } = useUserPreferences(userId || null);
   const updatePreferences = useUpdateUserPreferences();
 
   useEffect(() => {
     fetchUserData();
+    setHasApiKey(hasOpenAIApiKey());
   }, []);
 
   // Restore theme from database on mount
@@ -353,20 +357,20 @@ const Profile = () => {
     setRefreshing(true);
     try {
       console.log('🔄 Force refreshing session...');
-      
+
       // Try to refresh the session
       const { data, error } = await supabase.auth.refreshSession();
-      
+
       if (error) {
         console.error('❌ Session refresh failed:', error);
         throw error;
       }
-      
+
       console.log('✅ Session refreshed successfully');
-      
+
       // Re-fetch all data
       await fetchUserData();
-      
+
       toast({
         title: "Success",
         description: "Session refreshed successfully. Try viewing work orders now.",
@@ -378,7 +382,7 @@ const Profile = () => {
         description: "Signing out and redirecting to login...",
         variant: "destructive",
       });
-      
+
       // If refresh fails, force sign out and reload
       setTimeout(async () => {
         await supabase.auth.signOut();
@@ -389,6 +393,48 @@ const Profile = () => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!openaiApiKey.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an API key",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!openaiApiKey.startsWith('sk-')) {
+      toast({
+        title: "Error",
+        description: "Invalid API key format. OpenAI keys start with 'sk-'",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveOpenAIApiKey(openaiApiKey.trim());
+    setHasApiKey(true);
+    setOpenaiApiKey("");
+
+    toast({
+      title: "Success",
+      description: "OpenAI API key saved successfully",
+    });
+  };
+
+  const handleRemoveApiKey = () => {
+    localStorage.removeItem('openai_api_key');
+    setHasApiKey(false);
+    setOpenaiApiKey("");
+
+    toast({
+      title: "Success",
+      description: "OpenAI API key removed",
+    });
   };
 
   const getEntityName = (log: AuditLog) => {
@@ -586,8 +632,8 @@ const Profile = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button 
-                  onClick={handleForceSessionRefresh} 
+                <Button
+                  onClick={handleForceSessionRefresh}
                   disabled={refreshing}
                   variant="outline"
                 >
@@ -596,6 +642,82 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground mt-2">
                   Use this if you're logged in but can't see work orders or other data. This will renew your authentication token.
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="h-5 w-5" />
+                  Voice Assistant API Key
+                </CardTitle>
+                <CardDescription>
+                  Configure your OpenAI API key for voice transcription features
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {hasApiKey ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <Key className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                        API key is configured
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Your OpenAI API key is stored locally in your browser. Cost: ~$0.006 per minute of voice transcription.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleRemoveApiKey}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove API Key
+                        </Button>
+                        <Button
+                          onClick={() => setHasApiKey(false)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Change API Key
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSaveApiKey} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="openai-api-key">OpenAI API Key</Label>
+                      <Input
+                        id="openai-api-key"
+                        type="password"
+                        value={openaiApiKey}
+                        onChange={(e) => setOpenaiApiKey(e.target.value)}
+                        placeholder="sk-..."
+                        disabled={loading}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Get your API key from{' '}
+                        <a
+                          href="https://platform.openai.com/api-keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:no-underline"
+                        >
+                          OpenAI's platform
+                        </a>
+                        . Your key is stored locally and never sent to our servers.
+                      </p>
+                    </div>
+                    <Button type="submit" disabled={loading}>
+                      <Key className="h-4 w-4 mr-2" />
+                      {loading ? "Saving..." : "Save API Key"}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
 

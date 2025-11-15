@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles, Key, Trash2 } from "lucide-react";
 import { getOpenAIApiKey, saveOpenAIApiKey, hasOpenAIApiKey } from "@/lib/openai-service";
 import { useSetUsername, validateUsername } from "@/hooks/use-username";
+import { MigrationStatus } from "@/components/MigrationStatus";
 import { format } from "date-fns";
 import { useTheme } from "next-themes";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -616,6 +617,8 @@ const Profile = () => {
           </TabsList>
 
           <TabsContent value="settings" className="space-y-6">
+            <MigrationStatus />
+
             <Card>
               <CardHeader>
                 <CardTitle>Account Information</CardTitle>

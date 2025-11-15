@@ -105,6 +105,22 @@ export function useCustomFieldValues({ entityType, entityId, orgId }: UseCustomF
       const field = fields.find(f => f.field_key === fieldKey);
       if (!field || !entityId) return;
 
+      // Get the current value to check if it has files to delete
+      const currentValue = values[fieldKey];
+      if (currentValue?.files && Array.isArray(currentValue.files)) {
+        // Delete all associated files from storage
+        const filePaths = currentValue.files.map((f: any) => f.id);
+        if (filePaths.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from('custom-field-files')
+            .remove(filePaths);
+
+          if (storageError) {
+            console.error('Failed to delete files from storage:', storageError);
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('custom_field_values')
         .delete()

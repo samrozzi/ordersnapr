@@ -1,6 +1,6 @@
 /**
  * FileFieldInput - Input for file upload custom fields
- * Note: This is a simplified version. Full implementation would need file upload to Supabase storage
+ * Full implementation with Supabase Storage integration
  */
 
 import { useState } from 'react';
@@ -9,6 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomField, FileFieldConfig, FileValue } from '@/types/custom-fields';
 import { X, Upload, FileIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { compressImage } from '@/lib/image-compression';
+import { useActiveOrg } from '@/hooks/use-active-org';
 
 interface FileFieldInputProps {
   field: CustomField;
@@ -28,6 +32,32 @@ export function FileFieldInput({
   const config = field.field_config as FileFieldConfig;
   const files: FileValue[] = value?.files || [];
   const [isUploading, setIsUploading] = useState(false);
+  const { activeOrgId } = useActiveOrg();
+
+  const validateFile = (file: File): string | null => {
+    // Validate file size
+    if (config.maxSize && file.size > config.maxSize) {
+      return `File "${file.name}" exceeds maximum size of ${formatFileSize(config.maxSize)}`;
+    }
+
+    // Validate file type
+    if (config.allowedTypes && config.allowedTypes.length > 0) {
+      const isAllowed = config.allowedTypes.some(allowedType => {
+        // Handle wildcards like "image/*"
+        if (allowedType.endsWith('/*')) {
+          const typePrefix = allowedType.slice(0, -2);
+          return file.type.startsWith(typePrefix);
+        }
+        return file.type === allowedType;
+      });
+
+      if (!isAllowed) {
+        return `File type "${file.type}" is not allowed`;
+      }
+    }
+
+    return null;
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
@@ -35,35 +65,92 @@ export function FileFieldInput({
 
     // Validate file count
     if (config.maxFiles && files.length + selectedFiles.length > config.maxFiles) {
-      // TODO: Show error toast
+      toast.error(`Maximum ${config.maxFiles} file(s) allowed`);
+      e.target.value = '';
       return;
+    }
+
+    // Validate each file
+    const filesToUpload: File[] = [];
+    for (const file of Array.from(selectedFiles)) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        toast.error(validationError);
+        e.target.value = '';
+        return;
+      }
+      filesToUpload.push(file);
     }
 
     setIsUploading(true);
 
     try {
-      // TODO: Upload to Supabase storage
-      // For now, just create mock FileValue objects
-      const newFiles: FileValue[] = Array.from(selectedFiles).map((file) => ({
-        id: Math.random().toString(36).substring(7),
-        name: file.name,
-        url: URL.createObjectURL(file), // Temporary URL
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-      }));
+      const uploadedFiles: FileValue[] = [];
 
-      onChange({ files: [...files, ...newFiles] });
-    } catch (error) {
+      for (const file of filesToUpload) {
+        // Compress image files before upload to reduce storage costs
+        const fileToUpload = await compressImage(file);
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `orgs/${activeOrgId || 'personal'}/custom-fields/${field.entity_type}/${field.field_key}/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('custom-field-files')
+          .upload(filePath, fileToUpload);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('custom-field-files')
+          .getPublicUrl(filePath);
+
+        uploadedFiles.push({
+          id: uploadData.path, // Use storage path as ID for easy deletion
+          name: file.name,
+          url: urlData.publicUrl,
+          size: fileToUpload.size,
+          type: file.type,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+
+      onChange({ files: [...files, ...uploadedFiles] });
+      toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
+    } catch (error: any) {
       console.error('File upload error:', error);
+      toast.error(error.message || 'Failed to upload files');
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
   };
 
-  const handleRemove = (fileId: string) => {
-    const newFiles = files.filter((f) => f.id !== fileId);
-    onChange({ files: newFiles });
+  const handleRemove = async (fileId: string) => {
+    try {
+      // Delete from Supabase Storage
+      const { error: deleteError } = await supabase.storage
+        .from('custom-field-files')
+        .remove([fileId]);
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw new Error('Failed to delete file');
+      }
+
+      // Remove from state
+      const newFiles = files.filter((f) => f.id !== fileId);
+      onChange({ files: newFiles });
+      toast.success('File removed successfully');
+    } catch (error: any) {
+      console.error('File removal error:', error);
+      toast.error(error.message || 'Failed to remove file');
+    }
   };
 
   const formatFileSize = (bytes: number) => {

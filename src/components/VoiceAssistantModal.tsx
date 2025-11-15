@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Loader2, FileText, X, Settings } from 'lucide-react';
+import { Mic, MicOff, Loader2, FileText, X, Settings, Key } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
-import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKey } from '@/lib/openai-service';
+import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKey, saveOpenAIApiKey } from '@/lib/openai-service';
 import { toast } from 'sonner';
 
 interface VoiceAssistantModalProps {
@@ -28,6 +30,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
   const [state, setState] = useState<AssistantState>('idle');
   const [transcription, setTranscription] = useState('');
   const [error, setError] = useState('');
+  const [apiKey, setApiKey] = useState('');
 
   const {
     recordingState,
@@ -160,9 +163,21 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     onOpenChange(false);
   }
 
-  function openSettings() {
-    onOpenChange(false);
-    navigate('/settings');
+  function handleSaveApiKey() {
+    if (!apiKey.trim()) {
+      toast.error('Please enter an API key');
+      return;
+    }
+
+    if (!apiKey.startsWith('sk-')) {
+      toast.error('Invalid API key format. OpenAI keys start with "sk-"');
+      return;
+    }
+
+    saveOpenAIApiKey(apiKey.trim());
+    toast.success('API key saved successfully!');
+    setApiKey('');
+    setState('idle');
   }
 
   return (
@@ -183,14 +198,48 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
           {state === 'no-api-key' && (
             <div className="space-y-4">
               <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
-                <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                  OpenAI API key is not configured. Please add your API key in settings to use voice transcription.
+                <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-2">
+                  OpenAI API key is required for voice transcription.
+                </p>
+                <p className="text-xs text-yellow-600/80 dark:text-yellow-400/80">
+                  Get your API key from:{' '}
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    platform.openai.com/api-keys
+                  </a>
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api-key" className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  OpenAI API Key
+                </Label>
+                <Input
+                  id="api-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveApiKey();
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored locally in your browser and never sent to our servers.
+                </p>
+              </div>
+
               <div className="flex gap-2">
-                <Button onClick={openSettings} className="flex-1">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Open Settings
+                <Button onClick={handleSaveApiKey} className="flex-1">
+                  <Key className="h-4 w-4 mr-2" />
+                  Save API Key
                 </Button>
                 <Button variant="outline" onClick={handleClose}>
                   Close

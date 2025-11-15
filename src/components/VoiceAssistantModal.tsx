@@ -88,10 +88,23 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
 
     } catch (err) {
       console.error('Transcription error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to transcribe audio';
-      toast.error(message);
+      let message = err instanceof Error ? err.message : 'Failed to transcribe audio';
+      let detailedError = message;
+
+      // Provide helpful error messages for common OpenAI errors
+      if (message.includes('quota')) {
+        detailedError = 'Your OpenAI API key has exceeded its quota. Please add credits to your OpenAI account or check your billing settings.';
+      } else if (message.includes('invalid') || message.includes('Incorrect API key')) {
+        detailedError = 'Invalid API key. Please check that you entered the correct OpenAI API key.';
+      } else if (message.includes('rate limit')) {
+        detailedError = 'Rate limit exceeded. Please wait a moment and try again.';
+      }
+
+      toast.error(detailedError, {
+        duration: 6000,
+      });
       setState('error');
-      setError(message);
+      setError(detailedError);
     }
   }
 
@@ -327,6 +340,38 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                 <p className="text-sm text-destructive font-medium">Error</p>
                 <p className="text-sm text-destructive/80 mt-1">{error}</p>
+                {error.includes('quota') && (
+                  <div className="mt-3 pt-3 border-t border-destructive/20">
+                    <p className="text-xs text-destructive/70 mb-2">
+                      To fix this:
+                    </p>
+                    <ul className="text-xs text-destructive/70 space-y-1 list-disc list-inside">
+                      <li>
+                        Visit{' '}
+                        <a
+                          href="https://platform.openai.com/settings/organization/billing"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:no-underline"
+                        >
+                          OpenAI Billing
+                        </a>
+                        {' '}to add credits
+                      </li>
+                      <li>Check your usage at{' '}
+                        <a
+                          href="https://platform.openai.com/usage"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:no-underline"
+                        >
+                          OpenAI Usage
+                        </a>
+                      </li>
+                      <li>Minimum $5 credit recommended for testing</li>
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleReset} className="flex-1">

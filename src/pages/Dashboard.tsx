@@ -8,17 +8,19 @@ import { Edit, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { WidgetSize } from "@/lib/widget-presets";
 import { getPreset } from "@/lib/widget-presets";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 const Dashboard = () => {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { activeOrgId } = useActiveOrg();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [activeOrgId]);
 
   const fetchDashboardData = async () => {
     try {
@@ -34,6 +36,7 @@ const Dashboard = () => {
           .from("dashboard_widgets")
           .select("*")
           .eq("user_id", user.id)
+          .eq("org_id", activeOrgId)
           .order("position"),
       ]);
 
@@ -110,6 +113,7 @@ const Dashboard = () => {
     for (const widget of defaultWidgets) {
       await supabase.from("dashboard_widgets").insert({
         user_id: userId,
+        org_id: activeOrgId,
         widget_type: widget.widget_type,
         position: widget.position,
         size: widget.size,
@@ -142,6 +146,7 @@ const Dashboard = () => {
         .from("dashboard_widgets")
         .insert({
           user_id: user.id,
+          org_id: activeOrgId,
           widget_type: type,
           position: newPosition,
           size: getDefaultSize(type),

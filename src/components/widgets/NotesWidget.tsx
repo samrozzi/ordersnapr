@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useDebounce } from "use-debounce";
 import { cn } from "@/lib/utils";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 interface NotesWidgetProps {
   widgetId: string;
@@ -32,6 +33,7 @@ const BG_COLORS = [
 
 export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
   const { user } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const { favorites } = useFavorites("note");
   const [selectedNoteId, setSelectedNoteId] = useState(settings?.noteId || null);
   const [bgColor, setBgColor] = useState(settings?.bgColor || "#FFEB3B");
@@ -93,6 +95,7 @@ export const NotesWidget = ({ widgetId, size, settings }: NotesWidgetProps) => {
       .from("notes")
       .select("id, title, content")
       .eq("id", noteId)
+      .eq("org_id", activeOrgId)
       .single();
 
     if (!error && data) {

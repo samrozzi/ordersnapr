@@ -427,6 +427,7 @@ export type Database = {
           created_at: string
           id: string
           layout_data: Json | null
+          org_id: string | null
           page_path: string | null
           position: number
           settings: Json | null
@@ -439,6 +440,7 @@ export type Database = {
           created_at?: string
           id?: string
           layout_data?: Json | null
+          org_id?: string | null
           page_path?: string | null
           position: number
           settings?: Json | null
@@ -451,6 +453,7 @@ export type Database = {
           created_at?: string
           id?: string
           layout_data?: Json | null
+          org_id?: string | null
           page_path?: string | null
           position?: number
           settings?: Json | null
@@ -459,7 +462,15 @@ export type Database = {
           user_id?: string
           widget_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_change_requests: {
         Row: {
@@ -1396,6 +1407,7 @@ export type Database = {
           daily_goal: number | null
           date: string
           id: string
+          org_id: string | null
           oz_consumed: number | null
           updated_at: string | null
           user_id: string
@@ -1405,6 +1417,7 @@ export type Database = {
           daily_goal?: number | null
           date?: string
           id?: string
+          org_id?: string | null
           oz_consumed?: number | null
           updated_at?: string | null
           user_id: string
@@ -1414,11 +1427,20 @@ export type Database = {
           daily_goal?: number | null
           date?: string
           id?: string
+          org_id?: string | null
           oz_consumed?: number | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "water_intake_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_orders: {
         Row: {

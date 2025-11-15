@@ -16,6 +16,7 @@ import { ProfileCompletionWrapper } from "@/components/ProfileCompletionWrapper"
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { MigrationChecker } from "@/components/MigrationChecker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AppUpdateNotification } from "@/components/AppUpdateNotification";
 import { UsernameGuard } from "@/components/UsernameGuard";
@@ -97,23 +98,111 @@ const AppContent = () => {
                 {/* Protected Routes - Require approval */}
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="admin" element={<Admin />} />
-                  <Route path="org-admin" element={<OrgAdmin />} />
-                  <Route path="custom-fields-admin" element={<CustomFieldsAdmin />} />
-                  <Route path="free-tier-dashboard" element={<Suspense fallback={<PageSkeleton />}><FreeTierDashboard /></Suspense>} />
-                  <Route path="job-audit" element={<FeatureRouteGuard module="work_orders"><JobAudit /></FeatureRouteGuard>} />
-                  <Route path="ride-along" element={<FeatureRouteGuard module="work_orders"><RideAlong /></FeatureRouteGuard>} />
-                  <Route path="work-orders" element={<FeatureRouteGuard module="work_orders"><WorkOrders /></FeatureRouteGuard>} />
-                  <Route path="property-info" element={<FeatureRouteGuard module="properties"><PropertyInfo /></FeatureRouteGuard>} />
-                  <Route path="forms" element={<FeatureRouteGuard module="forms"><Forms /></FeatureRouteGuard>} />
-                  <Route path="calendar" element={<FeatureRouteGuard module="calendar"><CalendarPage /></FeatureRouteGuard>} />
-                  <Route path="invoices" element={<FeatureRouteGuard module="invoicing"><Invoices /></FeatureRouteGuard>} />
-                  <Route path="customers" element={<FeatureRouteGuard module="customers"><Customers /></FeatureRouteGuard>} />
-                  <Route path="reports" element={<FeatureRouteGuard module="reports"><Reports /></FeatureRouteGuard>} />
-                  <Route path="notes" element={<Notes />} />
-                  <Route path="health-data" element={<HealthData />} />
+                  <Route path="dashboard" element={
+                    <RouteErrorBoundary routeName="Dashboard">
+                      <Dashboard />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="profile" element={
+                    <RouteErrorBoundary routeName="Profile">
+                      <Profile />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="admin" element={
+                    <RouteErrorBoundary routeName="Admin">
+                      <Admin />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="org-admin" element={
+                    <RouteErrorBoundary routeName="Organization Admin">
+                      <OrgAdmin />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="custom-fields-admin" element={
+                    <RouteErrorBoundary routeName="Custom Fields Admin">
+                      <CustomFieldsAdmin />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="free-tier-dashboard" element={
+                    <RouteErrorBoundary routeName="Free Tier Dashboard">
+                      <Suspense fallback={<PageSkeleton />}>
+                        <FreeTierDashboard />
+                      </Suspense>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="job-audit" element={
+                    <RouteErrorBoundary routeName="Job Audit">
+                      <FeatureRouteGuard module="work_orders">
+                        <JobAudit />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="ride-along" element={
+                    <RouteErrorBoundary routeName="Ride Along">
+                      <FeatureRouteGuard module="work_orders">
+                        <RideAlong />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="work-orders" element={
+                    <RouteErrorBoundary routeName="Work Orders">
+                      <FeatureRouteGuard module="work_orders">
+                        <WorkOrders />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="property-info" element={
+                    <RouteErrorBoundary routeName="Properties">
+                      <FeatureRouteGuard module="properties">
+                        <PropertyInfo />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="forms" element={
+                    <RouteErrorBoundary routeName="Forms">
+                      <FeatureRouteGuard module="forms">
+                        <Forms />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="calendar" element={
+                    <RouteErrorBoundary routeName="Calendar">
+                      <FeatureRouteGuard module="calendar">
+                        <CalendarPage />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="invoices" element={
+                    <RouteErrorBoundary routeName="Invoices">
+                      <FeatureRouteGuard module="invoicing">
+                        <Invoices />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="customers" element={
+                    <RouteErrorBoundary routeName="Customers">
+                      <FeatureRouteGuard module="customers">
+                        <Customers />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="reports" element={
+                    <RouteErrorBoundary routeName="Reports">
+                      <FeatureRouteGuard module="reports">
+                        <Reports />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="notes" element={
+                    <RouteErrorBoundary routeName="Notes">
+                      <Notes />
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="health-data" element={
+                    <RouteErrorBoundary routeName="Health Data">
+                      <HealthData />
+                    </RouteErrorBoundary>
+                  } />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />

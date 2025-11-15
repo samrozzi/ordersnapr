@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,19 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
   const { markAsSent, markAsPaid, deleteInvoice } = useInvoices();
   const { cloneInvoice, isCloning } = useCloneInvoice();
   const [sharingInvoice, setSharingInvoice] = useState<any>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Only virtualize if we have a large number of invoices (100+)
+  const shouldVirtualize = invoices.length > 100;
+
+  // Set up virtualizer for large lists
+  const rowVirtualizer = useVirtualizer({
+    count: invoices.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 73, // Estimated row height in pixels
+    overscan: 10, // Render 10 extra rows above/below viewport
+    enabled: shouldVirtualize,
+  });
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -96,118 +110,249 @@ export function InvoiceTable({ invoices, isLoading, onEdit, onView }: InvoiceTab
     );
   }
 
+  // Render function for invoice row (reused for both virtualized and non-virtualized)
+  const renderInvoiceRow = (invoice: any) => (
+    <TableRow key={invoice.id} className={isOverdue(invoice) ? "bg-destructive/5" : ""}>
+      <TableCell className="font-medium">
+        {invoice.number || "Draft"}
+      </TableCell>
+      <TableCell>
+        {invoice.customer_name || invoice.customer?.name || "No customer"}
+      </TableCell>
+      <TableCell>
+        {invoice.issue_date ? format(new Date(invoice.issue_date), "MMM d, yyyy") : "—"}
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          {invoice.due_date ? format(new Date(invoice.due_date), "MMM d, yyyy") : "—"}
+          {isOverdue(invoice) && (
+            <Badge variant="destructive" className="text-xs">Overdue</Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">
+        {formatCurrency(invoice.total_cents || 0)}
+      </TableCell>
+      <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onView(invoice)}>
+              <Eye className="h-4 w-4 mr-2" />
+              View
+            </DropdownMenuItem>
+            <SendInvoiceDialog
+              invoice={invoice}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </DropdownMenuItem>
+              }
+            />
+            <InvoiceEmailHistoryDialog
+              invoiceId={invoice.id}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <History className="h-4 w-4 mr-2" />
+                  Email History
+                </DropdownMenuItem>
+              }
+            />
+            <DropdownMenuItem onClick={() => setSharingInvoice(invoice)}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share Link
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {invoice.status === 'draft' && (
+              <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+            )}
+            {invoice.status === 'draft' && (
+              <DropdownMenuItem onClick={() => handleMarkAsSent(invoice)}>
+                <Send className="h-4 w-4 mr-2" />
+                Mark as Sent
+              </DropdownMenuItem>
+            )}
+            {(invoice.status === 'sent' || invoice.status === 'draft') && (
+              <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                <Check className="h-4 w-4 mr-2" />
+                Mark as Paid
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleClone(invoice)} disabled={isCloning}>
+              <Copy className="h-4 w-4 mr-2" />
+              Clone Invoice
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(invoice)}
+              className="text-destructive"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Invoice #</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Issue Date</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invoices.map((invoice) => (
-            <TableRow key={invoice.id} className={isOverdue(invoice) ? "bg-destructive/5" : ""}>
-              <TableCell className="font-medium">
-                {invoice.number || "Draft"}
-              </TableCell>
-              <TableCell>
-                {invoice.customer_name || invoice.customer?.name || "No customer"}
-              </TableCell>
-              <TableCell>
-                {invoice.issue_date ? format(new Date(invoice.issue_date), "MMM d, yyyy") : "—"}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  {invoice.due_date ? format(new Date(invoice.due_date), "MMM d, yyyy") : "—"}
-                  {isOverdue(invoice) && (
-                    <Badge variant="destructive" className="text-xs">Overdue</Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">
-                {formatCurrency(invoice.total_cents || 0)}
-              </TableCell>
-              <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onView(invoice)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <SendInvoiceDialog
-                      invoice={invoice}
-                      trigger={
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Email
-                        </DropdownMenuItem>
-                      }
-                    />
-                    <InvoiceEmailHistoryDialog
-                      invoiceId={invoice.id}
-                      trigger={
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <History className="h-4 w-4 mr-2" />
-                          Email History
-                        </DropdownMenuItem>
-                      }
-                    />
-                    <DropdownMenuItem onClick={() => setSharingInvoice(invoice)}>
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share Link
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {invoice.status === 'draft' && (
-                      <DropdownMenuItem onClick={() => onEdit(invoice)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                    )}
-                    {invoice.status === 'draft' && (
-                      <DropdownMenuItem onClick={() => handleMarkAsSent(invoice)}>
-                        <Send className="h-4 w-4 mr-2" />
-                        Mark as Sent
-                      </DropdownMenuItem>
-                    )}
-                    {(invoice.status === 'sent' || invoice.status === 'draft') && (
-                      <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
-                        <Check className="h-4 w-4 mr-2" />
-                        Mark as Paid
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleClone(invoice)} disabled={isCloning}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Clone Invoice
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(invoice)}
-                      className="text-destructive"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+      <div
+        ref={parentRef}
+        className={shouldVirtualize ? "overflow-auto relative" : ""}
+        style={shouldVirtualize ? { maxHeight: "600px" } : {}}
+      >
+        <Table>
+          <TableHeader className={shouldVirtualize ? "sticky top-0 bg-background z-10 shadow-sm" : ""}>
+            <TableRow>
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Issue Date</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody style={shouldVirtualize ? {
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            position: 'relative',
+          } : {}}>
+            {shouldVirtualize ? (
+              rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const invoice = invoices[virtualRow.index];
+                return (
+                  <TableRow
+                    key={invoice.id}
+                    className={isOverdue(invoice) ? "bg-destructive/5" : ""}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    data-index={virtualRow.index}
+                  >
+                    <TableCell className="font-medium">
+                      {invoice.number || "Draft"}
+                    </TableCell>
+                    <TableCell>
+                      {invoice.customer_name || invoice.customer?.name || "No customer"}
+                    </TableCell>
+                    <TableCell>
+                      {invoice.issue_date ? format(new Date(invoice.issue_date), "MMM d, yyyy") : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {invoice.due_date ? format(new Date(invoice.due_date), "MMM d, yyyy") : "—"}
+                        {isOverdue(invoice) && (
+                          <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(invoice.total_cents || 0)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onView(invoice)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <SendInvoiceDialog
+                            invoice={invoice}
+                            trigger={
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Send Email
+                              </DropdownMenuItem>
+                            }
+                          />
+                          <InvoiceEmailHistoryDialog
+                            invoiceId={invoice.id}
+                            trigger={
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <History className="h-4 w-4 mr-2" />
+                                Email History
+                              </DropdownMenuItem>
+                            }
+                          />
+                          <DropdownMenuItem onClick={() => setSharingInvoice(invoice)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share Link
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {invoice.status === 'draft' && (
+                            <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {invoice.status === 'draft' && (
+                            <DropdownMenuItem onClick={() => handleMarkAsSent(invoice)}>
+                              <Send className="h-4 w-4 mr-2" />
+                              Mark as Sent
+                            </DropdownMenuItem>
+                          )}
+                          {(invoice.status === 'sent' || invoice.status === 'draft') && (
+                            <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                              <Check className="h-4 w-4 mr-2" />
+                              Mark as Paid
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleClone(invoice)} disabled={isCloning}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Clone Invoice
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(invoice)}
+                            className="text-destructive"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              invoices.map(renderInvoiceRow)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {shouldVirtualize && invoices.length > 100 && (
+        <div className="p-2 text-xs text-muted-foreground text-center border-t">
+          Showing {rowVirtualizer.getVirtualItems().length} of {invoices.length} invoices (virtualized for performance)
+        </div>
+      )}
 
       {sharingInvoice && (
         <ShareInvoiceDialog

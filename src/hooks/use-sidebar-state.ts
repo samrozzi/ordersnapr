@@ -8,6 +8,7 @@ interface SidebarStateResult {
 }
 
 const FREE_DEFAULTS = ["work_orders", "properties", "forms", "calendar"];
+const ALL_FEATURES = ["work_orders", "properties", "forms", "calendar", "invoicing", "customers", "inventory", "reports", "files", "pos"];
 
 /**
  * Optimized hook for managing sidebar state with minimal re-renders
@@ -21,8 +22,8 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
   const storageKey = useMemo(() => {
     if (!userId) return null;
     const orgId = activeOrg?.id ?? null;
-    return orgId === null 
-      ? `user_features_${userId}_personal` 
+    return orgId === null
+      ? `user_features_${userId}_personal`
       : `user_features_${userId}_org_${orgId}`;
   }, [userId, activeOrg?.id]);
 
@@ -39,12 +40,18 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
         setCachedToggles(JSON.parse(saved));
       } catch (e) {
         console.warn("Failed to parse saved sidebar toggles, using defaults.", e);
-        setCachedToggles(FREE_DEFAULTS);
+        // Use org-aware defaults on error
+        const defaults = activeOrg?.id ? ALL_FEATURES : FREE_DEFAULTS;
+        setCachedToggles(defaults);
       }
     } else {
-      setCachedToggles(FREE_DEFAULTS);
+      // No saved preferences - use smart defaults based on workspace
+      // For org users: show all features (FeatureContext will handle access control)
+      // For personal workspace: only show free features
+      const defaults = activeOrg?.id ? ALL_FEATURES : FREE_DEFAULTS;
+      setCachedToggles(defaults);
     }
-  }, [storageKey]);
+  }, [storageKey, activeOrg?.id]);
 
   // Listen for feature toggle updates
   useEffect(() => {

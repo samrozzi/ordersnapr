@@ -31,14 +31,17 @@ const Dashboard = () => {
       if (!user) return;
 
       // Fetch all data in parallel for faster initial load
-      const [widgetsResult] = await Promise.all([
-        supabase
-          .from("dashboard_widgets")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("org_id", activeOrgId)
-          .order("position"),
-      ]);
+    const widgetQuery = supabase
+      .from("dashboard_widgets")
+      .select("*")
+      .eq("user_id", user.id);
+
+    const [widgetsResult] = await Promise.all([
+      (activeOrgId
+        ? widgetQuery.eq("org_id", activeOrgId)
+        : widgetQuery.is("org_id", null)
+      ).order("position"),
+    ]);
 
       // Handle widgets
       if (widgetsResult.error) throw widgetsResult.error;

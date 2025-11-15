@@ -25,11 +25,15 @@ export function useWaterTracker() {
     queryFn: async () => {
       if (!user) return null;
 
-      const { data, error } = await (supabase as any)
+      const query = supabase
         .from("water_intake_log")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("org_id", activeOrgId)
+        .eq("user_id", user.id);
+
+      const { data, error } = await (activeOrgId
+        ? query.eq("org_id", activeOrgId)
+        : query.is("org_id", null)
+      )
         .eq("date", today)
         .single();
 
@@ -102,11 +106,15 @@ export function useWaterTracker() {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
 
-      const { data, error } = await (supabase as any)
+      const query = supabase
         .from("water_intake_log")
         .select("date, oz_consumed, daily_goal")
-        .eq("user_id", user.id)
-        .eq("org_id", activeOrgId)
+        .eq("user_id", user.id);
+
+      const { data, error } = await (activeOrgId
+        ? query.eq("org_id", activeOrgId)
+        : query.is("org_id", null)
+      )
         .gte("date", sevenDaysAgo.toISOString().split('T')[0])
         .order("date", { ascending: true });
 

@@ -46,6 +46,7 @@ const Customers = lazy(() => import("./pages/Customers"));
 const HealthData = lazy(() => import("./pages/HealthData"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Files = lazy(() => import("./pages/Files"));
+const Inventory = lazy(() => import("./pages/Inventory"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const FreeTierWorkspace = lazy(() => import("./pages/FreeTierWorkspace"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
@@ -198,6 +199,13 @@ const AppContent = () => {
                     <RouteErrorBoundary routeName="Files">
                       <FeatureRouteGuard module="files">
                         <Files />
+                      </FeatureRouteGuard>
+                    </RouteErrorBoundary>
+                  } />
+                  <Route path="inventory" element={
+                    <RouteErrorBoundary routeName="Inventory">
+                      <FeatureRouteGuard module="inventory">
+                        <Inventory />
                       </FeatureRouteGuard>
                     </RouteErrorBoundary>
                   } />

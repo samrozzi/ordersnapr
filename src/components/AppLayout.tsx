@@ -10,6 +10,7 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { QuickAddButton } from "@/components/QuickAddButton";
+import { VoiceAssistantButton } from "@/components/VoiceAssistantButton";
 
 export function AppLayout() {
   const { theme } = useTheme();
@@ -57,6 +58,7 @@ export function AppLayout() {
             </main>
           </div>
           <QuickAddButton />
+          <VoiceAssistantButton />
         </div>
       </div>
     </SidebarProvider>

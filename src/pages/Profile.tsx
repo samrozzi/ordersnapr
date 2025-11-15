@@ -476,12 +476,12 @@ const Profile = () => {
     if (success) {
       toast({
         title: "Success",
-        description: "OpenAI API key saved successfully to your account",
+        description: "OpenAI API key saved to database successfully",
       });
     } else {
       toast({
-        title: "Saved Locally",
-        description: "API key saved to your browser only",
+        title: "Saved Locally Only",
+        description: "Database migration pending. Key saved to browser. Check console (F12) for details.",
         variant: "default",
       });
     }

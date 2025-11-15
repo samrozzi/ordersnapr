@@ -145,7 +145,14 @@ export async function saveOpenAIApiKey(apiKey: string): Promise<boolean> {
       });
 
     if (error) {
-      console.error('Error saving API key to database:', error);
+      // Check if it's a column doesn't exist error (migration not applied yet)
+      if (error.message?.includes('column') || error.code === '42703') {
+        console.warn('⚠️ Database column not ready yet. Migration pending. Using localStorage for now.');
+        console.warn('Error details:', error);
+      } else {
+        console.error('❌ Error saving API key to database:', error);
+      }
+
       // Fall back to localStorage if database save fails
       if (apiKey) {
         localStorage.setItem('openai_api_key', apiKey);
@@ -154,6 +161,8 @@ export async function saveOpenAIApiKey(apiKey: string): Promise<boolean> {
       }
       return false;
     }
+
+    console.log('✅ API key saved to database successfully');
 
     // Also save to localStorage for offline access
     if (apiKey) {
@@ -164,7 +173,7 @@ export async function saveOpenAIApiKey(apiKey: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error saving API key:', error);
+    console.error('❌ Error saving API key:', error);
     // Fall back to localStorage
     if (apiKey) {
       localStorage.setItem('openai_api_key', apiKey);

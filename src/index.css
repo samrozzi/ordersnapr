@@ -165,6 +165,17 @@ All colors MUST be HSL.
   .ProseMirror {
     user-select: text;
     -webkit-user-select: text;
+    -webkit-touch-callout: text; /* Enable iOS text selection callout */
+    touch-action: auto; /* Changed from 'manipulation' to allow native selection */
+    cursor: text;
+  }
+
+  /* Prevent selection on UI elements only */
+  .ProseMirror [data-drag-handle],
+  .ProseMirror button,
+  .ProseMirror input[type="checkbox"] {
+    user-select: none;
+    -webkit-user-select: none;
     touch-action: manipulation;
   }
 

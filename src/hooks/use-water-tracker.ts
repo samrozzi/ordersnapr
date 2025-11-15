@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
+import { useActiveOrg } from "./use-active-org";
 import { toast } from "sonner";
 
 interface WaterIntakeLog {
@@ -15,11 +16,12 @@ interface WaterIntakeLog {
 
 export function useWaterTracker() {
   const { user } = useAuth();
+  const { activeOrgId } = useActiveOrg();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
   const { data: todayIntake, isLoading } = useQuery<WaterIntakeLog | null>({
-    queryKey: ["water-intake", user?.id, today],
+    queryKey: ["water-intake", user?.id, activeOrgId, today],
     queryFn: async () => {
       if (!user) return null;
 
@@ -27,6 +29,7 @@ export function useWaterTracker() {
         .from("water_intake_log")
         .select("*")
         .eq("user_id", user.id)
+        .eq("org_id", activeOrgId)
         .eq("date", today)
         .single();
 
@@ -40,6 +43,7 @@ export function useWaterTracker() {
           .from("water_intake_log")
           .insert({
             user_id: user.id,
+            org_id: activeOrgId,
             date: today,
             oz_consumed: 0,
             daily_goal: 64,
@@ -82,7 +86,7 @@ export function useWaterTracker() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["water-intake", user?.id, today] });
+      queryClient.invalidateQueries({ queryKey: ["water-intake", user?.id, activeOrgId, today] });
     },
     onError: (error) => {
       toast.error("Failed to update water intake");
@@ -91,7 +95,7 @@ export function useWaterTracker() {
   });
 
   const { data: weekHistory } = useQuery<Pick<WaterIntakeLog, 'date' | 'oz_consumed' | 'daily_goal'>[]>({
-    queryKey: ["water-intake-week", user?.id],
+    queryKey: ["water-intake-week", user?.id, activeOrgId],
     queryFn: async () => {
       if (!user) return [];
 
@@ -102,6 +106,7 @@ export function useWaterTracker() {
         .from("water_intake_log")
         .select("date, oz_consumed, daily_goal")
         .eq("user_id", user.id)
+        .eq("org_id", activeOrgId)
         .gte("date", sevenDaysAgo.toISOString().split('T')[0])
         .order("date", { ascending: true });
 

@@ -210,10 +210,12 @@ export function OptimizedNoteEditor({ note, onClose, onCustomize }: OptimizedNot
     setLocalIcon((note as any).icon);
   }, [note.banner_image, note.background_color, (note as any).icon]);
 
+  // Update PointerSensor configuration for better mobile UX
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: isMobile ? 10 : 8, // More distance on mobile to avoid conflict with text selection
+        delay: isMobile ? 200 : 0, // Add delay on mobile for text selection priority
       },
     })
   );

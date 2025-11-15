@@ -176,18 +176,24 @@ export function UnifiedPreferences() {
           setEnabledFeatures(JSON.parse(savedFeatures));
         } catch (e) {
           console.error("Error parsing user features:", e);
-          // On error, set free tier defaults
-          const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
+          // On error, set defaults based on accessible features
+          const defaults = AVAILABLE_FEATURES
+            .filter((f) => f.free || (features && features.length > 0))
+            .map((f) => f.id);
           setEnabledFeatures(defaults);
         }
       } else {
-        // No saved preferences - initialize with free tier defaults
-        const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
+        // No saved preferences - initialize with all accessible features
+        // For org users: include all available features (they'll see locked UI for disabled ones)
+        // For free users: only free features
+        const defaults = hasPremiumAccess() || (features && features.length > 0)
+          ? AVAILABLE_FEATURES.map((f) => f.id) // Enable all features by default
+          : AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id); // Free tier only
         setEnabledFeatures(defaults);
       }
       setFeaturesReady(true);
     }
-  }, [user, activeOrgId]); // Re-run when activeOrgId changes
+  }, [user, activeOrgId, features, hasPremiumAccess]); // Re-run when activeOrgId or features change
 
   // Load branding preferences from database (for premium users)
   useEffect(() => {
@@ -276,8 +282,12 @@ export function UnifiedPreferences() {
   };
 
   const handleResetSidebar = () => {
-    // Reset to free tier defaults
-    const defaults = AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
+    // Reset to defaults based on user access level
+    // For org users or premium: enable all features
+    // For free users: only free features
+    const defaults = hasPremiumAccess() || (features && features.length > 0)
+      ? AVAILABLE_FEATURES.map((f) => f.id)
+      : AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id);
     setEnabledFeatures(defaults);
     setSidebarHasChanges(true);
   };

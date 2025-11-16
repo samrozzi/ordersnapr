@@ -28,10 +28,17 @@ export function VoiceAssistantButton() {
           onClick={() => setOpen(true)}
           size="lg"
           variant="secondary"
-          className="h-14 w-14 aspect-square p-0 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+          className="relative h-14 w-14 aspect-square p-0 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 overflow-hidden group"
           title="Voice Assistant"
         >
-          <MessageSquare className="h-6 w-6" />
+          {/* Pulsating glow animation */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 animate-pulse blur-md transition-opacity duration-300" />
+
+          {/* Subtle always-on pulse */}
+          <div className="absolute inset-0 rounded-full bg-purple-300 opacity-20 animate-ping" style={{ animationDuration: '3s' }} />
+
+          {/* Icon */}
+          <MessageSquare className="h-6 w-6 relative z-10" />
         </Button>
       </div>
 

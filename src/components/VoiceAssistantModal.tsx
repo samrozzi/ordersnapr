@@ -16,7 +16,7 @@ import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
 import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKeyAsync, saveOpenAIApiKey } from '@/lib/openai-service';
 import { toast } from 'sonner';
-import { VoiceWaveform } from './VoiceWaveform';
+import { AudioBlob } from './AudioBlob';
 
 interface VoiceAssistantModalProps {
   open: boolean;
@@ -40,6 +40,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     stopRecording,
     cancelRecording,
     resetRecording,
+    analyser,
   } = useVoiceRecording({
     onRecordingComplete: handleRecordingComplete,
     onError: (err) => {
@@ -306,16 +307,8 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
           {state === 'recording' && (
             <div className="space-y-6">
               <div className="flex flex-col items-center justify-center space-y-8">
-                {/* Waveform */}
-                <VoiceWaveform isRecording={true} color="#ec4899" />
-
-                {/* Clean recording indicator */}
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-red-500/40 blur-lg animate-pulse" />
-                  <div className="relative rounded-full bg-gradient-to-br from-red-500 to-pink-500 p-6 shadow-lg">
-                    <Mic className="h-8 w-8 text-white" />
-                  </div>
-                </div>
+                {/* Audio-reactive blob */}
+                <AudioBlob analyser={analyser} isActive={true} color="#ec4899" size={250} />
 
                 {/* Timer */}
                 <p className="text-2xl font-mono font-semibold">{formattedDuration}</p>
@@ -340,14 +333,13 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
           {/* Processing State */}
           {state === 'processing' && (
             <div className="flex flex-col items-center justify-center py-8 space-y-8">
-              {/* Calm waveform */}
-              <VoiceWaveform isRecording={false} color="#a855f7" />
-
-              {/* Simple spinner */}
+              {/* Calm blob with spinner overlay */}
               <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-purple-500/30 blur-lg animate-pulse" />
-                <div className="relative rounded-full bg-gradient-to-br from-purple-500 to-blue-500 p-6 shadow-lg">
-                  <Loader2 className="h-8 w-8 text-white animate-spin" />
+                <AudioBlob analyser={null} isActive={false} color="#a855f7" size={200} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-full bg-purple-500/20 backdrop-blur-sm p-4">
+                    <Loader2 className="h-8 w-8 text-purple-500 animate-spin" />
+                  </div>
                 </div>
               </div>
 

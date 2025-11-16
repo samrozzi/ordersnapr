@@ -17,6 +17,8 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   const streamRef = useRef<MediaStream | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -31,6 +33,17 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
 
       streamRef.current = stream;
       chunksRef.current = [];
+
+      // Create audio context and analyser for real-time visualization
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
 
       // Create MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('audio/webm')
@@ -62,6 +75,13 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
+
+        // Clean up audio context
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        analyserRef.current = null;
 
         setRecordingState('idle');
       };
@@ -116,6 +136,13 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
       streamRef.current = null;
     }
 
+    // Clean up audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+
     // Clear duration interval
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
@@ -150,5 +177,6 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
     stopRecording,
     cancelRecording,
     resetRecording,
+    analyser: analyserRef.current,
   };
 }

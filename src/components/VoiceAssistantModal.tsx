@@ -210,18 +210,15 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            Voice Assistant
-          </DialogTitle>
+      <DialogContent className="sm:max-w-lg rounded-3xl border-2 border-purple-500/20 bg-gradient-to-br from-background via-background to-purple-500/5 backdrop-blur-xl shadow-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Voice Assistant</DialogTitle>
           <DialogDescription>
             Record your voice and create a note automatically
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6 py-4">
           {/* No API Key State */}
           {state === 'no-api-key' && (
             <div className="space-y-4">
@@ -278,34 +275,25 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
 
           {/* Idle State */}
           {state === 'idle' && (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                {/* Pulsating orb with gradient */}
+            <div className="space-y-8">
+              <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                {/* Simple pulsating mic */}
                 <div className="relative">
-                  {/* Outer glow rings */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 opacity-20 blur-2xl animate-pulse" style={{ animationDuration: '2s' }} />
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 opacity-30 blur-xl animate-ping" style={{ animationDuration: '3s' }} />
-
-                  {/* Main orb */}
-                  <div className="relative rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 p-12 shadow-2xl">
-                    <Mic className="h-14 w-14 text-white drop-shadow-lg" />
+                  <div className="absolute inset-0 rounded-full bg-purple-500/30 blur-xl animate-pulse" />
+                  <div className="relative rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-10 shadow-lg">
+                    <Mic className="h-12 w-12 text-white" />
                   </div>
                 </div>
 
-                {/* Ambient text */}
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-medium bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    I'm listening...
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Tap to start speaking
-                  </p>
-                </div>
+                {/* Simple text */}
+                <p className="text-sm text-muted-foreground">
+                  Ready to listen
+                </p>
               </div>
 
               <Button
                 onClick={handleStartRecording}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl"
                 size="lg"
               >
                 <Mic className="h-5 w-5 mr-2" />
@@ -317,46 +305,32 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
           {/* Recording State */}
           {state === 'recording' && (
             <div className="space-y-6">
-              <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                {/* Animated waveform visualization */}
-                <div className="w-full">
-                  <VoiceWaveform isRecording={true} color="#a855f7" />
-                </div>
+              <div className="flex flex-col items-center justify-center space-y-8">
+                {/* Waveform */}
+                <VoiceWaveform isRecording={true} color="#ec4899" />
 
-                {/* Pulsating recording orb */}
+                {/* Clean recording indicator */}
                 <div className="relative">
-                  {/* Multiple pulsing rings for "alive" effect */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-red-500 to-pink-500 opacity-40 blur-2xl animate-pulse" style={{ animationDuration: '1.5s' }} />
-                  <div className="absolute inset-0 scale-110 rounded-full bg-gradient-to-br from-red-400 to-pink-400 opacity-30 blur-xl animate-ping" style={{ animationDuration: '2s' }} />
-                  <div className="absolute inset-0 scale-125 rounded-full bg-gradient-to-br from-red-300 to-pink-300 opacity-20 blur-2xl animate-pulse" style={{ animationDuration: '2.5s' }} />
-
-                  {/* Main recording orb */}
-                  <div className="relative rounded-full bg-gradient-to-br from-red-500 via-pink-500 to-red-600 p-8 shadow-2xl">
-                    <Mic className="h-10 w-10 text-white drop-shadow-lg animate-pulse" />
+                  <div className="absolute inset-0 rounded-full bg-red-500/40 blur-lg animate-pulse" />
+                  <div className="relative rounded-full bg-gradient-to-br from-red-500 to-pink-500 p-6 shadow-lg">
+                    <Mic className="h-8 w-8 text-white" />
                   </div>
                 </div>
 
-                {/* Duration with breathing animation */}
-                <div className="text-center space-y-2">
-                  <p className="text-3xl font-mono font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent animate-pulse">
-                    {formattedDuration}
-                  </p>
-                  <p className="text-sm text-muted-foreground animate-pulse">
-                    Listening to your voice...
-                  </p>
-                </div>
+                {/* Timer */}
+                <p className="text-2xl font-mono font-semibold">{formattedDuration}</p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   onClick={handleStopRecording}
-                  className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all"
+                  className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-2xl"
                   size="lg"
                 >
                   <MicOff className="h-5 w-5 mr-2" />
-                  Stop Recording
+                  Stop Listening
                 </Button>
-                <Button onClick={handleCancel} variant="outline" size="lg">
+                <Button onClick={handleCancel} variant="outline" size="lg" className="rounded-2xl">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -365,26 +339,22 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
 
           {/* Processing State */}
           {state === 'processing' && (
-            <div className="flex flex-col items-center justify-center py-12 space-y-6">
-              {/* Waveform continues in processing mode */}
-              <div className="w-full">
-                <VoiceWaveform isRecording={false} color="#a855f7" />
-              </div>
+            <div className="flex flex-col items-center justify-center py-8 space-y-8">
+              {/* Calm waveform */}
+              <VoiceWaveform isRecording={false} color="#a855f7" />
 
-              {/* Pulsating thinking orb */}
+              {/* Simple spinner */}
               <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 opacity-30 blur-2xl animate-pulse" />
-                <div className="absolute inset-0 scale-110 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 opacity-20 blur-xl animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="relative rounded-full bg-gradient-to-br from-purple-500 via-blue-500 to-purple-600 p-8 shadow-2xl">
-                  <Loader2 className="h-10 w-10 text-white animate-spin" />
+                <div className="absolute inset-0 rounded-full bg-purple-500/30 blur-lg animate-pulse" />
+                <div className="relative rounded-full bg-gradient-to-br from-purple-500 to-blue-500 p-6 shadow-lg">
+                  <Loader2 className="h-8 w-8 text-white animate-spin" />
                 </div>
               </div>
 
-              <div className="text-center space-y-2">
-                <p className="text-lg font-medium bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent animate-pulse">
-                  Understanding your words...
-                </p>
-                <Progress value={undefined} className="w-full max-w-xs" />
+              {/* Text and progress */}
+              <div className="text-center space-y-3">
+                <p className="text-sm text-muted-foreground">Transcribing...</p>
+                <Progress value={undefined} className="w-64" />
               </div>
             </div>
           )}

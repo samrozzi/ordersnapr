@@ -1137,6 +1137,7 @@ export type Database = {
           id: string
           is_org_admin: boolean | null
           is_super_admin: boolean | null
+          last_username_change: string | null
           onboarding_completed: boolean | null
           onboarding_data: Json | null
           organization_id: string | null
@@ -1152,6 +1153,7 @@ export type Database = {
           id: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          last_username_change?: string | null
           onboarding_completed?: boolean | null
           onboarding_data?: Json | null
           organization_id?: string | null
@@ -1167,6 +1169,7 @@ export type Database = {
           id?: string
           is_org_admin?: boolean | null
           is_super_admin?: boolean | null
+          last_username_change?: string | null
           onboarding_completed?: boolean | null
           onboarding_data?: Json | null
           organization_id?: string | null
@@ -1355,28 +1358,34 @@ export type Database = {
           created_at: string | null
           id: string
           nav_order: Json | null
+          openai_api_key: string | null
           quick_add_enabled: boolean | null
           quick_add_items: Json | null
           updated_at: string | null
           user_id: string
+          voice_assistant_enabled: boolean | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           nav_order?: Json | null
+          openai_api_key?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null
           user_id: string
+          voice_assistant_enabled?: boolean | null
         }
         Update: {
           created_at?: string | null
           id?: string
           nav_order?: Json | null
+          openai_api_key?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null
           user_id?: string
+          voice_assistant_enabled?: boolean | null
         }
         Relationships: []
       }

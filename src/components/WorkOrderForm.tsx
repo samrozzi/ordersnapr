@@ -104,14 +104,12 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         }
       }
 
-      // Check for draft only if creating new work order
-      if (!workOrder) {
-        const draftId = `work-order-draft-${user.id}`;
-        const draft = await getFormDataLocally(draftId);
-        if (draft && !draft.synced) {
-          setDraftData(draft);
-          setShowRestoreDialog(true);
-        }
+      // Check for draft (new or editing)
+      const draftId = workOrder ? `work-order-edit-${user.id}-${workOrder.id}` : `work-order-draft-${user.id}`;
+      const draft = await getFormDataLocally(draftId);
+      if (draft && !draft.synced) {
+        setDraftData(draft);
+        setShowRestoreDialog(true);
       }
     }
     loadData();
@@ -171,10 +169,10 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
 
   // Auto-save function
   const saveDraft = useCallback(async () => {
-    if (!userId || workOrder) return; // Only save drafts for new work orders
+    if (!userId) return;
 
     const formValues = form.getValues();
-    const draftId = `work-order-draft-${userId}`;
+    const draftId = workOrder ? `work-order-edit-${userId}-${workOrder.id}` : `work-order-draft-${userId}`;
 
     try {
       await saveFormDataLocally({
@@ -193,11 +191,11 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
     } catch (error) {
       console.error("Failed to save draft:", error);
     }
-  }, [userId, workOrder, form, photoPreviewUrls, customFieldValues]);
+  }, [userId, workOrder?.id, form, photoPreviewUrls, customFieldValues]);
 
   // Auto-save on form changes
   useEffect(() => {
-    if (!userId || workOrder) return;
+    if (!userId) return;
 
     const subscription = form.watch(() => {
       const timer = setTimeout(() => {
@@ -209,12 +207,12 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, [form, userId, workOrder, saveDraft]);
+  }, [form, userId, saveDraft]);
 
   // Save on visibility change (tab switch)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && form.formState.isDirty && userId && !workOrder) {
+      if (document.hidden && form.formState.isDirty && userId) {
         saveDraft();
       }
     };
@@ -225,17 +223,17 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
 
   // Save when photos change
   useEffect(() => {
-    if (photoPreviewUrls.length > 0 && userId && !workOrder) {
+    if (photoPreviewUrls.length > 0 && userId) {
       saveDraft();
     }
-  }, [photoPreviewUrls, userId, workOrder, saveDraft]);
+  }, [photoPreviewUrls, userId, saveDraft]);
 
   // Save when custom fields change
   useEffect(() => {
-    if (Object.keys(customFieldValues).length > 0 && userId && !workOrder) {
+    if (Object.keys(customFieldValues).length > 0 && userId) {
       saveDraft();
     }
-  }, [customFieldValues, userId, workOrder, saveDraft]);
+  }, [customFieldValues, userId, saveDraft]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -445,6 +443,11 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
         form.reset();
       }
 
+      // Clear any local draft after successful save
+      if (userId) {
+        const draftId = workOrder ? `work-order-edit-${userId}-${workOrder.id}` : `work-order-draft-${userId}`;
+        await deleteFormDataLocally(draftId);
+      }
       // Wait a moment for the database to commit, then refresh
       await new Promise(resolve => setTimeout(resolve, 100));
       onSuccess();
@@ -477,7 +480,8 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
             <AlertDialogCancel onClick={() => {
               setShowRestoreDialog(false);
               if (userId) {
-                deleteFormDataLocally(`work-order-draft-${userId}`);
+                const key = workOrder ? `work-order-edit-${userId}-${workOrder.id}` : `work-order-draft-${userId}`;
+                deleteFormDataLocally(key);
               }
             }}>
               Discard
@@ -492,7 +496,7 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Auto-save indicator */}
-          {!workOrder && lastSaved && (
+          {lastSaved && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Save className="h-4 w-4" />
               <span>Draft saved {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>

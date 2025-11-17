@@ -8,7 +8,8 @@ export interface UserPreferences {
   quick_add_enabled: boolean;
   quick_add_items: FeatureModule[];
   nav_order: string[];
-  theme: string;
+  openai_api_key?: string | null;
+  voice_assistant_enabled?: boolean | null;
   created_at: string;
   updated_at: string;
 }

@@ -35,9 +35,9 @@ export function AudioBlob({ analyser, isActive, color = '#a855f7', size = 200 }:
       // Get audio data if available
       let audioLevel = 0;
       if (analyser && dataArray && isActive) {
-        analyser.getByteFrequencyData(dataArray);
+        analyser.getByteFrequencyData(dataArray as any);
         // Calculate average amplitude
-        const sum = dataArray.reduce((a, b) => a + b, 0);
+        const sum = Array.from(dataArray).reduce((a, b) => a + b, 0);
         audioLevel = sum / dataArray.length / 255; // Normalize to 0-1
       }
 

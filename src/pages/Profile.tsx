@@ -93,13 +93,6 @@ const Profile = () => {
     setHasApiKey(hasOpenAIApiKey());
   }, []);
 
-  // Restore theme from database on mount
-  useEffect(() => {
-    if (userPreferences?.theme && userPreferences.theme !== theme) {
-      setTheme(userPreferences.theme);
-    }
-  }, [userPreferences, setTheme]);
-
   const fetchUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {

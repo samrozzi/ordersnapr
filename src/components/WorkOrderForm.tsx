@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,12 +12,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Upload, X } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { CalendarIcon, Upload, X, Save } from "lucide-react";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CustomFieldRenderer } from "@/components/custom-fields/CustomFieldRenderer";
 import { useCustomFieldValues } from "@/hooks/use-custom-field-values";
 import type { CustomFieldValues } from "@/types/custom-fields";
+import { saveFormDataLocally, getFormDataLocally, deleteFormDataLocally } from "@/lib/offline-storage";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   bpc: z.string().max(50, "BPC must be less than 50 characters").optional(),
@@ -63,12 +65,18 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<CustomFieldValues>({});
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [draftData, setDraftData] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch org ID and custom field values
+  // Fetch org ID, custom field values, and check for drafts
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setUserId(user.id);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -95,6 +103,16 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           setCustomFieldValues(valuesMap);
         }
       }
+
+      // Check for draft only if creating new work order
+      if (!workOrder) {
+        const draftId = `work-order-draft-${user.id}`;
+        const draft = await getFormDataLocally(draftId);
+        if (draft && !draft.synced) {
+          setDraftData(draft);
+          setShowRestoreDialog(true);
+        }
+      }
     }
     loadData();
   }, [workOrder?.id]);
@@ -116,6 +134,108 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
       access_notes: workOrder?.access_notes || "",
     },
   });
+
+  // Restore draft function
+  const restoreDraft = useCallback(() => {
+    if (!draftData) return;
+
+    form.reset({
+      bpc: draftData.answers.bpc || "",
+      ban: draftData.answers.ban || "",
+      package: draftData.answers.package || "",
+      job_id: draftData.answers.job_id || "",
+      customer_name: draftData.answers.customer_name || "",
+      contact_info: draftData.answers.contact_info || "",
+      address: draftData.answers.address || "",
+      notes: draftData.answers.notes || "",
+      scheduled_date: draftData.answers.scheduled_date ? new Date(draftData.answers.scheduled_date) : undefined,
+      scheduled_time: draftData.answers.scheduled_time || "",
+      access_required: draftData.answers.access_required || false,
+      access_notes: draftData.answers.access_notes || "",
+    });
+
+    if (draftData.answers.photoPreviewUrls) {
+      setPhotoPreviewUrls(draftData.answers.photoPreviewUrls);
+    }
+
+    if (draftData.answers.customFieldValues) {
+      setCustomFieldValues(draftData.answers.customFieldValues);
+    }
+
+    setShowRestoreDialog(false);
+    toast({
+      title: "Draft restored",
+      description: "Your unsaved work has been recovered",
+    });
+  }, [draftData, form, toast]);
+
+  // Auto-save function
+  const saveDraft = useCallback(async () => {
+    if (!userId || workOrder) return; // Only save drafts for new work orders
+
+    const formValues = form.getValues();
+    const draftId = `work-order-draft-${userId}`;
+
+    try {
+      await saveFormDataLocally({
+        id: draftId,
+        answers: {
+          ...formValues,
+          scheduled_date: formValues.scheduled_date?.toISOString(),
+          photoPreviewUrls,
+          customFieldValues,
+        },
+        synced: false,
+        userId: userId,
+        templateId: "work-order",
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error("Failed to save draft:", error);
+    }
+  }, [userId, workOrder, form, photoPreviewUrls, customFieldValues]);
+
+  // Auto-save on form changes
+  useEffect(() => {
+    if (!userId || workOrder) return;
+
+    const subscription = form.watch(() => {
+      const timer = setTimeout(() => {
+        if (form.formState.isDirty) {
+          saveDraft();
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, userId, workOrder, saveDraft]);
+
+  // Save on visibility change (tab switch)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && form.formState.isDirty && userId && !workOrder) {
+        saveDraft();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [form, userId, workOrder, saveDraft]);
+
+  // Save when photos change
+  useEffect(() => {
+    if (photoPreviewUrls.length > 0 && userId && !workOrder) {
+      saveDraft();
+    }
+  }, [photoPreviewUrls, userId, workOrder, saveDraft]);
+
+  // Save when custom fields change
+  useEffect(() => {
+    if (Object.keys(customFieldValues).length > 0 && userId && !workOrder) {
+      saveDraft();
+    }
+  }, [customFieldValues, userId, workOrder, saveDraft]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -341,9 +461,45 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <>
+      {/* Draft restore dialog */}
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore unsaved work?</AlertDialogTitle>
+            <AlertDialogDescription>
+              We found an unsaved work order from{" "}
+              {draftData?.timestamp && formatDistanceToNow(new Date(draftData.timestamp), { addSuffix: true })}.
+              Would you like to restore it?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowRestoreDialog(false);
+              if (userId) {
+                deleteFormDataLocally(`work-order-draft-${userId}`);
+              }
+            }}>
+              Discard
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={restoreDraft}>
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Auto-save indicator */}
+          {!workOrder && lastSaved && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Save className="h-4 w-4" />
+              <span>Draft saved {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="bpc"
@@ -648,9 +804,10 @@ export function WorkOrderForm({ onSuccess, workOrder }: WorkOrderFormProps) {
           {isSubmitting
             ? (workOrder ? "Updating..." : "Creating...")
             : (workOrder ? "Update Work Order" : "Create Work Order")
-          }
+         }
         </Button>
-      </form>
-    </Form>
+        </form>
+      </Form>
+    </>
   );
 }

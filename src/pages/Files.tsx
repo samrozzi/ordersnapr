@@ -45,10 +45,7 @@ interface StorageFile {
   created_at: string;
   updated_at: string;
   last_accessed_at: string;
-  metadata: {
-    size: number;
-    mimetype: string;
-  };
+  metadata: Record<string, any> | null;
 }
 
 export default function Files() {
@@ -207,7 +204,8 @@ export default function Files() {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number | undefined) => {
+    if (!bytes || bytes === 0) return "0 B";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

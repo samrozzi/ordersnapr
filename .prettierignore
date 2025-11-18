@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Misc
+.git
+.cache
+*.log
+coverage
+
+# Config files that should maintain their formatting
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

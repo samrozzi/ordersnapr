@@ -18,6 +18,7 @@ interface Property {
   property_name: string;
   address: string | null;
   contact: string | null;
+  hours: string | null;
   access_information: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -37,6 +38,7 @@ const PropertyInfo = () => {
     { key: "property_name", label: "Property Name" },
     { key: "address", label: "Address" },
     { key: "contact", label: "Contact" },
+    { key: "hours", label: "Hours" },
     { key: "access_information", label: "Access Information" },
     {
       key: "latitude",

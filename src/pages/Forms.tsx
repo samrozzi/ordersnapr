@@ -303,16 +303,6 @@ export default function Forms() {
                     Logged
                   </Button>
                 </CarouselItem>
-                <CarouselItem className="basis-auto pl-2">
-                  <Button
-                    variant={activeTab === 'templates' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setActiveTab('templates')}
-                    className="text-xs md:text-sm"
-                  >
-                    Templates
-                  </Button>
-                </CarouselItem>
               </CarouselContent>
             </Carousel>
           ) : (
@@ -356,14 +346,6 @@ export default function Forms() {
                 className="text-sm whitespace-nowrap flex-shrink-0"
               >
                 Logged
-              </Button>
-              <Button
-                variant={activeTab === 'templates' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveTab('templates')}
-                className="text-sm whitespace-nowrap flex-shrink-0"
-              >
-                Templates
               </Button>
             </div>
           )}

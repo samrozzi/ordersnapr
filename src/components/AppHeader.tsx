@@ -32,7 +32,7 @@ export const AppHeader = ({
   const { hasFeature } = useFeatureContext();
 
   return (
-    <header className="border-b overflow-x-hidden">
+    <header className="sticky top-0 z-50 bg-background border-b overflow-x-hidden">
       <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
           <button 

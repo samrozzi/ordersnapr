@@ -315,7 +315,7 @@ ${workOrder.notes}` : ''}`;
               className="gap-2 flex-1"
             >
               <MessageSquare className="h-4 w-4" />
-              Share via Text
+              <span className="hidden md:inline">Share via Text</span>
             </Button>
             <Button
               variant="default"
@@ -324,7 +324,7 @@ ${workOrder.notes}` : ''}`;
               className="gap-2 flex-1"
             >
               <Mail className="h-4 w-4" />
-              Share via Email
+              <span className="hidden md:inline">Share via Email</span>
             </Button>
             <Button
               variant="default"
@@ -333,7 +333,7 @@ ${workOrder.notes}` : ''}`;
               className="gap-2 flex-1"
             >
               <Share2 className="h-4 w-4" />
-              Share to Team
+              <span className="hidden md:inline">Share to Team</span>
             </Button>
           </div>
           <div className="flex gap-2">
@@ -348,7 +348,7 @@ ${workOrder.notes}` : ''}`;
                 className="gap-2 flex-1"
               >
                 <Edit className="h-4 w-4" />
-                Edit
+                <span className="hidden md:inline">Edit</span>
               </Button>
             )}
             {workOrder.status !== "completed" && (
@@ -359,7 +359,7 @@ ${workOrder.notes}` : ''}`;
                 className="gap-2 flex-1 bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="h-4 w-4" />
-                Mark Complete
+                <span className="hidden md:inline">Mark Complete</span>
               </Button>
             )}
           </div>

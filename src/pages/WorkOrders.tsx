@@ -21,7 +21,6 @@ import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
 import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 import { BulkActionBar } from "@/components/BulkActionBar";
 import { useBulkSelect } from "@/hooks/use-bulk-select";
-import { PullToRefresh } from "@/components/PullToRefresh";
 
 interface WorkOrder {
   id: string;
@@ -343,7 +342,6 @@ const WorkOrders = () => {
 
   return (
     <>
-      <PullToRefresh onRefresh={fetchWorkOrders} />
       <div className="space-y-4 md:space-y-6">
         <div className="mb-4">
           <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>

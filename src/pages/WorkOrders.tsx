@@ -242,7 +242,7 @@ const WorkOrders = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-12">
         <div className="text-lg">Loading work orders...</div>
       </div>
     );
@@ -250,7 +250,7 @@ const WorkOrders = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-12">
         <div className="text-lg">Checking authentication...</div>
       </div>
     );

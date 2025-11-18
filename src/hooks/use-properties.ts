@@ -9,6 +9,7 @@ interface Property {
   address: string | null;
   contact: string | null;
   access_information: string | null;
+  hours: string | null;
   latitude: number | null;
   longitude: number | null;
   created_at: string;

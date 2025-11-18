@@ -1199,6 +1199,7 @@ export type Database = {
           address: string | null
           contact: string | null
           created_at: string
+          hours: string | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -1212,6 +1213,7 @@ export type Database = {
           address?: string | null
           contact?: string | null
           created_at?: string
+          hours?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -1225,6 +1227,7 @@ export type Database = {
           address?: string | null
           contact?: string | null
           created_at?: string
+          hours?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null

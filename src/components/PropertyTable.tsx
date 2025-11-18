@@ -201,7 +201,10 @@ ADDRESS
 ${property.address || 'N/A'}
 
 CONTACT
-${property.contact || 'N/A'}
+${property.contact || 'N/A'}${property.hours ? `
+
+HOURS
+${property.hours}` : ''}
 
 ACCESS INFORMATION
 ${property.access_information || 'N/A'}${property.latitude && property.longitude ? `
@@ -226,7 +229,10 @@ ADDRESS
 ${property.address || 'N/A'}
 
 CONTACT
-${property.contact || 'N/A'}
+${property.contact || 'N/A'}${property.hours ? `
+
+HOURS
+${property.hours}` : ''}
 
 ACCESS INFORMATION
 ${property.access_information || 'N/A'}${property.latitude && property.longitude ? `
@@ -468,6 +474,12 @@ ${getDistance(property)} miles from your location` : ''}`;
                       </Button>
                     </div>
                   </div>
+                </div>
+              )}
+              {viewingProperty.hours && (
+                <div>
+                  <h3 className="font-semibold">Hours</h3>
+                  <p>{viewingProperty.hours}</p>
                 </div>
               )}
               {viewingProperty.access_information && (

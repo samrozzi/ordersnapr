@@ -104,10 +104,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Tabs defaultValue="work-orders" className="w-full">
-        <header className="border-b overflow-x-hidden">
+        <header className="sticky top-0 z-50 bg-background border-b">
           <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-              <button 
+              <button
                 onClick={() => navigate("/")}
                 className="relative cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                 aria-label="Go to home page"
@@ -117,18 +117,18 @@ const Index = () => {
               {orgLogoUrl && (
                 <button
                   onClick={() => navigate("/")}
-                  className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+                  className="cursor-pointer hover:opacity-80 transition-opacity shrink-0 max-w-[100px] sm:max-w-[200px]"
                   aria-label="Go to home page"
                 >
-                  <img 
-                    src={orgLogoUrl} 
-                    alt="Organization logo" 
-                    className="h-auto max-h-12 sm:max-h-16 max-w-[120px] sm:max-w-[200px] object-contain"
+                  <img
+                    src={orgLogoUrl}
+                    alt="Organization logo"
+                    className="h-auto max-h-10 sm:max-h-16 w-full object-contain"
                   />
                 </button>
               )}
             </div>
-            <div className="flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto">
+            <div className="flex items-center justify-between gap-2">
               <TooltipProvider>
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <Tooltip>
@@ -205,15 +205,15 @@ const Index = () => {
         </header>
 
         <main className="container mx-auto px-4 py-6">
-          <TabsContent value="work-orders">
+          <TabsContent value="work-orders" forceMount className="data-[state=inactive]:hidden">
             <WorkOrders />
           </TabsContent>
 
-          <TabsContent value="property-info">
+          <TabsContent value="property-info" forceMount className="data-[state=inactive]:hidden">
             <PropertyInfo />
           </TabsContent>
 
-          <TabsContent value="forms">
+          <TabsContent value="forms" forceMount className="data-[state=inactive]:hidden">
             <Forms />
           </TabsContent>
         </main>

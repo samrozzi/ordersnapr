@@ -2,6 +2,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface FormTemplate {
+  id: string;
+  name: string;
+  slug: string;
+  schema: any;
+  category?: string | null;
+  is_active?: boolean | null;
+  is_global?: boolean | null;
+  org_id?: string | null;
+  scope?: string | null;
+  version?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+}
+
 export interface FormSubmission {
   id: string;
   org_id: string;

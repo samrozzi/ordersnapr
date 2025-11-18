@@ -4,14 +4,13 @@
  *
  * Metrics tracked:
  * - CLS (Cumulative Layout Shift)
- * - FID (First Input Delay)
  * - FCP (First Contentful Paint)
  * - LCP (Largest Contentful Paint)
  * - TTFB (Time to First Byte)
  * - INP (Interaction to Next Paint)
  */
 
-import { onCLS, onFID, onFCP, onLCP, onTTFB, onINP, type Metric } from 'web-vitals';
+import { onCLS, onFCP, onLCP, onTTFB, onINP, type Metric } from 'web-vitals';
 import { logger } from './logger';
 
 interface VitalsReport {
@@ -71,7 +70,6 @@ function sendToAnalytics(metric: Metric) {
 export function initWebVitals() {
   try {
     onCLS(sendToAnalytics);
-    onFID(sendToAnalytics);
     onFCP(sendToAnalytics);
     onLCP(sendToAnalytics);
     onTTFB(sendToAnalytics);
@@ -88,7 +86,6 @@ export function initWebVitals() {
  */
 export const VITALS_THRESHOLDS = {
   CLS: { good: 0.1, poor: 0.25 },
-  FID: { good: 100, poor: 300 },
   FCP: { good: 1800, poor: 3000 },
   LCP: { good: 2500, poor: 4000 },
   TTFB: { good: 800, poor: 1800 },

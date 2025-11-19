@@ -239,11 +239,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleTypeInstead = () => {
-    // Stop current recording and transcribe what we have so far
-    if (recordingState === 'recording') {
-      stopRecording(); // This will trigger transcription
-    }
+    // Set text mode FIRST so user can type immediately
     setIsTextMode(true);
+    // Stop current recording and transcribe in background
+    if (recordingState === 'recording') {
+      stopRecording(); // This will trigger transcription and append to text
+    }
   };
 
   const handleResumeRecording = () => {

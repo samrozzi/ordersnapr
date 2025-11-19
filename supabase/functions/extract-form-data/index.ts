@@ -78,7 +78,8 @@ serve(async (req) => {
                   techName: { type: "string", description: "Full technician name (e.g., 'Adside, Devy' → 'Devy Adside')" },
                   techId: { type: "string", description: "Tech ID (e.g., 'DA4436')" },
                   techPhone: { type: "string", description: "Tech phone number" },
-                  techType: { type: "string", description: "Tech type/classification (e.g., 'PT', 'ST')" }
+                  techType: { type: "string", description: "Tech type/classification (e.g., 'PT', 'ST')" },
+                  ban: { type: "string", description: "BAN or account number" }
                 }
               }
             }
@@ -132,21 +133,21 @@ Format: dates as YYYY-MM-DD, times as HH:MM (24h), account numbers as digits onl
 
 TECHNICIAN TABLE EXTRACTION:
 Extract ALL rows from the technician table into technicianRows array.
-If you see a table with columns like "Tech ID", "Tech Name", "Phone", "Type":
+If you see a table with columns like "Tech ID", "Tech Name", "Phone", "Type", "BAN":
 1. Skip any header rows that just repeat column names
-2. Extract ALL data rows as objects with: techName, techId, techPhone, techType
+2. Extract ALL data rows as objects with: techName, techId, techPhone, techType, ban
 3. Format names properly (e.g., "Adside, Devy" → "Devy Adside")
 
 Example table:
-- Row 1: DA4435 | Adside, Devy | 704-605-4138 | PT
-- Row 2: EB6080 | Barber, Elmer | 704-724-5817 | ST
-- Row 3: GM710S | McCrary, Guy | 704-450-3157 | PT
+- Row 1: DA4435 | Adside, Devy | 704-605-4138 | PT | 123456789
+- Row 2: EB6080 | Barber, Elmer | 704-724-5817 | ST | 987654321
+- Row 3: GM710S | McCrary, Guy | 704-450-3157 | PT | 456789123
 
 Return:
 technicianRows = [
-  { techName: "Devy Adside", techId: "DA4435", techPhone: "704-605-4138", techType: "PT" },
-  { techName: "Elmer Barber", techId: "EB6080", techPhone: "704-724-5817", techType: "ST" },
-  { techName: "Guy McCrary", techId: "GM710S", techPhone: "704-450-3157", techType: "PT" }
+  { techName: "Devy Adside", techId: "DA4435", techPhone: "704-605-4138", techType: "PT", ban: "123456789" },
+  { techName: "Elmer Barber", techId: "EB6080", techPhone: "704-724-5817", techType: "ST", ban: "987654321" },
+  { techName: "Guy McCrary", techId: "GM710S", techPhone: "704-450-3157", techType: "PT", ban: "456789123" }
 ]
 
 Only extract technician table data - ignore any customer names, addresses, or other form fields.`

@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { saveOpenAIApiKey } from '@/lib/openai-service';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
@@ -50,13 +51,32 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     setState('processing');
 
     try {
-      const storedApiKey = localStorage.getItem('openai_api_key');
-      if (!storedApiKey || storedApiKey === '""') {
+      // Try to get API key from database first
+      const { data: { user } } = await supabase.auth.getUser();
+      let apiKey: string | null = null;
+      
+      if (user) {
+        const { data } = await supabase
+          .from('user_preferences')
+          .select('openai_api_key')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        apiKey = data?.openai_api_key || null;
+      }
+      
+      // Fallback to localStorage
+      if (!apiKey) {
+        const storedApiKey = localStorage.getItem('openai_api_key');
+        if (storedApiKey && storedApiKey !== '""' && storedApiKey !== 'null') {
+          // Remove quotes if present
+          apiKey = storedApiKey.startsWith('"') ? JSON.parse(storedApiKey) : storedApiKey;
+        }
+      }
+      
+      if (!apiKey) {
         throw new Error('OpenAI API key not found. Please configure it in settings.');
       }
-
-      // Remove quotes if present, otherwise use as-is
-      const apiKey = storedApiKey.startsWith('"') ? JSON.parse(storedApiKey) : storedApiKey;
 
       const result = await transcribeAudio(audioBlob, apiKey);
       setTranscription(result.text);
@@ -107,8 +127,25 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   useEffect(() => {
     const checkApiKey = async () => {
       try {
+        // Try to get from database first
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('user_preferences')
+            .select('openai_api_key')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (data?.openai_api_key) {
+            setHasApiKey(true);
+            setState('idle');
+            return;
+          }
+        }
+        
+        // Fallback to localStorage
         const storedApiKey = localStorage.getItem('openai_api_key');
-        if (storedApiKey && storedApiKey !== '""') {
+        if (storedApiKey && storedApiKey !== '""' && storedApiKey !== 'null') {
           setHasApiKey(true);
           setState('idle');
         } else {

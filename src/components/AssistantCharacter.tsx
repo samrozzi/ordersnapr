@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 interface AssistantCharacterProps {
   state: 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused';
   isAnimating?: boolean;
+  className?: string;
 }
 
 // Helper to get face expression based on state
@@ -53,7 +54,7 @@ function getFaceExpression(state: AssistantCharacterProps['state']) {
   }
 }
 
-export function AssistantCharacter({ state, isAnimating = false }: AssistantCharacterProps) {
+export function AssistantCharacter({ state, isAnimating = false, className }: AssistantCharacterProps) {
   const face = getFaceExpression(state);
 
   return (
@@ -61,7 +62,8 @@ export function AssistantCharacter({ state, isAnimating = false }: AssistantChar
       {/* Compact Cute Container */}
       <div className={cn(
         "relative w-32 h-32 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl shadow-xl p-3 border-2 border-primary/30",
-        isAnimating && face.animation
+        isAnimating && face.animation,
+        className
       )}>
         {/* Character Face Screen */}
         <div className="relative w-full h-full bg-gradient-to-br from-background/80 to-background/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-primary/20 shadow-inner flex flex-col items-center justify-center">

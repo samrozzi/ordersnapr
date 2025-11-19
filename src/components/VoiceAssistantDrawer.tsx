@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Loader2, Keyboard, Volume2, Pause, Square } from 'lucide-react';
+import { Mic, MicOff, Loader2, Keyboard, Volume2, Pause, Square, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,8 @@ import { transcribeAudio, hasOpenAIApiKeyAsync, getOpenAIApiKey } from '@/lib/op
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { saveOpenAIApiKey } from '@/lib/openai-service';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { Label } from '@/components/ui/label';
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
@@ -38,8 +40,11 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [isTextMode, setIsTextMode] = useState(false);
 
   const { createNote } = useNotes();
+  const keyboardHeight = useKeyboardHeight();
+  const isKeyboardOpen = keyboardHeight > 0;
 
   // Define recording complete handler before using it in the hook
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
@@ -55,8 +60,15 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
       const result = await transcribeAudio(audioBlob, apiKey);
       setTranscription(result.text);
-      setTextContent(result.text);
+      
+      // Append to existing text instead of replacing
+      const newText = textContent 
+        ? `${textContent}\n\n${result.text}` 
+        : result.text;
+      setTextContent(newText);
+      
       setState('complete');
+      setIsTextMode(true);
       toast.success('Transcription complete!');
     } catch (err) {
       console.error('Transcription error:', err);
@@ -66,7 +78,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         description: err instanceof Error ? err.message : 'Please try again',
       });
     }
-  }, []);
+  }, [textContent]);
 
   const {
     recordingState,
@@ -124,11 +136,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const resetState = () => {
+    setState('idle');
+    setInputMode('voice');
     setTextContent('');
     setTranscription('');
     setError('');
-    setInputMode('text');
-    resetRecording();
+    setIsTextMode(false);
   };
 
   const handleStartRecording = () => {
@@ -177,11 +190,27 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleClose = () => {
-    if (recordingState === 'recording') {
+    if (recordingState === 'recording' || recordingState === 'paused') {
       cancelRecording();
     }
     resetState();
     onOpenChange(false);
+  };
+
+  const handleTypeInstead = () => {
+    pauseRecording();
+    setIsTextMode(true);
+    toast.info('Switched to text mode', {
+      description: 'Tap the mic icon to resume recording',
+    });
+  };
+
+  const handleResumeRecording = () => {
+    setIsTextMode(false);
+    resumeRecording();
+    toast.info('Recording resumed', {
+      description: 'Continue speaking...',
+    });
   };
 
   const handleSaveApiKey = async () => {
@@ -203,7 +232,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused' => {
     if (state === 'no-api-key') return 'idle';
-    if (recordingState === 'paused') return 'paused';
+    if (recordingState === 'paused' && !isTextMode) return 'paused';
+    if (isTextMode && recordingState === 'paused') return 'idle'; // Show idle when in text mode
     if (state === 'listening' || recordingState === 'recording') return 'listening';
     if (state === 'processing') return 'processing';
     if (state === 'complete') return 'success';

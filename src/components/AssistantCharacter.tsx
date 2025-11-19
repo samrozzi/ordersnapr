@@ -5,148 +5,144 @@ interface AssistantCharacterProps {
   isAnimating?: boolean;
 }
 
-export function AssistantCharacter({ state, isAnimating = true }: AssistantCharacterProps) {
-  // Define face expressions for each state
-  const getFaceExpression = () => {
-    switch (state) {
-      case 'idle':
-        return {
-          eyes: '^^',
-          mouth: '◡',
-          eyebrows: '',
-          animation: 'animate-bounce-slow',
-        };
-      case 'listening':
-        return {
-          eyes: '⚬⚬',
-          mouth: 'o',
-          eyebrows: '⌃ ⌃',
-          animation: 'animate-pulse',
-        };
-      case 'processing':
-        return {
-          eyes: '– –',
-          mouth: '~',
-          eyebrows: '',
-          animation: 'animate-pulse',
-        };
-      case 'typing':
-        return {
-          eyes: '◉◉',
-          mouth: '◡',
-          eyebrows: '',
-          animation: '',
-        };
-      case 'success':
-        return {
-          eyes: '✧✧',
-          mouth: '◠',
-          eyebrows: '⌃ ⌃',
-          animation: 'animate-bounce',
-        };
-      case 'error':
-        return {
-          eyes: '╥╥',
-          mouth: '︵',
-          eyebrows: '⌄ ⌄',
-          animation: 'animate-shake',
-        };
-      case 'speaking':
-        return {
-          eyes: '^^',
-          mouth: 'O',
-          eyebrows: '',
-          animation: 'animate-pulse',
-        };
-      default:
-        return {
-          eyes: '^^',
-          mouth: '◡',
-          eyebrows: '',
-          animation: '',
-        };
-    }
-  };
+// Helper to get face expression based on state
+function getFaceExpression(state: AssistantCharacterProps['state']) {
+  switch (state) {
+    case 'idle':
+      return {
+        eyes: 'closed',
+        mouth: 'line',
+        animation: 'animate-[bounce_3s_ease-in-out_infinite]',
+      };
+    case 'listening':
+      return {
+        eyes: 'wide',
+        mouth: 'o',
+        animation: 'animate-pulse',
+      };
+    case 'processing':
+      return {
+        eyes: 'open',
+        mouth: 'line',
+        animation: 'animate-pulse',
+      };
+    case 'success':
+      return {
+        eyes: 'happy',
+        mouth: 'big-smile',
+        animation: 'animate-bounce',
+      };
+    case 'error':
+      return {
+        eyes: 'x',
+        mouth: 'line',
+        animation: '',
+      };
+    default:
+      return {
+        eyes: 'open',
+        mouth: 'smile',
+        animation: '',
+      };
+  }
+}
 
-  const expression = getFaceExpression();
+export function AssistantCharacter({ state, isAnimating = false }: AssistantCharacterProps) {
+  const face = getFaceExpression(state);
 
   return (
-    <div className={cn(
-      'relative w-32 h-40 mx-auto transition-all duration-300',
-      isAnimating && expression.animation
-    )}>
-      {/* TV Body */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl border-4 border-primary/30 shadow-lg">
-        {/* Screen */}
-        <div className="absolute inset-3 bg-gradient-to-br from-background to-muted rounded-lg border-2 border-primary/20 overflow-hidden">
-          {/* Glow effect */}
-          {state === 'processing' && (
-            <div className="absolute inset-0 bg-primary/10 animate-pulse" />
-          )}
-          {state === 'success' && (
-            <div className="absolute inset-0 bg-green-500/10 animate-ping" />
-          )}
+    <div className="flex items-center justify-center mb-4">
+      {/* Compact Cute Container */}
+      <div className={cn(
+        "relative w-32 h-32 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl shadow-xl p-3 border-2 border-primary/30",
+        isAnimating && face.animation
+      )}>
+        {/* Character Face Screen */}
+        <div className="relative w-full h-full bg-gradient-to-br from-background/80 to-background/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-primary/20 shadow-inner flex flex-col items-center justify-center">
           
-          {/* Face */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            {/* Eyebrows */}
-            {expression.eyebrows && (
-              <div className="text-2xl text-primary/60 mb-1 font-bold">
-                {expression.eyebrows}
-              </div>
+          {/* Eyes */}
+          <div className={cn(
+            "flex gap-3 mb-2 transition-all duration-300"
+          )}>
+            {face.eyes === 'open' && (
+              <>
+                <div className="w-3 h-3 bg-foreground rounded-full" />
+                <div className="w-3 h-3 bg-foreground rounded-full" />
+              </>
             )}
-            
-            {/* Eyes */}
-            <div className={cn(
-              'text-3xl text-primary font-bold mb-2 transition-all duration-300',
-              state === 'typing' && 'animate-blink'
-            )}>
-              {expression.eyes}
-            </div>
-            
-            {/* Mouth */}
-            <div className={cn(
-              'text-2xl text-primary font-bold transition-all duration-300',
-              state === 'speaking' && 'animate-pulse'
-            )}>
-              {expression.mouth}
-            </div>
+            {face.eyes === 'happy' && (
+              <>
+                <div className="w-3 h-1 bg-foreground rounded-full transform rotate-12" />
+                <div className="w-3 h-1 bg-foreground rounded-full transform -rotate-12" />
+              </>
+            )}
+            {face.eyes === 'wide' && (
+              <>
+                <div className="w-4 h-4 bg-foreground rounded-full" />
+                <div className="w-4 h-4 bg-foreground rounded-full" />
+              </>
+            )}
+            {face.eyes === 'closed' && (
+              <>
+                <div className="w-3 h-0.5 bg-foreground rounded-full" />
+                <div className="w-3 h-0.5 bg-foreground rounded-full" />
+              </>
+            )}
+            {face.eyes === 'x' && (
+              <>
+                <div className="text-destructive font-bold text-lg">×</div>
+                <div className="text-destructive font-bold text-lg">×</div>
+              </>
+            )}
           </div>
 
-          {/* Waveform overlay for listening state */}
+          {/* Mouth */}
+          <div className="relative">
+            {face.mouth === 'smile' && (
+              <div className="w-6 h-3 border-b-2 border-foreground rounded-b-full" />
+            )}
+            {face.mouth === 'speaking' && (
+              <div className="w-5 h-2 bg-foreground rounded-full animate-pulse" />
+            )}
+            {face.mouth === 'o' && (
+              <div className="w-3 h-4 border-2 border-foreground rounded-full" />
+            )}
+            {face.mouth === 'line' && (
+              <div className="w-5 h-0.5 bg-foreground rounded-full" />
+            )}
+            {face.mouth === 'big-smile' && (
+              <div className="w-8 h-4 border-b-2 border-foreground rounded-b-full" />
+            )}
+          </div>
+
+          {/* Special Effects */}
           {state === 'listening' && (
-            <div className="absolute bottom-2 left-2 right-2 flex items-end justify-center gap-1 h-8">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 bg-primary/40 rounded-full animate-waveform"
-                  style={{
-                    animationDelay: `${i * 0.1}s`,
-                    height: '20%',
-                  }}
-                />
-              ))}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-16 h-1 bg-primary/30 rounded-full animate-pulse" />
+            </div>
+          )}
+          
+          {state === 'success' && (
+            <>
+              <div className="absolute top-2 left-2 text-yellow-500 text-lg animate-bounce">✨</div>
+              <div className="absolute top-2 right-2 text-yellow-500 text-lg animate-bounce delay-100">✨</div>
+            </>
+          )}
+
+          {state === 'idle' && (
+            <div className="absolute bottom-4 right-4 text-muted-foreground/40 text-xs animate-pulse">
+              Zzz
             </div>
           )}
         </div>
 
-        {/* Antenna */}
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-1 h-6 bg-primary/40 rounded-full">
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary/60 rounded-full animate-pulse" />
+        {/* Cute bottom indicator dots */}
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
         </div>
-
-        {/* Side buttons */}
-        <div className="absolute right-0 top-8 w-2 h-4 bg-primary/30 rounded-l-sm" />
-        <div className="absolute right-0 top-14 w-2 h-4 bg-primary/30 rounded-l-sm" />
       </div>
-
-      {/* Success sparkles */}
-      {state === 'success' && (
-        <>
-          <div className="absolute -top-2 -right-2 text-xl animate-ping">✨</div>
-          <div className="absolute -bottom-2 -left-2 text-xl animate-ping" style={{ animationDelay: '0.2s' }}>✨</div>
-        </>
-      )}
     </div>
   );
 }

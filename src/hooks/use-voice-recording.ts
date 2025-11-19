@@ -106,9 +106,40 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
     }
   }, [options]);
 
-  const stopRecording = useCallback(() => {
+  const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingState === 'recording') {
+      mediaRecorderRef.current.pause();
+      setRecordingState('paused');
+      
+      // Clear duration interval
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+    }
+  }, [recordingState]);
+
+  const resumeRecording = useCallback(() => {
+    if (mediaRecorderRef.current && recordingState === 'paused') {
+      mediaRecorderRef.current.resume();
+      setRecordingState('recording');
+      
+      // Restart duration counter
+      durationIntervalRef.current = setInterval(() => {
+        setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }, 1000);
+    }
+  }, [recordingState]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && (recordingState === 'recording' || recordingState === 'paused')) {
       setRecordingState('processing');
+      
+      // Resume if paused before stopping (otherwise onstop won't fire with data)
+      if (recordingState === 'paused') {
+        mediaRecorderRef.current.resume();
+      }
+      
       mediaRecorderRef.current.stop();
 
       // Clear duration interval
@@ -175,6 +206,8 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
     audioUrl,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     cancelRecording,
     resetRecording,
     analyser: analyserRef.current,

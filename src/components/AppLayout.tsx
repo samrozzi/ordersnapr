@@ -52,7 +52,7 @@ export function AppLayout() {
             </div>
           </header>
           <ConnectionBanner />
-          <div className="flex-1 overflow-y-auto overscroll-y-contain">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
             <main className="p-2 md:p-4 lg:p-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))] lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <Outlet />
             </main>

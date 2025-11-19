@@ -515,7 +515,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               // Apply to the current instance
               handleNestedChange(tableKey, tableCellData);
               
-              // Also populate Call time and Notes if present
+              // Also populate Call time and Notes if present inside repeating group
               const parentField = section?.fields?.find((f: any) => f.key === parentKey);
               if (parentField?.fields) {
                 // Find Call time field
@@ -527,7 +527,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   handleNestedChange(callTimeField.key, firstTech.callTime || firstTech.time);
                 }
                 
-                // Find Notes field
+                // Find Notes field inside repeating group
                 const notesField = parentField.fields.find((f: any) => {
                   const label = (f.label || '').toLowerCase();
                   const key = (f.key || '').toLowerCase();
@@ -536,9 +536,12 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 if (notesField && firstTech.notes) {
                   handleNestedChange(notesField.key, firstTech.notes);
                 }
-                
-                // Find BAN/Account Number field
-                const banField = parentField.fields.find((f: any) => {
+              }
+              
+              // Also populate fields at section level (outside repeating group)
+              if (section?.fields) {
+                // Find BAN/Account Number field at section level
+                const banField = section.fields.find((f: any) => {
                   const label = (f.label || '').toLowerCase();
                   const key = (f.key || '').toLowerCase();
                   return f.type === 'text' && (
@@ -547,14 +550,14 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     label.includes('account')
                   );
                 });
-                console.log('BAN field found:', banField?.label, 'BAN value:', firstTech.ban);
+                console.log('BAN field found at section level:', banField?.label, 'BAN value:', firstTech.ban);
                 if (banField && firstTech.ban) {
                   handleNestedChange(banField.key, firstTech.ban);
                   console.log('BAN field populated with:', firstTech.ban);
                 }
                 
-                // Find RG Activate Time field
-                const rgActivateField = parentField.fields.find((f: any) => {
+                // Find RG Activate Time field at section level
+                const rgActivateField = section.fields.find((f: any) => {
                   const label = (f.label || '').toLowerCase();
                   const key = (f.key || '').toLowerCase();
                   return f.type === 'time' && (

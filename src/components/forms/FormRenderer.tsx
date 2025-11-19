@@ -374,15 +374,27 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
     
     if (callTimeIdx === -1) return orderedFields;
     
-    // Check if Notes field already exists right after Call time
-    const nextIdx = callTimeIdx + 1;
-    const nextField = orderedFields[nextIdx];
+    // Remove all Notes fields that appear BEFORE Call time
+    const fieldsBeforeCallTime = orderedFields.slice(0, callTimeIdx);
+    const callTimeAndAfter = orderedFields.slice(callTimeIdx);
+    
+    const filteredBeforeCallTime = fieldsBeforeCallTime.filter((f: any) => {
+      const label = (f.label || '').toLowerCase();
+      const key = (f.key || '').toLowerCase();
+      const isNotesField = f.type === 'textarea' || label.includes('note') || key.includes('note');
+      return !isNotesField; // Keep everything except Notes fields
+    });
+    
+    // Check if Notes field already exists right after Call time in the remaining fields
+    const nextIdx = 1; // Index 0 is Call time itself, so 1 is next
+    const nextField = callTimeAndAfter[nextIdx];
     
     if (nextField) {
       const label = (nextField.label || '').toLowerCase();
       const key = (nextField.key || '').toLowerCase();
       if (nextField.type === 'textarea' || label.includes('note') || key.includes('note')) {
-        return orderedFields; // Already has Notes
+        // Rebuild array: filtered before + call time and after
+        return [...filteredBeforeCallTime, ...callTimeAndAfter];
       }
     }
     
@@ -391,12 +403,12 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
       type: 'textarea',
       key: 'call_notes',
       label: 'Notes',
-      placeholder: 'Notes about this entry',
+      placeholder: 'Add notes here...',
       rows: 3
     };
     
-    orderedFields.splice(callTimeIdx + 1, 0, notesField);
-    return orderedFields;
+    callTimeAndAfter.splice(1, 0, notesField);
+    return [...filteredBeforeCallTime, ...callTimeAndAfter];
   };
 
   const renderRepeatingSubField = (

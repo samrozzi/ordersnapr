@@ -1672,16 +1672,6 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                           instanceData[callTimeField.key] = tech.callTime || tech.time;
                         }
                         
-                        // Populate Notes if present
-                        const notesField = children.find((f: any) => {
-                          const label = (f.label || '').toLowerCase();
-                          const key = (f.key || '').toLowerCase();
-                          return f.type === 'textarea' || label.includes('note') || key.includes('note');
-                        });
-                        if (notesField && tech.notes) {
-                          instanceData[notesField.key] = tech.notes;
-                        }
-                        
                         // Initialize other fields with extracted data
                         children.filter((sf: any) => sf.type !== 'table_layout').forEach((subField: any) => {
                           const key = (subField.key || '').toLowerCase();
@@ -1691,9 +1681,19 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                           if ((key.includes('call') && key.includes('time')) || (label.includes('call') && label.includes('time'))) {
                             instanceData[subField.key] = tech.callTime || '';
                           }
-                          // Populate notes
+                          // Populate notes (only for fields that come after call_time in the array)
                           else if (key.includes('note') || label.includes('note') || subField.type === 'textarea') {
-                            instanceData[subField.key] = tech.notes || '';
+                            const callTimeIndex = children.findIndex((f: any) => {
+                              const l = (f.label || '').toLowerCase();
+                              return f.type === 'time' || (l.includes('call') && l.includes('time'));
+                            });
+                            const currentIndex = children.indexOf(subField);
+                            // Only populate if this notes field comes after call_time
+                            if (currentIndex > callTimeIndex) {
+                              instanceData[subField.key] = tech.notes || '';
+                            } else {
+                              instanceData[subField.key] = '';
+                            }
                           }
                           // Populate BAN/Account Number
                           else if (key.includes('ban') || label.includes('ban') || label.includes('account')) {

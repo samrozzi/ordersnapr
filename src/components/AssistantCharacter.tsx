@@ -8,6 +8,8 @@ interface AssistantCharacterProps {
 
 export function AssistantCharacter({ state, className }: AssistantCharacterProps) {
   const [isBlinking, setIsBlinking] = useState(false);
+  const [headTilt, setHeadTilt] = useState(0);
+  const [eyePosition, setEyePosition] = useState(0);
 
   // Subtle blinking animation
   useEffect(() => {
@@ -19,10 +21,38 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
     return () => clearInterval(blinkInterval);
   }, []);
 
+  // Head movement when listening (side to side)
+  useEffect(() => {
+    if (state === 'listening') {
+      const tiltInterval = setInterval(() => {
+        setHeadTilt(prev => (prev === 0 ? (Math.random() > 0.5 ? 3 : -3) : 0));
+      }, 800);
+      return () => clearInterval(tiltInterval);
+    } else {
+      setHeadTilt(0);
+    }
+  }, [state]);
+
+  // Eye tracking when typing (looking down at text)
+  useEffect(() => {
+    if (state === 'typing') {
+      const trackingInterval = setInterval(() => {
+        setEyePosition(prev => {
+          const next = prev + 1;
+          return next > 4 ? -2 : next;
+        });
+      }, 400);
+      return () => clearInterval(trackingInterval);
+    } else {
+      setEyePosition(0);
+    }
+  }, [state]);
+
   const getEyeState = () => {
     if (isBlinking && state !== 'paused') return 'closed';
     if (state === 'paused' || state === 'idle') return 'sleeping';
     if (state === 'listening') return 'attentive';
+    if (state === 'typing') return 'reading';
     if (state === 'processing') return 'thinking';
     if (state === 'error') return 'error';
     return 'open';
@@ -33,7 +63,12 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
   return (
     <div className={cn("flex items-center justify-center", className)}>
       {/* Doodle-style character container */}
-      <div className="relative w-16 h-16 transition-all duration-500 ease-out">
+      <div 
+        className="relative w-16 h-16 transition-all duration-500 ease-out"
+        style={{ 
+          transform: `rotate(${headTilt}deg) perspective(100px) rotateY(${headTilt * 2}deg)`,
+        }}
+      >
         {/* Main body - soft blob shape */}
         <div className="relative w-full h-full">
           {/* Soft gradient background */}
@@ -46,7 +81,12 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
           
           {/* Eyes */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex gap-2 transition-all duration-300">
+            <div 
+              className="flex gap-2 transition-all duration-300"
+              style={{
+                transform: state === 'typing' ? `translateY(2px) translateX(${eyePosition}px)` : 'none'
+              }}
+            >
               {eyeState === 'open' && (
                 <>
                   <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" />
@@ -73,6 +113,14 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
                 <>
                   <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
                   <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
+                </>
+              )}
+              {eyeState === 'reading' && (
+                <>
+                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" 
+                       style={{ transform: 'translateY(1px)' }} />
+                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" 
+                       style={{ transform: 'translateY(1px)' }} />
                 </>
               )}
               {eyeState === 'thinking' && (

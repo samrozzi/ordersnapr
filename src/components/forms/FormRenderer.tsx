@@ -1695,6 +1695,14 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                           else if (key.includes('note') || label.includes('note') || subField.type === 'textarea') {
                             instanceData[subField.key] = tech.notes || '';
                           }
+                          // Populate BAN/Account Number
+                          else if (key.includes('ban') || label.includes('ban') || label.includes('account')) {
+                            instanceData[subField.key] = tech.ban || '';
+                          }
+                          // Populate RG Activate Time
+                          else if ((key.includes('rg') && key.includes('activate')) || (label.includes('rg') && label.includes('activate'))) {
+                            instanceData[subField.key] = tech.rgActivateTime || '';
+                          }
                           // Default: empty string
                           else {
                             instanceData[subField.key] = '';

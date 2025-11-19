@@ -346,7 +346,7 @@ const WorkOrders = () => {
       <PullToRefresh onRefresh={fetchWorkOrders} />
 
       {/* Sticky header on mobile */}
-      <div className="sticky top-12 z-40 bg-background border-b md:static md:border-b-0 md:bg-transparent -mx-2 md:mx-0 px-2 md:px-0 pb-4 md:pb-0">
+      <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b md:static md:border-b-0 md:bg-transparent pb-4 md:pb-0">
         <div className="container mx-auto space-y-4 md:space-y-6 pt-4 md:pt-0">
           <div className="mb-4">
             <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>

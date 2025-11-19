@@ -16,7 +16,7 @@ import { AddressField, AddressValue } from "./AddressField";
 import { SmartFormImport } from "@/components/SmartFormImport";
 import { FormTemplate, useUpdateTemplate } from "@/hooks/use-form-templates";
 import { FormSubmission, useCreateSubmission, useUpdateSubmission } from "@/hooks/use-form-submissions";
-import { Loader2, Plus, X, CloudOff, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, X, CloudOff, CheckCircle2, Phone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,15 @@ const findTableCellsByLabel = (tableField: any) => {
   });
   
   return cells;
+};
+
+// Helper: Check if a field is a phone number field
+const isPhoneField = (label: string): boolean => {
+  const normalized = label.toLowerCase();
+  return normalized.includes('phone') || 
+         normalized.includes('tn') || 
+         normalized.includes('tel') || 
+         normalized.includes('number');
 };
 
 interface FormRendererProps {
@@ -538,8 +547,10 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     label.includes('account')
                   );
                 });
+                console.log('BAN field found:', banField?.label, 'BAN value:', firstTech.ban);
                 if (banField && firstTech.ban) {
                   handleNestedChange(banField.key, firstTech.ban);
+                  console.log('BAN field populated with:', firstTech.ban);
                 }
                 
                 // Find RG Activate Time field
@@ -773,6 +784,9 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                           };
                           const fallbackLabel = positionalLabels[cellKey] || `Row ${rowIndex + 1}, Col ${colIndex + 1}`;
                           
+                          const hasPhoneNumber = cellValue && /\d/.test(cellValue);
+                          const showPhoneIcon = isPhoneField(fallbackLabel) && hasPhoneNumber;
+                          
                           return (
                             <td
                               key={colIndex}
@@ -783,17 +797,30 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                             >
                               <div className="space-y-1">
                                 <Label className="text-xs">{fallbackLabel}</Label>
-                                <Input
-                                  value={cellValue || ""}
-                                  onChange={(e) => {
-                                    const newTableValue = {
-                                      ...tableValue,
-                                      [cellKey]: e.target.value,
-                                    };
-                                    handleNestedChange(subField.key, newTableValue);
-                                  }}
-                                  className="h-8 text-sm"
-                                />
+                                <div className="flex gap-2 items-center">
+                                  <Input
+                                    value={cellValue || ""}
+                                    onChange={(e) => {
+                                      const newTableValue = {
+                                        ...tableValue,
+                                        [cellKey]: e.target.value,
+                                      };
+                                      handleNestedChange(subField.key, newTableValue);
+                                    }}
+                                    className="h-8 text-sm flex-1"
+                                  />
+                                  {showPhoneIcon && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 shrink-0"
+                                      onClick={() => window.location.href = `tel:${cellValue}`}
+                                    >
+                                      <Phone className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           );
@@ -809,28 +836,46 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                               borderStyle === 'all' && "border border-border"
                             )}
                           >
-                            {cellField.type === "text" && (
-                              <div className="space-y-1">
-                                {!cellField.hideLabel && (
-                                  <Label htmlFor={cellId} className="text-xs">
-                                    {cellField.label}
-                                  </Label>
-                                )}
-                                <Input
-                                  id={cellId}
-                                  value={cellValue || ""}
-                                  onChange={(e) => {
-                                    const newTableValue = {
-                                      ...tableValue,
-                                      [cellKey]: e.target.value,
-                                    };
-                                    handleNestedChange(subField.key, newTableValue);
-                                  }}
-                                  placeholder={cellField.placeholder}
-                                  className="h-8 text-sm"
-                                />
-                              </div>
-                            )}
+                            {cellField.type === "text" && (() => {
+                              const hasPhoneNumber = cellValue && /\d/.test(cellValue);
+                              const showPhoneIcon = isPhoneField(cellField.label || '') && hasPhoneNumber;
+                              
+                              return (
+                                <div className="space-y-1">
+                                  {!cellField.hideLabel && (
+                                    <Label htmlFor={cellId} className="text-xs">
+                                      {cellField.label}
+                                    </Label>
+                                  )}
+                                  <div className="flex gap-2 items-center">
+                                    <Input
+                                      id={cellId}
+                                      value={cellValue || ""}
+                                      onChange={(e) => {
+                                        const newTableValue = {
+                                          ...tableValue,
+                                          [cellKey]: e.target.value,
+                                        };
+                                        handleNestedChange(subField.key, newTableValue);
+                                      }}
+                                      placeholder={cellField.placeholder}
+                                      className="h-8 text-sm flex-1"
+                                    />
+                                    {showPhoneIcon && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0"
+                                        onClick={() => window.location.href = `tel:${cellValue}`}
+                                      >
+                                        <Phone className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {cellField.type === "number" && (
                               <div className="space-y-1">

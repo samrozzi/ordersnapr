@@ -552,7 +552,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 });
                 console.log('BAN field found at section level:', banField?.label, 'BAN value:', firstTech.ban);
                 if (banField && firstTech.ban) {
-                  handleFieldChange(banField.key, firstTech.ban);
+                  handleNestedChange(banField.key, firstTech.ban);
                   console.log('BAN field populated with:', firstTech.ban);
                 }
                 
@@ -566,7 +566,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                   );
                 });
                 if (rgActivateField && firstTech.rgActivateTime) {
-                  handleFieldChange(rgActivateField.key, firstTech.rgActivateTime);
+                  handleNestedChange(rgActivateField.key, firstTech.rgActivateTime);
                 }
               }
               

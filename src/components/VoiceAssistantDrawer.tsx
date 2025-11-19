@@ -365,10 +365,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
               {(recordingState === 'recording' || recordingState === 'paused') && (
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    cancelRecording();
-                    setState('idle');
-                  }}
+                  onClick={handleTypeInstead}
                   className="w-full"
                 >
                   <Keyboard className="h-4 w-4 mr-2" />

@@ -128,13 +128,13 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   // Auto-start recording when drawer opens (if API key exists)
   useEffect(() => {
-    if (open && hasApiKey && recordingState === 'idle' && state !== 'no-api-key') {
+    if (open && hasApiKey && recordingState === 'idle' && state !== 'no-api-key' && !isTextMode) {
       const timer = setTimeout(() => {
         handleStartRecording();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [open, hasApiKey, recordingState, state]);
+  }, [open, hasApiKey, recordingState, state, isTextMode]);
 
   const resetState = () => {
     setState('idle');
@@ -146,6 +146,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleStartRecording = () => {
+    setError('');
+    setIsTextMode(false);
     setInputMode('voice');
     setState('listening');
     startRecording();
@@ -199,19 +201,20 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleTypeInstead = () => {
-    pauseRecording();
+    // Stop current recording and transcribe what we have so far
+    if (recordingState === 'recording') {
+      stopRecording(); // This will trigger transcription
+    }
     setIsTextMode(true);
-    toast.info('Switched to text mode', {
-      description: 'Tap the mic icon to resume recording',
-    });
   };
 
   const handleResumeRecording = () => {
     setIsTextMode(false);
-    resumeRecording();
-    toast.info('Recording resumed', {
-      description: 'Continue speaking...',
-    });
+    if (recordingState === 'idle') {
+      handleStartRecording();
+    } else if (recordingState === 'paused') {
+      resumeRecording();
+    }
   };
 
   const handleSaveApiKey = async () => {
@@ -233,22 +236,21 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused' => {
     if (state === 'no-api-key') return 'idle';
-    if (recordingState === 'paused' && !isTextMode) return 'paused';
-    if (isTextMode && recordingState === 'paused') return 'idle'; // Show idle when in text mode
+    if (recordingState === 'paused') return 'paused';
+    if (isTextMode) return 'idle';
     if (state === 'listening' || recordingState === 'recording') return 'listening';
     if (state === 'processing') return 'processing';
     if (state === 'complete') return 'success';
     if (state === 'error') return 'error';
-    if (textContent.length > 0) return 'typing';
     return 'idle';
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} dismissible={false}>
       <DrawerContent className="h-[50vh] max-h-[600px] md:right-4 md:left-auto md:w-[450px] md:rounded-lg md:bottom-4 pb-safe">
-        <DrawerHeader className="text-center pb-2">
+        <DrawerHeader className="text-center pb-2 cursor-grab active:cursor-grabbing">
           <div className="flex flex-col items-center gap-3">
-            <AssistantCharacter state={getCharacterState()} isAnimating={true} />
+            <AssistantCharacter state={getCharacterState()} />
             
             {/* Recording controls - shown only when recording or paused */}
             {(recordingState === 'recording' || recordingState === 'paused') && (

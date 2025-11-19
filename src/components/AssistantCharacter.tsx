@@ -1,192 +1,136 @@
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 interface AssistantCharacterProps {
   state: 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused';
-  isAnimating?: boolean;
   className?: string;
 }
 
-// Helper to get face expression based on state
-function getFaceExpression(state: AssistantCharacterProps['state']) {
-  switch (state) {
-    case 'idle':
-      return {
-        eyes: 'closed-happy',
-        mouth: 'smile',
-        animation: 'animate-[bounce_3s_ease-in-out_infinite]',
-      };
-    case 'listening':
-      return {
-        eyes: 'wide',
-        mouth: 'o',
-        animation: 'animate-pulse',
-      };
-    case 'paused':
-      return {
-        eyes: 'closed-happy',
-        mouth: 'line',
-        animation: 'animate-[bounce_3s_ease-in-out_infinite]',
-      };
-    case 'processing':
-      return {
-        eyes: 'thinking',
-        mouth: 'line',
-        animation: 'animate-pulse',
-      };
-    case 'success':
-      return {
-        eyes: 'happy',
-        mouth: 'big-smile',
-        animation: 'animate-bounce',
-      };
-    case 'error':
-      return {
-        eyes: 'x',
-        mouth: 'line',
-        animation: '',
-      };
-    default:
-      return {
-        eyes: 'open',
-        mouth: 'smile',
-        animation: '',
-      };
-  }
-}
+export function AssistantCharacter({ state, className }: AssistantCharacterProps) {
+  const [isBlinking, setIsBlinking] = useState(false);
 
-export function AssistantCharacter({ state, isAnimating = false, className }: AssistantCharacterProps) {
-  const face = getFaceExpression(state);
+  // Subtle blinking animation
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 150);
+    }, 3000 + Math.random() * 2000);
+
+    return () => clearInterval(blinkInterval);
+  }, []);
+
+  const getEyeState = () => {
+    if (isBlinking && state !== 'paused') return 'closed';
+    if (state === 'paused' || state === 'idle') return 'sleeping';
+    if (state === 'listening') return 'attentive';
+    if (state === 'processing') return 'thinking';
+    if (state === 'error') return 'error';
+    return 'open';
+  };
+
+  const eyeState = getEyeState();
 
   return (
-    <div className="flex items-center justify-center mb-4">
-      {/* TV-Inspired Character Container */}
-      <div className={cn(
-        "relative transition-all duration-300",
-        isAnimating && face.animation,
-        className
-      )}>
-        {/* Antenna */}
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-4">
-          <div className="w-0.5 h-6 bg-gradient-to-t from-primary to-primary/40 rounded-full transform -rotate-12 origin-bottom" />
-          <div className="w-0.5 h-6 bg-gradient-to-t from-primary to-primary/40 rounded-full transform rotate-12 origin-bottom" />
-        </div>
-
-        {/* TV Body - Organic rounded rectangle */}
-        <div className="relative w-32 h-28 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-[2rem] shadow-xl border-2 border-primary/30 p-3">
-          {/* Screen Area - More organic oval shape */}
-          <div className="relative w-full h-full bg-gradient-to-br from-background/90 to-background/70 backdrop-blur-sm rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-inner flex flex-col items-center justify-center">
-            
-            {/* Eyes */}
-            <div className={cn(
-              "flex gap-3 mb-2 transition-all duration-300"
-            )}>
-              {face.eyes === 'open' && (
+    <div className={cn("flex items-center justify-center", className)}>
+      {/* Doodle-style character container */}
+      <div className="relative w-16 h-16 transition-all duration-500 ease-out">
+        {/* Main body - soft blob shape */}
+        <div className="relative w-full h-full">
+          {/* Soft gradient background */}
+          <div className={cn(
+            "absolute inset-0 rounded-[2rem] transition-all duration-700",
+            "bg-gradient-to-br from-primary/10 via-primary/5 to-transparent",
+            state === 'listening' && "from-primary/20 via-primary/10 to-primary/5 animate-pulse",
+            state === 'processing' && "from-primary/15 via-primary/8 to-transparent"
+          )} />
+          
+          {/* Eyes */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex gap-2 transition-all duration-300">
+              {eyeState === 'open' && (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 14 14" className="text-foreground">
-                    <ellipse cx="7" cy="7" rx="5" ry="6" fill="currentColor" />
+                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" />
+                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" />
+                </>
+              )}
+              {eyeState === 'closed' && (
+                <>
+                  <div className="w-2 h-0.5 bg-foreground rounded-full transition-all duration-150" />
+                  <div className="w-2 h-0.5 bg-foreground rounded-full transition-all duration-150" />
+                </>
+              )}
+              {eyeState === 'sleeping' && (
+                <>
+                  <svg width="8" height="4" viewBox="0 0 8 4" className="text-foreground/60">
+                    <path d="M 1 3 Q 4 0 7 3" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" />
                   </svg>
-                  <svg width="14" height="14" viewBox="0 0 14 14" className="text-foreground">
-                    <ellipse cx="7" cy="7" rx="5" ry="6" fill="currentColor" />
+                  <svg width="8" height="4" viewBox="0 0 8 4" className="text-foreground/60">
+                    <path d="M 1 3 Q 4 0 7 3" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" />
                   </svg>
                 </>
               )}
-              {face.eyes === 'happy' && (
+              {eyeState === 'attentive' && (
                 <>
-                  <svg width="14" height="8" viewBox="0 0 14 8" className="text-foreground">
-                    <path d="M 2 6 Q 7 0 12 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
-                  <svg width="14" height="8" viewBox="0 0 14 8" className="text-foreground">
-                    <path d="M 2 6 Q 7 0 12 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
+                  <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
+                  <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
                 </>
               )}
-              {face.eyes === 'wide' && (
+              {eyeState === 'thinking' && (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 16 16" className="text-foreground">
-                    <ellipse cx="8" cy="8" rx="6" ry="7" fill="currentColor" />
-                  </svg>
-                  <svg width="16" height="16" viewBox="0 0 16 16" className="text-foreground">
-                    <ellipse cx="8" cy="8" rx="6" ry="7" fill="currentColor" />
-                  </svg>
+                  <div className="w-1.5 h-1.5 bg-foreground/70 rounded-full transition-all duration-200" />
+                  <div className="w-1.5 h-1.5 bg-foreground/70 rounded-full transition-all duration-200" />
                 </>
               )}
-              {face.eyes === 'closed-happy' && (
+              {eyeState === 'error' && (
                 <>
-                  <svg width="14" height="4" viewBox="0 0 14 4" className="text-foreground">
-                    <path d="M 2 2 Q 7 0 12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                  </svg>
-                  <svg width="14" height="4" viewBox="0 0 14 4" className="text-foreground">
-                    <path d="M 2 2 Q 7 0 12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                  </svg>
-                </>
-              )}
-              {face.eyes === 'thinking' && (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 12 12" className="text-foreground">
-                    <ellipse cx="6" cy="6" rx="4" ry="5" fill="currentColor" />
-                  </svg>
-                  <svg width="12" height="12" viewBox="0 0 12 12" className="text-foreground">
-                    <ellipse cx="6" cy="6" rx="4" ry="5" fill="currentColor" />
-                  </svg>
-                </>
-              )}
-              {face.eyes === 'x' && (
-                <>
-                  <div className="text-destructive font-bold text-lg">×</div>
-                  <div className="text-destructive font-bold text-lg">×</div>
+                  <div className="text-destructive text-xs font-bold">×</div>
+                  <div className="text-destructive text-xs font-bold">×</div>
                 </>
               )}
             </div>
+          </div>
 
-            {/* Mouth */}
-            <div className="relative">
-              {face.mouth === 'smile' && (
-                <svg width="24" height="12" viewBox="0 0 24 12" className="text-foreground">
-                  <path d="M 3 2 Q 12 10 21 2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
-              )}
-              {face.mouth === 'speaking' && (
-                <svg width="20" height="10" viewBox="0 0 20 10" className="text-foreground animate-pulse">
-                  <ellipse cx="10" cy="5" rx="8" ry="4" fill="currentColor" />
-                </svg>
-              )}
-              {face.mouth === 'o' && (
-                <svg width="14" height="18" viewBox="0 0 14 18" className="text-foreground">
-                  <ellipse cx="7" cy="9" rx="5" ry="7" stroke="currentColor" strokeWidth="2" fill="none" />
-                </svg>
-              )}
-              {face.mouth === 'line' && (
-                <svg width="20" height="2" viewBox="0 0 20 2" className="text-foreground">
-                  <path d="M 2 1 L 18 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              )}
-              {face.mouth === 'big-smile' && (
-                <svg width="32" height="16" viewBox="0 0 32 16" className="text-foreground">
-                  <path d="M 3 3 Q 16 14 29 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
-              )}
-            </div>
-
-            {/* Special Effects */}
-            {state === 'listening' && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-1 bg-primary/30 rounded-full animate-pulse" />
-              </div>
-            )}
-            
-            {state === 'success' && (
-              <>
-                <div className="absolute top-2 left-2 text-yellow-500 text-lg animate-bounce">✨</div>
-                <div className="absolute top-2 right-2 text-yellow-500 text-lg animate-bounce delay-100">✨</div>
-              </>
-            )}
-
-            {(state === 'idle' || state === 'paused') && (
-              <div className="absolute bottom-2 right-3 text-muted-foreground/40 text-xs animate-pulse">
-                Zzz
-              </div>
+          {/* Mouth - subtle smile */}
+          <div className="absolute inset-0 flex items-center justify-center pt-4">
+            {state !== 'error' && (
+              <svg width="12" height="6" viewBox="0 0 12 6" className="text-foreground/40 transition-all duration-300">
+                <path 
+                  d={state === 'listening' ? "M 2 2 Q 6 5 10 2" : "M 2 3 Q 6 5 10 3"} 
+                  stroke="currentColor" 
+                  strokeWidth="1" 
+                  fill="none" 
+                  strokeLinecap="round" 
+                />
+              </svg>
             )}
           </div>
+
+          {/* Sleep bubble animation */}
+          {(state === 'paused' || state === 'idle') && (
+            <div className="absolute -right-1 -top-1">
+              <div className="relative">
+                <div className="w-3 h-3 rounded-full bg-background/90 border border-foreground/20 animate-[bounce_2s_ease-in-out_infinite] flex items-center justify-center">
+                  <span className="text-[6px] text-foreground/30">z</span>
+                </div>
+                <div className="absolute -top-2 -right-1 w-2 h-2 rounded-full bg-background/80 border border-foreground/15 animate-[bounce_2s_ease-in-out_infinite_0.3s] flex items-center justify-center">
+                  <span className="text-[4px] text-foreground/20">z</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Listening pulse effect */}
+          {state === 'listening' && (
+            <div className="absolute inset-0 rounded-[2rem] border-2 border-primary/30 animate-ping" style={{ animationDuration: '2s' }} />
+          )}
+
+          {/* Success sparkles */}
+          {state === 'success' && (
+            <>
+              <div className="absolute -top-1 -left-1 text-yellow-500 text-xs animate-bounce">✨</div>
+              <div className="absolute -top-1 -right-1 text-yellow-500 text-xs animate-bounce delay-100">✨</div>
+            </>
+          )}
         </div>
       </div>
     </div>

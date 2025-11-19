@@ -92,8 +92,24 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   useEffect(() => {
     if (open) {
-      checkApiKey();
-      resetState();
+      const init = async () => {
+        await checkApiKey();
+        resetState();
+        
+        // Auto-start recording after a short delay if API key exists
+        const hasKey = await hasOpenAIApiKeyAsync();
+        if (hasKey) {
+          setTimeout(() => {
+            handleStartRecording();
+          }, 400);
+        }
+      };
+      init();
+    } else {
+      // Clean up when drawer closes
+      if (recordingState === 'recording' || recordingState === 'paused') {
+        cancelRecording();
+      }
     }
   }, [open]);
 
@@ -185,8 +201,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
   };
 
-  const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' => {
+  const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused' => {
     if (state === 'no-api-key') return 'idle';
+    if (recordingState === 'paused') return 'paused';
     if (state === 'listening' || recordingState === 'recording') return 'listening';
     if (state === 'processing') return 'processing';
     if (state === 'complete') return 'success';
@@ -197,16 +214,56 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[45vh] max-h-[600px] md:right-4 md:left-auto md:w-[450px] md:rounded-lg md:bottom-4">
+      <DrawerContent className="h-[50vh] max-h-[600px] md:right-4 md:left-auto md:w-[450px] md:rounded-lg md:bottom-4 pb-safe">
         <DrawerHeader className="text-center pb-2">
-          <AssistantCharacter state={getCharacterState()} isAnimating={true} />
+          <div className="flex flex-col items-center gap-3">
+            <AssistantCharacter state={getCharacterState()} isAnimating={true} />
+            
+            {/* Recording controls - shown only when recording or paused */}
+            {(recordingState === 'recording' || recordingState === 'paused') && (
+              <div className="flex gap-2">
+                <Button
+                  size="icon"
+                  variant={recordingState === 'paused' ? 'default' : 'outline'}
+                  onClick={() => {
+                    if (recordingState === 'recording') {
+                      pauseRecording();
+                    } else if (recordingState === 'paused') {
+                      resumeRecording();
+                    }
+                  }}
+                  className={cn(
+                    "h-12 w-12 rounded-full",
+                    recordingState === 'recording' && "animate-pulse"
+                  )}
+                >
+                  {recordingState === 'paused' ? (
+                    <Mic className="h-5 w-5" />
+                  ) : (
+                    <Pause className="h-5 w-5" />
+                  )}
+                </Button>
+                
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  onClick={handleStopRecording}
+                  className="h-12 w-12 rounded-full"
+                >
+                  <Square className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </div>
+          
           <DrawerTitle className="text-2xl mt-4">AI Assistant</DrawerTitle>
           <DrawerDescription>
             {state === 'no-api-key' && 'Configure your OpenAI API key to get started'}
-            {state === 'idle' && 'Type your thoughts or speak them aloud'}
-            {state === 'listening' && `Recording... ${formattedDuration}`}
+            {state === 'idle' && recordingState === 'idle' && 'Ready to listen!'}
+            {recordingState === 'recording' && `Recording... ${formattedDuration}`}
+            {recordingState === 'paused' && `Paused at ${formattedDuration}`}
             {state === 'processing' && 'Transcribing your voice...'}
-            {state === 'complete' && 'Ready to create your note!'}
+            {state === 'complete' && 'Transcription complete! Edit or create your note'}
             {state === 'error' && 'Oops! Something went wrong'}
           </DrawerDescription>
         </DrawerHeader>
@@ -233,26 +290,34 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Voice Recording Visualization */}
-              {inputMode === 'voice' && recordingState === 'recording' && analyser && (
-                <div className="flex justify-center">
-                  <AudioBlob analyser={analyser} isActive={true} size={120} />
-                </div>
+              {/* "Type Instead" button during recording */}
+              {(recordingState === 'recording' || recordingState === 'paused') && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    cancelRecording();
+                    setState('idle');
+                  }}
+                  className="w-full"
+                >
+                  <Keyboard className="h-4 w-4 mr-2" />
+                  Type Instead
+                </Button>
               )}
 
-              {/* Text Input Area */}
-              <div className="relative">
-                <Textarea
-                  placeholder="Type or speak your thoughts..."
-                  value={textContent}
-                  onChange={(e) => setTextContent(e.target.value)}
-                  className="min-h-[120px] pr-12 resize-none"
-                  disabled={state === 'processing'}
-                />
-                
-                {/* Voice Button Overlay */}
-                <div className="absolute bottom-3 right-3 flex gap-1">
-                  {inputMode === 'text' ? (
+              {/* Text Input Area - only show when not actively recording */}
+              {recordingState === 'idle' && (
+                <div className="relative">
+                  <Textarea
+                    placeholder="Type or tap the mic to speak..."
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    className="min-h-[120px] pr-12 resize-none"
+                    disabled={state === 'processing'}
+                  />
+                  
+                  {/* Voice Button Overlay */}
+                  <div className="absolute bottom-3 right-3">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -262,61 +327,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                     >
                       <Mic className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <>
-                      {/* Stop button */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleStopRecording}
-                        className="h-8 w-8 hover:bg-destructive/10"
-                      >
-                        <Square className="h-4 w-4 text-destructive" />
-                      </Button>
-                      
-                      {/* Pause/Resume button */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          if (recordingState === 'recording') {
-                            pauseRecording();
-                          } else if (recordingState === 'paused') {
-                            resumeRecording();
-                          }
-                        }}
-                        className={cn(
-                          "h-8 w-8",
-                          recordingState === 'recording' && "animate-pulse"
-                        )}
-                      >
-                        {recordingState === 'paused' ? (
-                          <Mic className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Pause className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </>
-                  )}
+                  </div>
                 </div>
-              </div>
-
-              {/* Recording status */}
-              {recordingState === 'recording' && (
-                <p className="text-sm text-center text-muted-foreground flex items-center justify-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                  Recording: {formattedDuration}
-                </p>
-              )}
-              
-              {recordingState === 'paused' && (
-                <p className="text-sm text-center text-muted-foreground">
-                  ⏸ Paused: {formattedDuration}
-                </p>
               )}
               
               {/* Character count */}
-              {textContent.length > 0 && !recordingState && (
+              {textContent.length > 0 && recordingState === 'idle' && (
                 <p className="text-xs text-muted-foreground text-right">
                   {textContent.length} characters
                 </p>

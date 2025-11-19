@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Loader2, Keyboard, Volume2, Pause, Square, X } from 'lucide-react';
+import { Mic, Loader2, Keyboard, Pause, Square, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -13,10 +13,9 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { AssistantCharacter } from './AssistantCharacter';
-import { AudioBlob } from './AudioBlob';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
-import { transcribeAudio, hasOpenAIApiKeyAsync, getOpenAIApiKey } from '@/lib/openai-service';
+import { transcribeAudio } from '@/lib/openai-service';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { saveOpenAIApiKey } from '@/lib/openai-service';
@@ -34,7 +33,7 @@ type InputMode = 'text' | 'voice';
 export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawerProps) {
   const navigate = useNavigate();
   const [state, setState] = useState<AssistantState>('idle');
-  const [inputMode, setInputMode] = useState<InputMode>('text');
+  const [inputMode, setInputMode] = useState<InputMode>('voice');
   const [textContent, setTextContent] = useState('');
   const [transcription, setTranscription] = useState('');
   const [error, setError] = useState('');
@@ -49,14 +48,14 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   // Define recording complete handler before using it in the hook
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
     setState('processing');
-    setInputMode('text');
 
     try {
-      // Get API key
-      const apiKey = await getOpenAIApiKey();
-      if (!apiKey) {
-        throw new Error('OpenAI API key not found. Please configure it first.');
+      const storedApiKey = localStorage.getItem('openai_api_key');
+      if (!storedApiKey) {
+        throw new Error('OpenAI API key not found. Please configure it in settings.');
       }
+
+      const apiKey = JSON.parse(storedApiKey);
 
       const result = await transcribeAudio(audioBlob, apiKey);
       setTranscription(result.text);
@@ -73,7 +72,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     } catch (err) {
       console.error('Transcription error:', err);
       setState('error');
-      setError(err instanceof Error ? err.message : 'Transcription failed');
+      setError(err instanceof Error ? err.message : 'Failed to transcribe audio');
       toast.error('Transcription failed', {
         description: err instanceof Error ? err.message : 'Please try again',
       });
@@ -85,55 +84,57 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     duration,
     formattedDuration,
     audioUrl,
-    analyser,
     startRecording,
-    stopRecording,
     pauseRecording,
     resumeRecording,
+    stopRecording,
     cancelRecording,
     resetRecording,
   } = useVoiceRecording({
     onRecordingComplete: handleRecordingComplete,
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error('Recording error:', error);
       setState('error');
       setError(error.message);
-      toast.error('Recording failed', { description: error.message });
+      toast.error('Recording failed', {
+        description: error.message,
+      });
     },
   });
 
+  // Check for API key on mount
   useEffect(() => {
-    if (open) {
-      const init = async () => {
-        await checkApiKey();
-        resetState();
-        
-        // Auto-start recording after a short delay if API key exists
-        const hasKey = await hasOpenAIApiKeyAsync();
-        if (hasKey) {
-          setTimeout(() => {
-            handleStartRecording();
-          }, 400);
+    const checkApiKey = async () => {
+      try {
+        const storedApiKey = localStorage.getItem('openai_api_key');
+        if (storedApiKey && storedApiKey !== '""') {
+          setHasApiKey(true);
+          setState('idle');
+        } else {
+          setHasApiKey(false);
+          setState('no-api-key');
         }
-      };
-      init();
-    } else {
-      // Clean up when drawer closes
-      if (recordingState === 'recording' || recordingState === 'paused') {
-        cancelRecording();
+      } catch (error) {
+        console.error('Error checking API key:', error);
+        setHasApiKey(false);
+        setState('no-api-key');
       }
+    };
+
+    if (open) {
+      checkApiKey();
     }
   }, [open]);
 
-  const checkApiKey = async () => {
-    const hasKey = await hasOpenAIApiKeyAsync();
-    setHasApiKey(hasKey);
-    if (!hasKey) {
-      setState('no-api-key');
-    } else {
-      setState('idle');
+  // Auto-start recording when drawer opens (if API key exists)
+  useEffect(() => {
+    if (open && hasApiKey && recordingState === 'idle' && state !== 'no-api-key') {
+      const timer = setTimeout(() => {
+        handleStartRecording();
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [open, hasApiKey, recordingState, state]);
 
   const resetState = () => {
     setState('idle');

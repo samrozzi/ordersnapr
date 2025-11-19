@@ -22,7 +22,8 @@ export function AppLayout() {
       {/* Changed h-screen to h-[100dvh] to fix mobile scrolling/sticky header */}
       <div className="flex h-[100dvh] w-full overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-h-0">
+        {/* Added min-w-0 to prevent wide content (tables) from expanding the layout */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
           <header className="sticky top-0 z-50 h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background shadow-sm shrink-0">
             <SidebarTrigger />
 
@@ -31,13 +32,13 @@ export function AppLayout() {
               <img
                 src={theme === 'dark' ? ordersnaprMobileDark : ordersnaprMobileLight}
                 alt="OrderSnapr"
-                className="h-7 object-contain"
+                className="h-7 object-contain max-w-full"
               />
             </div>
 
             {/* Right: Org Logo (mobile only) - Added shrink-0 so logo is never cut off */}
             {orgLogoUrl && (
-              <div className="md:hidden shrink-0">
+              <div className="md:hidden shrink-0 flex items-center">
                 <img
                   src={orgLogoUrl}
                   alt="Organization"
@@ -47,7 +48,7 @@ export function AppLayout() {
             )}
             
             {/* Desktop: Global Search & Notifications & Org Logo */}
-            <div className="hidden md:flex flex-1 justify-end items-center gap-2">
+            <div className="hidden md:flex flex-1 justify-end items-center gap-2 min-w-0">
               <GlobalSearch />
               <NotificationCenter />
 

@@ -527,6 +527,33 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 if (notesField && firstTech.notes) {
                   handleNestedChange(notesField.key, firstTech.notes);
                 }
+                
+                // Find BAN/Account Number field
+                const banField = parentField.fields.find((f: any) => {
+                  const label = (f.label || '').toLowerCase();
+                  const key = (f.key || '').toLowerCase();
+                  return f.type === 'text' && (
+                    key.includes('ban') || 
+                    label.includes('ban') || 
+                    label.includes('account')
+                  );
+                });
+                if (banField && firstTech.ban) {
+                  handleNestedChange(banField.key, firstTech.ban);
+                }
+                
+                // Find RG Activate Time field
+                const rgActivateField = parentField.fields.find((f: any) => {
+                  const label = (f.label || '').toLowerCase();
+                  const key = (f.key || '').toLowerCase();
+                  return f.type === 'time' && (
+                    key.includes('rg_activate') || 
+                    label.includes('rg activate')
+                  );
+                });
+                if (rgActivateField && firstTech.rgActivateTime) {
+                  handleNestedChange(rgActivateField.key, firstTech.rgActivateTime);
+                }
               }
               
               toast.success(`Imported ${firstTech.techName || firstTech.name || 'technician'}'s data!`);

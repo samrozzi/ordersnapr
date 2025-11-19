@@ -344,15 +344,18 @@ const WorkOrders = () => {
   return (
     <>
       <PullToRefresh onRefresh={fetchWorkOrders} />
-      <div className="container mx-auto space-y-4 md:space-y-6">
-        <div className="mb-4">
-          <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
-        </div>
 
-      <FreeTierUsageBanner only={["work_orders"]} />
+      {/* Sticky header on mobile */}
+      <div className="sticky top-12 z-40 bg-background border-b md:static md:border-b-0 md:bg-transparent -mx-2 md:mx-0 px-2 md:px-0 pb-4 md:pb-0">
+        <div className="container mx-auto space-y-4 md:space-y-6 pt-4 md:pt-0">
+          <div className="mb-4">
+            <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
+          </div>
 
-      {/* Action buttons row */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+          <FreeTierUsageBanner only={["work_orders"]} />
+
+          {/* Action buttons row */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
         <FreeTierGuard resource="work_orders" onAllowed={() => setIsDrawerOpen(true)}>
           {({ onClick, disabled }) => (
             <>
@@ -418,25 +421,28 @@ const WorkOrders = () => {
         </div>
       </div>
 
-      {/* Filter buttons row - only for list view */}
-      {viewMode === 'list' && (
-        <div className="flex gap-2 mb-3 max-w-md">
-          <Button
-            variant={listTab === 'pending' ? 'default' : 'outline'}
-            onClick={() => setListTab('pending')}
-          >
-            Pending ({pendingOrders.length})
-          </Button>
-          <Button
-            variant={listTab === 'completed' ? 'default' : 'outline'}
-            onClick={() => setListTab('completed')}
-          >
-            Completed ({completedOrders.length})
-          </Button>
+          {/* Filter buttons row - only for list view */}
+          {viewMode === 'list' && (
+            <div className="flex gap-2 mb-3 max-w-md">
+              <Button
+                variant={listTab === 'pending' ? 'default' : 'outline'}
+                onClick={() => setListTab('pending')}
+              >
+                Pending ({pendingOrders.length})
+              </Button>
+              <Button
+                variant={listTab === 'completed' ? 'default' : 'outline'}
+                onClick={() => setListTab('completed')}
+              >
+                Completed ({completedOrders.length})
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Content views */}
+      <div className="container mx-auto space-y-4 md:space-y-6">
       {viewMode === 'list' && (
         <>
           {workOrders.length === 0 ? (

@@ -51,11 +51,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
     try {
       const storedApiKey = localStorage.getItem('openai_api_key');
-      if (!storedApiKey) {
+      if (!storedApiKey || storedApiKey === '""') {
         throw new Error('OpenAI API key not found. Please configure it in settings.');
       }
 
-      const apiKey = JSON.parse(storedApiKey);
+      // Remove quotes if present, otherwise use as-is
+      const apiKey = storedApiKey.startsWith('"') ? JSON.parse(storedApiKey) : storedApiKey;
 
       const result = await transcribeAudio(audioBlob, apiKey);
       setTranscription(result.text);
@@ -237,7 +238,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused' => {
     if (state === 'no-api-key') return 'idle';
     if (recordingState === 'paused') return 'paused';
-    if (isTextMode) return 'idle';
+    if (isTextMode || textContent.length > 0) return 'typing';
     if (state === 'listening' || recordingState === 'recording') return 'listening';
     if (state === 'processing') return 'processing';
     if (state === 'complete') return 'success';
@@ -338,8 +339,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                 </Button>
               )}
 
-              {/* Text Input Area - only show when not actively recording */}
-              {recordingState === 'idle' && (
+              {/* Text Input Area - show when in text mode or not recording */}
+              {(isTextMode || recordingState === 'idle' || state === 'complete') && (
                 <div className="relative">
                   <Textarea
                     placeholder="Type or tap the mic to speak..."
@@ -347,6 +348,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                     onChange={(e) => setTextContent(e.target.value)}
                     className="min-h-[120px] pr-12 resize-none"
                     disabled={state === 'processing'}
+                    autoFocus={isTextMode}
                   />
                   
                   {/* Voice Button Overlay */}

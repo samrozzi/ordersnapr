@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 interface AssistantCharacterProps {
-  state: 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking';
+  state: 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused';
   isAnimating?: boolean;
 }
 
@@ -19,6 +19,12 @@ function getFaceExpression(state: AssistantCharacterProps['state']) {
         eyes: 'wide',
         mouth: 'o',
         animation: 'animate-pulse',
+      };
+    case 'paused':
+      return {
+        eyes: 'closed',
+        mouth: 'line',
+        animation: 'animate-[bounce_3s_ease-in-out_infinite]',
       };
     case 'processing':
       return {
@@ -129,7 +135,7 @@ export function AssistantCharacter({ state, isAnimating = false }: AssistantChar
             </>
           )}
 
-          {state === 'idle' && (
+          {(state === 'idle' || state === 'paused') && (
             <div className="absolute bottom-4 right-4 text-muted-foreground/40 text-xs animate-pulse">
               Zzz
             </div>

@@ -344,18 +344,12 @@ const WorkOrders = () => {
   return (
     <>
       <PullToRefresh onRefresh={fetchWorkOrders} />
-      <div className="container mx-auto space-y-4 md:space-y-6">
-        {/* Sticky header section on mobile */}
-        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm md:bg-transparent py-4 md:py-0 md:static">
-          <div className="space-y-4 md:space-y-6">
-            <div>
-              <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
-            </div>
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
 
-            <FreeTierUsageBanner only={["work_orders"]} />
+      <FreeTierUsageBanner only={["work_orders"]} />
 
-            {/* Action buttons row */}
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
         <FreeTierGuard resource="work_orders" onAllowed={() => setIsDrawerOpen(true)}>
           {({ onClick, disabled }) => (
             <>
@@ -410,38 +404,36 @@ const WorkOrders = () => {
           </Button>
         </div>
 
-            <div className="ml-auto">
-              <ExportButton
-                data={viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders}
-                columns={exportColumns}
-                filename={`work-orders-${listTab}`}
-                variant="outline"
-                size="sm"
-              />
-            </div>
-          </div>
-
-          {/* Filter buttons row - only for list view */}
-          {viewMode === 'list' && (
-            <div className="flex gap-2 max-w-md">
-              <Button
-                variant={listTab === 'pending' ? 'default' : 'outline'}
-                onClick={() => setListTab('pending')}
-              >
-                Pending ({pendingOrders.length})
-              </Button>
-              <Button
-                variant={listTab === 'completed' ? 'default' : 'outline'}
-                onClick={() => setListTab('completed')}
-              >
-                Completed ({completedOrders.length})
-              </Button>
-            </div>
-          )}
-          </div>
+        <div className="ml-auto">
+          <ExportButton
+            data={viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders}
+            columns={exportColumns}
+            filename={`work-orders-${listTab}`}
+            variant="outline"
+            size="sm"
+          />
         </div>
+      </div>
 
-        {/* Content views */}
+      {/* Filter buttons row - only for list view */}
+      {viewMode === 'list' && (
+        <div className="flex gap-2 mb-3 max-w-md">
+          <Button
+            variant={listTab === 'pending' ? 'default' : 'outline'}
+            onClick={() => setListTab('pending')}
+          >
+            Pending ({pendingOrders.length})
+          </Button>
+          <Button
+            variant={listTab === 'completed' ? 'default' : 'outline'}
+            onClick={() => setListTab('completed')}
+          >
+            Completed ({completedOrders.length})
+          </Button>
+        </div>
+      )}
+
+      {/* Content views */}
       {viewMode === 'list' && (
         <>
           {workOrders.length === 0 ? (

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Loader2, Keyboard, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, Keyboard, Volume2, Pause, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import {
   Drawer,
   DrawerContent,
@@ -75,6 +76,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     analyser,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     cancelRecording,
     resetRecording,
   } = useVoiceRecording({
@@ -129,7 +132,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
 
     try {
-      const newNote = await createNote({
+      await createNote({
         title: textContent.substring(0, 50) + (textContent.length > 50 ? '...' : ''),
         content: { 
           blocks: [
@@ -142,12 +145,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         },
       });
 
-      toast.success('Note created!');
-      
-      setTimeout(() => {
-        onOpenChange(false);
-        navigate(`/notes/${newNote.id}`);
-      }, 500);
+      toast.success('Note created successfully!');
+      onOpenChange(false);
     } catch (error) {
       console.error('Failed to create note:', error);
       setState('error');
@@ -249,11 +248,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                   onChange={(e) => setTextContent(e.target.value)}
                   className="min-h-[120px] pr-12 resize-none"
                   disabled={state === 'processing'}
-                  autoFocus
                 />
                 
                 {/* Voice Button Overlay */}
-                <div className="absolute bottom-3 right-3">
+                <div className="absolute bottom-3 right-3 flex gap-1">
                   {inputMode === 'text' ? (
                     <Button
                       size="icon"
@@ -265,20 +263,60 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                       <Mic className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      onClick={handleStopRecording}
-                      className="h-8 w-8 animate-pulse"
-                    >
-                      <MicOff className="h-4 w-4" />
-                    </Button>
+                    <>
+                      {/* Stop button */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleStopRecording}
+                        className="h-8 w-8 hover:bg-destructive/10"
+                      >
+                        <Square className="h-4 w-4 text-destructive" />
+                      </Button>
+                      
+                      {/* Pause/Resume button */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          if (recordingState === 'recording') {
+                            pauseRecording();
+                          } else if (recordingState === 'paused') {
+                            resumeRecording();
+                          }
+                        }}
+                        className={cn(
+                          "h-8 w-8",
+                          recordingState === 'recording' && "animate-pulse"
+                        )}
+                      >
+                        {recordingState === 'paused' ? (
+                          <Mic className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Pause className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
 
+              {/* Recording status */}
+              {recordingState === 'recording' && (
+                <p className="text-sm text-center text-muted-foreground flex items-center justify-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                  Recording: {formattedDuration}
+                </p>
+              )}
+              
+              {recordingState === 'paused' && (
+                <p className="text-sm text-center text-muted-foreground">
+                  ⏸ Paused: {formattedDuration}
+                </p>
+              )}
+              
               {/* Character count */}
-              {textContent.length > 0 && (
+              {textContent.length > 0 && !recordingState && (
                 <p className="text-xs text-muted-foreground text-right">
                   {textContent.length} characters
                 </p>

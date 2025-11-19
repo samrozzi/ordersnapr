@@ -225,12 +225,22 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
           {/* Mouth - whimsical hand-drawn curves */}
           <div className="absolute inset-0 flex items-center justify-center pt-4">
             {state !== 'error' && (
-              <svg width="16" height="8" viewBox="0 0 16 8" className="text-foreground/40 transition-all duration-300">
+              <svg 
+                width="16" 
+                height="8" 
+                viewBox="0 0 16 8" 
+                className="text-foreground/40 transition-all duration-300"
+                style={{
+                  transform: state === 'typing' ? `translateX(${eyePosition * 0.5}px)` : 'none'
+                }}
+              >
                 <path 
                   d={state === 'listening' 
                     ? "M 2 2 Q 8 6, 14 2" 
                     : state === 'success'
                     ? "M 2 2 Q 8 7, 14 2"
+                    : state === 'typing'
+                    ? "M 2 4 Q 5 2, 8 3 T 14 4"
                     : "M 2 3 Q 8 6, 14 3"} 
                   stroke="currentColor" 
                   strokeWidth="1.5" 

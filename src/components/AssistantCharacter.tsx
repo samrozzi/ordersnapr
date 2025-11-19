@@ -62,121 +62,210 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      {/* Doodle-style character container */}
+      {/* Character container with subtle idle animation */}
       <div 
-        className="relative w-16 h-16 transition-all duration-500 ease-out"
+        className={cn(
+          "relative w-16 h-16 transition-all duration-500 ease-out",
+          (state === 'idle' || state === 'paused') && "animate-[bounce_3s_ease-in-out_infinite]"
+        )}
         style={{ 
           transform: `rotate(${headTilt}deg) perspective(100px) rotateY(${headTilt * 2}deg)`,
+          animationDelay: '0.5s'
         }}
       >
-        {/* Main body - soft blob shape */}
+        {/* Main body - soft organic blob */}
         <div className="relative w-full h-full">
-          {/* Soft gradient background */}
+          {/* Soft gradient glow */}
           <div className={cn(
-            "absolute inset-0 rounded-[2rem] transition-all duration-700",
-            "bg-gradient-to-br from-primary/10 via-primary/5 to-transparent",
-            state === 'listening' && "from-primary/20 via-primary/10 to-primary/5 animate-pulse",
-            state === 'processing' && "from-primary/15 via-primary/8 to-transparent"
+            "absolute inset-0 rounded-full transition-all duration-700 blur-md",
+            "bg-gradient-to-br from-primary/20 via-primary/10 to-transparent",
+            state === 'listening' && "from-primary/30 via-primary/20 to-primary/10 animate-pulse"
           )} />
           
-          {/* Eyes */}
+          {/* Main face circle */}
+          <div className={cn(
+            "absolute inset-0 rounded-full transition-all duration-300",
+            "bg-gradient-to-br from-background to-muted border-2 border-primary/20 shadow-lg"
+          )} />
+          
+          {/* Eyes container */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div 
-              className="flex gap-2 transition-all duration-300"
+              className="flex gap-2.5 transition-all duration-300"
               style={{
                 transform: state === 'typing' ? `translateY(2px) translateX(${eyePosition}px)` : 'none'
               }}
             >
+              {/* Eyes - hand-drawn style */}
               {eyeState === 'open' && (
                 <>
-                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" />
-                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" />
+                  <svg width="10" height="12" viewBox="0 0 10 12" className="text-foreground">
+                    <path 
+                      d="M 2 6 Q 2 2, 5 2 T 8 6 T 5 10 T 2 6" 
+                      fill="currentColor"
+                      className="transition-all duration-200"
+                    />
+                  </svg>
+                  <svg width="10" height="12" viewBox="0 0 10 12" className="text-foreground">
+                    <path 
+                      d="M 2 6 Q 2 2, 5 2 T 8 6 T 5 10 T 2 6" 
+                      fill="currentColor"
+                      className="transition-all duration-200"
+                    />
+                  </svg>
                 </>
               )}
               {eyeState === 'closed' && (
                 <>
-                  <div className="w-2 h-0.5 bg-foreground rounded-full transition-all duration-150" />
-                  <div className="w-2 h-0.5 bg-foreground rounded-full transition-all duration-150" />
+                  <svg width="10" height="3" viewBox="0 0 10 3" className="text-foreground">
+                    <path 
+                      d="M 1 1.5 Q 5 0, 9 1.5" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      fill="none" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <svg width="10" height="3" viewBox="0 0 10 3" className="text-foreground">
+                    <path 
+                      d="M 1 1.5 Q 5 0, 9 1.5" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5" 
+                      fill="none" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </>
               )}
               {eyeState === 'sleeping' && (
                 <>
-                  <svg width="8" height="4" viewBox="0 0 8 4" className="text-foreground/60">
-                    <path d="M 1 3 Q 4 0 7 3" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" />
+                  <svg width="10" height="4" viewBox="0 0 10 4" className="text-foreground/60">
+                    <path 
+                      d="M 1 3 Q 5 0.5, 9 3" 
+                      stroke="currentColor" 
+                      strokeWidth="1.2" 
+                      fill="none" 
+                      strokeLinecap="round"
+                    />
                   </svg>
-                  <svg width="8" height="4" viewBox="0 0 8 4" className="text-foreground/60">
-                    <path d="M 1 3 Q 4 0 7 3" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" />
+                  <svg width="10" height="4" viewBox="0 0 10 4" className="text-foreground/60">
+                    <path 
+                      d="M 1 3 Q 5 0.5, 9 3" 
+                      stroke="currentColor" 
+                      strokeWidth="1.2" 
+                      fill="none" 
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </>
               )}
               {eyeState === 'attentive' && (
                 <>
-                  <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
-                  <div className="w-2.5 h-2.5 bg-foreground rounded-full transition-all duration-200" />
+                  <svg width="12" height="14" viewBox="0 0 12 14" className="text-foreground">
+                    <path 
+                      d="M 2 7 Q 2 2, 6 2 T 10 7 T 6 12 T 2 7" 
+                      fill="currentColor"
+                      className="transition-all duration-200"
+                    />
+                  </svg>
+                  <svg width="12" height="14" viewBox="0 0 12 14" className="text-foreground">
+                    <path 
+                      d="M 2 7 Q 2 2, 6 2 T 10 7 T 6 12 T 2 7" 
+                      fill="currentColor"
+                      className="transition-all duration-200"
+                    />
+                  </svg>
                 </>
               )}
               {eyeState === 'reading' && (
                 <>
-                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" 
-                       style={{ transform: 'translateY(1px)' }} />
-                  <div className="w-2 h-2 bg-foreground rounded-full transition-all duration-200" 
-                       style={{ transform: 'translateY(1px)' }} />
+                  <svg width="10" height="12" viewBox="0 0 10 12" className="text-foreground">
+                    <path 
+                      d="M 2 7 Q 2 3, 5 3 T 8 7 T 5 11 T 2 7" 
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <svg width="10" height="12" viewBox="0 0 10 12" className="text-foreground">
+                    <path 
+                      d="M 2 7 Q 2 3, 5 3 T 8 7 T 5 11 T 2 7" 
+                      fill="currentColor"
+                    />
+                  </svg>
                 </>
               )}
               {eyeState === 'thinking' && (
                 <>
-                  <div className="w-1.5 h-1.5 bg-foreground/70 rounded-full transition-all duration-200" />
-                  <div className="w-1.5 h-1.5 bg-foreground/70 rounded-full transition-all duration-200" />
+                  <svg width="9" height="10" viewBox="0 0 9 10" className="text-foreground/70">
+                    <path 
+                      d="M 2 5 Q 2 2, 4.5 2 T 7 5 T 4.5 8 T 2 5" 
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <svg width="9" height="10" viewBox="0 0 9 10" className="text-foreground/70">
+                    <path 
+                      d="M 2 5 Q 2 2, 4.5 2 T 7 5 T 4.5 8 T 2 5" 
+                      fill="currentColor"
+                    />
+                  </svg>
                 </>
               )}
               {eyeState === 'error' && (
                 <>
-                  <div className="text-destructive text-xs font-bold">×</div>
-                  <div className="text-destructive text-xs font-bold">×</div>
+                  <svg width="10" height="10" viewBox="0 0 10 10" className="text-destructive">
+                    <path d="M 2 2 L 8 8 M 8 2 L 2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <svg width="10" height="10" viewBox="0 0 10 10" className="text-destructive">
+                    <path d="M 2 2 L 8 8 M 8 2 L 2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
                 </>
               )}
             </div>
           </div>
 
-          {/* Mouth - subtle smile */}
+          {/* Mouth - whimsical hand-drawn curves */}
           <div className="absolute inset-0 flex items-center justify-center pt-4">
             {state !== 'error' && (
-              <svg width="12" height="6" viewBox="0 0 12 6" className="text-foreground/40 transition-all duration-300">
+              <svg width="16" height="8" viewBox="0 0 16 8" className="text-foreground/40 transition-all duration-300">
                 <path 
-                  d={state === 'listening' ? "M 2 2 Q 6 5 10 2" : "M 2 3 Q 6 5 10 3"} 
+                  d={state === 'listening' 
+                    ? "M 2 2 Q 8 6, 14 2" 
+                    : state === 'success'
+                    ? "M 2 2 Q 8 7, 14 2"
+                    : "M 2 3 Q 8 6, 14 3"} 
                   stroke="currentColor" 
-                  strokeWidth="1" 
+                  strokeWidth="1.5" 
                   fill="none" 
-                  strokeLinecap="round" 
+                  strokeLinecap="round"
+                  className="transition-all duration-300"
                 />
               </svg>
             )}
           </div>
 
-          {/* Sleep bubble animation */}
+          {/* Sleep bubble animation - cute Zzz */}
           {(state === 'paused' || state === 'idle') && (
             <div className="absolute -right-1 -top-1">
               <div className="relative">
-                <div className="w-3 h-3 rounded-full bg-background/90 border border-foreground/20 animate-[bounce_2s_ease-in-out_infinite] flex items-center justify-center">
-                  <span className="text-[6px] text-foreground/30">z</span>
+                <div className="absolute w-3 h-3 rounded-full bg-background/90 border border-foreground/20 animate-[bounce_2s_ease-in-out_infinite] flex items-center justify-center">
+                  <span className="text-[6px] text-foreground/30 font-serif">z</span>
                 </div>
                 <div className="absolute -top-2 -right-1 w-2 h-2 rounded-full bg-background/80 border border-foreground/15 animate-[bounce_2s_ease-in-out_infinite_0.3s] flex items-center justify-center">
-                  <span className="text-[4px] text-foreground/20">z</span>
+                  <span className="text-[4px] text-foreground/20 font-serif">z</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Listening pulse effect */}
+          {/* Listening pulse effect - subtle */}
           {state === 'listening' && (
-            <div className="absolute inset-0 rounded-[2rem] border-2 border-primary/30 animate-ping" style={{ animationDuration: '2s' }} />
+            <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
           )}
 
           {/* Success sparkles */}
           {state === 'success' && (
             <>
-              <div className="absolute -top-1 -left-1 text-yellow-500 text-xs animate-bounce">✨</div>
-              <div className="absolute -top-1 -right-1 text-yellow-500 text-xs animate-bounce delay-100">✨</div>
+              <div className="absolute -top-1 -left-1 text-yellow-500/80 text-xs animate-bounce">✨</div>
+              <div className="absolute -top-1 -right-1 text-yellow-500/80 text-xs animate-bounce" style={{ animationDelay: '0.1s' }}>✨</div>
             </>
           )}
         </div>

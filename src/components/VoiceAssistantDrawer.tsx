@@ -249,7 +249,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                   onChange={(e) => setTextContent(e.target.value)}
                   className="min-h-[120px] pr-12 resize-none"
                   disabled={state === 'processing'}
-                  autoFocus={state !== 'no-api-key'}
+                  autoFocus
                 />
                 
                 {/* Voice Button Overlay */}

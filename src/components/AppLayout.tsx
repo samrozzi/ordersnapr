@@ -19,25 +19,26 @@ export function AppLayout() {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex h-screen w-full overflow-hidden">
+      {/* Changed h-screen to h-[100dvh] to fix mobile scrolling/sticky header */}
+      <div className="flex h-[100dvh] w-full overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-h-0">
-          <header className="sticky top-0 z-50 h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background shadow-sm">
+          <header className="sticky top-0 z-50 h-12 md:h-14 border-b flex items-center px-2 md:px-4 gap-2 bg-background shadow-sm shrink-0">
             <SidebarTrigger />
-            
+
             {/* Center: OrderSnapr Logo (mobile only) */}
-            <div className="md:hidden flex-1 flex justify-center items-center">
-              <img 
+            <div className="md:hidden flex-1 flex justify-center items-center min-w-0">
+              <img
                 src={theme === 'dark' ? ordersnaprMobileDark : ordersnaprMobileLight}
                 alt="OrderSnapr"
                 className="h-7 object-contain"
               />
             </div>
-            
-            {/* Right: Org Logo (mobile only, if exists) */}
+
+            {/* Right: Org Logo (mobile only) - Added shrink-0 so logo is never cut off */}
             {orgLogoUrl && (
-              <div className="md:hidden">
-                <img 
+              <div className="md:hidden shrink-0">
+                <img
                   src={orgLogoUrl}
                   alt="Organization"
                   className="h-7 max-w-[70px] object-contain"
@@ -45,10 +46,21 @@ export function AppLayout() {
               </div>
             )}
             
-            {/* Desktop: Global Search & Notifications */}
+            {/* Desktop: Global Search & Notifications & Org Logo */}
             <div className="hidden md:flex flex-1 justify-end items-center gap-2">
               <GlobalSearch />
               <NotificationCenter />
+
+              {/* Desktop Org Logo */}
+              {orgLogoUrl && (
+                <div className="ml-2 border-l pl-4 h-8 flex items-center shrink-0">
+                  <img
+                    src={orgLogoUrl}
+                    alt="Organization"
+                    className="h-full max-w-[120px] object-contain"
+                  />
+                </div>
+              )}
             </div>
           </header>
           <ConnectionBanner />

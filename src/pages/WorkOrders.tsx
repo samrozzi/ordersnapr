@@ -344,18 +344,18 @@ const WorkOrders = () => {
   return (
     <>
       <PullToRefresh onRefresh={fetchWorkOrders} />
+      <div className="container mx-auto space-y-4 md:space-y-6">
+        {/* Sticky header section on mobile */}
+        <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm md:bg-transparent py-4 md:py-0 md:static">
+          <div className="space-y-4 md:space-y-6">
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
+            </div>
 
-      {/* Sticky header on mobile */}
-      <div className="sticky top-12 z-40 bg-background/95 backdrop-blur-sm border-b md:static md:border-b-0 md:bg-transparent pb-4 md:pb-0">
-        <div className="container mx-auto space-y-4 md:space-y-6 pt-4 md:pt-0">
-          <div className="mb-4">
-            <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
-          </div>
+            <FreeTierUsageBanner only={["work_orders"]} />
 
-          <FreeTierUsageBanner only={["work_orders"]} />
-
-          {/* Action buttons row */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {/* Action buttons row */}
+            <div className="flex flex-wrap items-center gap-2">
         <FreeTierGuard resource="work_orders" onAllowed={() => setIsDrawerOpen(true)}>
           {({ onClick, disabled }) => (
             <>
@@ -410,20 +410,20 @@ const WorkOrders = () => {
           </Button>
         </div>
 
-        <div className="ml-auto">
-          <ExportButton
-            data={viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders}
-            columns={exportColumns}
-            filename={`work-orders-${listTab}`}
-            variant="outline"
-            size="sm"
-          />
-        </div>
-      </div>
+            <div className="ml-auto">
+              <ExportButton
+                data={viewMode === 'list' && listTab === 'completed' ? completedOrders : pendingOrders}
+                columns={exportColumns}
+                filename={`work-orders-${listTab}`}
+                variant="outline"
+                size="sm"
+              />
+            </div>
+          </div>
 
           {/* Filter buttons row - only for list view */}
           {viewMode === 'list' && (
-            <div className="flex gap-2 mb-3 max-w-md">
+            <div className="flex gap-2 max-w-md">
               <Button
                 variant={listTab === 'pending' ? 'default' : 'outline'}
                 onClick={() => setListTab('pending')}
@@ -438,11 +438,10 @@ const WorkOrders = () => {
               </Button>
             </div>
           )}
+          </div>
         </div>
-      </div>
 
-      {/* Content views */}
-      <div className="container mx-auto space-y-4 md:space-y-6">
+        {/* Content views */}
       {viewMode === 'list' && (
         <>
           {workOrders.length === 0 ? (

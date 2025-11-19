@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VoiceAssistantModal } from './VoiceAssistantModal';
+import { VoiceAssistantDrawer } from './VoiceAssistantDrawer';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 
@@ -41,8 +41,8 @@ export function VoiceAssistantButton() {
         </Button>
       </div>
 
-      {/* Voice Assistant Modal */}
-      <VoiceAssistantModal open={open} onOpenChange={setOpen} />
+      {/* Voice Assistant Drawer */}
+      <VoiceAssistantDrawer open={open} onOpenChange={setOpen} />
     </>
   );
 }

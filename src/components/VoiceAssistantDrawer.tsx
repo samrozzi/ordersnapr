@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Loader2, Keyboard, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,33 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const [hasApiKey, setHasApiKey] = useState(false);
 
   const { createNote } = useNotes();
+
+  // Define recording complete handler before using it in the hook
+  const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
+    setState('processing');
+    setInputMode('text');
+
+    try {
+      // Get API key
+      const apiKey = await getOpenAIApiKey();
+      if (!apiKey) {
+        throw new Error('OpenAI API key not found. Please configure it first.');
+      }
+
+      const result = await transcribeAudio(audioBlob, apiKey);
+      setTranscription(result.text);
+      setTextContent(result.text);
+      setState('complete');
+      toast.success('Transcription complete!');
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setState('error');
+      setError(err instanceof Error ? err.message : 'Transcription failed');
+      toast.error('Transcription failed', {
+        description: err instanceof Error ? err.message : 'Please try again',
+      });
+    }
+  }, []);
 
   const {
     recordingState,
@@ -84,32 +111,6 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     setInputMode('text');
     resetRecording();
   };
-
-  async function handleRecordingComplete(audioBlob: Blob) {
-    setState('processing');
-    setInputMode('text');
-
-    try {
-      // Get API key
-      const apiKey = await getOpenAIApiKey();
-      if (!apiKey) {
-        throw new Error('OpenAI API key not found. Please configure it first.');
-      }
-
-      const result = await transcribeAudio(audioBlob, apiKey);
-      setTranscription(result.text);
-      setTextContent(result.text);
-      setState('complete');
-      toast.success('Transcription complete!');
-    } catch (err) {
-      console.error('Transcription error:', err);
-      setState('error');
-      setError(err instanceof Error ? err.message : 'Transcription failed');
-      toast.error('Transcription failed', {
-        description: err instanceof Error ? err.message : 'Please try again',
-      });
-    }
-  }
 
   const handleStartRecording = () => {
     setInputMode('voice');
@@ -197,7 +198,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[45vh] max-h-[600px]">
+      <DrawerContent className="h-[45vh] max-h-[600px] md:right-4 md:left-auto md:w-[450px] md:rounded-lg md:bottom-4">
         <DrawerHeader className="text-center pb-2">
           <AssistantCharacter state={getCharacterState()} isAnimating={true} />
           <DrawerTitle className="text-2xl mt-4">AI Assistant</DrawerTitle>
@@ -247,7 +248,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
                   className="min-h-[120px] pr-12 resize-none"
-                  disabled={inputMode === 'voice' || state === 'processing'}
+                  disabled={state === 'processing'}
+                  autoFocus={state !== 'no-api-key'}
                 />
                 
                 {/* Voice Button Overlay */}

@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { FreeTierUsageBanner } from "@/components/FreeTierUsageBanner";
 import { ExportButton } from "@/components/ExportButton";
 import { ExportColumn, formatDateForExport } from "@/lib/export-csv";
-import { PullToRefresh } from "@/components/PullToRefresh";
 import { useProperties } from "@/hooks/use-properties";
 
 interface Property {
@@ -110,9 +109,7 @@ const PropertyInfo = () => {
   }
 
   return (
-    <>
-      <PullToRefresh onRefresh={async () => { await refetch(); }} />
-      <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6">
         <h1 className="text-xl md:text-2xl font-semibold">Property Information</h1>
       
       <FreeTierUsageBanner only={["properties"]} />
@@ -182,8 +179,7 @@ const PropertyInfo = () => {
         onUpdate={() => refetch()}
         userLocation={userLocation}
       />
-      </div>
-    </>
+    </div>
   );
 };
 

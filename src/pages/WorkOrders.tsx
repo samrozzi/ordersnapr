@@ -344,7 +344,7 @@ const WorkOrders = () => {
   return (
     <>
       <PullToRefresh onRefresh={fetchWorkOrders} />
-      <div className="space-y-4 md:space-y-6">
+      <div className="container mx-auto space-y-4 md:space-y-6">
         <div className="mb-4">
           <h1 className="text-xl md:text-2xl font-semibold">{displayName}</h1>
         </div>

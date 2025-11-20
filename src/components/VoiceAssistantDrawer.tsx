@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronLeft } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronLeft, ChevronDown, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleAvatar } from './SimpleAvatar';
@@ -28,6 +28,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const keyboardHeight = useKeyboardHeight();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -48,6 +50,15 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       document.body.style.width = '';
     };
   }, [open]);
+
+  // Auto-focus textarea when expanded and in typing mode (iOS keyboard fix)
+  useEffect(() => {
+    if (isExpanded && mode === 'typing' && textareaRef.current) {
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [isExpanded, mode]);
 
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
     setAssistantStatus('thinking');
@@ -88,9 +99,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const isRecording = recordingState === 'recording';
 
-  const handleMicClick = useCallback(() => {
-    if (mode === 'typing') return;
-    
+  const handleMicToggle = useCallback(() => {
+    // Blur textarea to dismiss keyboard
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
+
     if (isRecording) {
       stopRecording();
       setMode('resting');
@@ -100,9 +114,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       setMode('listening');
       setAssistantStatus('listening');
     }
-  }, [isRecording, startRecording, stopRecording, mode]);
+  }, [isRecording, startRecording, stopRecording]);
 
   const handleTextFocus = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
     if (isRecording) {
       stopRecording();
       setAssistantStatus('idle');
@@ -111,8 +128,24 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     setIsExpanded(true);
   }, [isRecording, stopRecording]);
 
+  const handleTextBlur = useCallback(() => {
+    // Reset mode to resting after a delay if no activity
+    blurTimeoutRef.current = setTimeout(() => {
+      if (mode === 'typing' && !textContent) {
+        setMode('resting');
+      }
+    }, 200);
+  }, [mode, textContent]);
+
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextContent(e.target.value);
+  }, []);
+
+  const handleMinimize = useCallback(() => {
+    setIsExpanded(false);
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
   }, []);
 
   const handleClear = useCallback(() => {
@@ -191,7 +224,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   if (!open) return null;
 
-  const micButtonBottom = keyboardHeight > 0 ? keyboardHeight + 20 : 24;
+  const micButtonBottom = isExpanded
+    ? Math.max(keyboardHeight + 20, 80)
+    : 120;
   const drawerHeight = isExpanded 
     ? keyboardHeight > 0 
       ? `calc(100vh - ${keyboardHeight}px)` 
@@ -310,11 +345,20 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsExpanded(false)}
+                onClick={handleMinimize}
+                className="flex items-center gap-2"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronDown className="w-5 h-5" />
+                <span className="text-sm">Minimize</span>
               </Button>
-              <h3 className="text-lg font-semibold">AI Workspace</h3>
+              <h3 className="text-lg font-semibold flex-1 text-center">AI Workspace</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMinimize}
+              >
+                Done
+              </Button>
             </div>
 
             {/* Scrollable Content */}
@@ -330,11 +374,14 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
               {/* Text Area */}
               <Textarea
+                ref={textareaRef}
                 value={textContent}
                 onChange={handleTextChange}
                 onFocus={handleTextFocus}
+                onBlur={handleTextBlur}
                 placeholder="Tap to type or use the mic to speak..."
-                className="min-h-[200px] resize-none text-base mb-6"
+                className="min-h-[200px] resize-none text-base mb-6 touch-manipulation"
+                style={{ fontSize: '16px' }} // Prevents iOS zoom
               />
 
               {/* AI Suggestions */}
@@ -404,9 +451,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
         {/* Mic Button - Fixed Position */}
         <button
-          onClick={handleMicClick}
-          disabled={mode === 'typing'}
-          className="absolute right-6 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          onClick={handleMicToggle}
+          className={`absolute right-6 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center ${
+            isRecording ? 'animate-pulse' : ''
+          }`}
           style={{ 
             bottom: `${micButtonBottom}px`,
             zIndex: 80,
@@ -416,7 +464,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           {isRecording ? (
             <>
               <div className="absolute inset-0 rounded-full bg-purple-400 opacity-40 animate-pulse" />
-              <MicOff className="w-6 h-6 relative z-10" />
+              <Pause className="w-6 h-6 relative z-10" />
             </>
           ) : (
             <Mic className="w-6 h-6" />

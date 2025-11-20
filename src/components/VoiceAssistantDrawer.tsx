@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle } from 'lucide-react';
+import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle, X, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleAvatar } from './SimpleAvatar';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const keyboardHeight = useKeyboardHeight();
+  const isMobile = useIsMobile();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const compactInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -341,12 +343,204 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const micButtonBottom = isExpanded 
     ? Math.max(keyboardHeight + 20, 80) 
     : 140;
-  const drawerHeight = isExpanded 
-    ? keyboardHeight > 0 
-      ? `calc(100dvh - ${keyboardHeight}px)` 
-      : '100dvh'
-    : '45vh';
 
+  // Desktop Floating Card
+  if (!isMobile) {
+    return (
+      <>
+        {/* Subtle backdrop only when expanded */}
+        {isExpanded && (
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]"
+            onClick={() => setIsExpanded(false)}
+          />
+        )}
+
+        {/* Floating Card */}
+        <div
+          className={`fixed bg-background rounded-2xl shadow-2xl border border-border z-[70] overflow-hidden transition-all duration-300 ${
+            isExpanded ? 'bottom-6 right-6 w-[600px] h-[700px]' : 'bottom-6 right-6 w-[400px]'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Compact State */}
+          {!isExpanded && (
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <SimpleAvatar mood={getAvatarMood()} size={40} />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold">AI Assistant</h3>
+                  <p className="text-xs text-muted-foreground">{getStatusText()}</p>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="relative">
+                <Textarea
+                  value={textContent}
+                  onChange={handleTextChange}
+                  onFocus={() => {
+                    setIsExpanded(true);
+                    setMode('typing');
+                  }}
+                  placeholder="Ask, search, or make anything..."
+                  rows={3}
+                  className="text-sm resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Expanded State */}
+          {isExpanded && (
+            <div className="h-full flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b shrink-0">
+                <h3 className="text-sm font-semibold">AI Workspace</h3>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={handleMinimize}>
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex justify-center mb-4">
+                  <SimpleAvatar mood={getAvatarMood()} size={64} />
+                </div>
+
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  {getStatusText()}
+                </p>
+
+                <Textarea
+                  ref={textareaRef}
+                  value={textContent}
+                  onChange={handleTextChange}
+                  placeholder="Type your thoughts..."
+                  className="min-h-[200px] text-sm resize-none mb-4"
+                />
+
+                {/* AI Magic Suggestions */}
+                {textContent.trim() && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">AI Magic</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('extract_tasks')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <CheckSquare className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Extract Tasks</span>
+                        <span className="text-[10px] text-muted-foreground">Find action items</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('add_emojis')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <Smile className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Add Emojis</span>
+                        <span className="text-[10px] text-muted-foreground">Make it engaging</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('fix_grammar')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <Sparkles className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Fix Grammar</span>
+                        <span className="text-[10px] text-muted-foreground">Polish & proofread</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('make_friendly')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <MessageCircle className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Friendly Tone</span>
+                        <span className="text-[10px] text-muted-foreground">Warm & casual</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('make_professional')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <Briefcase className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Professional</span>
+                        <span className="text-[10px] text-muted-foreground">Formal & polished</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col items-start text-left p-3 gap-1"
+                        onClick={() => callAITransform('make_list')}
+                        disabled={assistantStatus === 'thinking'}
+                      >
+                        <FileText className="w-4 h-4 mb-1 text-primary" />
+                        <span className="text-xs font-semibold">Listify</span>
+                        <span className="text-[10px] text-muted-foreground">Bullet points</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-4 border-t flex gap-2 shrink-0">
+                <Button variant="outline" size="sm" onClick={handleClear} disabled={!textContent} className="flex-1">
+                  Clear
+                </Button>
+                <Button size="sm" onClick={handleCreateNote} disabled={!textContent.trim() || assistantStatus === 'thinking'} className="flex-1">
+                  Create Note
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Mic Button (absolute positioned) */}
+          <button
+            onClick={handleMicToggle}
+            className={`absolute -top-3 -right-3 w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center ${
+              isRecording ? 'animate-pulse' : ''
+            }`}
+            title={isRecording ? 'Stop recording' : 'Start recording'}
+          >
+            {isRecording ? (
+              <>
+                <div className="absolute inset-0 rounded-full bg-purple-400 opacity-40 animate-pulse" />
+                <MicOff className="w-5 h-5 relative z-10" />
+              </>
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Error Display */}
+          {error && (
+            <div className="absolute top-4 left-4 right-4 bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-2 z-[80]">
+              <p className="text-sm text-destructive flex-1">{error}</p>
+              <Button variant="ghost" size="sm" onClick={() => setError(null)} className="h-6 w-6 p-0">
+                ×
+              </Button>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  // Mobile Full-Width Drawer
   return (
     <>
       {/* Backdrop */}

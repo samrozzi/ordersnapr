@@ -1358,10 +1358,13 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          ai_provider: string | null
+          ai_provider_configured: boolean | null
           created_at: string | null
           id: string
           nav_order: Json | null
           openai_api_key: string | null
+          openai_api_key_encrypted: string | null
           quick_add_enabled: boolean | null
           quick_add_items: Json | null
           updated_at: string | null
@@ -1369,10 +1372,13 @@ export type Database = {
           voice_assistant_enabled: boolean | null
         }
         Insert: {
+          ai_provider?: string | null
+          ai_provider_configured?: boolean | null
           created_at?: string | null
           id?: string
           nav_order?: Json | null
           openai_api_key?: string | null
+          openai_api_key_encrypted?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null
@@ -1380,10 +1386,13 @@ export type Database = {
           voice_assistant_enabled?: boolean | null
         }
         Update: {
+          ai_provider?: string | null
+          ai_provider_configured?: boolean | null
           created_at?: string | null
           id?: string
           nav_order?: Json | null
           openai_api_key?: string | null
+          openai_api_key_encrypted?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
           updated_at?: string | null

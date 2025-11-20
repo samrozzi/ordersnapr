@@ -1,5 +1,5 @@
 /**
- * OpenAI API service for voice transcription using Whisper
+ * AI transcription service supporting both Lovable AI and OpenAI Whisper
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -15,72 +15,130 @@ export interface TranscriptionError {
 }
 
 /**
- * Transcribe audio using Lovable AI
- * @param audioBlob - The audio file to transcribe
- * @returns Transcribed text
+ * Get the user's configured AI provider
  */
-export async function transcribeAudio(
-  audioBlob: Blob
-): Promise<TranscriptionResult> {
-  try {
-    // Detect the actual mime type and set correct extension
-    const extension = audioBlob.type.includes('mp4') ? 'mp4' 
-      : audioBlob.type.includes('webm') ? 'webm' 
-      : audioBlob.type.includes('wav') ? 'wav'
-      : 'mp3';
+async function getAIProvider(): Promise<{ provider: 'lovable' | 'openai'; apiKey?: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { provider: 'lovable' };
+  }
+
+  const { data: prefs } = await supabase
+    .from('user_preferences')
+    .select('ai_provider, openai_api_key_encrypted')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!prefs || !prefs.ai_provider) {
+    return { provider: 'lovable' };
+  }
+
+  return {
+    provider: prefs.ai_provider as 'lovable' | 'openai',
+    apiKey: prefs.openai_api_key_encrypted || undefined,
+  };
+}
+
+/**
+ * Transcribe audio using OpenAI Whisper API directly
+ */
+async function transcribeWithOpenAI(audioBlob: Blob, apiKey: string): Promise<TranscriptionResult> {
+  const extension = audioBlob.type.includes('mp4') ? 'mp4' 
+    : audioBlob.type.includes('webm') ? 'webm' 
+    : audioBlob.type.includes('wav') ? 'wav'
+    : 'mp3';
+  
+  const audioFile = new File([audioBlob], `recording.${extension}`, {
+    type: audioBlob.type,
+  });
+
+  const formData = new FormData();
+  formData.append('file', audioFile);
+  formData.append('model', 'whisper-1');
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `OpenAI API error: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  return { text: result.text };
+}
+
+/**
+ * Transcribe audio using Lovable AI
+ */
+async function transcribeWithLovableAI(audioBlob: Blob): Promise<TranscriptionResult> {
+  const extension = audioBlob.type.includes('mp4') ? 'mp4' 
+    : audioBlob.type.includes('webm') ? 'webm' 
+    : audioBlob.type.includes('wav') ? 'wav'
+    : 'mp3';
+  
+  const audioFile = new File([audioBlob], `recording.${extension}`, {
+    type: audioBlob.type,
+  });
+
+  const formData = new FormData();
+  formData.append('file', audioFile);
+
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
     
-    // Convert blob to File with correct extension
-    const audioFile = new File([audioBlob], `recording.${extension}`, {
-      type: audioBlob.type,
-    });
+    if (response.status === 429) {
+      throw new Error('Rate limit exceeded. Please try again in a moment.');
+    }
+    
+    if (response.status === 402) {
+      throw new Error('AI credits exhausted. Please add credits in Settings > Workspace.');
+    }
+    
+    throw new Error(error.error || `Transcription failed: ${response.statusText}`);
+  }
 
-    // Create form data
-    const formData = new FormData();
-    formData.append('file', audioFile);
+  const result = await response.json();
+  return { text: result.text };
+}
 
-    // Call Lovable Cloud edge function
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: formData,
-      }
-    );
+/**
+ * Main transcription function - routes to appropriate provider
+ */
+export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
+  try {
+    const { provider, apiKey } = await getAIProvider();
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
+    if (provider === 'openai') {
+      if (!apiKey) {
+        throw new Error('OpenAI API key not configured. Please update your settings.');
       }
-      
-      if (response.status === 402) {
-        throw new Error('AI credits exhausted. Please add credits in Settings > Workspace.');
-      }
-      
-      throw new Error(
-        error.error || `Transcription failed: ${response.statusText}`
-      );
+      return await transcribeWithOpenAI(audioBlob, apiKey);
     }
 
-    const result = await response.json();
-
-    return {
-      text: result.text,
-    };
+    return await transcribeWithLovableAI(audioBlob);
   } catch (error) {
     console.error('Transcription error:', error);
-
     if (error instanceof Error) {
       throw error;
     }
-
     throw new Error('Failed to transcribe audio');
   }
 }
-
-// Legacy functions kept for backwards compatibility but deprecated
-// Lovable AI doesn't require API keys from users

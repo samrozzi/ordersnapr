@@ -56,7 +56,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     if (isExpanded && mode === 'typing' && textareaRef.current) {
       setTimeout(() => {
         textareaRef.current?.focus();
-      }, 100);
+      }, 150);
     }
   }, [isExpanded, mode]);
 
@@ -189,10 +189,19 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       return;
     }
 
+    // Map intent to systemPrompt
+    const systemPromptMap: Record<string, string> = {
+      make_professional: "Rewrite the following text in a professional, polished tone. Keep the meaning intact but make it more formal and well-structured.",
+      make_list: "Convert the following text into a clear, organized bullet-point list. Extract key points and format them as a list.",
+      summarize: "Summarize the following text concisely. Keep only the most important points."
+    };
+
+    const systemPrompt = systemPromptMap[intent] || "Transform the following text appropriately.";
+
     setAssistantStatus('thinking');
     try {
       const { data, error } = await supabase.functions.invoke('ai-text-transform', {
-        body: { text: textContent, intent },
+        body: { text: textContent, systemPrompt },
       });
 
       if (error) throw error;
@@ -224,9 +233,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   if (!open) return null;
 
-  const micButtonBottom = isExpanded
-    ? Math.max(keyboardHeight + 20, 80)
-    : 120;
+  const micButtonBottom = isExpanded 
+    ? Math.max(keyboardHeight + 20, 80) 
+    : 140; // Higher in compact mode to avoid overlap
   const drawerHeight = isExpanded 
     ? keyboardHeight > 0 
       ? `calc(100vh - ${keyboardHeight}px)` 

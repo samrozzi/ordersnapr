@@ -10,6 +10,9 @@ export interface UserPreferences {
   nav_order: string[];
   openai_api_key?: string | null;
   voice_assistant_enabled?: boolean | null;
+  ai_provider?: 'lovable' | 'openai';
+  ai_provider_configured?: boolean;
+  openai_api_key_encrypted?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +41,7 @@ export const useUserPreferences = (userId: string | null) => {
     },
     enabled: !!userId,
     retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent flicker
   });
 };
 
@@ -51,12 +55,18 @@ export const useUpdateUserPreferences = () => {
       quickAddItems,
       navOrder,
       theme,
+      aiProvider,
+      aiProviderConfigured,
+      openaiApiKey,
     }: {
       userId: string;
       quickAddEnabled?: boolean;
       quickAddItems?: FeatureModule[];
       navOrder?: string[];
       theme?: string;
+      aiProvider?: 'lovable' | 'openai';
+      aiProviderConfigured?: boolean;
+      openaiApiKey?: string;
     }) => {
       // Upsert to handle both insert and update - build update object dynamically
       const updateData: any = { user_id: userId };
@@ -64,6 +74,9 @@ export const useUpdateUserPreferences = () => {
       if (quickAddItems !== undefined) updateData.quick_add_items = quickAddItems;
       if (navOrder !== undefined) updateData.nav_order = navOrder;
       if (theme !== undefined) updateData.theme = theme;
+      if (aiProvider !== undefined) updateData.ai_provider = aiProvider;
+      if (aiProviderConfigured !== undefined) updateData.ai_provider_configured = aiProviderConfigured;
+      if (openaiApiKey !== undefined) updateData.openai_api_key_encrypted = openaiApiKey;
 
       const { data, error } = await supabase
         .from("user_preferences")
@@ -76,10 +89,15 @@ export const useUpdateUserPreferences = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async (_, variables) => {
-      // Invalidate and refetch the query immediately
+    onSuccess: async (data, variables) => {
+      // CRITICAL: Force immediate refetch to prevent stale UI
+      await queryClient.cancelQueries({ queryKey: ["user-preferences", variables.userId] });
+      queryClient.setQueryData(["user-preferences", variables.userId], data);
       await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
-      await queryClient.refetchQueries({ queryKey: ["user-preferences", variables.userId] });
+      await queryClient.refetchQueries({ 
+        queryKey: ["user-preferences", variables.userId],
+        exact: true 
+      });
     },
   });
 };

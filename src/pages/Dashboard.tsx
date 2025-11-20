@@ -24,6 +24,7 @@ const Dashboard = () => {
   }, [activeOrgId]);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
       const {
         data: { user },

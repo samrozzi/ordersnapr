@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 export type RecordingState = 'idle' | 'recording' | 'paused' | 'processing';
 
@@ -6,6 +6,8 @@ export interface UseVoiceRecordingOptions {
   onRecordingComplete?: (audioBlob: Blob) => void;
   onError?: (error: Error) => void;
 }
+
+const MAX_RECORDING_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -19,6 +21,29 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   const startTimeRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const maxDurationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-stop recording after max duration
+  useEffect(() => {
+    if (recordingState === 'recording' && startTimeRef.current) {
+      const elapsed = Date.now() - startTimeRef.current;
+      const remaining = MAX_RECORDING_DURATION - elapsed;
+      
+      if (remaining > 0) {
+        maxDurationTimeoutRef.current = setTimeout(() => {
+          console.warn('⚠️ Max recording duration (5 minutes) reached, stopping automatically');
+          stopRecording();
+        }, remaining);
+      }
+      
+      return () => {
+        if (maxDurationTimeoutRef.current) {
+          clearTimeout(maxDurationTimeoutRef.current);
+          maxDurationTimeoutRef.current = null;
+        }
+      };
+    }
+  }, [recordingState]);
 
   const startRecording = useCallback(async () => {
     try {

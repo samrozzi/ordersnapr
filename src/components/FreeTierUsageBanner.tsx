@@ -16,8 +16,14 @@ const RESOURCE_LABELS: Record<keyof FreeTierLimits, string> = {
 export function FreeTierUsageBanner({ only }: FreeTierUsageBannerProps) {
   const { usage, limits, isApproved, loading } = useFreeTierLimits();
 
-  // Don't show for approved org users or while loading
-  if (isApproved || loading) {
+  // CRITICAL: Don't render anything while checking approval status
+  // This prevents the flicker
+  if (loading) {
+    return null;
+  }
+
+  // Don't show for approved org users
+  if (isApproved) {
     return null;
   }
 

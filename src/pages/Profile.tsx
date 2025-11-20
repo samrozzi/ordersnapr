@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles, Key, Trash2 } from "lucide-react";
-// Removed OpenAI import - now using Lovable AI
 import { useSetUsername, validateUsername } from "@/hooks/use-username";
 import { MigrationStatus } from "@/components/MigrationStatus";
 import { format } from "date-fns";
@@ -17,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 import { UnifiedPreferences } from "@/components/UnifiedPreferences";
 import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
+import { AIProviderSetupDialog } from "@/components/AIProviderSetupDialog";
 
 interface AuditLog {
   id: string;
@@ -81,6 +81,7 @@ const Profile = () => {
   const [lastUsernameChange, setLastUsernameChange] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
+  const [showAIProviderDialog, setShowAIProviderDialog] = useState(false);
 
   const { data: userPreferences } = useUserPreferences(userId || null);
   const updatePreferences = useUpdateUserPreferences();
@@ -726,6 +727,61 @@ const Profile = () => {
 
             <Card>
               <CardHeader>
+                <CardTitle>AI Assistant Settings</CardTitle>
+                <CardDescription>
+                  Configure your voice transcription provider
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Current Provider</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {userPreferences?.ai_provider === 'openai' 
+                        ? 'Your OpenAI API Key' 
+                        : userPreferences?.ai_provider_configured 
+                        ? 'Lovable AI (Built-in)' 
+                        : 'Not configured'}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAIProviderDialog(true)}
+                  >
+                    {userPreferences?.ai_provider_configured ? 'Change Provider' : 'Configure'}
+                  </Button>
+                </div>
+                
+                {userPreferences?.ai_provider === 'openai' && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label>OpenAI API Key</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="password" 
+                        value="••••••••••••••••••••••••" 
+                        disabled
+                        className="bg-muted font-mono text-sm"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Your API key is encrypted and stored securely
+                    </p>
+                  </div>
+                )}
+
+                {userPreferences?.ai_provider === 'lovable' && userPreferences?.ai_provider_configured && (
+                  <div className="space-y-2 pt-2 border-t text-sm text-muted-foreground">
+                    <p>✓ Using built-in Lovable AI transcription</p>
+                    <p>✓ No API key required</p>
+                    <p>✓ Uses workspace AI credits</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Update Password</CardTitle>
                 <CardDescription>
                   Change your account password. Must be at least 8 characters with uppercase, lowercase, and numbers.
@@ -1038,6 +1094,16 @@ const Profile = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* AI Provider Setup Dialog */}
+      <AIProviderSetupDialog
+        open={showAIProviderDialog}
+        onOpenChange={setShowAIProviderDialog}
+        onComplete={() => {
+          setShowAIProviderDialog(false);
+          fetchUserData(); // Refresh to show updated settings
+        }}
+      />
     </div>
   );
 };

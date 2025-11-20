@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Mic, MicOff, Pause, X, Minus, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { transcribeAudio } from '@/lib/openai-service';
 import { cn } from '@/lib/utils';
+import { AIProviderSetupDialog } from './AIProviderSetupDialog';
+import { useUserPreferences } from '@/hooks/use-user-preferences';
+import { useDebouncedCallback } from 'use-debounce';
 
 type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'sleeping';
 type Mode = 'resting' | 'listening' | 'typing';
@@ -21,12 +24,13 @@ interface VoiceAssistantDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawerProps) {
+export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAssistantDrawerProps) => {
   const [assistantStatus, setAssistantStatus] = useState<AssistantStatus>('idle');
   const [mode, setMode] = useState<Mode>('resting');
   const [textContent, setTextContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showProviderSetup, setShowProviderSetup] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const keyboardHeight = useKeyboardHeight();
@@ -35,6 +39,17 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const compactInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const { data: userPreferences } = useUserPreferences(user?.id || null);
+
+  // Check if AI provider is configured
+  useEffect(() => {
+    if (open && user && userPreferences) {
+      if (!userPreferences.ai_provider_configured) {
+        setShowProviderSetup(true);
+      }
+    }
+  }, [open, user, userPreferences]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -186,9 +201,16 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     // Don't auto-reset mode - let user explicitly minimize
   }, []);
 
+  // Debounced text change to prevent excessive re-renders
+  const debouncedSetTextContent = useDebouncedCallback((value: string) => {
+    setTextContent(value);
+  }, 100);
+
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextContent(e.target.value);
-  }, []);
+    const value = e.target.value;
+    e.target.value = value; // Keep input responsive
+    debouncedSetTextContent(value);
+  }, [debouncedSetTextContent]);
 
   const handleMinimize = useCallback(() => {
     setIsExpanded(false);
@@ -290,7 +312,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
   }, [textContent, user, queryClient, handleClear, onOpenChange]);
 
-  const callAITransform = async (intent: string) => {
+  const callAITransform = useCallback(async (intent: string) => {
     if (!user) {
       toast.error('Please sign in to use AI features');
       return;
@@ -333,7 +355,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     } finally {
       setAssistantStatus('idle');
     }
-  };
+  }, [textContent]);
 
   const getAvatarMood = () => {
     if (assistantStatus === 'thinking') return 'thinking';
@@ -350,6 +372,17 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   if (!open) return null;
+
+  // Show provider setup dialog if not configured
+  if (showProviderSetup) {
+    return (
+      <AIProviderSetupDialog
+        open={showProviderSetup}
+        onOpenChange={setShowProviderSetup}
+        onComplete={() => setShowProviderSetup(false)}
+      />
+    );
+  }
 
   const micButtonBottom = isExpanded 
     ? Math.max(keyboardHeight + 20, 80) 
@@ -519,33 +552,46 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             </div>
           )}
 
-          {/* Floating Mic Button */}
-          <button
-            onClick={handleMicToggle}
-            className={cn(
-              "absolute -top-3 -right-3 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
-              isRecording 
-                ? "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110" 
-                : isPaused
-                ? "bg-gradient-to-br from-blue-500 to-cyan-500 hover:scale-110"
-                : "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110"
-            )}
-          >
-            {isRecording ? (
-              <Pause className="w-5 h-5 text-white" />
-            ) : (
-              <Mic className="w-5 h-5 text-white" />
-            )}
-          </button>
-
-          {/* Stop Recording Button (when recording or paused) */}
-          {(isRecording || isPaused) && (
-            <button
-              onClick={handleStopRecording}
-              className="absolute -top-3 -right-16 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-red-500 to-pink-500 hover:scale-110"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
+          {/* Floating Mic Button - Always top-right, both idle and recording */}
+          {!isExpanded && (
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              {(isRecording || isPaused) ? (
+                <>
+                  {/* Pause/Resume Button */}
+                  <button
+                    onClick={handleMicToggle}
+                    className={cn(
+                      "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
+                      isRecording 
+                        ? "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110" 
+                        : "bg-gradient-to-br from-blue-500 to-cyan-500 hover:scale-110"
+                    )}
+                  >
+                    {isRecording ? (
+                      <Pause className="w-5 h-5 text-white" />
+                    ) : (
+                      <Mic className="w-5 h-5 text-white" />
+                    )}
+                  </button>
+                  
+                  {/* Stop Button */}
+                  <button
+                    onClick={handleStopRecording}
+                    className="w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-red-500 to-pink-500 hover:scale-110"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </>
+              ) : (
+                /* Start Recording Button */
+                <button
+                  onClick={handleMicToggle}
+                  className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110"
+                >
+                  <Mic className="w-5 h-5 text-white" />
+                </button>
+              )}
+            </div>
           )}
 
           {/* Error Display */}
@@ -675,29 +721,53 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           </div>
         )}
 
-        {/* Expanded View */}
-        {isExpanded && (
-          <div className="flex flex-col h-full overflow-hidden">
-            {/* Header - Sticky */}
-            <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMinimize}
-                className="flex items-center gap-2"
-              >
-                <ChevronDown className="w-5 h-5" />
-                <span className="text-sm">Minimize</span>
-              </Button>
-              <h3 className="text-lg font-semibold flex-1 text-center">AI Workspace</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMinimize}
-              >
-                Done
-              </Button>
-            </div>
+          {/* Expanded View */}
+          {isExpanded && (
+            <div className="flex flex-col h-full overflow-hidden">
+              {/* Header - Sticky */}
+              <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMinimize}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronDown className="w-5 h-5" />
+                  <span className="text-sm">Minimize</span>
+                </Button>
+                <h3 className="text-lg font-semibold flex-1 text-center">AI Workspace</h3>
+                
+                {/* Recording controls in header when recording */}
+                {(isRecording || isPaused) && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleMicToggle}
+                      className={cn(
+                        "w-10 h-10 rounded-full shadow-lg flex items-center justify-center",
+                        isRecording 
+                          ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                          : "bg-gradient-to-br from-blue-500 to-cyan-500"
+                      )}
+                    >
+                      {isRecording ? <Pause className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-white" />}
+                    </button>
+                    <button
+                      onClick={handleStopRecording}
+                      className="w-10 h-10 rounded-full shadow-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                )}
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMinimize}
+                >
+                  Done
+                </Button>
+              </div>
 
             {/* Scrollable Content */}
             <div 
@@ -879,4 +949,4 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       </div>
     </>
   );
-}
+});

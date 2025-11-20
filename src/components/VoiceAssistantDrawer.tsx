@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronLeft, ChevronDown, Pause } from 'lucide-react';
+import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleAvatar } from './SimpleAvatar';
@@ -31,6 +31,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const compactInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -124,6 +125,11 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       stopRecording();
     }
     
+    // Scroll to top when expanding
+    setTimeout(() => {
+      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+    
     // Focus with delay for iOS reliability
     setTimeout(() => {
       textareaRef.current?.focus();
@@ -175,6 +181,25 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     setError(null);
   }, []);
 
+  const extractTitle = (content: string): string => {
+    // Check for explicit title patterns
+    const titleMatch = content.match(/^(?:title|heading|subject):\s*(.+)$/im);
+    if (titleMatch) {
+      return titleMatch[1].trim().slice(0, 100);
+    }
+    
+    // Use timestamp-based title
+    const now = new Date();
+    const timeStr = now.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    return `Voice Note - ${timeStr}`;
+  };
+
   const handleCreateNote = useCallback(async () => {
     if (!user) {
       toast.error('Please sign in to create notes');
@@ -195,11 +220,26 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         .eq('id', user.id)
         .single();
 
+      // Extract title and prepare content
+      const title = extractTitle(textContent);
+      const bodyContent = textContent;
+      
+      // Create proper note structure with blocks
+      const noteContent = {
+        blocks: [
+          {
+            id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: 'paragraph',
+            content: bodyContent
+          }
+        ]
+      };
+
       const { error: insertError } = await supabase
         .from('notes')
         .insert({
-          title: textContent.split('\n')[0].slice(0, 100) || 'Untitled Note',
-          content: [{ type: 'paragraph', content: textContent }],
+          title,
+          content: noteContent,
           user_id: user.id,
           org_id: profile?.active_org_id || null,
         });
@@ -235,9 +275,12 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
     // Map intent to systemPrompt
     const systemPromptMap: Record<string, string> = {
-      make_professional: "Rewrite the following text in a professional, polished tone. Keep the meaning intact but make it more formal and well-structured.",
-      make_list: "Convert the following text into a clear, organized bullet-point list. Extract key points and format them as a list.",
-      summarize: "Summarize the following text concisely. Keep only the most important points."
+      extract_tasks: "Extract all action items and tasks from the following text. Format them as a clear, numbered checklist. Only include actionable items, not general statements.",
+      add_emojis: "Add relevant emojis throughout the following text to make it more engaging and expressive. Keep the original text intact but enhance it with contextually appropriate emojis.",
+      fix_grammar: "Fix all grammar, spelling, and punctuation errors in the following text. Keep the tone and meaning intact, just polish the language.",
+      make_friendly: "Rewrite the following text in a warm, friendly, and conversational tone. Make it feel personal and approachable while keeping the core message.",
+      make_professional: "Rewrite the following text in a professional, polished, and formal tone. Make it suitable for business communication while keeping the meaning intact.",
+      make_list: "Convert the following text into a clear, organized bullet-point list. Extract key points and format them as a list with proper hierarchy if needed."
     };
 
     const systemPrompt = systemPromptMap[intent] || "Transform the following text appropriately.";
@@ -245,17 +288,20 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     setAssistantStatus('thinking');
     try {
       const { data, error } = await supabase.functions.invoke('ai-text-transform', {
-        body: { text: textContent, systemPrompt },
+        body: { action: intent, text: textContent, systemPrompt },
       });
 
       if (error) throw error;
-      if (data?.transformed) {
-        setTextContent(data.transformed);
+      if (data?.transformedText) {
+        setTextContent(data.transformedText);
         toast.success('Text transformed!');
+      } else {
+        throw new Error('No transformed text returned');
       }
     } catch (err) {
       console.error('AI transform error:', err);
-      toast.error('Failed to transform text');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to transform text';
+      toast.error(errorMsg);
     } finally {
       setAssistantStatus('idle');
     }
@@ -423,7 +469,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4">
               {/* Avatar */}
               <div className="flex justify-center mb-4">
                 <SimpleAvatar mood={getAvatarMood()} size={80} />
@@ -448,34 +494,67 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
               {/* AI Suggestions */}
               {textContent.trim() && (
                 <div className="space-y-3 pb-24">
-                  <p className="text-sm font-medium text-muted-foreground">AI Suggestions</p>
-                  <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">AI Magic</p>
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-sm"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
+                      onClick={() => callAITransform('extract_tasks')}
+                      disabled={assistantStatus === 'thinking'}
+                    >
+                      <CheckSquare className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Extract Tasks</span>
+                      <span className="text-[10px] text-muted-foreground">Find action items</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
+                      onClick={() => callAITransform('add_emojis')}
+                      disabled={assistantStatus === 'thinking'}
+                    >
+                      <Smile className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Add Emojis</span>
+                      <span className="text-[10px] text-muted-foreground">Make it engaging</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
+                      onClick={() => callAITransform('fix_grammar')}
+                      disabled={assistantStatus === 'thinking'}
+                    >
+                      <Sparkles className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Fix Grammar</span>
+                      <span className="text-[10px] text-muted-foreground">Polish & proofread</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
+                      onClick={() => callAITransform('make_friendly')}
+                      disabled={assistantStatus === 'thinking'}
+                    >
+                      <MessageCircle className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Friendly Tone</span>
+                      <span className="text-[10px] text-muted-foreground">Warm & casual</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
                       onClick={() => callAITransform('make_professional')}
                       disabled={assistantStatus === 'thinking'}
                     >
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Make it look professional
+                      <Briefcase className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Professional</span>
+                      <span className="text-[10px] text-muted-foreground">Formal & polished</span>
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-sm"
+                      className="h-auto flex-col items-start text-left p-3 gap-1"
                       onClick={() => callAITransform('make_list')}
                       disabled={assistantStatus === 'thinking'}
                     >
-                      <ListTodo className="w-4 h-4 mr-2" />
-                      Turn into a list
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-sm"
-                      onClick={() => callAITransform('summarize')}
-                      disabled={assistantStatus === 'thinking'}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Summarize
+                      <FileText className="w-4 h-4 mb-1 text-primary" />
+                      <span className="text-xs font-semibold">Listify</span>
+                      <span className="text-[10px] text-muted-foreground">Bullet points</span>
                     </Button>
                   </div>
                 </div>
@@ -526,7 +605,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           {isRecording ? (
             <>
               <div className="absolute inset-0 rounded-full bg-purple-400 opacity-40 animate-pulse" />
-              <Pause className="w-6 h-6 relative z-10" />
+              <MicOff className="w-6 h-6 relative z-10" />
             </>
           ) : (
             <Mic className="w-6 h-6" />

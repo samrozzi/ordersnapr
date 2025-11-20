@@ -1,0 +1,28 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="120" height="120" rx="24" fill="white"/>
+  
+  <!-- Border -->
+  <rect x="2" y="2" width="116" height="116" rx="22" stroke="#305E8C" stroke-width="4" fill="none"/>
+  
+  <!-- Internal grid -->
+  <g opacity="0.3">
+    <line x1="40" y1="20" x2="40" y2="100" stroke="#305E8C" stroke-width="1.5"/>
+    <line x1="60" y1="20" x2="60" y2="100" stroke="#305E8C" stroke-width="1.5"/>
+    <line x1="80" y1="20" x2="80" y2="100" stroke="#305E8C" stroke-width="1.5"/>
+    <line x1="20" y1="40" x2="100" y2="40" stroke="#305E8C" stroke-width="1.5"/>
+    <line x1="20" y1="60" x2="100" y2="60" stroke="#305E8C" stroke-width="1.5"/>
+    <line x1="20" y1="80" x2="100" y2="80" stroke="#305E8C" stroke-width="1.5"/>
+  </g>
+  
+  <!-- Antenna -->
+  <path d="M60 8 Q65 15, 68 20" stroke="#305E8C" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="68" cy="20" r="4" fill="#305E8C"/>
+  
+  <!-- Eyes - closed (blink) -->
+  <line x1="35" y1="50" x2="50" y2="50" stroke="#305E8C" stroke-width="3" stroke-linecap="round"/>
+  <line x1="70" y1="50" x2="85" y2="50" stroke="#305E8C" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Mouth - neutral -->
+  <path d="M48 70 L72 70" stroke="#305E8C" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

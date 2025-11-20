@@ -62,6 +62,15 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
   }, [isExpanded, mode]);
 
+  // Scroll to top when keyboard opens
+  useEffect(() => {
+    if (isExpanded && keyboardHeight > 0) {
+      setTimeout(() => {
+        contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  }, [keyboardHeight, isExpanded]);
+
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
     setAssistantStatus('thinking');
     setError(null);
@@ -125,14 +134,15 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       stopRecording();
     }
     
-    // Scroll to top when expanding
-    setTimeout(() => {
-      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 50);
-    
     // Focus with delay for iOS reliability
     setTimeout(() => {
       textareaRef.current?.focus();
+      
+      // Scroll to top AFTER focus to account for keyboard
+      setTimeout(() => {
+        contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 150);
+      
       // Retry focus if needed
       setTimeout(() => {
         if (document.activeElement !== textareaRef.current) {
@@ -152,6 +162,11 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
     setMode('typing');
     setIsExpanded(true);
+    
+    // Scroll to top when focusing
+    setTimeout(() => {
+      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 200);
   }, [isRecording, stopRecording]);
 
   const handleTextBlur = useCallback(() => {

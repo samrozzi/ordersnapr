@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, History, FileText, Home, Sun, Moon, Monitor, LogOut, Sparkles, Key, Trash2 } from "lucide-react";
-import { getOpenAIApiKey, saveOpenAIApiKey, hasOpenAIApiKey } from "@/lib/openai-service";
+// Removed OpenAI import - now using Lovable AI
 import { useSetUsername, validateUsername } from "@/hooks/use-username";
 import { MigrationStatus } from "@/components/MigrationStatus";
 import { format } from "date-fns";
@@ -79,8 +79,6 @@ const Profile = () => {
   const [username, setUsername] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [lastUsernameChange, setLastUsernameChange] = useState<string | null>(null);
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
-  const [hasApiKey, setHasApiKey] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
 
@@ -90,7 +88,6 @@ const Profile = () => {
 
   useEffect(() => {
     fetchUserData();
-    setHasApiKey(hasOpenAIApiKey());
   }, []);
 
   const fetchUserData = async () => {
@@ -440,56 +437,6 @@ const Profile = () => {
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const handleSaveApiKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!openaiApiKey.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an API key",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!openaiApiKey.startsWith('sk-')) {
-      toast({
-        title: "Error",
-        description: "Invalid API key format. OpenAI keys start with 'sk-'",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const success = await saveOpenAIApiKey(openaiApiKey.trim());
-    setHasApiKey(true);
-    setOpenaiApiKey("");
-
-    if (success) {
-      toast({
-        title: "Success",
-        description: "OpenAI API key saved to database successfully",
-      });
-    } else {
-      toast({
-        title: "Saved Locally Only",
-        description: "Database migration pending. Key saved to browser. Check console (F12) for details.",
-        variant: "default",
-      });
-    }
-  };
-
-  const handleRemoveApiKey = async () => {
-    await saveOpenAIApiKey(''); // Empty string removes it from database
-    setHasApiKey(false);
-    setOpenaiApiKey("");
-
-    toast({
-      title: "Success",
-      description: "OpenAI API key removed from your account",
-    });
   };
 
   const handleUpdateUsername = async (e: React.FormEvent) => {
@@ -850,79 +797,30 @@ const Profile = () => {
               </CardContent>
             </Card>
 
+            
+            {/* Voice Assistant Info Card - Lovable AI powered */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  Voice Assistant API Key
+                  <Sparkles className="h-5 w-5" />
+                  Voice Assistant (AI Powered)
                 </CardTitle>
                 <CardDescription>
-                  Configure your OpenAI API key for voice transcription features
+                  Voice transcription is powered by Lovable AI - no API key needed!
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {hasApiKey ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                      <Key className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                        API key is configured
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Your OpenAI API key is stored locally in your browser. Cost: ~$0.006 per minute of voice transcription.
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleRemoveApiKey}
-                          variant="destructive"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove API Key
-                        </Button>
-                        <Button
-                          onClick={() => setHasApiKey(false)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Change API Key
-                        </Button>
-                      </div>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                    <Sparkles className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                    <span className="text-sm text-cyan-600 dark:text-cyan-400 font-medium">
+                      AI transcription is active
+                    </span>
                   </div>
-                ) : (
-                  <form onSubmit={handleSaveApiKey} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="openai-api-key">OpenAI API Key</Label>
-                      <Input
-                        id="openai-api-key"
-                        type="password"
-                        value={openaiApiKey}
-                        onChange={(e) => setOpenaiApiKey(e.target.value)}
-                        placeholder="sk-..."
-                        disabled={loading}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Get your API key from{' '}
-                        <a
-                          href="https://platform.openai.com/api-keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:no-underline"
-                        >
-                          OpenAI's platform
-                        </a>
-                        . Your key is stored locally and never sent to our servers.
-                      </p>
-                    </div>
-                    <Button type="submit" disabled={loading}>
-                      <Key className="h-4 w-4 mr-2" />
-                      {loading ? "Saving..." : "Save API Key"}
-                    </Button>
-                  </form>
-                )}
+                  <p className="text-sm text-muted-foreground">
+                    Use the voice button in notes and forms to transcribe your speech. Powered by our integrated AI service with no additional setup required.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

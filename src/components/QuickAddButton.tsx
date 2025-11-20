@@ -117,17 +117,26 @@ export function QuickAddButton() {
   // ONLY show items that are explicitly selected in preferences
   let selectedModules: FeatureModule[];
 
+  console.log('🔍 Quick Add Debug:', {
+    userPreferences: userPreferences?.quick_add_items,
+    userFeatureModules,
+    allowedModules,
+  });
+
   if (userPreferences?.quick_add_items && Array.isArray(userPreferences.quick_add_items) && userPreferences.quick_add_items.length > 0) {
     // User has explicitly configured Quick Add - ONLY show what they selected
     selectedModules = (userPreferences.quick_add_items as FeatureModule[])
       .filter(m => userFeatureModules.includes(m));
+    console.log('✅ Using user preferences:', selectedModules);
   } else if (userPreferences?.quick_add_items && Array.isArray(userPreferences.quick_add_items) && userPreferences.quick_add_items.length === 0) {
     // User explicitly cleared all items - show nothing
     selectedModules = [];
+    console.log('⚠️ User cleared all quick add items');
   } else {
     // First-time user with no preferences saved - show sensible defaults
     // Only show first 3 enabled features as a starter set
     selectedModules = userFeatureModules.slice(0, 3);
+    console.log('📦 Using defaults:', selectedModules);
   }
 
   // Build actions array from selected modules

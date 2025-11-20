@@ -1367,9 +1367,11 @@ export type Database = {
           openai_api_key_encrypted: string | null
           quick_add_enabled: boolean | null
           quick_add_items: Json | null
+          sidebar_enabled_features: Json | null
           updated_at: string | null
           user_id: string
           voice_assistant_enabled: boolean | null
+          workspace_id: string | null
         }
         Insert: {
           ai_provider?: string | null
@@ -1381,9 +1383,11 @@ export type Database = {
           openai_api_key_encrypted?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
+          sidebar_enabled_features?: Json | null
           updated_at?: string | null
           user_id: string
           voice_assistant_enabled?: boolean | null
+          workspace_id?: string | null
         }
         Update: {
           ai_provider?: string | null
@@ -1395,9 +1399,11 @@ export type Database = {
           openai_api_key_encrypted?: string | null
           quick_add_enabled?: boolean | null
           quick_add_items?: Json | null
+          sidebar_enabled_features?: Json | null
           updated_at?: string | null
           user_id?: string
           voice_assistant_enabled?: boolean | null
+          workspace_id?: string | null
         }
         Relationships: []
       }

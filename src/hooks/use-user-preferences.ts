@@ -13,6 +13,8 @@ export interface UserPreferences {
   ai_provider?: 'lovable' | 'openai';
   ai_provider_configured?: boolean;
   openai_api_key_encrypted?: string | null;
+  sidebar_enabled_features?: string[];
+  workspace_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +60,8 @@ export const useUpdateUserPreferences = () => {
       aiProvider,
       aiProviderConfigured,
       openaiApiKey,
+      sidebarEnabledFeatures,
+      workspaceId,
     }: {
       userId: string;
       quickAddEnabled?: boolean;
@@ -67,6 +71,8 @@ export const useUpdateUserPreferences = () => {
       aiProvider?: 'lovable' | 'openai';
       aiProviderConfigured?: boolean;
       openaiApiKey?: string;
+      sidebarEnabledFeatures?: string[];
+      workspaceId?: string | null;
     }) => {
       // Upsert to handle both insert and update - build update object dynamically
       const updateData: any = { user_id: userId };
@@ -77,6 +83,8 @@ export const useUpdateUserPreferences = () => {
       if (aiProvider !== undefined) updateData.ai_provider = aiProvider;
       if (aiProviderConfigured !== undefined) updateData.ai_provider_configured = aiProviderConfigured;
       if (openaiApiKey !== undefined) updateData.openai_api_key_encrypted = openaiApiKey;
+      if (sidebarEnabledFeatures !== undefined) updateData.sidebar_enabled_features = sidebarEnabledFeatures;
+      if (workspaceId !== undefined) updateData.workspace_id = workspaceId;
 
       const { data, error } = await supabase
         .from("user_preferences")

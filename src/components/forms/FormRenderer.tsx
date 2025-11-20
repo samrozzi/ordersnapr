@@ -90,6 +90,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
   const [recoverableData, setRecoverableData] = useState<any>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
+  const [hasDeclinedUpgrade, setHasDeclinedUpgrade] = useState(false);
   
   const { isOnline, lastOnline } = useOnlineStatus();
   const createMutation = useCreateSubmission();
@@ -1780,7 +1781,161 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                       return;
                     }
                   } else {
-                    // No repeating group found - offer to upgrade template
+                    // No repeating group found - check if user already declined upgrade
+                    if (hasDeclinedUpgrade) {
+                      console.log('Smart Import - User already declined upgrade, populating first tech only');
+                      // Populate with first technician data without showing dialog
+                      const firstTech = technicianRows[0];
+                      const extractedData = { ...data };
+                      extractedData.technicianName = firstTech.techName || firstTech.name;
+                      extractedData.accountNumber = firstTech.ban || extractedData.accountNumber;
+                      
+                      // Use the same mapping logic as Cancel button
+                      const keyMapping: Record<string, string> = {};
+                      const newAnswers = { ...answers };
+                      
+                      template.schema.sections.forEach((section: any) => {
+                        (section.fields || []).forEach((f: any) => {
+                          const label = f.label?.toLowerCase().replace(/\s+/g, '');
+                          const fieldKey = f.key;
+                          
+                          if (f.type === 'table_layout' && f.tableCells) {
+                            Object.entries(f.tableCells).forEach(([cellKey, cell]: [string, any]) => {
+                              if (cell?.field) {
+                                const cellLabel = cell.field.label?.toLowerCase().replace(/\s+/g, '');
+                                const fullKey = `${fieldKey}.${cellKey}`;
+                                
+                                if (cellLabel?.includes('techname') || cellLabel?.includes('technician') || (cellLabel?.includes('tech') && cellLabel?.includes('name'))) {
+                                  keyMapping['technicianName'] = fullKey;
+                                } else if (cellLabel?.includes('techid') || (cellLabel?.includes('tech') && cellLabel?.includes('id'))) {
+                                  keyMapping['techId'] = fullKey;
+                                } else if (cellLabel?.includes('phone') || cellLabel?.includes('tn') || cellLabel?.includes('telephone')) {
+                                  keyMapping['techPhone'] = fullKey;
+                                } else if (cellLabel?.includes('type') || cellLabel?.includes('category')) {
+                                  keyMapping['techType'] = fullKey;
+                                }
+                              }
+                            });
+                          }
+                          
+                          if (label?.includes('servicedate') || label?.includes('date') || label?.includes('service')) {
+                            keyMapping['serviceDate'] = fieldKey;
+                          }
+                          if (label?.includes('address') || label?.includes('location') || label?.includes('street')) {
+                            keyMapping['address'] = fieldKey;
+                          }
+                          if ((label?.includes('customer') || label?.includes('client')) && label?.includes('name')) {
+                            keyMapping['customerName'] = fieldKey;
+                          }
+                          if (label?.includes('canbe') || label?.includes('reached') || label?.includes('contact')) {
+                            keyMapping['canBeReached'] = fieldKey;
+                          }
+                          if (label?.includes('account') || label?.includes('ban') || label?.includes('acct')) {
+                            keyMapping['accountNumber'] = fieldKey;
+                          }
+                          if ((label?.includes('tech') || label?.includes('technician')) && label?.includes('name') && !f.type?.includes('table')) {
+                            keyMapping['technicianName'] = fieldKey;
+                          }
+                        });
+                      });
+                      
+                      // Apply extracted data including parsed address
+                      Object.entries(extractedData).forEach(([key, value]) => {
+                        if (keyMapping[key]) {
+                          const targetKey = keyMapping[key];
+                          
+                          if (key === 'address' && typeof value === 'string') {
+                            const addressValue: any = {
+                              street: '',
+                              city: '',
+                              state: '',
+                              zip: ''
+                            };
+                            
+                            const zipMatch = value.match(/\b(\d{5}(?:-\d{4})?)\b/);
+                            if (zipMatch) {
+                              addressValue.zip = zipMatch[1];
+                            }
+                            
+                            const addressParts = value.split(',').map(p => p.trim());
+                            
+                            if (addressParts.length > 0) {
+                              addressValue.street = addressParts[0];
+                            }
+                            
+                            const commonStreetSuffixes = ['LN', 'ST', 'DR', 'RD', 'AVE', 'CT', 'PL', 'WAY', 'BLVD', 'CIR'];
+                            for (let i = addressParts.length - 1; i >= 0; i--) {
+                              const part = addressParts[i];
+                              const stateMatch = part.match(/\b([A-Z]{2})(?:\s+\d{5}|\s*$)/);
+                              if (stateMatch && !commonStreetSuffixes.includes(stateMatch[1])) {
+                                addressValue.state = stateMatch[1];
+                                break;
+                              }
+                            }
+                            
+                            if (addressParts.length > 1) {
+                              let cityPart = addressParts[1];
+                              if (addressValue.state) {
+                                cityPart = cityPart.replace(new RegExp(`\\b${addressValue.state}\\b`, 'g'), '').trim();
+                              }
+                              if (addressValue.zip) {
+                                cityPart = cityPart.replace(addressValue.zip, '').trim();
+                              }
+                              cityPart = cityPart.replace(/\s*,\s*$/, '').trim();
+                              addressValue.city = cityPart;
+                            }
+                            
+                            if (targetKey.includes('.')) {
+                              const [tableKey, cellKey] = targetKey.split('.');
+                              newAnswers[tableKey] = {
+                                ...(newAnswers[tableKey] || {}),
+                                [cellKey]: addressValue
+                              };
+                            } else {
+                              newAnswers[targetKey] = addressValue;
+                            }
+                          } else if (targetKey.includes('.')) {
+                            const [tableKey, cellKey] = targetKey.split('.');
+                            newAnswers[tableKey] = {
+                              ...(newAnswers[tableKey] || {}),
+                              [cellKey]: value
+                            };
+                          } else {
+                            newAnswers[targetKey] = value;
+                          }
+                        }
+                      });
+                      
+                      if (firstTech) {
+                        if (keyMapping['techId']) {
+                          const [tableKey, cellKey] = keyMapping['techId'].split('.');
+                          newAnswers[tableKey] = {
+                            ...(newAnswers[tableKey] || {}),
+                            [cellKey]: firstTech.techId || firstTech.id || ''
+                          };
+                        }
+                        if (keyMapping['techPhone']) {
+                          const [tableKey, cellKey] = keyMapping['techPhone'].split('.');
+                          newAnswers[tableKey] = {
+                            ...(newAnswers[tableKey] || {}),
+                            [cellKey]: firstTech.techPhone || firstTech.phone || ''
+                          };
+                        }
+                        if (keyMapping['techType']) {
+                          const [tableKey, cellKey] = keyMapping['techType'].split('.');
+                          newAnswers[tableKey] = {
+                            ...(newAnswers[tableKey] || {}),
+                            [cellKey]: firstTech.techType || firstTech.type || ''
+                          };
+                        }
+                      }
+                      
+                      setAnswers(newAnswers);
+                      toast.success('Imported first technician data');
+                      return;
+                    }
+                    
+                    // Offer to upgrade template
                     console.log('Smart Import - No repeating group found, offering template upgrade');
                     setPendingImportData({ technicianRows, extractedData: data });
                     setShowUpgradeDialog(true);
@@ -2543,7 +2698,7 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 
                 console.log('🗺️ Final Key Mapping:', keyMapping);
                 
-                // Apply extracted data to form
+                // Apply extracted data to form (with address parsing)
                 Object.entries(extractedData).forEach(([key, value]) => {
                   console.log(`📝 Processing: ${key} = ${value}`);
                   
@@ -2551,7 +2706,68 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                     const targetKey = keyMapping[key];
                     console.log(`  ➡️ Mapping to: ${targetKey}`);
                     
-                    if (targetKey.includes('.')) {
+                    // Special handling for address fields - parse the full address string
+                    if (key === 'address' && typeof value === 'string') {
+                      console.log('Parsing address value:', value);
+                      
+                      const addressValue: any = {
+                        street: '',
+                        city: '',
+                        state: '',
+                        zip: ''
+                      };
+                      
+                      // Extract zip code
+                      const zipMatch = value.match(/\b(\d{5}(?:-\d{4})?)\b/);
+                      if (zipMatch) {
+                        addressValue.zip = zipMatch[1];
+                      }
+                      
+                      // Split by comma
+                      const addressParts = value.split(',').map(p => p.trim());
+                      
+                      if (addressParts.length > 0) {
+                        addressValue.street = addressParts[0];
+                      }
+                      
+                      // Extract state
+                      const commonStreetSuffixes = ['LN', 'ST', 'DR', 'RD', 'AVE', 'CT', 'PL', 'WAY', 'BLVD', 'CIR'];
+                      for (let i = addressParts.length - 1; i >= 0; i--) {
+                        const part = addressParts[i];
+                        const stateMatch = part.match(/\b([A-Z]{2})(?:\s+\d{5}|\s*$)/);
+                        if (stateMatch && !commonStreetSuffixes.includes(stateMatch[1])) {
+                          addressValue.state = stateMatch[1];
+                          break;
+                        }
+                      }
+                      
+                      // Extract city
+                      if (addressParts.length > 1) {
+                        let cityPart = addressParts[1];
+                        if (addressValue.state) {
+                          cityPart = cityPart.replace(new RegExp(`\\b${addressValue.state}\\b`, 'g'), '').trim();
+                        }
+                        if (addressValue.zip) {
+                          cityPart = cityPart.replace(addressValue.zip, '').trim();
+                        }
+                        cityPart = cityPart.replace(/\s*,\s*$/, '').trim();
+                        addressValue.city = cityPart;
+                      }
+                      
+                      console.log('Parsed address:', addressValue);
+                      
+                      // Apply to form
+                      if (targetKey.includes('.')) {
+                        const [tableKey, cellKey] = targetKey.split('.');
+                        newAnswers[tableKey] = {
+                          ...(newAnswers[tableKey] || {}),
+                          [cellKey]: addressValue
+                        };
+                      } else {
+                        newAnswers[targetKey] = addressValue;
+                      }
+                      console.log(`  ✅ Set address field with parsed value`);
+                    } else if (targetKey.includes('.')) {
                       // Handle nested table cell
                       const [tableKey, cellKey] = targetKey.split('.');
                       newAnswers[tableKey] = {
@@ -2606,7 +2822,8 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
               }
               
               setShowUpgradeDialog(false); 
-              setPendingImportData(null); 
+              setPendingImportData(null);
+              setHasDeclinedUpgrade(true);
             }}>
               Cancel
             </AlertDialogCancel>

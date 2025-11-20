@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,9 +9,9 @@ import { transcribeAudio } from "@/lib/openai-service";
 import { useNotes } from "@/hooks/use-notes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mic, Loader2, ChevronDown, ArrowRight } from "lucide-react";
+import { Mic, Loader2, ChevronLeft, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AIActionsMenu } from "./AIActionsMenu";
+import { VoiceWaveform } from "./VoiceWaveform";
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
@@ -31,9 +32,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
-  const [aiChatInput, setAiChatInput] = useState("");
   
   const { createNote } = useNotes();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setState("processing");
@@ -112,6 +114,14 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
   }, [open]);
 
+  // Auto-expand when text grows beyond 4 lines
+  const textLines = textContent.split('\n').length;
+  useEffect(() => {
+    if (textLines > 4 && !isExpanded) {
+      setIsExpanded(true);
+    }
+  }, [textLines, isExpanded]);
+
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) {
       toast.error("Please enter an API key");
@@ -125,7 +135,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       .from("user_preferences")
       .upsert({
         user_id: user.id,
-        openai_api_key: apiKeyInput.trim(),
+        openai_api_key: apiKeyInput.trim()
       });
 
     if (saveError) {
@@ -133,24 +143,16 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       return;
     }
 
+    toast.success("API key saved successfully");
     setHasApiKey(true);
     setApiKeyInput("");
-    toast.success("API key saved");
-  };
-
-  const handleMicClick = () => {
-    if (state === "processing") return;
-    
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-      setError(null);
-    }
   };
 
   const handleCreateNote = async () => {
-    if (!textContent.trim()) return;
+    if (!textContent.trim()) {
+      toast.error("Please add some content first");
+      return;
+    }
 
     try {
       await createNote({
@@ -165,104 +167,89 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           ],
         },
       });
-      
-      toast.success("Note created");
-      handleReset();
+
+      toast.success("Note created successfully");
+      setTextContent("");
       onOpenChange(false);
-    } catch (err) {
+    } catch (error) {
+      console.error("Failed to create note:", error);
       toast.error("Failed to create note");
     }
   };
 
-  const handleReset = () => {
+  const handleSaveQuickNote = async () => {
+    await handleCreateNote();
+  };
+
+  const handleCreateWorkOrder = () => {
+    if (!textContent.trim()) {
+      toast.error("Please add some content first");
+      return;
+    }
+    localStorage.setItem('draft_work_order', textContent);
+    navigate('/work-orders?draft=true');
+    onOpenChange(false);
+    toast.success("Opening work order form with your content");
+  };
+
+  const handleAddJob = () => {
+    if (!textContent.trim()) {
+      toast.error("Please add some content first");
+      return;
+    }
+    localStorage.setItem('draft_job', textContent);
+    navigate('/work-orders?draft=true');
+    onOpenChange(false);
+    toast.success("Opening job form with your content");
+  };
+
+  const handleClear = () => {
     setTextContent("");
-    setError(null);
     setState("idle");
-  };
-
-  const handleRetry = () => {
     setError(null);
-    setState("idle");
-  };
-
-  const getStatusText = () => {
-    if (state === "error") return "Something went wrong";
-    if (state === "recording") return `Listening… ${formatDuration(duration)}`;
-    if (state === "processing") return "Transcribing your voice…";
-    if (state === "complete") return "Transcription complete · Edit or create your note";
-    return "Ready to record";
   };
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // API Key Setup View
-  if (hasApiKey === false) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="fixed inset-x-0 bottom-0 z-50 rounded-t-[20px] h-[45vh] max-h-[600px]">
-          <div className="flex justify-center pt-2">
-            <div className="w-[100px] h-1.5 rounded-full bg-muted" />
-          </div>
+  const getStatusText = () => {
+    if (state === "error") return "Something went wrong";
+    if (state === "recording") return `Listening… ${formatDuration(duration)}`;
+    if (state === "processing") return "Processing…";
+    return "Tap to speak or type below";
+  };
 
-          <div className="flex items-start gap-3 p-4 border-b">
-            <img src="/ai-bot.svg" alt="AI Assistant" className="w-8 h-8 ai-bot-avatar" />
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base">AI Assistant</h3>
-              <p className="text-sm text-muted-foreground">Setup required</p>
-            </div>
-          </div>
+  const getAvatarSrc = () => {
+    if (state === 'processing') return '/ai-bot-thinking.svg';
+    if (state === 'error') return '/ai-bot-sleep.svg';
+    return '/ai-bot.svg';
+  };
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                To use voice transcription, please enter your OpenAI API key:
-              </p>
-              <Input
-                type="password"
-                placeholder="sk-..."
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2 px-4 pb-4 border-t pt-4">
-            <Button onClick={handleSaveApiKey} className="w-full">
-              Save API Key
-            </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
-              Cancel
-            </Button>
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
-  // Compact View Component
   const CompactView = () => (
-    <>
-      <div className="flex items-start gap-3 p-4 border-b">
-        <img src="/ai-bot.svg" alt="AI Assistant" className="w-8 h-8 ai-bot-avatar" />
-        <div className="flex-1 min-w-0">
+    <div className="flex flex-col h-[45vh]">
+      {/* Header with centered avatar */}
+      <div className="flex flex-col items-center p-4 border-b space-y-2">
+        <img src={getAvatarSrc()} alt="AI Assistant" className="w-10 h-10 transition-all duration-300" />
+        <div className="text-center space-y-0.5">
           <h3 className="font-semibold text-base">AI Assistant</h3>
-          <p className={cn(
-            "text-sm",
-            state === "error" ? "text-amber-600" : "text-muted-foreground"
-          )}>
-            {getStatusText()}
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <p className={cn(
+              "text-sm transition-colors duration-200",
+              state === "error" ? "text-amber-600" : "text-muted-foreground"
+            )}>
+              {getStatusText()}
+            </p>
+            {isRecording && <VoiceWaveform isRecording={true} />}
+          </div>
           {state === "error" && error && (
-            <div className="text-sm text-muted-foreground mt-1">
-              {error}
+            <div className="flex items-center justify-center gap-2 text-sm text-amber-600 mt-1">
+              <span>{error}</span>
               <button 
-                onClick={handleRetry} 
-                className="ml-2 underline hover:text-amber-700"
+                onClick={startRecording} 
+                className="underline hover:text-amber-700 transition-colors"
               >
                 Retry
               </button>
@@ -271,165 +258,208 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-3">
         <Textarea
-          placeholder="Start speaking or type to add a note…"
+          ref={textareaRef}
           value={textContent}
           onChange={(e) => setTextContent(e.target.value)}
-          className="min-h-[140px] rounded-lg resize-none"
-          disabled={state === "processing"}
+          onFocus={() => setIsExpanded(true)}
+          placeholder="Transcribed text will appear here, or type directly..."
+          className="min-h-[80px] resize-none rounded-lg"
+          disabled={state === "recording" || state === "processing"}
         />
 
         {textContent.trim() && (
-          <AIActionsMenu
-            currentText={textContent}
-            onTextUpdate={(newText, replace) => {
-              setTextContent(replace ? newText : textContent + '\n\n' + newText);
-            }}
-            disabled={state === "processing"}
-          />
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Actions</h3>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" size="sm" onClick={handleSaveQuickNote} className="justify-start">
+                Save to Quick Note
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCreateWorkOrder} className="justify-start">
+                Create Work Order
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleAddJob} className="justify-start">
+                Add Job
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
-      <div className="space-y-2 px-4 pb-4 border-t pt-4">
-        <Button 
-          onClick={handleCreateNote} 
-          disabled={!textContent.trim() || state === "processing"} 
-          className="w-full"
-        >
-          Create Note
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={handleReset} 
-          className="w-full"
-          disabled={state === "processing"}
-        >
-          Clear
-        </Button>
+      {/* Actions */}
+      <div className="border-t p-4 space-y-3">
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleClear}
+            disabled={!textContent.trim() || state === "recording"}
+            className="flex-1 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+          >
+            Clear
+          </Button>
+          <Button
+            onClick={handleCreateNote}
+            disabled={!textContent.trim() || state === "recording"}
+            className="flex-1 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+          >
+            Create Note
+          </Button>
+        </div>
         <button
           onClick={() => setIsExpanded(true)}
-          className="w-full text-sm text-primary hover:underline py-2"
+          className="w-full text-sm text-primary hover:underline transition-colors"
         >
           Open AI Workspace
         </button>
       </div>
 
-      {/* Mic Button */}
+      {/* Microphone button */}
       <button
-        onClick={handleMicClick}
+        onClick={isRecording ? stopRecording : startRecording}
         disabled={state === "processing"}
         className={cn(
-          "absolute bottom-4 right-4 h-12 w-12 rounded-full",
-          "flex items-center justify-center transition-all",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
+          "absolute bottom-4 right-4 rounded-full p-4 shadow-lg transition-all duration-200",
           isRecording
-            ? "bg-primary/10 text-primary animate-pulse"
-            : "bg-card border border-input hover:bg-muted"
+            ? "bg-destructive text-destructive-foreground animate-pulse"
+            : "bg-primary text-primary-foreground hover:scale-110",
+          state === "processing" && "opacity-50 cursor-not-allowed"
         )}
       >
         {state === "processing" ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin" />
         ) : (
-          <Mic className="h-5 w-5" />
+          <Mic className="h-6 w-6" />
         )}
       </button>
-
-      {/* Timer overlay */}
-      {isRecording && (
-        <div className="absolute bottom-16 right-4 bg-background/90 border rounded-md px-2 py-1 text-xs font-mono shadow-sm">
-          {formatDuration(duration)}
-        </div>
-      )}
-    </>
+    </div>
   );
 
-  // Expanded View Component
   const ExpandedView = () => (
-    <>
+    <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="flex items-center justify-between h-14 px-4 border-b">
-        <button 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setIsExpanded(false)}
-          className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
+          className="gap-2"
         >
-          <ChevronDown className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
           Done
-        </button>
-        <h2 className="font-semibold">AI Workspace</h2>
-        <div className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">
-          ordersnapr.com · Private
-        </div>
+        </Button>
+        <h3 className="font-semibold">AI Workspace</h3>
+        <div className="w-16" /> {/* Spacer for centering */}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="flex items-start gap-2">
-          <img src="/ai-bot.svg" alt="AI Assistant" className="w-6 h-6 mt-1" />
+      {/* Content with centered large avatar */}
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex flex-col items-center space-y-4">
+          <img src={getAvatarSrc()} alt="AI Assistant" className="w-16 h-16 transition-all duration-300" />
           <Textarea
+            ref={textareaRef}
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
-            className="flex-1 min-h-[200px] rounded-lg resize-none"
-            placeholder="Your content here…"
+            placeholder="Continue writing or start fresh..."
+            className="w-full min-h-[200px] rounded-lg resize-none"
+            disabled={state === "recording" || state === "processing"}
           />
         </div>
 
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">AI Suggestions</h3>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
-              Summarize this
+        <div className="space-y-3 border-t pt-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Suggestions</h4>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button variant="outline" size="sm" onClick={handleSaveQuickNote} className="justify-start">
+              Save to Quick Note
             </Button>
-            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
-              Create Quick Note
+            <Button variant="outline" size="sm" onClick={handleCreateWorkOrder} className="justify-start">
+              Create Work Order
             </Button>
-            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
-              Highlight action items
+            <Button variant="outline" size="sm" onClick={handleAddJob} className="justify-start">
+              Add Job
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="border-t p-3 flex items-center gap-2">
-        <Input
-          placeholder="Ask, refine, or make changes…"
-          value={aiChatInput}
-          onChange={(e) => setAiChatInput(e.target.value)}
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              // TODO: Handle AI chat
-            }
-          }}
-        />
-        <Button size="icon" disabled={!aiChatInput.trim()}>
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </>
-  );
-
-  return (
-    <Drawer 
-      open={open} 
-      onOpenChange={onOpenChange}
-      dismissible={!isExpanded}
-      shouldScaleBackground={false}
-    >
-      <DrawerContent 
+      {/* Microphone button */}
+      <button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={state === "processing"}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50",
-          isExpanded 
-            ? "h-screen rounded-t-none" 
-            : "h-[45vh] max-h-[600px] rounded-t-[20px]",
-          "transition-all duration-300 ease-in-out"
+          "absolute bottom-6 right-6 rounded-full p-4 shadow-lg transition-all duration-200",
+          isRecording
+            ? "bg-destructive text-destructive-foreground animate-pulse"
+            : "bg-primary text-primary-foreground hover:scale-110",
+          state === "processing" && "opacity-50 cursor-not-allowed"
         )}
       >
-        {!isExpanded && (
-          <div className="flex justify-center pt-2">
-            <div className="w-[100px] h-1.5 rounded-full bg-muted" />
-          </div>
+        {state === "processing" ? (
+          <Loader2 className="h-6 w-6 animate-spin" />
+        ) : (
+          <Mic className="h-6 w-6" />
         )}
-        
+      </button>
+    </div>
+  );
+
+  if (hasApiKey === false) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[95vh] rounded-t-[24px] shadow-2xl dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+          <div className="flex justify-center pt-2">
+            <div className="h-1.5 w-[100px] rounded-full bg-muted opacity-20" />
+          </div>
+          
+          <div className="p-6 space-y-4">
+            <div className="flex flex-col items-center space-y-2">
+              <img src="/ai-bot.svg" alt="AI Assistant" className="w-12 h-12" />
+              <h3 className="font-semibold text-lg">OpenAI API Key Required</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                To use voice transcription, please add your OpenAI API key
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="sk-..."
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                className="rounded-lg"
+              />
+              <Button onClick={handleSaveApiKey} className="w-full rounded-lg">
+                Save API Key
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              You can also add it in Settings → Preferences
+            </p>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className={cn(
+        "max-h-[95vh] rounded-t-[24px] shadow-2xl",
+        "dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
+      )}>
+        {/* Drag Handle - always visible */}
+        <div className="flex justify-center pt-2">
+          <div className={cn(
+            "h-1.5 rounded-full bg-muted transition-all duration-200",
+            isExpanded ? "w-[80px] opacity-30" : "w-[100px] opacity-20"
+          )} />
+        </div>
+
         {isExpanded ? <ExpandedView /> : <CompactView />}
       </DrawerContent>
     </Drawer>

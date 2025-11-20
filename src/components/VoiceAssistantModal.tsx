@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
-import { transcribeAudio, getOpenAIApiKey, hasOpenAIApiKeyAsync, saveOpenAIApiKey } from '@/lib/openai-service';
+import { transcribeAudio } from '@/lib/openai-service';
 import { toast } from 'sonner';
 import { AudioBlob } from './AudioBlob';
 
@@ -51,19 +51,11 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     },
   });
 
-  // Check for API key when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (open) {
-      // Check async for API key from database
-      hasOpenAIApiKeyAsync().then((hasKey) => {
-        if (!hasKey) {
-          setState('no-api-key');
-        } else {
-          setState('idle');
-        }
-      });
+      setState('idle');
     } else {
-      // Reset when modal closes
       handleReset();
     }
   }, [open]);
@@ -72,13 +64,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     setState('processing');
 
     try {
-      const apiKey = await getOpenAIApiKey();
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-
-      // Transcribe audio
-      const result = await transcribeAudio(audioBlob, apiKey);
+      const result = await transcribeAudio(audioBlob);
       setTranscription(result.text);
 
       if (!result.text.trim()) {
@@ -170,10 +156,7 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
     resetRecording();
     setTranscription('');
     setError('');
-    // Check async for API key
-    hasOpenAIApiKeyAsync().then((hasKey) => {
-      setState(hasKey ? 'idle' : 'no-api-key');
-    });
+    setState('idle');
   }
 
   function handleClose() {
@@ -185,27 +168,8 @@ export function VoiceAssistantModal({ open, onOpenChange }: VoiceAssistantModalP
   }
 
   async function handleSaveApiKey() {
-    if (!apiKey.trim()) {
-      toast.error('Please enter an API key');
-      return;
-    }
-
-    if (!apiKey.startsWith('sk-')) {
-      toast.error('Invalid API key format. OpenAI keys start with "sk-"');
-      return;
-    }
-
-    const success = await saveOpenAIApiKey(apiKey.trim());
-    if (success) {
-      toast.success('API key saved to database successfully!');
-    } else {
-      // Check browser console for details
-      toast.warning('Saved to browser only. Database migration pending.', {
-        description: 'Your API key is saved locally. Check console (F12) for details.',
-        duration: 6000,
-      });
-    }
-    setApiKey('');
+    // This function is deprecated - Lovable AI doesn't require API keys
+    toast.success('Voice transcription is now powered by Lovable AI - no API key needed!');
     setState('idle');
   }
 

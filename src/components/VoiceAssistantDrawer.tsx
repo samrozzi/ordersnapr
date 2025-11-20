@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Mic, MicOff, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle, X, Minus } from 'lucide-react';
+import { Mic, MicOff, Pause, X, Minus, Sparkles, ListTodo, Wand2, ChevronDown, CheckSquare, Smile, FileText, Briefcase, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleAvatar } from './SimpleAvatar';
@@ -10,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { transcribeAudio, getOpenAIApiKey } from '@/lib/openai-service';
+import { transcribeAudio } from '@/lib/openai-service';
+import { cn } from '@/lib/utils';
 
 type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'sleeping';
 type Mode = 'resting' | 'listening' | 'typing';
@@ -74,24 +75,18 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   }, [keyboardHeight, isExpanded]);
 
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
+    console.log('🎤 Recording complete, blob size:', audioBlob.size);
     setAssistantStatus('thinking');
     setError(null);
 
     try {
-      const apiKey = await getOpenAIApiKey();
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-
-      const result = await transcribeAudio(audioBlob, apiKey);
-      setTextContent(prev => prev ? `${prev}\n${result.text}` : result.text);
-      setMode('resting');
+      const result = await transcribeAudio(audioBlob);
+      console.log('✅ Transcription result:', result.text);
+      setTextContent(result.text);
       setAssistantStatus('idle');
-    } catch (err) {
-      console.error('Transcription error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Failed to transcribe audio';
-      setError(errorMsg);
-      toast.error(errorMsg);
+    } catch (error) {
+      console.error('❌ Transcription error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to transcribe audio');
       setAssistantStatus('idle');
     }
   }, []);
@@ -100,6 +95,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     recordingState,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
   } = useVoiceRecording({
     onRecordingComplete: handleRecordingComplete,
     onError: (err) => {
@@ -111,6 +108,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   });
 
   const isRecording = recordingState === 'recording';
+  const isPaused = recordingState === 'paused';
 
   const handleMicToggle = useCallback(() => {
     // Blur textarea to dismiss keyboard
@@ -118,16 +116,29 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       textareaRef.current.blur();
     }
 
-    if (isRecording) {
-      stopRecording();
+    if (isPaused) {
+      // Resume recording
+      resumeRecording();
+      setMode('listening');
+      setAssistantStatus('listening');
+    } else if (isRecording) {
+      // Pause recording
+      pauseRecording();
       setMode('resting');
       setAssistantStatus('idle');
     } else {
+      // Start recording
       startRecording();
       setMode('listening');
       setAssistantStatus('listening');
     }
-  }, [isRecording, startRecording, stopRecording]);
+  }, [isRecording, isPaused, startRecording, pauseRecording, resumeRecording]);
+
+  const handleStopRecording = useCallback(() => {
+    stopRecording();
+    setMode('resting');
+    setAssistantStatus('idle');
+  }, [stopRecording]);
 
   const handleCompactViewClick = useCallback(() => {
     setIsExpanded(true);
@@ -508,23 +519,34 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             </div>
           )}
 
-          {/* Mic Button (absolute positioned) */}
+          {/* Floating Mic Button */}
           <button
             onClick={handleMicToggle}
-            className={`absolute -top-3 -right-3 w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center ${
-              isRecording ? 'animate-pulse' : ''
-            }`}
-            title={isRecording ? 'Stop recording' : 'Start recording'}
+            className={cn(
+              "absolute -top-3 -right-3 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
+              isRecording 
+                ? "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110" 
+                : isPaused
+                ? "bg-gradient-to-br from-blue-500 to-cyan-500 hover:scale-110"
+                : "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110"
+            )}
           >
             {isRecording ? (
-              <>
-                <div className="absolute inset-0 rounded-full bg-purple-400 opacity-40 animate-pulse" />
-                <MicOff className="w-5 h-5 relative z-10" />
-              </>
+              <Pause className="w-5 h-5 text-white" />
             ) : (
-              <Mic className="w-5 h-5" />
+              <Mic className="w-5 h-5 text-white" />
             )}
           </button>
+
+          {/* Stop Recording Button (when recording or paused) */}
+          {(isRecording || isPaused) && (
+            <button
+              onClick={handleStopRecording}
+              className="absolute -top-3 -right-16 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-red-500 to-pink-500 hover:scale-110"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          )}
 
           {/* Error Display */}
           {error && (
@@ -803,27 +825,42 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           </div>
         )}
 
-        {/* Mic Button - Fixed Position */}
-        <button
-          onClick={handleMicToggle}
-          className={`absolute right-6 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center ${
-            isRecording ? 'animate-pulse' : ''
-          }`}
-          style={{ 
-            bottom: `${micButtonBottom}px`,
-            zIndex: 80,
-          }}
-          title={isRecording ? 'Stop recording' : 'Start recording'}
-        >
-          {isRecording ? (
-            <>
-              <div className="absolute inset-0 rounded-full bg-purple-400 opacity-40 animate-pulse" />
-              <MicOff className="w-6 h-6 relative z-10" />
-            </>
-          ) : (
-            <Mic className="w-6 h-6" />
-          )}
-        </button>
+        {/* Recording controls - positioned in header when recording */}
+        {(isRecording || isPaused) && (
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            <button
+              onClick={handleMicToggle}
+              className={cn(
+                "w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all",
+                isRecording 
+                  ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                  : "bg-gradient-to-br from-blue-500 to-cyan-500"
+              )}
+            >
+              {isRecording ? (
+                <Pause className="w-4 h-4 text-white" />
+              ) : (
+                <Mic className="w-4 h-4 text-white" />
+              )}
+            </button>
+            <button
+              onClick={handleStopRecording}
+              className="w-10 h-10 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-500"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        )}
+
+        {/* Floating mic button - only show when idle */}
+        {!isRecording && !isPaused && (
+          <button
+            onClick={handleMicToggle}
+            className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-10"
+          >
+            <Mic className="w-6 h-6 text-white" />
+          </button>
+        )}
 
         {/* Error Display */}
         {error && (

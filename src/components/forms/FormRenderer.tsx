@@ -2463,7 +2463,10 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             <AlertDialogCancel onClick={() => { 
               // When canceling, populate with first technician data only
               if (pendingImportData?.technicianRows?.length > 0 && pendingImportData?.extractedData) {
-                console.log('Cancel clicked - populating first technician only');
+                console.log('🔍 Cancel clicked - populating first technician only');
+                console.log('📋 Extracted Data:', pendingImportData.extractedData);
+                console.log('👥 Technician Rows:', pendingImportData.technicianRows);
+                
                 const firstTech = pendingImportData.technicianRows[0];
                 const extractedData = { ...pendingImportData.extractedData };
                 
@@ -2471,83 +2474,133 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
                 extractedData.technicianName = firstTech.techName || firstTech.name;
                 extractedData.accountNumber = firstTech.ban || extractedData.accountNumber;
                 
-                // Map to form fields using standard logic
+                console.log('✨ Merged Data:', extractedData);
+                
+                // Map to form fields using comprehensive logic
                 const keyMapping: Record<string, string> = {};
+                const newAnswers = { ...answers };
+                
                 template.schema.sections.forEach((section: any) => {
                   (section.fields || []).forEach((f: any) => {
                     const label = f.label?.toLowerCase().replace(/\s+/g, '');
                     const fieldKey = f.key;
+                    
+                    console.log(`🔎 Checking field: ${f.label} (${fieldKey})`);
                     
                     // Handle table layout fields
                     if (f.type === 'table_layout' && f.tableCells) {
                       Object.entries(f.tableCells).forEach(([cellKey, cell]: [string, any]) => {
                         if (cell?.field) {
                           const cellLabel = cell.field.label?.toLowerCase().replace(/\s+/g, '');
+                          const fullKey = `${fieldKey}.${cellKey}`;
                           
-                          if (cellLabel?.includes('techname') || cellLabel?.includes('name')) {
-                            keyMapping['technicianName'] = `${fieldKey}.${cellKey}`;
-                          } else if (cellLabel?.includes('techid') || cellLabel?.includes('id')) {
-                            keyMapping['techId'] = `${fieldKey}.${cellKey}`;
-                          } else if (cellLabel?.includes('phone') || cellLabel?.includes('tn')) {
-                            keyMapping['techPhone'] = `${fieldKey}.${cellKey}`;
-                          } else if (cellLabel?.includes('type')) {
-                            keyMapping['techType'] = `${fieldKey}.${cellKey}`;
+                          console.log(`  📊 Table cell: ${cell.field.label} (${fullKey})`);
+                          
+                          if (cellLabel?.includes('techname') || cellLabel?.includes('technician') || (cellLabel?.includes('tech') && cellLabel?.includes('name'))) {
+                            keyMapping['technicianName'] = fullKey;
+                            console.log(`    ✅ Mapped technicianName → ${fullKey}`);
+                          } else if (cellLabel?.includes('techid') || (cellLabel?.includes('tech') && cellLabel?.includes('id'))) {
+                            keyMapping['techId'] = fullKey;
+                            console.log(`    ✅ Mapped techId → ${fullKey}`);
+                          } else if (cellLabel?.includes('phone') || cellLabel?.includes('tn') || cellLabel?.includes('telephone')) {
+                            keyMapping['techPhone'] = fullKey;
+                            console.log(`    ✅ Mapped techPhone → ${fullKey}`);
+                          } else if (cellLabel?.includes('type') || cellLabel?.includes('category')) {
+                            keyMapping['techType'] = fullKey;
+                            console.log(`    ✅ Mapped techType → ${fullKey}`);
                           }
                         }
                       });
                     }
                     
-                    // Standard field mapping
-                    if (label?.includes('servicedate') || label?.includes('date')) keyMapping['serviceDate'] = fieldKey;
-                    if (label?.includes('address') || label?.includes('location')) keyMapping['address'] = fieldKey;
-                    if (label?.includes('customer') && label?.includes('name')) keyMapping['customerName'] = fieldKey;
-                    if (label?.includes('canbe') || label?.includes('reached')) keyMapping['canBeReached'] = fieldKey;
-                    if (label?.includes('account') || label?.includes('ban')) keyMapping['accountNumber'] = fieldKey;
-                    if (label?.includes('tech') && label?.includes('name')) keyMapping['technicianName'] = fieldKey;
+                    // Standard field mapping with more variations
+                    if (label?.includes('servicedate') || label?.includes('date') || label?.includes('service')) {
+                      keyMapping['serviceDate'] = fieldKey;
+                      console.log(`  ✅ Mapped serviceDate → ${fieldKey}`);
+                    }
+                    if (label?.includes('address') || label?.includes('location') || label?.includes('street')) {
+                      keyMapping['address'] = fieldKey;
+                      console.log(`  ✅ Mapped address → ${fieldKey}`);
+                    }
+                    if ((label?.includes('customer') || label?.includes('client')) && label?.includes('name')) {
+                      keyMapping['customerName'] = fieldKey;
+                      console.log(`  ✅ Mapped customerName → ${fieldKey}`);
+                    }
+                    if (label?.includes('canbe') || label?.includes('reached') || label?.includes('contact')) {
+                      keyMapping['canBeReached'] = fieldKey;
+                      console.log(`  ✅ Mapped canBeReached → ${fieldKey}`);
+                    }
+                    if (label?.includes('account') || label?.includes('ban') || label?.includes('acct')) {
+                      keyMapping['accountNumber'] = fieldKey;
+                      console.log(`  ✅ Mapped accountNumber → ${fieldKey}`);
+                    }
+                    if ((label?.includes('tech') || label?.includes('technician')) && label?.includes('name') && !f.type?.includes('table')) {
+                      keyMapping['technicianName'] = fieldKey;
+                      console.log(`  ✅ Mapped technicianName → ${fieldKey}`);
+                    }
                   });
                 });
                 
+                console.log('🗺️ Final Key Mapping:', keyMapping);
+                
                 // Apply extracted data to form
                 Object.entries(extractedData).forEach(([key, value]) => {
+                  console.log(`📝 Processing: ${key} = ${value}`);
+                  
                   if (keyMapping[key]) {
                     const targetKey = keyMapping[key];
+                    console.log(`  ➡️ Mapping to: ${targetKey}`);
+                    
                     if (targetKey.includes('.')) {
                       // Handle nested table cell
                       const [tableKey, cellKey] = targetKey.split('.');
-                      handleFieldChange(tableKey, {
-                        ...(answers[tableKey] || {}),
+                      newAnswers[tableKey] = {
+                        ...(newAnswers[tableKey] || {}),
                         [cellKey]: value
-                      });
+                      };
+                      console.log(`  ✅ Set table cell ${tableKey}.${cellKey} = ${value}`);
                     } else {
-                      handleFieldChange(targetKey, value);
+                      newAnswers[targetKey] = value;
+                      console.log(`  ✅ Set field ${targetKey} = ${value}`);
                     }
+                  } else {
+                    console.log(`  ⚠️ No mapping found for ${key}`);
                   }
                 });
                 
                 // Also populate table cells with first tech data
                 if (firstTech) {
+                  console.log('👤 Populating first tech data:', firstTech);
+                  
                   if (keyMapping['techId']) {
                     const [tableKey, cellKey] = keyMapping['techId'].split('.');
-                    handleFieldChange(tableKey, {
-                      ...(answers[tableKey] || {}),
+                    newAnswers[tableKey] = {
+                      ...(newAnswers[tableKey] || {}),
                       [cellKey]: firstTech.techId || firstTech.id || ''
-                    });
+                    };
+                    console.log(`  ✅ Set techId: ${firstTech.techId || firstTech.id}`);
                   }
                   if (keyMapping['techPhone']) {
                     const [tableKey, cellKey] = keyMapping['techPhone'].split('.');
-                    handleFieldChange(tableKey, {
-                      ...(answers[tableKey] || {}),
+                    newAnswers[tableKey] = {
+                      ...(newAnswers[tableKey] || {}),
                       [cellKey]: firstTech.techPhone || firstTech.phone || ''
-                    });
+                    };
+                    console.log(`  ✅ Set techPhone: ${firstTech.techPhone || firstTech.phone}`);
                   }
                   if (keyMapping['techType']) {
                     const [tableKey, cellKey] = keyMapping['techType'].split('.');
-                    handleFieldChange(tableKey, {
-                      ...(answers[tableKey] || {}),
+                    newAnswers[tableKey] = {
+                      ...(newAnswers[tableKey] || {}),
                       [cellKey]: firstTech.techType || firstTech.type || ''
-                    });
+                    };
+                    console.log(`  ✅ Set techType: ${firstTech.techType || firstTech.type}`);
                   }
                 }
+                
+                // Batch update all answers at once
+                console.log('💾 Final answers state:', newAnswers);
+                setAnswers(newAnswers);
                 
                 toast.success('Imported first technician data');
               }

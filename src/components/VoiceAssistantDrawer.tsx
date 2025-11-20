@@ -29,6 +29,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const queryClient = useQueryClient();
   const keyboardHeight = useKeyboardHeight();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const compactInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Lock body scroll when drawer is open
@@ -116,6 +117,25 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     }
   }, [isRecording, startRecording, stopRecording]);
 
+  const handleCompactViewClick = useCallback(() => {
+    setIsExpanded(true);
+    setMode('typing');
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    // Focus with delay for iOS reliability
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      // Retry focus if needed
+      setTimeout(() => {
+        if (document.activeElement !== textareaRef.current) {
+          textareaRef.current?.focus();
+        }
+      }, 100);
+    }, 250);
+  }, [isRecording, stopRecording]);
+
   const handleTextFocus = useCallback(() => {
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
@@ -129,13 +149,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   }, [isRecording, stopRecording]);
 
   const handleTextBlur = useCallback(() => {
-    // Reset mode to resting after a delay if no activity
-    blurTimeoutRef.current = setTimeout(() => {
-      if (mode === 'typing' && !textContent) {
-        setMode('resting');
-      }
-    }, 200);
-  }, [mode, textContent]);
+    // Don't auto-reset mode - let user explicitly minimize
+  }, []);
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextContent(e.target.value);
@@ -143,9 +158,16 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const handleMinimize = useCallback(() => {
     setIsExpanded(false);
+    setMode('resting');
     if (textareaRef.current) {
       textareaRef.current.blur();
     }
+    // Allow keyboard to fully dismiss
+    setTimeout(() => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    }, 100);
   }, []);
 
   const handleClear = useCallback(() => {
@@ -260,8 +282,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     : 140;
   const drawerHeight = isExpanded 
     ? keyboardHeight > 0 
-      ? `min(100vh, calc(100vh - ${keyboardHeight}px))` 
-      : '100vh'
+      ? `calc(100dvh - ${keyboardHeight}px)` 
+      : '100dvh'
     : '45vh';
 
   return (
@@ -285,10 +307,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         {!isExpanded && (
           <div className="flex flex-col h-full p-6 pb-20">
             {/* Drag Handle */}
-            <div 
-              className="flex justify-center mb-4 cursor-pointer"
-              onClick={handleMinimize}
-            >
+            <div className="flex justify-center mb-4">
               <div className="w-12 h-1 bg-muted-foreground/20 rounded-full" />
             </div>
 
@@ -303,10 +322,18 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
               <p className="text-sm text-muted-foreground">{getStatusText()}</p>
             </div>
 
+            {/* Hidden Input for iOS Keyboard */}
+            <input
+              ref={compactInputRef}
+              type="text"
+              className="sr-only"
+              onFocus={handleCompactViewClick}
+            />
+            
             {/* Single-line Input */}
             <div
               className="w-full p-3 mb-4 bg-muted/50 rounded-lg border border-border cursor-text text-sm min-h-[48px] flex items-center"
-              onClick={handleTextFocus}
+              onClick={handleCompactViewClick}
             >
               <span className={textContent ? 'text-foreground' : 'text-muted-foreground'}>
                 {textContent || 'Transcribed text will appear here, or type directly...'}
@@ -373,9 +400,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
         {/* Expanded View */}
         {isExpanded && (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
+          <div className="flex flex-col h-full overflow-hidden">
+            {/* Header - Sticky */}
+            <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
               <Button
                 variant="ghost"
                 size="sm"

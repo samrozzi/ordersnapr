@@ -361,7 +361,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
               <p className="text-destructive">{error}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* "Type Instead" button during recording */}
               {(recordingState === 'recording' || recordingState === 'paused') && (
                 <Button
@@ -411,7 +411,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           )}
         </div>
 
-        <DrawerFooter className="pt-2">
+        <DrawerFooter className="pt-3 pb-2">
           {state === 'no-api-key' ? (
             <Button variant="outline" onClick={handleClose} className="w-full">
               Close

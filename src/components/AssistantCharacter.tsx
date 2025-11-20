@@ -27,31 +27,32 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
   // Enhanced listening animations with nodding, head turns, and mouth movement
   useEffect(() => {
     if (state === 'listening') {
-      // Nodding motion (up and down)
+      let nodProgress = 0;
+      let tiltProgress = 0;
+      let mouthProgress = 0;
+      
+      // Smooth continuous nodding with sine wave
       const nodInterval = setInterval(() => {
-        setNodAngle(prev => {
-          if (prev <= -5) return 5;
-          if (prev >= 5) return -5;
-          return prev > 0 ? 5 : -5;
-        });
-      }, 1500);
+        nodProgress += 0.1;
+        const smoothNod = Math.sin(nodProgress) * 8; // -8 to +8 degrees, fluid
+        setNodAngle(smoothNod);
+      }, 50);
 
-      // Head turn variation (subtle and occasional large turns)
+      // Fluid head turn with smooth easing
       const turnInterval = setInterval(() => {
-        const isLarge = Math.random() > 0.7; // 30% chance of large turn to "listen with ear"
+        tiltProgress += 0.05;
+        const isLarge = Math.random() > 0.7;
+        const targetTilt = Math.sin(tiltProgress) * (isLarge ? 18 : 5); // Smooth wave
+        setHeadTilt(targetTilt);
         setIsLargeHeadTurn(isLarge);
-        setHeadTilt(prev => {
-          if (prev === 0) {
-            return Math.random() > 0.5 ? (isLarge ? 15 : 3) : (isLarge ? -15 : -3);
-          }
-          return 0;
-        });
-      }, 2000);
+      }, 80);
 
-      // Mouth breathing motion during listening
+      // Breathing mouth motion - smooth wave
       const mouthInterval = setInterval(() => {
-        setMouthOpenness(prev => (prev === 0 ? 0.5 : 0));
-      }, 1500);
+        mouthProgress += 0.08;
+        const smoothMouth = (Math.sin(mouthProgress) + 1) * 0.5; // 0 to 1, smooth
+        setMouthOpenness(smoothMouth);
+      }, 60);
 
       return () => {
         clearInterval(nodInterval);
@@ -277,15 +278,15 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
                 <path 
                   d={
                     state === 'typing'
-                      ? "M 2 4 Q 8 2, 14 4" // Cheerful focused smile
+                      ? "M 2 5 Q 8 2, 14 5" // Happy upward smile - cheerful and focused
                       : state === 'listening' 
-                      ? `M 2 ${3 + mouthOpenness} Q 8 ${5 + mouthOpenness}, 14 ${3 + mouthOpenness}` // Breathing motion
+                      ? `M 2 ${3 + mouthOpenness * 0.8} Q 8 ${5 + mouthOpenness * 1.2}, 14 ${3 + mouthOpenness * 0.8}` // Breathing motion
                       : state === 'success'
                       ? "M 2 2 Q 8 7, 14 2" // Big happy smile
                       : state === 'paused' || state === 'idle'
-                      ? "M 2 4 Q 8 5, 14 4" // Relaxed sleeping
+                      ? "M 2 5 Q 8 5.5, 14 5" // Completely neutral/slightly down for sleeping
                       : "M 2 3 Q 8 6, 14 3" // Gentle neutral smile
-                  } 
+                  }
                   stroke="currentColor" 
                   strokeWidth="1.5" 
                   fill="none" 

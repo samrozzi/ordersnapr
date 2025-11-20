@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type AvatarMood = "idle" | "listening" | "thinking" | "typing" | "sleep" | "error";
+type AvatarMood = "idle" | "listening" | "thinking" | "typing" | "sleeping" | "error";
 
 interface ExpressiveAvatarProps {
   mood: AvatarMood;
@@ -9,39 +9,38 @@ interface ExpressiveAvatarProps {
 
 const MOOD_CONFIG: Record<AvatarMood, { eyes: string; mouth: string }> = {
   idle: { eyes: "eyes-neutral", mouth: "mouth-neutral" },
-  listening: { eyes: "eyes-listening", mouth: "mouth-neutral" },
+  listening: { eyes: "eyes-listening", mouth: "mouth-smile" },
   thinking: { eyes: "eyes-thinking", mouth: "mouth-thinking" },
-  typing: { eyes: "eyes-down", mouth: "mouth-smile" },
-  sleep: { eyes: "eyes-sleep", mouth: "mouth-sleep" },
-  error: { eyes: "eyes-confused", mouth: "mouth-o" },
+  typing: { eyes: "eyes-down", mouth: "mouth-neutral" },
+  sleeping: { eyes: "eyes-sleep", mouth: "mouth-sleep" },
+  error: { eyes: "eyes-confused", mouth: "mouth-flat" },
 };
 
 export function ExpressiveAvatar({ mood, size = 64 }: ExpressiveAvatarProps) {
   const [isBlinking, setIsBlinking] = useState(false);
   const [eyeSymbol, setEyeSymbol] = useState(MOOD_CONFIG[mood].eyes);
 
-  // Blink animation
+  // Blink animation (only for idle and typing states)
   useEffect(() => {
-    if (mood === "sleep") return;
+    if (mood === "sleeping" || mood === "error") return;
 
     const scheduleNextBlink = () => {
-      const delay = Math.random() * 4000 + 4000; // 4-8 seconds
+      const delay = Math.random() * 4000 + 6000; // 6-10 seconds
       return setTimeout(() => {
         setIsBlinking(true);
         setTimeout(() => {
           setIsBlinking(false);
-          scheduleNextBlink();
         }, 150);
       }, delay);
     };
 
     const timeoutId = scheduleNextBlink();
     return () => clearTimeout(timeoutId);
-  }, [mood]);
+  }, [mood, isBlinking]);
 
   // Update eye symbol based on mood and blink state
   useEffect(() => {
-    if (isBlinking) {
+    if (isBlinking && mood !== "sleeping") {
       setEyeSymbol("eyes-blink");
     } else {
       setEyeSymbol(MOOD_CONFIG[mood].eyes);

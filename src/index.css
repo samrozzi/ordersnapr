@@ -134,6 +134,38 @@ All colors MUST be HSL.
     }
   }
 
+  /* Mic button styles */
+  .mic-button {
+    @apply rounded-full bg-primary text-primary-foreground transition-all duration-200 cursor-pointer relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .mic-button:hover:not(.mic-button--disabled) {
+    transform: scale(1.05);
+  }
+
+  .mic-button--disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Mic pulse ring animation */
+  @keyframes mic-pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  .mic-button--recording::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary pointer-events-none;
+    animation: mic-pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
   @keyframes blink {
     0%, 100% {
       opacity: 1;

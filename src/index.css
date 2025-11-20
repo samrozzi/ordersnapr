@@ -152,6 +152,17 @@ All colors MUST be HSL.
     }
   }
 
+  @keyframes mic-pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    100% {
+      transform: scale(1.25);
+      opacity: 0;
+    }
+  }
+
   .animate-waveform {
     animation: waveform 0.8s ease-in-out infinite;
   }
@@ -166,6 +177,26 @@ All colors MUST be HSL.
 
   .animate-bounce-slow {
     animation: bounce-slow 2s ease-in-out infinite;
+  }
+
+  /* Mic button styles */
+  .mic-button {
+    @apply relative rounded-full bg-primary text-primary-foreground transition-all duration-200;
+    @apply hover:shadow-lg active:scale-95;
+  }
+
+  .mic-button--recording {
+    @apply relative;
+  }
+
+  .mic-button--recording::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary;
+    animation: mic-pulse-ring 1.5s ease-out infinite;
+  }
+
+  .mic-button--disabled {
+    @apply opacity-50 cursor-not-allowed;
   }
 
   /* Auth Page Hero Background */

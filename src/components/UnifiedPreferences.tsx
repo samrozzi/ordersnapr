@@ -166,26 +166,16 @@ export function UnifiedPreferences() {
     return `user_features_${userId}_org_${activeOrgId}`;
   };
 
-  // Load sidebar preferences from localStorage (org-aware)
+  // Load sidebar preferences from database (org-aware)
   useEffect(() => {
-    if (user) {
-      const storageKey = getUserFeaturesKey(user.id, activeOrgId);
-      const savedFeatures = localStorage.getItem(storageKey);
-      if (savedFeatures) {
-        try {
-          setEnabledFeatures(JSON.parse(savedFeatures));
-        } catch (e) {
-          console.error("Error parsing user features:", e);
-          // On error, set defaults based on accessible features
-          const defaults = AVAILABLE_FEATURES
-            .filter((f) => f.free || (features && features.length > 0))
-            .map((f) => f.id);
-          setEnabledFeatures(defaults);
-        }
+    if (user && preferences) {
+      // Check if preferences match current workspace
+      const isCorrectWorkspace = preferences.workspace_id === activeOrgId;
+      
+      if (isCorrectWorkspace && preferences.sidebar_enabled_features) {
+        setEnabledFeatures(preferences.sidebar_enabled_features);
       } else {
-        // No saved preferences - initialize with all accessible features
-        // For org users: include all available features (they'll see locked UI for disabled ones)
-        // For free users: only free features
+        // No saved preferences for this workspace - initialize with all accessible features
         const hasAccess = hasPremiumAccess();
         const defaults = hasAccess || (features && features.length > 0)
           ? AVAILABLE_FEATURES.map((f) => f.id) // Enable all features by default
@@ -194,7 +184,7 @@ export function UnifiedPreferences() {
       }
       setFeaturesReady(true);
     }
-  }, [user, activeOrgId, features]); // Re-run when activeOrgId or features change
+  }, [user, activeOrgId, features, preferences]); // Re-run when activeOrgId or features change
 
   // Load branding preferences from database (for premium users)
   useEffect(() => {
@@ -265,20 +255,32 @@ export function UnifiedPreferences() {
     });
   };
 
-  const handleSaveSidebar = () => {
+  const handleSaveSidebar = async () => {
     if (user) {
-      const storageKey = getUserFeaturesKey(user.id, activeOrgId);
-      localStorage.setItem(storageKey, JSON.stringify(enabledFeatures));
+      try {
+        await updatePreferences.mutateAsync({
+          userId: user.id,
+          sidebarEnabledFeatures: enabledFeatures,
+          workspaceId: activeOrgId,
+        });
 
-      // Dispatch custom event to update FeatureContext immediately
-      window.dispatchEvent(new Event('userFeaturesUpdated'));
+        // Dispatch custom event to update FeatureContext immediately
+        window.dispatchEvent(new Event('userFeaturesUpdated'));
 
-      const workspaceType = activeOrgId ? 'organization' : 'personal';
-      toast({
-        title: "Sidebar Updated",
-        description: `Navigation preferences saved for ${workspaceType} workspace.`,
-      });
-      setSidebarHasChanges(false);
+        const workspaceType = activeOrgId ? 'organization' : 'personal';
+        toast({
+          title: "Sidebar Updated",
+          description: `Navigation preferences saved for ${workspaceType} workspace.`,
+        });
+        setSidebarHasChanges(false);
+      } catch (error) {
+        console.error("Error saving sidebar preferences:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save sidebar preferences. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

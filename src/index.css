@@ -549,3 +549,53 @@ All colors MUST be HSL.
     accent-color: hsl(var(--primary));
   }
 }
+
+/* Liquid glass morphing animations for voice assistant */
+@keyframes split-morph {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.15);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bubble-split-left {
+  0% {
+    transform: translateX(20px) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-5px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bubble-split-right {
+  0% {
+    transform: translateX(-20px) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(5px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}

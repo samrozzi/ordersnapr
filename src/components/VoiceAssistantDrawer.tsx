@@ -895,42 +895,55 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
           </div>
         )}
 
-        {/* Recording controls - positioned in header when recording */}
-        {(isRecording || isPaused) && (
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+        {/* Mic button container - ALWAYS at top-right */}
+        <div className="absolute top-4 right-4 z-10">
+          {/* Idle State: Single Mic Button */}
+          {!isRecording && !isPaused && (
             <button
               onClick={handleMicToggle}
-              className={cn(
-                "w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all",
-                isRecording 
-                  ? "bg-gradient-to-br from-purple-500 to-pink-500" 
-                  : "bg-gradient-to-br from-blue-500 to-cyan-500"
-              )}
+              className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-300 animate-in fade-in-0 zoom-in-95"
             >
-              {isRecording ? (
-                <Pause className="w-4 h-4 text-white" />
-              ) : (
-                <Mic className="w-4 h-4 text-white" />
-              )}
+              <Mic className="w-6 h-6 text-white" />
             </button>
-            <button
-              onClick={handleStopRecording}
-              className="w-10 h-10 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-500"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        )}
-
-        {/* Floating mic button - only show when idle */}
-        {!isRecording && !isPaused && (
-          <button
-            onClick={handleMicToggle}
-            className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-10"
-          >
-            <Mic className="w-6 h-6 text-white" />
-          </button>
-        )}
+          )}
+          
+          {/* Recording/Paused State: Two Buttons (Split Animation) */}
+          {(isRecording || isPaused) && (
+            <div className="flex gap-2 animate-in fade-in-0 zoom-in-95 duration-300">
+              {/* Pause/Resume Button */}
+              <button
+                onClick={handleMicToggle}
+                className={cn(
+                  "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110",
+                  "animate-in slide-in-from-right-4 fade-in-0",
+                  isRecording 
+                    ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                    : "bg-gradient-to-br from-blue-500 to-cyan-500"
+                )}
+                style={{
+                  animationDelay: '50ms'
+                }}
+              >
+                {isRecording ? (
+                  <Pause className="w-5 h-5 text-white" />
+                ) : (
+                  <Mic className="w-5 h-5 text-white" />
+                )}
+              </button>
+              
+              {/* Stop Button */}
+              <button
+                onClick={handleStopRecording}
+                className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-500 transition-all duration-300 hover:scale-110 animate-in slide-in-from-right-4 fade-in-0"
+                style={{
+                  animationDelay: '100ms'
+                }}
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Error Display */}
         {error && (

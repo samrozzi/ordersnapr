@@ -9,6 +9,7 @@ import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-p
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useFeatureNavigation } from "@/hooks/use-feature-navigation";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 const iconMap: Record<string, React.ElementType> = {
   dashboard: LayoutDashboard,
@@ -72,6 +73,8 @@ function SortableItem({ item }: { item: NavItem }) {
 
 export function NavigationOrderPreferences() {
   const [userId, setUserId] = useState<string | null>(null);
+  const { activeOrg } = useActiveOrg();
+  const workspaceId = activeOrg?.id ?? null;
   const { data: preferences } = useUserPreferences(userId);
   const updatePreferences = useUpdateUserPreferences();
   const { enabledNavItems } = useFeatureNavigation();
@@ -94,18 +97,15 @@ export function NavigationOrderPreferences() {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !preferences) return;
 
-    // Get user's enabled features from localStorage (respecting Sidebar Navigation settings)
-    const savedFeatures = localStorage.getItem(`user_features_${userId}`);
+    // Check if preferences match current workspace
+    const isCorrectWorkspace = preferences.workspace_id === workspaceId;
+    
+    // Get user's enabled features from database
     let userEnabledFeatures: string[] = [];
-
-    if (savedFeatures) {
-      try {
-        userEnabledFeatures = JSON.parse(savedFeatures);
-      } catch (e) {
-        console.error("Error parsing user features:", e);
-      }
+    if (isCorrectWorkspace && preferences.sidebar_enabled_features) {
+      userEnabledFeatures = preferences.sidebar_enabled_features;
     }
 
     // Build default nav items with Dashboard always first
@@ -153,7 +153,7 @@ export function NavigationOrderPreferences() {
     } else {
       setNavItems(defaultItems);
     }
-  }, [userId, enabledNavItems, preferences]);
+  }, [userId, enabledNavItems, preferences, workspaceId]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -182,8 +182,6 @@ export function NavigationOrderPreferences() {
 
       await updatePreferences.mutateAsync({
         userId,
-        quickAddEnabled: preferences?.quick_add_enabled || false,
-        quickAddItems: preferences?.quick_add_items || [],
         navOrder: order,
       });
 
@@ -196,18 +194,15 @@ export function NavigationOrderPreferences() {
   };
 
   const handleReset = () => {
-    if (!userId) return;
+    if (!userId || !preferences) return;
 
-    // Get user's enabled features from localStorage (respecting Sidebar Navigation settings)
-    const savedFeatures = localStorage.getItem(`user_features_${userId}`);
+    // Check if preferences match current workspace
+    const isCorrectWorkspace = preferences.workspace_id === workspaceId;
+    
+    // Get user's enabled features from database
     let userEnabledFeatures: string[] = [];
-
-    if (savedFeatures) {
-      try {
-        userEnabledFeatures = JSON.parse(savedFeatures);
-      } catch (e) {
-        console.error("Error parsing user features:", e);
-      }
+    if (isCorrectWorkspace && preferences.sidebar_enabled_features) {
+      userEnabledFeatures = preferences.sidebar_enabled_features;
     }
 
     // Reset to default order

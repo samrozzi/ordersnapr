@@ -2460,7 +2460,101 @@ export function FormRenderer({ template, submission, onSuccess, onCancel, previe
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowUpgradeDialog(false); setPendingImportData(null); }}>
+            <AlertDialogCancel onClick={() => { 
+              // When canceling, populate with first technician data only
+              if (pendingImportData?.technicianRows?.length > 0 && pendingImportData?.extractedData) {
+                console.log('Cancel clicked - populating first technician only');
+                const firstTech = pendingImportData.technicianRows[0];
+                const extractedData = { ...pendingImportData.extractedData };
+                
+                // Override with first tech data
+                extractedData.technicianName = firstTech.techName || firstTech.name;
+                extractedData.accountNumber = firstTech.ban || extractedData.accountNumber;
+                
+                // Map to form fields using standard logic
+                const keyMapping: Record<string, string> = {};
+                template.schema.sections.forEach((section: any) => {
+                  (section.fields || []).forEach((f: any) => {
+                    const label = f.label?.toLowerCase().replace(/\s+/g, '');
+                    const fieldKey = f.key;
+                    
+                    // Handle table layout fields
+                    if (f.type === 'table_layout' && f.tableCells) {
+                      Object.entries(f.tableCells).forEach(([cellKey, cell]: [string, any]) => {
+                        if (cell?.field) {
+                          const cellLabel = cell.field.label?.toLowerCase().replace(/\s+/g, '');
+                          
+                          if (cellLabel?.includes('techname') || cellLabel?.includes('name')) {
+                            keyMapping['technicianName'] = `${fieldKey}.${cellKey}`;
+                          } else if (cellLabel?.includes('techid') || cellLabel?.includes('id')) {
+                            keyMapping['techId'] = `${fieldKey}.${cellKey}`;
+                          } else if (cellLabel?.includes('phone') || cellLabel?.includes('tn')) {
+                            keyMapping['techPhone'] = `${fieldKey}.${cellKey}`;
+                          } else if (cellLabel?.includes('type')) {
+                            keyMapping['techType'] = `${fieldKey}.${cellKey}`;
+                          }
+                        }
+                      });
+                    }
+                    
+                    // Standard field mapping
+                    if (label?.includes('servicedate') || label?.includes('date')) keyMapping['serviceDate'] = fieldKey;
+                    if (label?.includes('address') || label?.includes('location')) keyMapping['address'] = fieldKey;
+                    if (label?.includes('customer') && label?.includes('name')) keyMapping['customerName'] = fieldKey;
+                    if (label?.includes('canbe') || label?.includes('reached')) keyMapping['canBeReached'] = fieldKey;
+                    if (label?.includes('account') || label?.includes('ban')) keyMapping['accountNumber'] = fieldKey;
+                    if (label?.includes('tech') && label?.includes('name')) keyMapping['technicianName'] = fieldKey;
+                  });
+                });
+                
+                // Apply extracted data to form
+                Object.entries(extractedData).forEach(([key, value]) => {
+                  if (keyMapping[key]) {
+                    const targetKey = keyMapping[key];
+                    if (targetKey.includes('.')) {
+                      // Handle nested table cell
+                      const [tableKey, cellKey] = targetKey.split('.');
+                      handleFieldChange(tableKey, {
+                        ...(answers[tableKey] || {}),
+                        [cellKey]: value
+                      });
+                    } else {
+                      handleFieldChange(targetKey, value);
+                    }
+                  }
+                });
+                
+                // Also populate table cells with first tech data
+                if (firstTech) {
+                  if (keyMapping['techId']) {
+                    const [tableKey, cellKey] = keyMapping['techId'].split('.');
+                    handleFieldChange(tableKey, {
+                      ...(answers[tableKey] || {}),
+                      [cellKey]: firstTech.techId || firstTech.id || ''
+                    });
+                  }
+                  if (keyMapping['techPhone']) {
+                    const [tableKey, cellKey] = keyMapping['techPhone'].split('.');
+                    handleFieldChange(tableKey, {
+                      ...(answers[tableKey] || {}),
+                      [cellKey]: firstTech.techPhone || firstTech.phone || ''
+                    });
+                  }
+                  if (keyMapping['techType']) {
+                    const [tableKey, cellKey] = keyMapping['techType'].split('.');
+                    handleFieldChange(tableKey, {
+                      ...(answers[tableKey] || {}),
+                      [cellKey]: firstTech.techType || firstTech.type || ''
+                    });
+                  }
+                }
+                
+                toast.success('Imported first technician data');
+              }
+              
+              setShowUpgradeDialog(false); 
+              setPendingImportData(null); 
+            }}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleUpgradeTemplate}>

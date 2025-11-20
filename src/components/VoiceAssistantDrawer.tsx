@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Mic, X, StickyNote, ChevronLeft } from "lucide-react";
+import { Mic, X, StickyNote, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
@@ -12,7 +12,6 @@ import { ExpressiveAvatar } from "./ExpressiveAvatar";
 import { cn } from "@/lib/utils";
 
 type AssistantStatus = "idle" | "listening" | "typing" | "thinking" | "sleeping" | "error";
-type AvatarMood = "idle" | "listening" | "thinking" | "typing" | "sleeping" | "error";
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
@@ -32,6 +31,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setAssistantStatus("thinking");
     setError(null);
+    resetSleepTimer();
 
     try {
       const apiKey = await getOpenAIApiKey();
@@ -47,7 +47,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       console.error("Transcription error:", err);
       setError(err instanceof Error ? err.message : "Failed to transcribe audio");
       setAssistantStatus("error");
-      setTimeout(() => setAssistantStatus("idle"), 3000);
+      setTimeout(() => {
+        setAssistantStatus("idle");
+        resetSleepTimer();
+      }, 3000);
     }
   };
 
@@ -78,10 +81,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       setAssistantStatus("idle");
     }
     sleepTimeoutRef.current = setTimeout(() => {
-      if (open && !isRecording && !isTyping) {
+      if (open && !isRecording && !isTyping && assistantStatus !== "thinking") {
         setAssistantStatus("sleeping");
       }
-    }, 20000); // 20 seconds
+    }, 60000); // 60 seconds
   };
 
   // Sync recording state to assistant status
@@ -137,7 +140,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleTextBlur = () => {
-    // Don't change state on blur - let typing timeout handle it
+    // Keep drawer open, don't change state
+    resetSleepTimer();
   };
 
   const handleClear = () => {
@@ -239,7 +243,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     );
   };
 
-  const getAvatarMood = (): AvatarMood => {
+  const getAvatarMood = (): AssistantStatus => {
     return assistantStatus;
   };
 
@@ -252,20 +256,20 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const CompactView = () => (
-    <div className="flex flex-col h-[45vh]">
+    <div className="flex flex-col h-[45vh] relative">
       {/* Drag Handle */}
-      <div className="flex justify-center pt-2 pb-1">
-        <div className="h-1.5 w-[100px] rounded-full bg-muted opacity-20" />
+      <div className="flex justify-center pt-3 pb-2">
+        <div className="h-1 w-12 rounded-full bg-muted/40" />
       </div>
 
       {/* Header with Avatar */}
-      <div className="flex flex-col items-center p-4 border-b space-y-2">
-        <ExpressiveAvatar mood={getAvatarMood()} size={64} />
-        <div className="text-center space-y-0.5">
-          <h3 className="font-semibold text-base">AI Assistant</h3>
+      <div className="flex flex-col items-center px-6 py-4 space-y-3">
+        <ExpressiveAvatar mood={getAvatarMood()} size={96} />
+        <div className="text-center space-y-1">
+          <h3 className="font-semibold text-lg">AI Assistant</h3>
           <p className={cn(
             "text-sm transition-colors duration-200",
-            assistantStatus === "error" ? "text-amber-600" : "text-muted-foreground"
+            assistantStatus === "error" ? "text-destructive" : "text-muted-foreground"
           )}>
             {getStatusText()}
           </p>
@@ -273,38 +277,47 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       </div>
 
       {/* Transcript Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
         <Textarea
           value={textContent}
           onChange={handleTextChange}
           onFocus={handleTextFocus}
           onBlur={handleTextBlur}
           placeholder="Transcribed text will appear here, or type directly…"
-          className="min-h-[80px] resize-none rounded-lg"
+          className="min-h-[100px] resize-none rounded-xl border-2 focus-visible:ring-2"
         />
 
+        {/* Error Message */}
+        {error && assistantStatus === "error" && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+            {error}
+          </div>
+        )}
+
         {/* AI Suggestions */}
-        {textContent.trim() && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Suggestions</h3>
+        {textContent.trim() && assistantStatus !== "thinking" && (
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              AI SUGGESTIONS
+            </h4>
             <div className="flex flex-col gap-2">
-              <Button variant="outline" size="sm" onClick={handleCreateNote} className="justify-start">
-                <StickyNote className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleCreateNote} className="justify-start h-10">
+                <StickyNote className="w-4 h-4 mr-3" />
                 Save to Quick Note
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCreateWorkOrder} className="justify-start">
+              <Button variant="outline" size="sm" onClick={handleCreateWorkOrder} className="justify-start h-10">
                 Create Work Order
               </Button>
-              <Button variant="outline" size="sm" onClick={handleAddJob} className="justify-start">
+              <Button variant="outline" size="sm" onClick={handleAddJob} className="justify-start h-10">
                 Add Job
               </Button>
-              <Button variant="outline" size="sm" onClick={handleTurnIntoChecklist} className="justify-start">
+              <Button variant="outline" size="sm" onClick={handleTurnIntoChecklist} className="justify-start h-10">
                 Turn into checklist
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSummarize} className="justify-start">
+              <Button variant="outline" size="sm" onClick={handleSummarize} className="justify-start h-10">
                 Summarize key points
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDraftCustomerMessage} className="justify-start">
+              <Button variant="outline" size="sm" onClick={handleDraftCustomerMessage} className="justify-start h-10">
                 Draft customer message
               </Button>
             </div>
@@ -313,15 +326,21 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       </div>
 
       {/* Bottom Actions */}
-      <div className="border-t p-4 space-y-2">
-        <div className="flex gap-2 items-center">
-          <Button variant="outline" size="sm" onClick={handleClear} className="flex-1">
+      <div className="border-t bg-background px-6 py-4 space-y-3">
+        <div className="flex gap-3 items-center">
+          <Button 
+            variant="outline" 
+            size="default" 
+            onClick={handleClear} 
+            className="flex-1"
+            disabled={!textContent.trim()}
+          >
             <X className="w-4 h-4 mr-2" />
             Clear
           </Button>
           <Button 
             variant="default" 
-            size="sm" 
+            size="default" 
             onClick={handleCreateNote}
             disabled={!textContent.trim()}
             className="flex-1"
@@ -333,7 +352,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             onClick={handleMicClick}
             disabled={isProcessing}
             className={cn(
-              "mic-button w-12 h-12 flex items-center justify-center shadow-lg flex-shrink-0",
+              "mic-button flex-shrink-0",
               isRecording && "mic-button--recording",
               isProcessing && "mic-button--disabled"
             )}
@@ -344,7 +363,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         </div>
         <button
           onClick={() => setIsExpanded(true)}
-          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
         >
           Open AI Workspace
         </button>
@@ -353,88 +372,123 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   );
 
   const ExpandedView = () => (
-    <div className="flex flex-col h-screen">
-      {/* Drag Handle */}
-      <div className="flex justify-center pt-2 pb-1">
-        <div className="h-1.5 w-[80px] rounded-full bg-muted opacity-30" />
-      </div>
-
+    <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between h-14 px-4 border-b">
+      <div className="flex items-center justify-between h-16 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <Button variant="ghost" size="sm" onClick={() => setIsExpanded(false)}>
-          <ChevronLeft className="w-4 h-4 mr-2" />
+          <ChevronDown className="w-5 h-5 mr-2" />
           Done
         </Button>
-        <h2 className="font-semibold text-base">AI Workspace</h2>
-        <div className="w-16" /> {/* Spacer for centering */}
+        <h2 className="font-semibold text-lg">AI Workspace</h2>
+        <div className="w-20" /> {/* Spacer for centering */}
       </div>
 
-      {/* Avatar and Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="flex justify-center pt-2">
-          <ExpressiveAvatar mood={getAvatarMood()} size={80} />
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        {/* Avatar */}
+        <div className="flex justify-center py-2">
+          <ExpressiveAvatar mood={getAvatarMood()} size={120} />
         </div>
 
+        {/* Large Text Area */}
         <Textarea
           value={textContent}
           onChange={handleTextChange}
           onFocus={handleTextFocus}
           onBlur={handleTextBlur}
           placeholder="Continue writing or start fresh…"
-          className="w-full min-h-[200px] rounded-lg resize-none text-base"
+          className="w-full min-h-[240px] rounded-xl border-2 resize-none text-base leading-relaxed p-4 focus-visible:ring-2"
         />
 
+        {/* Error Message */}
+        {error && assistantStatus === "error" && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">
+            {error}
+          </div>
+        )}
+
         {/* AI Suggestions */}
-        {textContent.trim() && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Suggestions</h3>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" size="sm" onClick={handleCreateNote} className="justify-start">
-                <StickyNote className="w-4 h-4 mr-2" />
+        {textContent.trim() && assistantStatus !== "thinking" && (
+          <div className="space-y-4 pb-20">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              AI SUGGESTIONS
+            </h4>
+            <div className="flex flex-col gap-3">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleCreateNote} 
+                className="justify-start h-12 text-base"
+              >
+                <StickyNote className="w-5 h-5 mr-3" />
                 Save to Quick Note
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCreateWorkOrder} className="justify-start">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleCreateWorkOrder} 
+                className="justify-start h-12 text-base"
+              >
                 Create Work Order
               </Button>
-              <Button variant="outline" size="sm" onClick={handleAddJob} className="justify-start">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleAddJob} 
+                className="justify-start h-12 text-base"
+              >
                 Add Job
               </Button>
-              <Button variant="outline" size="sm" onClick={handleTurnIntoChecklist} className="justify-start">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleTurnIntoChecklist} 
+                className="justify-start h-12 text-base"
+              >
                 Turn into checklist
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSummarize} className="justify-start">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleSummarize} 
+                className="justify-start h-12 text-base"
+              >
                 Summarize key points
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDraftCustomerMessage} className="justify-start">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleDraftCustomerMessage} 
+                className="justify-start h-12 text-base"
+              >
                 Draft customer message
               </Button>
             </div>
           </div>
         )}
-
-        {/* Status Text */}
-        <p className={cn(
-          "text-center text-sm transition-colors duration-200 mb-4",
-          assistantStatus === "error" ? "text-amber-600" : "text-muted-foreground"
-        )}>
-          {getStatusText()}
-        </p>
       </div>
 
-      {/* Floating Mic Button - positioned near bottom right */}
-      <div className="fixed bottom-6 right-6 z-20">
-        <button
-          onClick={handleMicClick}
-          disabled={isProcessing}
-          className={cn(
-            "mic-button w-14 h-14 flex items-center justify-center shadow-xl",
-            isRecording && "mic-button--recording",
-            isProcessing && "mic-button--disabled"
-          )}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
-        >
-          <Mic className="w-6 h-6" />
-        </button>
+      {/* Bottom hint text and mic button */}
+      <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+        <p className="text-center text-sm text-muted-foreground mb-4">
+          {getStatusText()}
+        </p>
+        
+        {/* Mic Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleMicClick}
+            disabled={isProcessing}
+            className={cn(
+              "mic-button shadow-xl",
+              isRecording && "mic-button--recording",
+              isProcessing && "mic-button--disabled"
+            )}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+          >
+            <Mic className="w-6 h-6" />
+          </button>
+        </div>
       </div>
     </div>
   );

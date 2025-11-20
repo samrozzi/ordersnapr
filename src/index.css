@@ -136,34 +136,132 @@ All colors MUST be HSL.
 
   /* Mic button styles */
   .mic-button {
-    @apply rounded-full bg-primary text-primary-foreground transition-all duration-200 cursor-pointer relative;
+    @apply w-14 h-14 rounded-full bg-primary text-primary-foreground transition-all duration-300;
+    @apply flex items-center justify-center cursor-pointer relative;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .mic-button:hover:not(.mic-button--disabled) {
-    transform: scale(1.05);
+    @apply shadow-lg;
+  }
+
+  .mic-button:active:not(.mic-button--disabled) {
+    transform: scale(0.95);
+  }
+
+  .mic-button--recording {
+    @apply relative;
+  }
+
+  .mic-button--recording::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: hsl(var(--primary) / 0.3);
+    animation: pulse-ring 1.5s ease-out infinite;
+    pointer-events: none;
   }
 
   .mic-button--disabled {
     @apply opacity-50 cursor-not-allowed;
   }
 
-  /* Mic pulse ring animation */
-  @keyframes mic-pulse-ring {
+  @keyframes pulse-ring {
     0% {
       transform: scale(1);
-      opacity: 0.5;
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.15;
     }
     100% {
-      transform: scale(1.5);
+      transform: scale(1.25);
       opacity: 0;
     }
   }
 
-  .mic-button--recording::before {
-    content: '';
-    @apply absolute inset-0 rounded-full bg-primary pointer-events-none;
-    animation: mic-pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  /* Avatar animations */
+  @keyframes antenna-breathe {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+    }
+    50% {
+      transform: scale(1.05) rotate(2deg);
+    }
+  }
+
+  @keyframes listening-bob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
+  @keyframes thinking-sway {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(2px);
+    }
+  }
+
+  @keyframes breathing {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(1px);
+    }
+  }
+
+  @keyframes error-shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes eye-sway {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(1px);
+    }
+  }
+
+  .animate-antenna-breathe {
+    animation: antenna-breathe 4s ease-in-out infinite;
+  }
+
+  .animate-listening-bob {
+    animation: listening-bob 0.8s ease-in-out infinite;
+  }
+
+  .animate-thinking-sway {
+    animation: thinking-sway 2s ease-in-out infinite;
+  }
+
+  .animate-breathing {
+    animation: breathing 3s ease-in-out infinite;
+  }
+
+  .animate-error-shake {
+    animation: error-shake 0.4s ease-in-out;
+  }
+
+  .animate-eye-sway {
+    animation: eye-sway 2s ease-in-out infinite;
   }
 
   @keyframes blink {
@@ -181,17 +279,6 @@ All colors MUST be HSL.
     }
     50% {
       transform: translateY(-8px);
-    }
-  }
-
-  @keyframes mic-pulse-ring {
-    0% {
-      transform: scale(1);
-      opacity: 0.4;
-    }
-    100% {
-      transform: scale(1.25);
-      opacity: 0;
     }
   }
 

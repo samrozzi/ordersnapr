@@ -359,7 +359,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       <div
         className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl shadow-2xl z-[70] transition-all duration-300 ease-out overflow-hidden"
         style={{ 
-          height: drawerHeight,
+          height: isExpanded ? '100dvh' : '45vh',
           maxHeight: '100vh',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -484,7 +484,11 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             </div>
 
             {/* Scrollable Content */}
-            <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4">
+            <div 
+              ref={contentRef} 
+              className="flex-1 overflow-y-auto px-4 py-4"
+              style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 20}px` : '120px' }}
+            >
               {/* Avatar */}
               <div className="flex justify-center mb-4">
                 <SimpleAvatar mood={getAvatarMood()} size={80} />

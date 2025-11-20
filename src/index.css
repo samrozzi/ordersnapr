@@ -300,22 +300,108 @@ All colors MUST be HSL.
 
   /* Mic button styles */
   .mic-button {
-    @apply relative rounded-full bg-primary text-primary-foreground transition-all duration-200;
-    @apply hover:shadow-lg active:scale-95;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .mic-button:hover:not(.mic-button--disabled) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .mic-button:active:not(.mic-button--disabled) {
+    transform: scale(0.95);
   }
 
   .mic-button--recording {
-    @apply relative;
+    animation: mic-pulse 2s ease-in-out infinite;
   }
 
   .mic-button--recording::before {
     content: '';
-    @apply absolute inset-0 rounded-full bg-primary;
-    animation: mic-pulse-ring 1.5s ease-out infinite;
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: hsl(var(--primary) / 0.2);
+    animation: mic-pulse-ring 2s ease-in-out infinite;
   }
 
   .mic-button--disabled {
-    @apply opacity-50 cursor-not-allowed;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @keyframes mic-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.03);
+      box-shadow: 0 4px 16px hsl(var(--primary) / 0.4);
+    }
+  }
+
+  @keyframes mic-pulse-ring {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.3;
+    }
+  }
+
+  /* Avatar styles */
+  .ai-avatar {
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 0.15s ease;
+  }
+
+  .ai-avatar--neutral {
+    background-image: url('/ai-bot.svg');
+  }
+
+  .ai-avatar--listening {
+    background-image: url('/ai-bot-listening.svg');
+  }
+
+  .ai-avatar--thinking {
+    background-image: url('/ai-bot-thinking.svg');
+  }
+
+  .ai-avatar--sleeping {
+    background-image: url('/ai-bot-sleep.svg');
+  }
+
+  .ai-avatar--blink {
+    background-image: url('/ai-bot-blink.svg');
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
   }
 
   /* Auth Page Hero Background */

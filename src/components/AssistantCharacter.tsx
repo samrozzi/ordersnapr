@@ -10,6 +10,9 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
   const [isBlinking, setIsBlinking] = useState(false);
   const [headTilt, setHeadTilt] = useState(0);
   const [eyePosition, setEyePosition] = useState(0);
+  const [nodAngle, setNodAngle] = useState(0);
+  const [isLargeHeadTurn, setIsLargeHeadTurn] = useState(false);
+  const [mouthOpenness, setMouthOpenness] = useState(0);
 
   // Subtle blinking animation
   useEffect(() => {
@@ -21,19 +24,49 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
     return () => clearInterval(blinkInterval);
   }, []);
 
-  // Head movement when listening (side to side)
+  // Enhanced listening animations with nodding, head turns, and mouth movement
   useEffect(() => {
     if (state === 'listening') {
-      const tiltInterval = setInterval(() => {
-        setHeadTilt(prev => (prev === 0 ? (Math.random() > 0.5 ? 3 : -3) : 0));
-      }, 800);
-      return () => clearInterval(tiltInterval);
+      // Nodding motion (up and down)
+      const nodInterval = setInterval(() => {
+        setNodAngle(prev => {
+          if (prev <= -5) return 5;
+          if (prev >= 5) return -5;
+          return prev > 0 ? 5 : -5;
+        });
+      }, 1500);
+
+      // Head turn variation (subtle and occasional large turns)
+      const turnInterval = setInterval(() => {
+        const isLarge = Math.random() > 0.7; // 30% chance of large turn to "listen with ear"
+        setIsLargeHeadTurn(isLarge);
+        setHeadTilt(prev => {
+          if (prev === 0) {
+            return Math.random() > 0.5 ? (isLarge ? 15 : 3) : (isLarge ? -15 : -3);
+          }
+          return 0;
+        });
+      }, 2000);
+
+      // Mouth breathing motion during listening
+      const mouthInterval = setInterval(() => {
+        setMouthOpenness(prev => (prev === 0 ? 0.5 : 0));
+      }, 1500);
+
+      return () => {
+        clearInterval(nodInterval);
+        clearInterval(turnInterval);
+        clearInterval(mouthInterval);
+      };
     } else {
+      setNodAngle(0);
       setHeadTilt(0);
+      setIsLargeHeadTurn(false);
+      setMouthOpenness(0);
     }
   }, [state]);
 
-  // Eye tracking when typing (looking down at text)
+  // Eye and mouth tracking when typing (reading text together)
   useEffect(() => {
     if (state === 'typing') {
       const trackingInterval = setInterval(() => {
@@ -62,15 +95,18 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      {/* Character container with subtle idle animation */}
+      {/* Character container with 3D transforms */}
       <div 
         className={cn(
           "relative w-16 h-16 transition-all duration-500 ease-out",
-          (state === 'idle' || state === 'paused') && "animate-[bounce_3s_ease-in-out_infinite]"
+          // Remove bouncing for paused/idle - should be completely still (sleeping)
         )}
         style={{ 
-          transform: `rotate(${headTilt}deg) perspective(100px) rotateY(${headTilt * 2}deg)`,
-          animationDelay: '0.5s'
+          transform: state === 'listening' 
+            ? `perspective(200px) rotateX(${nodAngle}deg) rotateY(${headTilt * 2}deg) rotateZ(${headTilt}deg)` 
+            : state === 'paused' || state === 'idle'
+            ? 'none' // Completely still when sleeping
+            : `rotate(${headTilt}deg)`,
         }}
       >
         {/* Main body - soft organic blob */}
@@ -222,7 +258,7 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
             </div>
           </div>
 
-          {/* Mouth - whimsical hand-drawn curves */}
+          {/* Mouth - whimsical hand-drawn curves with state-specific expressions */}
           <div className="absolute inset-0 flex items-center justify-center pt-4">
             {state !== 'error' && (
               <svg 
@@ -231,17 +267,25 @@ export function AssistantCharacter({ state, className }: AssistantCharacterProps
                 viewBox="0 0 16 8" 
                 className="text-foreground/40 transition-all duration-300"
                 style={{
-                  transform: state === 'typing' ? `translateX(${eyePosition * 0.5}px)` : 'none'
+                  transform: state === 'typing' 
+                    ? `translateX(${eyePosition * 0.5}px) translateY(${Math.sin(eyePosition) * 0.5}px)` 
+                    : state === 'listening'
+                    ? `translateY(${mouthOpenness}px)`
+                    : 'none'
                 }}
               >
                 <path 
-                  d={state === 'listening' 
-                    ? "M 2 2 Q 8 6, 14 2" 
-                    : state === 'success'
-                    ? "M 2 2 Q 8 7, 14 2"
-                    : state === 'typing'
-                    ? "M 2 4 Q 5 2, 8 3 T 14 4"
-                    : "M 2 3 Q 8 6, 14 3"} 
+                  d={
+                    state === 'typing'
+                      ? "M 2 4 Q 8 2, 14 4" // Cheerful focused smile
+                      : state === 'listening' 
+                      ? `M 2 ${3 + mouthOpenness} Q 8 ${5 + mouthOpenness}, 14 ${3 + mouthOpenness}` // Breathing motion
+                      : state === 'success'
+                      ? "M 2 2 Q 8 7, 14 2" // Big happy smile
+                      : state === 'paused' || state === 'idle'
+                      ? "M 2 4 Q 8 5, 14 4" // Relaxed sleeping
+                      : "M 2 3 Q 8 6, 14 3" // Gentle neutral smile
+                  } 
                   stroke="currentColor" 
                   strokeWidth="1.5" 
                   fill="none" 

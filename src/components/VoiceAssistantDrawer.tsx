@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Mic, X, StickyNote, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,8 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { ExpressiveAvatar } from "./ExpressiveAvatar";
 import { cn } from "@/lib/utils";
 
-type AssistantState = "idle" | "recording" | "processing" | "complete" | "error";
-type AvatarMood = "idle" | "listening" | "thinking" | "typing" | "sleep" | "error";
+type AssistantStatus = "idle" | "listening" | "typing" | "thinking" | "sleeping" | "error";
+type AvatarMood = "idle" | "listening" | "thinking" | "typing" | "sleeping" | "error";
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
@@ -20,16 +20,17 @@ interface VoiceAssistantDrawerProps {
 }
 
 export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawerProps) {
-  const [state, setState] = useState<AssistantState>("idle");
+  const [assistantStatus, setAssistantStatus] = useState<AssistantStatus>("idle");
   const [textContent, setTextContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sleepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    setState("processing");
+    setAssistantStatus("thinking");
     setError(null);
 
     try {
@@ -40,11 +41,13 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
       const result = await transcribeAudio(audioBlob, apiKey);
       setTextContent(result.text);
-      setState("complete");
+      setAssistantStatus("idle");
+      resetSleepTimer();
     } catch (err) {
       console.error("Transcription error:", err);
       setError(err instanceof Error ? err.message : "Failed to transcribe audio");
-      setState("error");
+      setAssistantStatus("error");
+      setTimeout(() => setAssistantStatus("idle"), 3000);
     }
   };
 
@@ -58,22 +61,51 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     onRecordingComplete: handleRecordingComplete,
     onError: (err) => {
       setError(err.message);
-      setState("error");
+      setAssistantStatus("error");
+      setTimeout(() => setAssistantStatus("idle"), 3000);
     },
   });
 
   const isRecording = recordingState === "recording";
-  const isProcessing = state === "processing";
+  const isProcessing = assistantStatus === "thinking";
 
+  // Reset sleep timer whenever there's activity
+  const resetSleepTimer = () => {
+    if (sleepTimeoutRef.current) {
+      clearTimeout(sleepTimeoutRef.current);
+    }
+    if (assistantStatus === "sleeping") {
+      setAssistantStatus("idle");
+    }
+    sleepTimeoutRef.current = setTimeout(() => {
+      if (open && !isRecording && !isTyping) {
+        setAssistantStatus("sleeping");
+      }
+    }, 20000); // 20 seconds
+  };
+
+  // Sync recording state to assistant status
   useEffect(() => {
     if (isRecording) {
-      setState("recording");
-    } else if (recordingState === "idle" && state === "recording") {
-      setState("idle");
+      setAssistantStatus("listening");
+      resetSleepTimer();
     }
-  }, [isRecording, recordingState, state]);
+  }, [isRecording]);
+
+  // Initialize and cleanup sleep timer
+  useEffect(() => {
+    if (open) {
+      resetSleepTimer();
+    }
+    return () => {
+      if (sleepTimeoutRef.current) {
+        clearTimeout(sleepTimeoutRef.current);
+      }
+    };
+  }, [open]);
 
   const handleMicClick = () => {
+    resetSleepTimer();
     if (isRecording) {
       stopRecording();
     } else if (!isProcessing) {
@@ -85,16 +117,34 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextContent(e.target.value);
     setIsTyping(true);
+    setAssistantStatus("typing");
+    resetSleepTimer();
     
-    if (typingTimeout) clearTimeout(typingTimeout);
-    const timeout = setTimeout(() => setIsTyping(false), 1000);
-    setTypingTimeout(timeout);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (!isRecording && !isProcessing) {
+        setAssistantStatus("idle");
+      }
+    }, 1000);
+  };
+
+  const handleTextFocus = () => {
+    resetSleepTimer();
+    if (!isRecording && !isProcessing) {
+      setAssistantStatus("typing");
+    }
+  };
+
+  const handleTextBlur = () => {
+    // Don't change state on blur - let typing timeout handle it
   };
 
   const handleClear = () => {
     setTextContent("");
-    setState("idle");
+    setAssistantStatus("idle");
     setError(null);
+    resetSleepTimer();
     if (isRecording) cancelRecording();
   };
 
@@ -144,8 +194,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       return;
     }
 
-    setState("processing");
+    setAssistantStatus("thinking");
     setError(null);
+    resetSleepTimer();
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('ai-text-transform', {
@@ -156,12 +207,14 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       if (data?.error) throw new Error(data.error);
 
       setTextContent(data.transformedText || sourceText);
-      setState("complete");
+      setAssistantStatus("idle");
       toast.success("AI transformation complete");
+      resetSleepTimer();
     } catch (err) {
       console.error("AI transform error:", err);
       setError(err instanceof Error ? err.message : "AI transformation failed");
-      setState("error");
+      setAssistantStatus("error");
+      setTimeout(() => setAssistantStatus("idle"), 3000);
     }
   };
 
@@ -187,18 +240,14 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const getAvatarMood = (): AvatarMood => {
-    if (state === "error") return "error";
-    if (isProcessing) return "thinking";
-    if (isRecording) return "listening";
-    if (isTyping) return "typing";
-    if (!open) return "sleep";
-    return "idle";
+    return assistantStatus;
   };
 
   const getStatusText = () => {
-    if (state === "error" && error) return error;
-    if (isRecording) return `Listening… ${formattedDuration}`;
-    if (isProcessing) return "Thinking…";
+    if (assistantStatus === "error" && error) return error;
+    if (assistantStatus === "listening") return `Listening… ${formattedDuration}`;
+    if (assistantStatus === "thinking") return "Thinking…";
+    if (assistantStatus === "sleeping") return "Resting…";
     return "Tap to speak or type below";
   };
 
@@ -216,7 +265,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           <h3 className="font-semibold text-base">AI Assistant</h3>
           <p className={cn(
             "text-sm transition-colors duration-200",
-            state === "error" ? "text-amber-600" : "text-muted-foreground"
+            assistantStatus === "error" ? "text-amber-600" : "text-muted-foreground"
           )}>
             {getStatusText()}
           </p>
@@ -228,7 +277,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         <Textarea
           value={textContent}
           onChange={handleTextChange}
-          onFocus={() => setIsExpanded(true)}
+          onFocus={handleTextFocus}
+          onBlur={handleTextBlur}
           placeholder="Transcribed text will appear here, or type directly…"
           className="min-h-[80px] resize-none rounded-lg"
         />
@@ -264,7 +314,7 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
       {/* Bottom Actions */}
       <div className="border-t p-4 space-y-2">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={handleClear} className="flex-1">
             <X className="w-4 h-4 mr-2" />
             Clear
@@ -279,6 +329,18 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
             <StickyNote className="w-4 h-4 mr-2" />
             Create Note
           </Button>
+          <button
+            onClick={handleMicClick}
+            disabled={isProcessing}
+            className={cn(
+              "mic-button w-12 h-12 flex items-center justify-center shadow-lg flex-shrink-0",
+              isRecording && "mic-button--recording",
+              isProcessing && "mic-button--disabled"
+            )}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
         </div>
         <button
           onClick={() => setIsExpanded(true)}
@@ -287,20 +349,6 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
           Open AI Workspace
         </button>
       </div>
-
-      {/* Floating Mic Button */}
-      <button
-        onClick={handleMicClick}
-        disabled={isProcessing}
-        className={cn(
-          "mic-button absolute bottom-4 right-4 w-14 h-14 flex items-center justify-center shadow-lg z-10",
-          isRecording && "mic-button--recording",
-          isProcessing && "mic-button--disabled"
-        )}
-        aria-label={isRecording ? "Stop recording" : "Start recording"}
-      >
-        <Mic className="w-6 h-6" />
-      </button>
     </div>
   );
 
@@ -330,6 +378,8 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         <Textarea
           value={textContent}
           onChange={handleTextChange}
+          onFocus={handleTextFocus}
+          onBlur={handleTextBlur}
           placeholder="Continue writing or start fresh…"
           className="w-full min-h-[200px] rounded-lg resize-none text-base"
         />
@@ -364,26 +414,28 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
         {/* Status Text */}
         <p className={cn(
-          "text-center text-sm transition-colors duration-200",
-          state === "error" ? "text-amber-600" : "text-muted-foreground"
+          "text-center text-sm transition-colors duration-200 mb-4",
+          assistantStatus === "error" ? "text-amber-600" : "text-muted-foreground"
         )}>
           {getStatusText()}
         </p>
       </div>
 
-      {/* Floating Mic Button */}
-      <button
-        onClick={handleMicClick}
-        disabled={isProcessing}
-        className={cn(
-          "mic-button absolute bottom-4 right-4 w-14 h-14 flex items-center justify-center shadow-lg z-10",
-          isRecording && "mic-button--recording",
-          isProcessing && "mic-button--disabled"
-        )}
-        aria-label={isRecording ? "Stop recording" : "Start recording"}
-      >
-        <Mic className="w-6 h-6" />
-      </button>
+      {/* Floating Mic Button - positioned near bottom right */}
+      <div className="fixed bottom-6 right-6 z-20">
+        <button
+          onClick={handleMicClick}
+          disabled={isProcessing}
+          className={cn(
+            "mic-button w-14 h-14 flex items-center justify-center shadow-xl",
+            isRecording && "mic-button--recording",
+            isProcessing && "mic-button--disabled"
+          )}
+          aria-label={isRecording ? "Stop recording" : "Start recording"}
+        >
+          <Mic className="w-6 h-6" />
+        </button>
+      </div>
     </div>
   );
 

@@ -154,6 +154,11 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   }, []);
 
   const handleCreateNote = useCallback(async () => {
+    if (!user) {
+      toast.error('Please sign in to create notes');
+      return;
+    }
+
     if (!textContent.trim()) {
       toast.error('Please add some content first');
       return;
@@ -161,15 +166,26 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
     setAssistantStatus('thinking');
     try {
+      // Fetch user's active_org_id from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_org_id')
+        .eq('id', user.id)
+        .single();
+
       const { error: insertError } = await supabase
         .from('notes')
         .insert({
           title: textContent.split('\n')[0].slice(0, 100) || 'Untitled Note',
           content: [{ type: 'paragraph', content: textContent }],
-          user_id: user?.id,
+          user_id: user.id,
+          org_id: profile?.active_org_id || null,
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
+      }
 
       toast.success('Note created successfully!');
       queryClient.invalidateQueries({ queryKey: ['notes'] });
@@ -177,13 +193,19 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       onOpenChange(false);
     } catch (err) {
       console.error('Error creating note:', err);
-      toast.error('Failed to create note');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to create note';
+      toast.error(errorMsg);
     } finally {
       setAssistantStatus('idle');
     }
   }, [textContent, user, queryClient, handleClear, onOpenChange]);
 
   const callAITransform = async (intent: string) => {
+    if (!user) {
+      toast.error('Please sign in to use AI features');
+      return;
+    }
+
     if (!textContent.trim()) {
       toast.error('Please add some content first');
       return;
@@ -235,10 +257,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const micButtonBottom = isExpanded 
     ? Math.max(keyboardHeight + 20, 80) 
-    : 140; // Higher in compact mode to avoid overlap
+    : 140;
   const drawerHeight = isExpanded 
     ? keyboardHeight > 0 
-      ? `calc(100vh - ${keyboardHeight}px)` 
+      ? `min(100vh, calc(100vh - ${keyboardHeight}px))` 
       : '100vh'
     : '45vh';
 
@@ -263,7 +285,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         {!isExpanded && (
           <div className="flex flex-col h-full p-6 pb-20">
             {/* Drag Handle */}
-            <div className="flex justify-center mb-4">
+            <div 
+              className="flex justify-center mb-4 cursor-pointer"
+              onClick={handleMinimize}
+            >
               <div className="w-12 h-1 bg-muted-foreground/20 rounded-full" />
             </div>
 
@@ -432,9 +457,10 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
             {/* Bottom Actions */}
             <div 
-              className="shrink-0 flex gap-2 px-4 py-3 border-t border-border bg-background transition-transform duration-200"
+              className="shrink-0 flex gap-2 px-4 border-t border-border bg-background"
               style={{
-                transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
+                paddingTop: '12px',
+                paddingBottom: `${Math.max(keyboardHeight + 12, 12)}px`,
               }}
             >
               <Button

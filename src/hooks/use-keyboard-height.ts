@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export function useKeyboardHeight() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const visualViewport = window.visualViewport;
@@ -11,16 +12,19 @@ export function useKeyboardHeight() {
     }
 
     const handleResize = () => {
-      const currentHeight = window.innerHeight;
-      const viewportHeight = visualViewport.height;
-      const heightDiff = currentHeight - viewportHeight;
+      // Debounce to prevent rapid updates
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       
-      // If difference > 150px, keyboard is likely open
-      // Add extra offset for iOS keyboard accessory view
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const accessoryOffset = isIOS ? 50 : 0;
-      
-      setKeyboardHeight(heightDiff > 150 ? heightDiff + accessoryOffset : 0);
+      timeoutRef.current = setTimeout(() => {
+        const currentHeight = window.innerHeight;
+        const viewportHeight = visualViewport.height;
+        const heightDiff = currentHeight - viewportHeight;
+        
+        // If difference > 150px, keyboard is likely open
+        setKeyboardHeight(heightDiff > 150 ? heightDiff : 0);
+      }, 50);
     };
 
     visualViewport.addEventListener('resize', handleResize);
@@ -32,6 +36,9 @@ export function useKeyboardHeight() {
     return () => {
       visualViewport.removeEventListener('resize', handleResize);
       visualViewport.removeEventListener('scroll', handleResize);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 

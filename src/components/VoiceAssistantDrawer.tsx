@@ -1,58 +1,45 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mic, Loader2, Keyboard, Pause, Square, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { AssistantCharacter } from './AssistantCharacter';
-import { AIActionsMenu } from './AIActionsMenu';
-import { useVoiceRecording } from '@/hooks/use-voice-recording';
-import { useNotes } from '@/hooks/use-notes';
-import { transcribeAudio } from '@/lib/openai-service';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { saveOpenAIApiKey } from '@/lib/openai-service';
-import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { useVoiceRecording } from "@/hooks/use-voice-recording";
+import { transcribeAudio } from "@/lib/openai-service";
+import { useNotes } from "@/hooks/use-notes";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Mic, Loader2, ChevronDown, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AIActionsMenu } from "./AIActionsMenu";
 
 interface VoiceAssistantDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type AssistantState = 'idle' | 'listening' | 'processing' | 'complete' | 'error' | 'no-api-key';
-type InputMode = 'text' | 'voice';
+type AssistantState = 
+  | "idle"
+  | "recording"
+  | "processing"
+  | "complete"
+  | "error";
 
 export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawerProps) {
-  const navigate = useNavigate();
-  const [state, setState] = useState<AssistantState>('idle');
-  const [inputMode, setInputMode] = useState<InputMode>('voice');
-  const [textContent, setTextContent] = useState('');
-  const [transcription, setTranscription] = useState('');
-  const [error, setError] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [hasApiKey, setHasApiKey] = useState(false);
-  const [isTextMode, setIsTextMode] = useState(false);
-
+  const [state, setState] = useState<AssistantState>("idle");
+  const [textContent, setTextContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [aiChatInput, setAiChatInput] = useState("");
+  
   const { createNote } = useNotes();
-  const keyboardHeight = useKeyboardHeight();
-  const isKeyboardOpen = keyboardHeight > 0;
 
-  // Define recording complete handler before using it in the hook
-  const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
-    setState('processing');
+  const handleRecordingComplete = async (audioBlob: Blob) => {
+    setState("processing");
+    setError(null);
 
     try {
-      // Try to get API key from database first
       const { data: { user } } = await supabase.auth.getUser();
       let apiKey: string | null = null;
       
@@ -66,11 +53,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
         apiKey = data?.openai_api_key || null;
       }
       
-      // Fallback to localStorage
       if (!apiKey) {
         const storedApiKey = localStorage.getItem('openai_api_key');
         if (storedApiKey && storedApiKey !== '""' && storedApiKey !== 'null') {
-          // Remove quotes if present
           apiKey = storedApiKey.startsWith('"') ? JSON.parse(storedApiKey) : storedApiKey;
         }
       }
@@ -80,388 +65,372 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       }
 
       const result = await transcribeAudio(audioBlob, apiKey);
-      setTranscription(result.text);
-      
-      // Append to existing text instead of replacing
-      const newText = textContent 
-        ? `${textContent}\n\n${result.text}` 
-        : result.text;
-      setTextContent(newText);
-      
-      setState('complete');
-      setIsTextMode(true);
-      toast.success('Transcription complete!');
+      setTextContent(result.text);
+      setState("complete");
+      toast.success("Transcription complete");
     } catch (err) {
-      console.error('Transcription error:', err);
-      setState('error');
-      setError(err instanceof Error ? err.message : 'Failed to transcribe audio');
-      toast.error('Transcription failed', {
-        description: err instanceof Error ? err.message : 'Please try again',
-      });
+      console.error("Transcription error:", err);
+      setState("error");
+      setError(err instanceof Error ? err.message : "Transcription failed. Tap to retry recording.");
     }
-  }, [textContent]);
+  };
 
   const {
     recordingState,
     duration,
-    formattedDuration,
-    audioUrl,
     startRecording,
-    pauseRecording,
-    resumeRecording,
     stopRecording,
-    cancelRecording,
-    resetRecording,
   } = useVoiceRecording({
     onRecordingComplete: handleRecordingComplete,
-    onError: (error) => {
-      console.error('Recording error:', error);
-      setState('error');
-      setError(error.message);
-      toast.error('Recording failed', {
-        description: error.message,
-      });
-    },
   });
 
-  // Check for API key on mount
+  const isRecording = recordingState === 'recording';
+
+  useEffect(() => {
+    if (isRecording) {
+      setState("recording");
+    }
+  }, [isRecording]);
+
   useEffect(() => {
     const checkApiKey = async () => {
-      try {
-        // Try to get from database first
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from('user_preferences')
-            .select('openai_api_key')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (data?.openai_api_key) {
-            setHasApiKey(true);
-            setState('idle');
-            return;
-          }
-        }
-        
-        // Fallback to localStorage
-        const storedApiKey = localStorage.getItem('openai_api_key');
-        if (storedApiKey && storedApiKey !== '""' && storedApiKey !== 'null') {
-          setHasApiKey(true);
-          setState('idle');
-        } else {
-          setHasApiKey(false);
-          setState('no-api-key');
-        }
-      } catch (error) {
-        console.error('Error checking API key:', error);
-        setHasApiKey(false);
-        setState('no-api-key');
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("user_preferences")
+        .select("openai_api_key")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setHasApiKey(!!data?.openai_api_key);
     };
 
     if (open) {
       checkApiKey();
+      setIsExpanded(false);
     }
   }, [open]);
 
-  // Auto-start recording when drawer opens (if API key exists)
-  useEffect(() => {
-    if (open && hasApiKey && recordingState === 'idle' && state !== 'no-api-key' && !isTextMode) {
-      const timer = setTimeout(() => {
-        handleStartRecording();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [open, hasApiKey, recordingState, state, isTextMode]);
-
-  const resetState = () => {
-    setState('idle');
-    setInputMode('voice');
-    setTextContent('');
-    setTranscription('');
-    setError('');
-    setIsTextMode(false);
-  };
-
-  const handleStartRecording = () => {
-    setError('');
-    setIsTextMode(false);
-    setInputMode('voice');
-    setState('listening');
-    startRecording();
-  };
-
-  const handleStopRecording = () => {
-    stopRecording();
-  };
-
-  const handleCreateNote = async () => {
-    if (!textContent.trim()) {
-      toast.error('Please add some content first');
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      toast.error("Please enter an API key");
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error: saveError } = await supabase
+      .from("user_preferences")
+      .upsert({
+        user_id: user.id,
+        openai_api_key: apiKeyInput.trim(),
+      });
+
+    if (saveError) {
+      toast.error("Failed to save API key");
+      return;
+    }
+
+    setHasApiKey(true);
+    setApiKeyInput("");
+    toast.success("API key saved");
+  };
+
+  const handleMicClick = () => {
+    if (state === "processing") return;
+    
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+      setError(null);
+    }
+  };
+
+  const handleCreateNote = async () => {
+    if (!textContent.trim()) return;
+
     try {
       await createNote({
-        title: textContent.substring(0, 50) + (textContent.length > 50 ? '...' : ''),
-        content: { 
+        title: textContent.split('\n')[0].slice(0, 100) || "Voice Note",
+        content: {
           blocks: [
             {
               id: crypto.randomUUID(),
-              type: 'paragraph',
-              content: textContent
-            }
-          ]
+              type: "paragraph",
+              content: textContent,
+            },
+          ],
         },
       });
-
-      toast.success('Note created successfully!');
+      
+      toast.success("Note created");
+      handleReset();
       onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to create note:', error);
-      setState('error');
-      setError('Failed to create note');
-      toast.error('Failed to create note');
+    } catch (err) {
+      toast.error("Failed to create note");
     }
   };
 
   const handleReset = () => {
-    resetState();
-    setState('idle');
+    setTextContent("");
+    setError(null);
+    setState("idle");
   };
 
-  const handleClose = () => {
-    if (recordingState === 'recording' || recordingState === 'paused') {
-      cancelRecording();
-    }
-    resetState();
-    onOpenChange(false);
+  const handleRetry = () => {
+    setError(null);
+    setState("idle");
   };
 
-  const handleTypeInstead = () => {
-    // Set text mode FIRST so user can type immediately
-    setIsTextMode(true);
-    // Stop current recording and transcribe in background
-    if (recordingState === 'recording') {
-      stopRecording(); // This will trigger transcription and append to text
-    }
+  const getStatusText = () => {
+    if (state === "error") return "Something went wrong";
+    if (state === "recording") return `Listening… ${formatDuration(duration)}`;
+    if (state === "processing") return "Transcribing your voice…";
+    if (state === "complete") return "Transcription complete · Edit or create your note";
+    return "Ready to record";
   };
 
-  const handleResumeRecording = () => {
-    setIsTextMode(false);
-    if (recordingState === 'idle') {
-      handleStartRecording();
-    } else if (recordingState === 'paused') {
-      resumeRecording();
-    }
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      toast.error('Please enter an API key');
-      return;
-    }
-
-    try {
-      await saveOpenAIApiKey(apiKey);
-      setHasApiKey(true);
-      setState('idle');
-      toast.success('API key saved successfully!');
-    } catch (error) {
-      console.error('Failed to save API key:', error);
-      toast.error('Failed to save API key');
-    }
-  };
-
-  const getCharacterState = (): 'idle' | 'listening' | 'processing' | 'typing' | 'success' | 'error' | 'speaking' | 'paused' => {
-    if (state === 'no-api-key') return 'idle';
-    if (recordingState === 'paused') return 'paused';
-    if (isTextMode || textContent.length > 0) return 'typing';
-    if (state === 'listening' || recordingState === 'recording') return 'listening';
-    if (state === 'processing') return 'processing';
-    if (state === 'complete') return 'success';
-    if (state === 'error') return 'error';
-    return 'idle';
-  };
-
-  return (
-    <Drawer open={open} onOpenChange={onOpenChange} dismissible={false}>
-      <DrawerContent className="h-[50vh] max-h-[600px] md:right-4 md:left-auto md:w-[450px] md:rounded-lg md:bottom-4 pb-safe">
-        <DrawerHeader className="text-center pb-2 cursor-grab active:cursor-grabbing">
-          <div className="flex flex-col items-center gap-3">
-            <AssistantCharacter state={getCharacterState()} />
-            
-            {/* Recording controls - shown only when recording or paused */}
-            {(recordingState === 'recording' || recordingState === 'paused') && (
-              <div className="flex gap-2">
-                <Button
-                  size="icon"
-                  variant={recordingState === 'paused' ? 'default' : 'outline'}
-                  onClick={() => {
-                    if (recordingState === 'recording') {
-                      pauseRecording();
-                    } else if (recordingState === 'paused') {
-                      resumeRecording();
-                    }
-                  }}
-                  className={cn(
-                    "h-12 w-12 rounded-full",
-                    recordingState === 'recording' && "animate-pulse"
-                  )}
-                >
-                  {recordingState === 'paused' ? (
-                    <Mic className="h-5 w-5" />
-                  ) : (
-                    <Pause className="h-5 w-5" />
-                  )}
-                </Button>
-                
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  onClick={handleStopRecording}
-                  className="h-12 w-12 rounded-full"
-                >
-                  <Square className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
+  // API Key Setup View
+  if (hasApiKey === false) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="fixed inset-x-0 bottom-0 z-50 rounded-t-[20px] h-[45vh] max-h-[600px]">
+          <div className="flex justify-center pt-2">
+            <div className="w-[100px] h-1.5 rounded-full bg-muted" />
           </div>
-          
-          <DrawerTitle className="text-2xl mt-4">AI Assistant</DrawerTitle>
-          <DrawerDescription>
-            {state === 'no-api-key' && 'Configure your OpenAI API key to get started'}
-            {state === 'idle' && recordingState === 'idle' && 'Ready to listen!'}
-            {recordingState === 'recording' && `Recording... ${formattedDuration}`}
-            {recordingState === 'paused' && `Paused at ${formattedDuration}`}
-            {state === 'processing' && 'Transcribing your voice...'}
-            {state === 'complete' && 'Transcription complete! Edit or create your note'}
-            {state === 'error' && 'Oops! Something went wrong'}
-          </DrawerDescription>
-        </DrawerHeader>
 
-        <div className="flex-1 px-4 overflow-y-auto">
-          {state === 'no-api-key' ? (
-            <div className="space-y-4 max-w-md mx-auto">
-              <p className="text-sm text-muted-foreground text-center">
-                You'll need an OpenAI API key to use voice transcription.
+          <div className="flex items-start gap-3 p-4 border-b">
+            <img src="/ai-bot.svg" alt="AI Assistant" className="w-8 h-8 ai-bot-avatar" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base">AI Assistant</h3>
+              <p className="text-sm text-muted-foreground">Setup required</p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                To use voice transcription, please enter your OpenAI API key:
               </p>
               <Input
                 type="password"
                 placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                className="w-full"
               />
-              <Button onClick={handleSaveApiKey} className="w-full">
-                Save API Key
-              </Button>
             </div>
-          ) : state === 'error' ? (
-            <div className="text-center space-y-4">
-              <p className="text-destructive">{error}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* "Type Instead" button during recording */}
-              {(recordingState === 'recording' || recordingState === 'paused') && (
-                <Button
-                  variant="outline"
-                  onClick={handleTypeInstead}
-                  className="w-full"
-                >
-                  <Keyboard className="h-4 w-4 mr-2" />
-                  Type Instead
-                </Button>
-              )}
+          </div>
 
-              {/* Text Input Area - show when in text mode or not recording */}
-              {(isTextMode || recordingState === 'idle' || state === 'complete') && (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Textarea
-                      placeholder="Type or tap the mic to speak..."
-                      value={textContent}
-                      onChange={(e) => setTextContent(e.target.value)}
-                      className="min-h-[120px] pr-12 resize-none"
-                      disabled={state === 'processing'}
-                      autoFocus={isTextMode}
-                    />
-                    
-                    {/* Voice Button Overlay */}
-                    <div className="absolute bottom-3 right-3">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleStartRecording}
-                        disabled={state === 'processing'}
-                        className="h-8 w-8 hover:bg-primary/10"
-                      >
-                        <Mic className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* AI Actions Menu */}
-                  {textContent.trim() && (
-                    <AIActionsMenu
-                      currentText={textContent}
-                      onTextUpdate={(newText, replace) => {
-                        if (replace) {
-                          setTextContent(newText);
-                        } else {
-                          setTextContent(textContent + '\n\n' + newText);
-                        }
-                      }}
-                      disabled={state === 'processing'}
-                    />
-                  )}
-                  
-                  {/* Character count */}
-                  {textContent.length > 0 && (
-                    <p className="text-xs text-muted-foreground text-right">
-                      {textContent.length} characters
-                    </p>
-                  )}
-                </div>
-              )}
+          <div className="space-y-2 px-4 pb-4 border-t pt-4">
+            <Button onClick={handleSaveApiKey} className="w-full">
+              Save API Key
+            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+              Cancel
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Compact View Component
+  const CompactView = () => (
+    <>
+      <div className="flex items-start gap-3 p-4 border-b">
+        <img src="/ai-bot.svg" alt="AI Assistant" className="w-8 h-8 ai-bot-avatar" />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-base">AI Assistant</h3>
+          <p className={cn(
+            "text-sm",
+            state === "error" ? "text-amber-600" : "text-muted-foreground"
+          )}>
+            {getStatusText()}
+          </p>
+          {state === "error" && error && (
+            <div className="text-sm text-muted-foreground mt-1">
+              {error}
+              <button 
+                onClick={handleRetry} 
+                className="ml-2 underline hover:text-amber-700"
+              >
+                Retry
+              </button>
             </div>
           )}
         </div>
+      </div>
 
-        <DrawerFooter className="pt-3 pb-2">
-          {state === 'no-api-key' ? (
-            <Button variant="outline" onClick={handleClose} className="w-full">
-              Close
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <Textarea
+          placeholder="Start speaking or type to add a note…"
+          value={textContent}
+          onChange={(e) => setTextContent(e.target.value)}
+          className="min-h-[140px] rounded-lg resize-none"
+          disabled={state === "processing"}
+        />
+
+        {textContent.trim() && (
+          <AIActionsMenu
+            currentText={textContent}
+            onTextUpdate={(newText, replace) => {
+              setTextContent(replace ? newText : textContent + '\n\n' + newText);
+            }}
+            disabled={state === "processing"}
+          />
+        )}
+      </div>
+
+      <div className="space-y-2 px-4 pb-4 border-t pt-4">
+        <Button 
+          onClick={handleCreateNote} 
+          disabled={!textContent.trim() || state === "processing"} 
+          className="w-full"
+        >
+          Create Note
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={handleReset} 
+          className="w-full"
+          disabled={state === "processing"}
+        >
+          Clear
+        </Button>
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="w-full text-sm text-primary hover:underline py-2"
+        >
+          Open AI Workspace
+        </button>
+      </div>
+
+      {/* Mic Button */}
+      <button
+        onClick={handleMicClick}
+        disabled={state === "processing"}
+        className={cn(
+          "absolute bottom-4 right-4 h-12 w-12 rounded-full",
+          "flex items-center justify-center transition-all",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          isRecording
+            ? "bg-primary/10 text-primary animate-pulse"
+            : "bg-card border border-input hover:bg-muted"
+        )}
+      >
+        {state === "processing" ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Mic className="h-5 w-5" />
+        )}
+      </button>
+
+      {/* Timer overlay */}
+      {isRecording && (
+        <div className="absolute bottom-16 right-4 bg-background/90 border rounded-md px-2 py-1 text-xs font-mono shadow-sm">
+          {formatDuration(duration)}
+        </div>
+      )}
+    </>
+  );
+
+  // Expanded View Component
+  const ExpandedView = () => (
+    <>
+      <div className="flex items-center justify-between h-14 px-4 border-b">
+        <button 
+          onClick={() => setIsExpanded(false)}
+          className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
+        >
+          <ChevronDown className="h-4 w-4" />
+          Done
+        </button>
+        <h2 className="font-semibold">AI Workspace</h2>
+        <div className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">
+          ordersnapr.com · Private
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex items-start gap-2">
+          <img src="/ai-bot.svg" alt="AI Assistant" className="w-6 h-6 mt-1" />
+          <Textarea
+            value={textContent}
+            onChange={(e) => setTextContent(e.target.value)}
+            className="flex-1 min-h-[200px] rounded-lg resize-none"
+            placeholder="Your content here…"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground">AI Suggestions</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
+              Summarize this
             </Button>
-          ) : state === 'complete' || textContent.length > 0 ? (
-            <div className="flex gap-2 w-full">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
-                Clear
-              </Button>
-              <Button 
-                onClick={handleCreateNote} 
-                className="flex-1"
-                disabled={!textContent.trim()}
-              >
-                Create Note
-              </Button>
-            </div>
-          ) : state === 'error' ? (
-            <div className="flex gap-2 w-full">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
-                Try Again
-              </Button>
-              <Button variant="outline" onClick={handleClose} className="flex-1">
-                Close
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={handleClose} className="w-full">
-              Close
+            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
+              Create Quick Note
             </Button>
-          )}
-        </DrawerFooter>
+            <Button variant="outline" size="sm" onClick={() => {/* TODO: Implement */}}>
+              Highlight action items
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t p-3 flex items-center gap-2">
+        <Input
+          placeholder="Ask, refine, or make changes…"
+          value={aiChatInput}
+          onChange={(e) => setAiChatInput(e.target.value)}
+          className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              // TODO: Handle AI chat
+            }
+          }}
+        />
+        <Button size="icon" disabled={!aiChatInput.trim()}>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <Drawer 
+      open={open} 
+      onOpenChange={onOpenChange}
+      dismissible={!isExpanded}
+      shouldScaleBackground={false}
+    >
+      <DrawerContent 
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50",
+          isExpanded 
+            ? "h-screen rounded-t-none" 
+            : "h-[45vh] max-h-[600px] rounded-t-[20px]",
+          "transition-all duration-300 ease-in-out"
+        )}
+      >
+        {!isExpanded && (
+          <div className="flex justify-center pt-2">
+            <div className="w-[100px] h-1.5 rounded-full bg-muted" />
+          </div>
+        )}
+        
+        {isExpanded ? <ExpandedView /> : <CompactView />}
       </DrawerContent>
     </Drawer>
   );

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Mic, ChevronDown, FileText, Briefcase, Plus, CheckSquare, FileEdit, MessageSquare } from "lucide-react";
+import { Mic, ChevronLeft, FileText, Briefcase, Plus, CheckSquare, FileEdit, MessageSquare } from "lucide-react";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { SimpleAvatar } from "./SimpleAvatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotes } from "@/hooks/use-notes";
 import { cn } from "@/lib/utils";
 import { transcribeAudio, getOpenAIApiKey } from "@/lib/openai-service";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 type AssistantStatus = "idle" | "thinking" | "sleeping" | "error";
 type Mode = "resting" | "listening" | "typing";
@@ -24,11 +24,31 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   const [mode, setMode] = useState<Mode>("resting");
   const [textContent, setTextContent] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
+  const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const { createNote } = useNotes();
+  const keyboardHeight = useKeyboardHeight();
 
   const sleepTimeoutRef = useRef<NodeJS.Timeout>();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [open]);
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setAssistantStatus("thinking");
@@ -85,10 +105,9 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
       if (mode === "resting" && !isProcessing) {
         setAssistantStatus("sleeping");
       }
-    }, 60000); // 60 seconds
+    }, 60000);
   };
 
-  // Initialize and cleanup sleep timer
   useEffect(() => {
     if (open) {
       resetSleepTimer();
@@ -113,23 +132,20 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextContent(e.target.value);
-    // Don't call setAssistantStatus here - let mode control it
     resetSleepTimer();
   };
 
   const handleTextFocus = () => {
     setMode("typing");
+    setIsExpanded(true);
     if (isRecording) {
-      stopRecording(); // Stop mic immediately when focusing text
+      stopRecording();
     }
     resetSleepTimer();
   };
 
   const handleTextBlur = () => {
-    // Keep mode as resting, don't collapse keyboard
-    if (mode === "typing") {
-      setMode("resting");
-    }
+    // Don't change mode or collapse
   };
 
   const handleClear = () => {
@@ -179,15 +195,6 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleCreateWorkOrder = async () => {
-    if (!textContent.trim()) {
-      toast({
-        title: "No content",
-        description: "Please add some text first",
-        variant: "destructive",
-      });
-      return;
-    }
-
     toast({
       title: "Work Order",
       description: "Work order creation coming soon",
@@ -195,15 +202,6 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
   };
 
   const handleAddJob = async () => {
-    if (!textContent.trim()) {
-      toast({
-        title: "No content",
-        description: "Please add some text first",
-        variant: "destructive",
-      });
-      return;
-    }
-
     toast({
       title: "Job",
       description: "Job creation coming soon",
@@ -255,230 +253,236 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
     if (assistantStatus === "sleeping") return "sleeping";
     if (assistantStatus === "thinking") return "thinking";
     if (mode === "listening") return "listening";
-    return "neutral"; // resting or typing
+    return "neutral";
   };
 
   const getStatusText = () => {
     if (error) return error;
     if (mode === "listening") return `Listening… ${formattedDuration}`;
-    if (isProcessing) return "Thinking…";
+    if (assistantStatus === "thinking") return "Thinking…";
     if (assistantStatus === "sleeping") return "Resting…";
     return "Tap to speak or type below";
   };
 
-  const CompactView = () => (
-    <div className="flex flex-col h-[45vh] bg-background relative">
-      {/* Drag Handle */}
-      <div className="flex justify-center py-2">
-        <div className="w-12 h-1 bg-muted-foreground/20 rounded-full" />
-      </div>
+  if (!open) return null;
 
-      {/* Avatar and Title */}
-      <div className="flex flex-col items-center gap-3 px-6 pt-2 pb-4">
-        <SimpleAvatar mood={getAvatarMood()} size={80} />
-        <div className="text-center">
-          <h3 className="text-lg font-semibold">AI Assistant</h3>
-          <p className="text-sm text-muted-foreground">{getStatusText()}</p>
-        </div>
-      </div>
-
-      {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-20">
-        {/* Text Area */}
-        <Textarea
-          value={textContent}
-          onChange={handleTextChange}
-          onFocus={handleTextFocus}
-          onBlur={handleTextBlur}
-          placeholder="Transcribed text will appear here, or type directly…"
-          className="min-h-[80px] resize-none"
-        />
-
-        {/* AI Suggestions - Limited in compact mode */}
-        {textContent && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-muted-foreground">AI Suggestions</h4>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCreateNote}
-                className="w-full justify-start"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Save to Quick Note
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCreateWorkOrder}
-                className="w-full justify-start"
-              >
-                <Briefcase className="w-4 h-4 mr-2" />
-                Create Work Order
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 border-t bg-background space-y-3">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleClear} className="flex-1">
-            Clear
-          </Button>
-          <Button onClick={handleCreateNote} className="flex-1">
-            Create Note
-          </Button>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={() => setIsExpanded(true)}
-          className="w-full text-sm text-muted-foreground"
-        >
-          Open AI Workspace
-        </Button>
-      </div>
-
-      {/* Mic Button - Inside drawer */}
-      <button
-        onClick={handleMicClick}
-        disabled={isProcessing}
-        className={cn(
-          "mic-button absolute bottom-28 right-6",
-          mode === "listening" && "mic-button--recording",
-          isProcessing && "mic-button--disabled"
-        )}
-      >
-        <Mic className="w-5 h-5" />
-      </button>
-    </div>
-  );
-
-  const ExpandedView = () => (
-    <div className="flex flex-col h-[85vh] bg-background relative">
-      {/* Header with collapse button */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
-        <Button variant="ghost" size="sm" onClick={() => setIsExpanded(false)}>
-          <ChevronDown className="w-4 h-4 mr-2" />
-          Done
-        </Button>
-        <h2 className="text-lg font-semibold">AI Workspace</h2>
-        <div className="w-20" /> {/* Spacer for centering */}
-      </div>
-
-      {/* Avatar */}
-      <div className="flex justify-center px-6 pt-4 pb-2">
-        <SimpleAvatar mood={getAvatarMood()} size={96} />
-      </div>
-      
-      <div className="text-center px-6 pb-4">
-        <p className="text-sm text-muted-foreground">{getStatusText()}</p>
-      </div>
-
-      {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 space-y-6 pb-24">
-        {/* Large Text Area */}
-        <Textarea
-          value={textContent}
-          onChange={handleTextChange}
-          onFocus={handleTextFocus}
-          onBlur={handleTextBlur}
-          placeholder="Continue writing or start fresh…"
-          className="min-h-[180px] resize-none text-base"
-        />
-
-        {/* AI Suggestions */}
-        {textContent && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">AI SUGGESTIONS</h4>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                onClick={handleCreateNote}
-                className="w-full justify-start h-auto py-3"
-              >
-                <FileText className="w-5 h-5 mr-3" />
-                <span className="text-base">Save to Quick Note</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleCreateWorkOrder}
-                className="w-full justify-start h-auto py-3"
-              >
-                <Briefcase className="w-5 h-5 mr-3" />
-                <span className="text-base">Create Work Order</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleAddJob}
-                className="w-full justify-start h-auto py-3"
-              >
-                <Plus className="w-5 h-5 mr-3" />
-                <span className="text-base">Add Job</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleTurnIntoChecklist}
-                className="w-full justify-start h-auto py-3"
-              >
-                <CheckSquare className="w-5 h-5 mr-3" />
-                <span className="text-base">Turn into checklist</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSummarize}
-                className="w-full justify-start h-auto py-3"
-              >
-                <FileEdit className="w-5 h-5 mr-3" />
-                <span className="text-base">Summarize key points</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDraftCustomerMessage}
-                className="w-full justify-start h-auto py-3"
-              >
-                <MessageSquare className="w-5 h-5 mr-3" />
-                <span className="text-base">Draft customer message</span>
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 border-t bg-background">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleClear} className="flex-1">
-            Clear
-          </Button>
-          <Button onClick={handleCreateNote} className="flex-1">
-            Create Note
-          </Button>
-        </div>
-      </div>
-
-      {/* Mic Button - Inside drawer */}
-      <button
-        onClick={handleMicClick}
-        disabled={isProcessing}
-        className={cn(
-          "mic-button absolute bottom-24 right-6",
-          mode === "listening" && "mic-button--recording",
-          isProcessing && "mic-button--disabled"
-        )}
-      >
-        <Mic className="w-5 h-5" />
-      </button>
-    </div>
-  );
+  const sheetHeight = isExpanded 
+    ? `calc(100vh - ${keyboardHeight}px)` 
+    : '45vh';
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
-        {isExpanded ? <ExpandedView /> : <CompactView />}
-      </DrawerContent>
-    </Drawer>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={() => onOpenChange(false)}
+      />
+
+      {/* Bottom Sheet */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl shadow-2xl z-50 flex flex-col transition-all duration-300"
+        style={{ height: sheetHeight }}
+      >
+        {/* Drag Handle */}
+        <div className="flex justify-center py-3 flex-shrink-0">
+          <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full" />
+        </div>
+
+        {!isExpanded ? (
+          // COMPACT VIEW
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Header with Avatar */}
+            <div className="flex flex-col items-center gap-2 px-6 pb-4 flex-shrink-0">
+              <SimpleAvatar mood={getAvatarMood()} size={64} />
+              <div className="text-center">
+                <h3 className="text-base font-semibold">AI Assistant</h3>
+                <p className="text-sm text-muted-foreground">{getStatusText()}</p>
+              </div>
+            </div>
+
+            {/* Single-line text input */}
+            <div className="px-6 pb-4 flex-shrink-0">
+              <Textarea
+                ref={textareaRef}
+                value={textContent}
+                onChange={handleTextChange}
+                onFocus={handleTextFocus}
+                onBlur={handleTextBlur}
+                placeholder="Transcribed text will appear here, or type directly…"
+                className="min-h-[44px] max-h-[44px] resize-none"
+                rows={1}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 space-y-3 flex-shrink-0">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleClear} className="flex-1">
+                  Clear
+                </Button>
+                <Button onClick={handleCreateNote} className="flex-1" disabled={!textContent.trim()}>
+                  Create Note
+                </Button>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() => setIsExpanded(true)}
+                className="w-full text-sm text-muted-foreground"
+              >
+                Open AI Workspace
+              </Button>
+            </div>
+
+            {/* Mic Button */}
+            <button
+              onClick={handleMicClick}
+              disabled={isProcessing}
+              className={cn(
+                "mic-button absolute bottom-6 right-6",
+                mode === "listening" && "mic-button--recording",
+                isProcessing && "mic-button--disabled"
+              )}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          // EXPANDED VIEW
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center px-4 py-3 border-b flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setIsExpanded(false);
+                  textareaRef.current?.blur();
+                }}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Done
+              </Button>
+              <h2 className="flex-1 text-center font-semibold pr-16">AI Workspace</h2>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex justify-center px-6 pt-4 pb-2 flex-shrink-0">
+              <SimpleAvatar mood={getAvatarMood()} size={80} />
+            </div>
+            
+            <div className="text-center px-6 pb-3 flex-shrink-0">
+              <p className="text-sm text-muted-foreground">{getStatusText()}</p>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto px-6 pb-24">
+              {/* Large Text Area */}
+              <Textarea
+                ref={textareaRef}
+                value={textContent}
+                onChange={handleTextChange}
+                onFocus={handleTextFocus}
+                onBlur={handleTextBlur}
+                placeholder="Continue writing or start fresh…"
+                className="min-h-[180px] resize-none text-base mb-6"
+              />
+
+              {/* AI Suggestions */}
+              {textContent && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Suggestions</h4>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleCreateNote}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <FileText className="w-5 h-5 mr-3" />
+                      <span className="text-base">Save to Quick Note</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCreateWorkOrder}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <Briefcase className="w-5 h-5 mr-3" />
+                      <span className="text-base">Create Work Order</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleAddJob}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <Plus className="w-5 h-5 mr-3" />
+                      <span className="text-base">Add Job</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleTurnIntoChecklist}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <CheckSquare className="w-5 h-5 mr-3" />
+                      <span className="text-base">Turn into checklist</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleSummarize}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <FileEdit className="w-5 h-5 mr-3" />
+                      <span className="text-base">Summarize key points</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDraftCustomerMessage}
+                      className="w-full justify-start h-auto py-3"
+                    >
+                      <MessageSquare className="w-5 h-5 mr-3" />
+                      <span className="text-base">Draft customer message</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Actions - Fixed above keyboard */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background flex-shrink-0"
+              style={{ 
+                transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
+                transition: 'transform 0.2s ease-out'
+              }}
+            >
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleClear} className="flex-1">
+                  Clear
+                </Button>
+                <Button onClick={handleCreateNote} className="flex-1" disabled={!textContent.trim()}>
+                  Create Note
+                </Button>
+              </div>
+            </div>
+
+            {/* Mic Button */}
+            <button
+              onClick={handleMicClick}
+              disabled={isProcessing || mode === "typing"}
+              className={cn(
+                "mic-button absolute right-6",
+                mode === "listening" && "mic-button--recording",
+                (isProcessing || mode === "typing") && "mic-button--disabled"
+              )}
+              style={{ 
+                bottom: keyboardHeight > 0 ? `${keyboardHeight + 80}px` : '80px',
+                transition: 'bottom 0.2s ease-out'
+              }}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

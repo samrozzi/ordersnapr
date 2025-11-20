@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.cleanup-expired-archives]
 verify_jwt = false
+
+[functions.ai-text-transform]
+verify_jwt = true

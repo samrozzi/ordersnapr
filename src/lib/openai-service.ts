@@ -29,8 +29,14 @@ export async function transcribeAudio(
   }
 
   try {
-    // Convert blob to File (required by OpenAI API)
-    const audioFile = new File([audioBlob], 'recording.webm', {
+    // Detect the actual mime type and set correct extension
+    const extension = audioBlob.type.includes('mp4') ? 'mp4' 
+      : audioBlob.type.includes('webm') ? 'webm' 
+      : audioBlob.type.includes('wav') ? 'wav'
+      : 'mp3';
+    
+    // Convert blob to File (required by OpenAI API) with correct extension
+    const audioFile = new File([audioBlob], `recording.${extension}`, {
       type: audioBlob.type,
     });
 

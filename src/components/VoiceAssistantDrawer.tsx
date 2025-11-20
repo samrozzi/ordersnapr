@@ -13,6 +13,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { AssistantCharacter } from './AssistantCharacter';
+import { AIActionsMenu } from './AIActionsMenu';
 import { useVoiceRecording } from '@/hooks/use-voice-recording';
 import { useNotes } from '@/hooks/use-notes';
 import { transcribeAudio } from '@/lib/openai-service';
@@ -376,36 +377,53 @@ export function VoiceAssistantDrawer({ open, onOpenChange }: VoiceAssistantDrawe
 
               {/* Text Input Area - show when in text mode or not recording */}
               {(isTextMode || recordingState === 'idle' || state === 'complete') && (
-                <div className="relative">
-                  <Textarea
-                    placeholder="Type or tap the mic to speak..."
-                    value={textContent}
-                    onChange={(e) => setTextContent(e.target.value)}
-                    className="min-h-[120px] pr-12 resize-none"
-                    disabled={state === 'processing'}
-                    autoFocus={isTextMode}
-                  />
-                  
-                  {/* Voice Button Overlay */}
-                  <div className="absolute bottom-3 right-3">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={handleStartRecording}
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Type or tap the mic to speak..."
+                      value={textContent}
+                      onChange={(e) => setTextContent(e.target.value)}
+                      className="min-h-[120px] pr-12 resize-none"
                       disabled={state === 'processing'}
-                      className="h-8 w-8 hover:bg-primary/10"
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
+                      autoFocus={isTextMode}
+                    />
+                    
+                    {/* Voice Button Overlay */}
+                    <div className="absolute bottom-3 right-3">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleStartRecording}
+                        disabled={state === 'processing'}
+                        className="h-8 w-8 hover:bg-primary/10"
+                      >
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
+                  
+                  {/* AI Actions Menu */}
+                  {textContent.trim() && (
+                    <AIActionsMenu
+                      currentText={textContent}
+                      onTextUpdate={(newText, replace) => {
+                        if (replace) {
+                          setTextContent(newText);
+                        } else {
+                          setTextContent(textContent + '\n\n' + newText);
+                        }
+                      }}
+                      disabled={state === 'processing'}
+                    />
+                  )}
+                  
+                  {/* Character count */}
+                  {textContent.length > 0 && (
+                    <p className="text-xs text-muted-foreground text-right">
+                      {textContent.length} characters
+                    </p>
+                  )}
                 </div>
-              )}
-              
-              {/* Character count */}
-              {textContent.length > 0 && recordingState === 'idle' && (
-                <p className="text-xs text-muted-foreground text-right">
-                  {textContent.length} characters
-                </p>
               )}
             </div>
           )}

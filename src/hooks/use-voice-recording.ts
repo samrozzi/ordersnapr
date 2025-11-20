@@ -45,10 +45,12 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
 
-      // Create MediaRecorder
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+      // Create MediaRecorder - prioritize mp4 for better compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
-        : 'audio/mp4';
+        : 'audio/wav';
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;

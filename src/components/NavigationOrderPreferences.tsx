@@ -75,7 +75,7 @@ export function NavigationOrderPreferences() {
   const [userId, setUserId] = useState<string | null>(null);
   const { activeOrg } = useActiveOrg();
   const workspaceId = activeOrg?.id ?? null;
-  const { data: preferences } = useUserPreferences(userId);
+  const { data: preferences } = useUserPreferences(userId, workspaceId);
   const updatePreferences = useUpdateUserPreferences();
   const { enabledNavItems } = useFeatureNavigation();
   const [navItems, setNavItems] = useState<NavItem[]>([]);

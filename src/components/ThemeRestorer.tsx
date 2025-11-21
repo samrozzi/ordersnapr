@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 /**
  * Component that can be used to restore user preferences from database
@@ -9,7 +10,8 @@ import { useUserPreferences } from "@/hooks/use-user-preferences";
  */
 export function ThemeRestorer() {
   const [userId, setUserId] = useState<string | null>(null);
-  const { data: userPreferences } = useUserPreferences(userId);
+  const { activeOrg } = useActiveOrg();
+  const { data: userPreferences } = useUserPreferences(userId, activeOrg?.id || null);
 
   // Get user ID
   useEffect(() => {

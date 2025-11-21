@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { VoiceAssistantDrawer } from './VoiceAssistantDrawer';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
+import { useActiveOrg } from '@/hooks/use-active-org';
 
 export function VoiceAssistantButton() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
-  const { data: userPreferences, isLoading } = useUserPreferences(user?.id || null);
+  const { activeOrg } = useActiveOrg();
+  const { data: userPreferences, isLoading } = useUserPreferences(user?.id || null, activeOrg?.id || null);
 
   // Don't render until preferences are loaded
   if (isLoading || !user) {

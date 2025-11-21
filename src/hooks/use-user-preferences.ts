@@ -19,9 +19,11 @@ export interface UserPreferences {
   updated_at: string;
 }
 
-export const useUserPreferences = (userId: string | null) => {
+export const useUserPreferences = (userId: string | null, activeOrgId?: string | null) => {
+  const workspaceId = activeOrgId || null;
+  
   return useQuery({
-    queryKey: ["user-preferences", userId],
+    queryKey: ["user-preferences", userId, workspaceId],
     queryFn: async () => {
       if (!userId) return null;
 
@@ -29,17 +31,14 @@ export const useUserPreferences = (userId: string | null) => {
         .from("user_preferences")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
 
       if (error) {
-        // If no row found, return null to allow first insert
-        if (error.code === "PGRST116") {
-          return null;
-        }
         throw error;
       }
 
-      return data as UserPreferences;
+      return data as UserPreferences | null;
     },
     enabled: !!userId,
     retry: false,
@@ -89,7 +88,7 @@ export const useUpdateUserPreferences = () => {
       const { data, error } = await supabase
         .from("user_preferences")
         .upsert(updateData, {
-          onConflict: 'user_id'
+          onConflict: 'user_id,workspace_id'
         })
         .select()
         .single();
@@ -98,12 +97,13 @@ export const useUpdateUserPreferences = () => {
       return data;
     },
     onSuccess: async (data, variables) => {
+      const workspaceId = variables.workspaceId || null;
       // CRITICAL: Force immediate refetch to prevent stale UI
-      await queryClient.cancelQueries({ queryKey: ["user-preferences", variables.userId] });
-      queryClient.setQueryData(["user-preferences", variables.userId], data);
-      await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId] });
+      await queryClient.cancelQueries({ queryKey: ["user-preferences", variables.userId, workspaceId] });
+      queryClient.setQueryData(["user-preferences", variables.userId, workspaceId], data);
+      await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId, workspaceId] });
       await queryClient.refetchQueries({ 
-        queryKey: ["user-preferences", variables.userId],
+        queryKey: ["user-preferences", variables.userId, workspaceId],
         exact: true 
       });
     },

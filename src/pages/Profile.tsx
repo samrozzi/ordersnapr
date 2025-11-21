@@ -17,6 +17,7 @@ import { ProfileFavoritesTab } from "./ProfileFavoritesTab";
 import { UnifiedPreferences } from "@/components/UnifiedPreferences";
 import { useUserPreferences, useUpdateUserPreferences } from "@/hooks/use-user-preferences";
 import { AIProviderSetupDialog } from "@/components/AIProviderSetupDialog";
+import { useActiveOrg } from "@/hooks/use-active-org";
 
 interface AuditLog {
   id: string;
@@ -82,8 +83,9 @@ const Profile = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
   const [showAIProviderDialog, setShowAIProviderDialog] = useState(false);
+  const { activeOrg } = useActiveOrg();
 
-  const { data: userPreferences } = useUserPreferences(userId || null);
+  const { data: userPreferences } = useUserPreferences(userId || null, activeOrg?.id || null);
   const updatePreferences = useUpdateUserPreferences();
   const setUsernameMutation = useSetUsername();
 

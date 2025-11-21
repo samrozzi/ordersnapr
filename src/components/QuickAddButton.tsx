@@ -61,10 +61,10 @@ export function QuickAddButton() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
-  const { data: userPreferences, isLoading: prefsLoading } = useUserPreferences(user?.id || null);
+  const { activeOrg, activeOrgId } = useActiveOrg();
+  const { data: userPreferences, isLoading: prefsLoading } = useUserPreferences(user?.id || null, activeOrgId || null);
   const { isAtLimit } = useFreeTierLimits();
   const { enabledNavItems } = useFeatureNavigation();
-  const { activeOrgId } = useActiveOrg();
   const { canCreateNote, createNote } = useNotes();
 
   // Helper function to get org-aware localStorage key

@@ -20,14 +20,15 @@ export function MigrationStatus() {
         return;
       }
 
-      // Try to insert/update with openai_api_key column
+      // Try to insert/update with the correct conflict spec
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
           user_id: user.id,
-          openai_api_key: null, // Test write
+          workspace_id: null,
+          voice_assistant_enabled: true,
         }, {
-          onConflict: 'user_id'
+          onConflict: 'user_id,workspace_id'
         });
 
       if (error) {

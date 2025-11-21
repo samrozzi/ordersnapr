@@ -22,6 +22,7 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const maxDurationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isStoppingRef = useRef(false);
 
   // Auto-stop recording after max duration
   useEffect(() => {
@@ -32,7 +33,28 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
       if (remaining > 0) {
         maxDurationTimeoutRef.current = setTimeout(() => {
           console.warn('⚠️ Max recording duration (5 minutes) reached, stopping automatically');
-          stopRecording();
+          
+          // Stop recording directly without calling the function to avoid recursion
+          if (mediaRecorderRef.current && !isStoppingRef.current) {
+            isStoppingRef.current = true;
+            setRecordingState('processing');
+            
+            if (mediaRecorderRef.current.state === 'paused') {
+              mediaRecorderRef.current.resume();
+            }
+            
+            mediaRecorderRef.current.stop();
+            
+            if (durationIntervalRef.current) {
+              clearInterval(durationIntervalRef.current);
+              durationIntervalRef.current = null;
+            }
+            
+            // Reset flag after a delay
+            setTimeout(() => {
+              isStoppingRef.current = false;
+            }, 1000);
+          }
         }, remaining);
       }
       
@@ -159,7 +181,13 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   }, [recordingState]);
 
   const stopRecording = useCallback(() => {
+    if (isStoppingRef.current) {
+      console.log('Stop already in progress, ignoring duplicate call');
+      return;
+    }
+    
     if (mediaRecorderRef.current && (recordingState === 'recording' || recordingState === 'paused')) {
+      isStoppingRef.current = true;
       setRecordingState('processing');
       
       // Resume if paused before stopping (otherwise onstop won't fire with data)
@@ -174,6 +202,11 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
         clearInterval(durationIntervalRef.current);
         durationIntervalRef.current = null;
       }
+      
+      // Reset flag after a delay
+      setTimeout(() => {
+        isStoppingRef.current = false;
+      }, 1000);
     }
   }, [recordingState]);
 

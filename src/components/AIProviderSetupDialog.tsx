@@ -8,6 +8,7 @@ import { CheckCircle2, XCircle, Sparkles, Key, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateUserPreferences } from '@/hooks/use-user-preferences';
 import { useAuth } from '@/hooks/use-auth';
+import { useActiveOrg } from '@/hooks/use-active-org';
 
 interface AIProviderSetupDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
   const { toast } = useToast();
   const updatePreferences = useUpdateUserPreferences();
   const { user } = useAuth();
+  const { activeOrg } = useActiveOrg();
 
   const handleSelectLovable = async () => {
     if (!user) return;
@@ -32,6 +34,7 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
         userId: user.id,
         aiProvider: 'lovable',
         aiProviderConfigured: true,
+        workspaceId: activeOrg?.id || null,
       });
       
       // Clear cached provider info
@@ -84,6 +87,7 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
         aiProvider: 'openai',
         aiProviderConfigured: true,
         openaiApiKey: apiKey,
+        workspaceId: activeOrg?.id || null,
       });
       
       // Clear cached provider info

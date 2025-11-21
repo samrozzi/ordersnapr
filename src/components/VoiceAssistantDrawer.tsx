@@ -123,7 +123,7 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
 
     try {
       console.log(`🔄 [${timestamp}] Starting transcription with ${userPreferences?.ai_provider || 'default'}...`);
-      const result = await transcribeAudio(audioBlob);
+      const result = await transcribeAudio(audioBlob, activeOrg?.id || null);
       const endTimestamp = new Date().toISOString();
       console.log(`✅ [${endTimestamp}] Transcription complete:`, {
         text: result.text,

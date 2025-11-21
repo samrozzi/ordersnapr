@@ -189,6 +189,9 @@ export const generateFormPDF = async (
               } else if (statusStr === 'N/A') {
                 responseText = 'N/A';
                 responseColor = [107, 114, 128];
+              } else if (statusStr === 'DEV') {
+                responseText = 'DEV';
+                responseColor = [245, 158, 11]; // Amber/orange for attention needed
               }
 
               pdf.setFont("helvetica", "normal");
@@ -234,6 +237,9 @@ export const generateFormPDF = async (
               } else if (statusStr === 'N/A') {
                 responseText = 'N/A';
                 responseColor = [107, 114, 128]; // Grey
+              } else if (statusStr === 'DEV') {
+                responseText = 'DEV';
+                responseColor = [245, 158, 11]; // Amber/orange to indicate development needed
               }
               
               // Draw question label on the left

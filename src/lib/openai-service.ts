@@ -20,20 +20,42 @@ export interface TranscriptionError {
 async function getAIProvider(): Promise<{ provider: 'lovable' | 'openai'; apiKey?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   
+  console.log('[Transcription] Getting AI provider for user:', user?.id);
+  
   if (!user) {
+    console.log('[Transcription] No user found, defaulting to Lovable');
     return { provider: 'lovable' };
   }
 
-  const { data: prefs } = await supabase
+  const { data: prefs, error } = await supabase
     .from('user_preferences')
     .select('ai_provider, openai_api_key_encrypted')
     .eq('user_id', user.id)
     .single();
 
+  console.log('[Transcription] User preferences:', {
+    provider: prefs?.ai_provider,
+    hasApiKey: !!prefs?.openai_api_key_encrypted,
+    apiKeyFormat: prefs?.openai_api_key_encrypted?.startsWith('sk-') ? 'valid' : 'invalid',
+    error: error?.message
+  });
+
   if (!prefs || !prefs.ai_provider) {
+    console.log('[Transcription] No provider configured, defaulting to Lovable');
     return { provider: 'lovable' };
   }
 
+  if (prefs.ai_provider === 'openai' && !prefs.openai_api_key_encrypted) {
+    console.error('[Transcription] OpenAI selected but no API key found!');
+    throw new Error('OpenAI API key not found. Please reconfigure your AI provider.');
+  }
+
+  if (prefs.ai_provider === 'openai' && !prefs.openai_api_key_encrypted?.startsWith('sk-')) {
+    console.error('[Transcription] Invalid OpenAI API key format');
+    throw new Error('Invalid OpenAI API key format. Please reconfigure your provider.');
+  }
+
+  console.log('[Transcription] Using provider:', prefs.ai_provider);
   return {
     provider: prefs.ai_provider as 'lovable' | 'openai',
     apiKey: prefs.openai_api_key_encrypted || undefined,
@@ -44,6 +66,12 @@ async function getAIProvider(): Promise<{ provider: 'lovable' | 'openai'; apiKey
  * Transcribe audio using OpenAI Whisper API directly
  */
 async function transcribeWithOpenAI(audioBlob: Blob, apiKey: string): Promise<TranscriptionResult> {
+  console.log('[OpenAI] Starting transcription, blob size:', audioBlob.size, 'type:', audioBlob.type);
+  
+  if (!apiKey || !apiKey.startsWith('sk-')) {
+    throw new Error('Invalid OpenAI API key format');
+  }
+  
   const extension = audioBlob.type.includes('mp4') ? 'mp4' 
     : audioBlob.type.includes('webm') ? 'webm' 
     : audioBlob.type.includes('wav') ? 'wav'
@@ -65,12 +93,17 @@ async function transcribeWithOpenAI(audioBlob: Blob, apiKey: string): Promise<Tr
     body: formData,
   });
 
+  console.log('[OpenAI] API Response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
+    const errorBody = await response.text();
+    console.error('[OpenAI] API Error:', response.status, errorBody);
+    const error = JSON.parse(errorBody || '{}');
     throw new Error(error.error?.message || `OpenAI API error: ${response.statusText}`);
   }
 
   const result = await response.json();
+  console.log('[OpenAI] Transcription successful:', result.text?.substring(0, 50) + '...');
   return { text: result.text };
 }
 
@@ -124,6 +157,21 @@ async function transcribeWithLovableAI(audioBlob: Blob): Promise<TranscriptionRe
  */
 export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
   try {
+    console.log('[Transcription] Starting, blob:', {
+      size: audioBlob.size,
+      type: audioBlob.type,
+      sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2)
+    });
+    
+    // Validate audio blob
+    if (audioBlob.size === 0) {
+      throw new Error('Audio recording is empty');
+    }
+    
+    if (audioBlob.size > 25 * 1024 * 1024) { // 25MB OpenAI limit
+      throw new Error('Audio file too large (max 25MB)');
+    }
+    
     const { provider, apiKey } = await getAIProvider();
 
     if (provider === 'openai') {

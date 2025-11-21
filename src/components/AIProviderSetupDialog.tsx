@@ -34,6 +34,10 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
         aiProviderConfigured: true,
       });
       
+      // Clear cached provider info
+      sessionStorage.removeItem('lovable_ai_warning_shown');
+      console.log('[AI Provider] Lovable AI configured, cache cleared');
+      
       toast({
         title: 'Success',
         description: 'Lovable AI is ready to use!',
@@ -81,6 +85,10 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
         aiProviderConfigured: true,
         openaiApiKey: apiKey,
       });
+      
+      // Clear cached provider info
+      sessionStorage.removeItem('lovable_ai_warning_shown');
+      console.log('[AI Provider] OpenAI configured, cache cleared');
       
       toast({
         title: 'Success',

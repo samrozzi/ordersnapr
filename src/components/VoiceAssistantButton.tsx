@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VoiceAssistantDrawer } from './VoiceAssistantDrawer';
+import { VoiceAssistantErrorBoundary } from './VoiceAssistantErrorBoundary';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useActiveOrg } from '@/hooks/use-active-org';
@@ -23,7 +24,7 @@ export function VoiceAssistantButton() {
   }
 
   return (
-    <>
+    <VoiceAssistantErrorBoundary>
       {/* Floating Button - positioned to the left of QuickAddButton */}
       <div className="fixed bottom-6 right-24 z-40">
         <Button
@@ -45,6 +46,6 @@ export function VoiceAssistantButton() {
 
       {/* Voice Assistant Drawer */}
       <VoiceAssistantDrawer open={open} onOpenChange={setOpen} />
-    </>
+    </VoiceAssistantErrorBoundary>
   );
 }

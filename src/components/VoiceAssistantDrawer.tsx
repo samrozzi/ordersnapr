@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { AIProviderSetupDialog } from './AIProviderSetupDialog';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useDebouncedCallback } from 'use-debounce';
+import { useActiveOrg } from '@/hooks/use-active-org';
 
 type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'sleeping';
 type Mode = 'resting' | 'listening' | 'typing';
@@ -39,8 +40,9 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   const compactInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { activeOrg } = useActiveOrg();
   
-  const { data: userPreferences } = useUserPreferences(user?.id || null);
+  const { data: userPreferences } = useUserPreferences(user?.id || null, activeOrg?.id || null);
 
   // Check if AI provider is configured
   useEffect(() => {

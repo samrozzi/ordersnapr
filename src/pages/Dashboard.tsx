@@ -20,6 +20,8 @@ const Dashboard = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Clear widgets immediately when workspace changes to prevent flicker
+    setWidgets([]);
     fetchDashboardData();
   }, [activeOrgId]);
 

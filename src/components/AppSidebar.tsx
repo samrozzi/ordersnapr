@@ -79,7 +79,7 @@ export function AppSidebar() {
   const [notesDropdownOpen, setNotesDropdownOpen] = useState(preferences?.sidebar_dropdown_open ?? true);
   const [formsDropdownOpen, setFormsDropdownOpen] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const { data: userPreferences } = useUserPreferences(userId);
+  const { data: userPreferences } = useUserPreferences(userId, activeOrg?.id || null);
   const { enabledToggles, featureToggleVersion } = useSidebarState(userId);
   useEffect(() => {
     fetchUserData();

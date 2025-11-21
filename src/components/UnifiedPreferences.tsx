@@ -128,7 +128,9 @@ const BRAND_PRESET_COLORS = [
 export function UnifiedPreferences() {
   const { user } = useAuth();
   const { features, getFeatureConfig } = useFeatureContext();
-  const { data: preferences, isLoading } = useUserPreferences(user?.id || null);
+  const { activeOrg } = useActiveOrg();
+  const workspaceId = activeOrg?.id || null;
+  const { data: preferences, isLoading } = useUserPreferences(user?.id || null, workspaceId);
   const updatePreferences = useUpdateUserPreferences();
   const { toast } = useToast();
   const { hasPremiumAccess } = usePremiumAccess();

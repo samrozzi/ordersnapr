@@ -22,7 +22,9 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
   const [cachedToggles, setCachedToggles] = useState<string[]>(FREE_DEFAULTS);
   
   const workspaceId = activeOrg?.id ?? null;
-  const { data: preferences } = useUserPreferences(userId);
+
+  // Use user preferences hook to get sidebar state from database (workspace-aware)
+  const { data: userPreferences } = useUserPreferences(userId, workspaceId);
   const updatePreferences = useUpdateUserPreferences();
 
   const storageKey = useMemo(() => {
@@ -34,16 +36,13 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
 
   // Load toggles from database when preferences or workspace changes
   useEffect(() => {
-    if (!userId || !preferences) {
+    if (!userId || !userPreferences) {
       setCachedToggles(FREE_DEFAULTS);
       return;
     }
 
-    // Check if preferences match current workspace
-    const isCorrectWorkspace = preferences.workspace_id === workspaceId;
-    
-    if (isCorrectWorkspace && preferences.sidebar_enabled_features && preferences.sidebar_enabled_features.length > 0) {
-      setCachedToggles(preferences.sidebar_enabled_features);
+    if (userPreferences.sidebar_enabled_features && userPreferences.sidebar_enabled_features.length > 0) {
+      setCachedToggles(userPreferences.sidebar_enabled_features);
     } else {
       // Use smart defaults based on workspace
       const defaults = workspaceId ? ALL_FEATURES : FREE_DEFAULTS;
@@ -56,7 +55,7 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
         workspaceId: workspaceId,
       });
     }
-  }, [userId, preferences, workspaceId, updatePreferences]);
+  }, [userId, userPreferences, workspaceId, updatePreferences]);
 
   // Listen for feature toggle updates
   useEffect(() => {

@@ -76,17 +76,32 @@ export const DashboardGrid = ({
 
   // Map widgets to items with spans
   const itemsWithSpans: ItemWithSpan[] = useMemo(() => {
-    return widgets.map(w => {
-      const preset = getPreset(w.size, bp);
-      return {
-        id: w.id,
-        size: w.size,
-        x: w.x ?? 0,
-        y: w.y ?? 0,
-        cols: preset.cols,
-        rows: preset.rows,
-      };
-    });
+    const validTypes = [
+      "calendar-small", "calendar-medium", "calendar-large", 
+      "weather", "favorites", "upcoming-work-orders", 
+      "pinned-forms", "recent-notes", "quick-stats", 
+      "notes-sticky", "water-tracker", "motivational-quote"
+    ];
+    
+    return widgets
+      .filter(w => {
+        if (!validTypes.includes(w.type)) {
+          console.error(`Invalid widget type: ${w.type}. Skipping widget ${w.id}`);
+          return false;
+        }
+        return true;
+      })
+      .map(w => {
+        const preset = getPreset(w.size, bp);
+        return {
+          id: w.id,
+          size: w.size,
+          x: w.x ?? 0,
+          y: w.y ?? 0,
+          cols: preset.cols,
+          rows: preset.rows,
+        };
+      });
   }, [widgets, bp]);
 
   // Auto-pack to prevent overlaps
@@ -215,33 +230,51 @@ const WidgetCard = memo(({
   const sizes: WidgetSize[] = ["S", "M", "L"];
 
   const renderWidget = () => {
-    switch (widget.type) {
-      case "calendar-small":
-        return <CalendarWidgetSmall />;
-      case "calendar-medium":
-        return <CalendarWidgetMedium />;
-      case "calendar-large":
-        return <CalendarWidgetLarge />;
-      case "weather":
-        return <WeatherWidget />;
-      case "favorites":
-        return <FavoritesWidget />;
-      case "upcoming-work-orders":
-        return <UpcomingWorkOrdersWidget />;
-      case "pinned-forms":
-        return <PinnedFormsWidget size={widget.size} />;
-      case "recent-notes":
-        return <RecentNotesWidget size={widget.size as "M" | "L"} />;
-      case "quick-stats":
-        return <QuickStatsWidget size={widget.size as "S" | "M"} />;
-      case "notes-sticky":
-        return <NotesWidget widgetId={widget.id} size={widget.size} settings={widget.settings} />;
-      case "water-tracker":
-        return <WaterTrackerWidget size={widget.size} />;
-      case "motivational-quote":
-        return <MotivationalQuoteWidget size={widget.size} />;
-      default:
-        return null;
+    try {
+      switch (widget.type) {
+        case "calendar-small":
+          return <CalendarWidgetSmall />;
+        case "calendar-medium":
+          return <CalendarWidgetMedium />;
+        case "calendar-large":
+          return <CalendarWidgetLarge />;
+        case "weather":
+          return <WeatherWidget />;
+        case "favorites":
+          return <FavoritesWidget />;
+        case "upcoming-work-orders":
+          return <UpcomingWorkOrdersWidget />;
+        case "pinned-forms":
+          return <PinnedFormsWidget size={widget.size} />;
+        case "recent-notes":
+          return <RecentNotesWidget size={widget.size as "M" | "L"} />;
+        case "quick-stats":
+          return <QuickStatsWidget size={widget.size as "S" | "M"} />;
+        case "notes-sticky":
+          return <NotesWidget widgetId={widget.id} size={widget.size} settings={widget.settings} />;
+        case "water-tracker":
+          return <WaterTrackerWidget size={widget.size} />;
+        case "motivational-quote":
+          return <MotivationalQuoteWidget size={widget.size} />;
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error(`Error rendering widget ${widget.id} (${widget.type}):`, error);
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground text-sm p-4">
+          <p className="mb-2">Unable to load widget</p>
+          {isEditMode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRemove}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+      );
     }
   };
 

@@ -321,6 +321,13 @@ const Dashboard = () => {
           sectionName="Dashboard Widgets"
           fallbackMessage="Your dashboard widgets couldn't be loaded. Try refreshing the page."
           showDetails={true}
+          onReset={() => {
+            console.error('Dashboard widget error details:', {
+              widgetCount: widgets.length,
+              widgetTypes: widgets.map(w => w.type),
+              invalidWidgets: widgets.filter(w => !w.type || !w.id),
+            });
+          }}
         >
           <DashboardGrid
             widgets={widgets}

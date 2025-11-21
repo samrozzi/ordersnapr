@@ -96,7 +96,13 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   }, [keyboardHeight, isExpanded]);
 
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
-    console.log('🎤 Recording complete, blob size:', audioBlob.size);
+    const timestamp = new Date().toISOString();
+    console.log(`🎤 [${timestamp}] Recording complete:`, {
+      size: audioBlob.size,
+      type: audioBlob.type,
+      sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2),
+      provider: userPreferences?.ai_provider || 'unknown'
+    });
     
     // Show accuracy warning for Lovable AI users (once per session)
     if (userPreferences?.ai_provider === 'lovable' && !sessionStorage.getItem('lovable_ai_warning_shown')) {
@@ -111,16 +117,23 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
     setError(null);
 
     try {
+      console.log(`🔄 [${timestamp}] Starting transcription with ${userPreferences?.ai_provider || 'default'}...`);
       const result = await transcribeAudio(audioBlob);
-      console.log('✅ Transcription result:', result.text);
+      const endTimestamp = new Date().toISOString();
+      console.log(`✅ [${endTimestamp}] Transcription complete:`, {
+        text: result.text,
+        length: result.text.length,
+        provider: userPreferences?.ai_provider
+      });
       setTextContent(result.text);
       setAssistantStatus('idle');
     } catch (error) {
-      console.error('❌ Transcription error:', error);
+      const errorTimestamp = new Date().toISOString();
+      console.error(`❌ [${errorTimestamp}] Transcription error:`, error);
       setError(error instanceof Error ? error.message : 'Failed to transcribe audio');
       setAssistantStatus('idle');
     }
-  }, []);
+  }, [userPreferences]);
 
   const {
     recordingState,
@@ -158,7 +171,10 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
       setMode('resting');
       setAssistantStatus('idle');
     } else {
-      // Start recording
+      // Start NEW recording - clear old transcription
+      console.log('🎙️ Starting new recording, clearing old transcription');
+      setTextContent('');
+      setError(null);
       startRecording();
       setMode('listening');
       setAssistantStatus('listening');

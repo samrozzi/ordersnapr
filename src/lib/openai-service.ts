@@ -15,6 +15,63 @@ export interface TranscriptionError {
 }
 
 /**
+ * Get user's AI provider preference
+ */
+async function getAIProvider(): Promise<{ provider: 'lovable' | 'openai'; apiKey?: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data: prefs } = await supabase
+    .from('user_preferences')
+    .select('ai_provider, ai_provider_configured, openai_api_key_encrypted')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  console.log('[AI Provider] User preferences:', {
+    provider: prefs?.ai_provider,
+    configured: prefs?.ai_provider_configured,
+    hasOpenAIKey: !!prefs?.openai_api_key_encrypted
+  });
+
+  // If user explicitly chose OpenAI and has a key
+  if (prefs?.ai_provider === 'openai' && prefs?.openai_api_key_encrypted) {
+    return { provider: 'openai', apiKey: prefs.openai_api_key_encrypted };
+  }
+
+  // Default to Lovable AI
+  return { provider: 'lovable' };
+}
+
+/**
+ * Transcribe audio using Lovable AI
+ */
+async function transcribeWithLovableAI(audioBlob: Blob): Promise<TranscriptionResult> {
+  console.log('[Lovable AI] Starting transcription, blob:', {
+    size: audioBlob.size,
+    type: audioBlob.type,
+    sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2)
+  });
+  
+  const formData = new FormData();
+  formData.append('audio', audioBlob);
+
+  const response = await supabase.functions.invoke('transcribe-audio', {
+    body: formData,
+  });
+
+  if (response.error) {
+    console.error('[Lovable AI] Error:', response.error);
+    throw new Error(response.error.message || 'Transcription failed');
+  }
+
+  console.log('[Lovable AI] Success:', response.data);
+  return { text: response.data.text };
+}
+
+/**
  * Transcribe audio using OpenAI Whisper API with retry logic
  */
 async function transcribeWithOpenAI(
@@ -89,11 +146,11 @@ async function transcribeWithOpenAI(
 }
 
 /**
- * Main transcription function - Uses OpenAI Whisper API directly
+ * Main transcription function - Routes to appropriate AI provider
  */
 export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
   try {
-    console.log('[Transcription] Starting OpenAI Whisper transcription, blob:', {
+    console.log('[Transcription] Starting transcription, blob:', {
       size: audioBlob.size,
       type: audioBlob.type,
       sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2)
@@ -104,39 +161,20 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
       throw new Error('Audio recording is empty');
     }
     
-    if (audioBlob.size > 25 * 1024 * 1024) { // 25MB OpenAI limit
-      throw new Error('Audio file too large (max 25MB)');
+    // Get user's AI provider preference
+    const { provider, apiKey } = await getAIProvider();
+    console.log('[Transcription] Using provider:', provider);
+
+    // Route to appropriate provider
+    if (provider === 'openai' && apiKey) {
+      if (audioBlob.size > 25 * 1024 * 1024) {
+        throw new Error('Audio file too large for OpenAI (max 25MB)');
+      }
+      return await transcribeWithOpenAI(audioBlob, apiKey);
+    } else {
+      // Use Lovable AI as default/fallback
+      return await transcribeWithLovableAI(audioBlob);
     }
-    
-    // Get user's OpenAI API key
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { data: prefs, error } = await supabase
-      .from('user_preferences')
-      .select('openai_api_key_encrypted')
-      .eq('user_id', user.id)
-      .single();
-
-    console.log('[Transcription] Retrieved API key:', {
-      hasKey: !!prefs?.openai_api_key_encrypted,
-      keyValid: prefs?.openai_api_key_encrypted?.startsWith('sk-'),
-      error: error?.message
-    });
-
-    if (!prefs?.openai_api_key_encrypted) {
-      throw new Error('OpenAI API key not found. Please configure in Settings > Profile > AI Assistant.');
-    }
-
-    if (!prefs.openai_api_key_encrypted.startsWith('sk-')) {
-      throw new Error('Invalid OpenAI API key format. Please reconfigure in Settings.');
-    }
-
-    // Call OpenAI Whisper directly
-    return await transcribeWithOpenAI(audioBlob, prefs.openai_api_key_encrypted);
     
   } catch (error) {
     console.error('[Transcription] Error:', error);

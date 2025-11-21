@@ -51,7 +51,12 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   // Check if AI provider is configured
   useEffect(() => {
     if (open && user && userPreferences) {
+      console.log('[Voice Assistant] Checking AI provider config:', {
+        configured: userPreferences.ai_provider_configured,
+        provider: userPreferences.ai_provider
+      });
       if (!userPreferences.ai_provider_configured) {
+        console.log('[Voice Assistant] Showing provider setup dialog');
         setShowProviderSetup(true);
       }
     }
@@ -130,7 +135,20 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
     } catch (error) {
       const errorTimestamp = new Date().toISOString();
       console.error(`❌ [${errorTimestamp}] Transcription error:`, error);
-      setError(error instanceof Error ? error.message : 'Failed to transcribe audio');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to transcribe audio';
+      
+      // If error is about missing API key, show setup dialog
+      if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
+        console.log('[Voice Assistant] Configuration issue detected, showing setup dialog');
+        setShowProviderSetup(true);
+        setError('Please configure your AI provider to use voice transcription');
+        toast.error('Please configure your AI provider to use voice transcription');
+      } else {
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+      
       setAssistantStatus('idle');
     }
   }, [userPreferences]);

@@ -97,6 +97,16 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
 
   const handleRecordingComplete = useCallback(async (audioBlob: Blob) => {
     console.log('🎤 Recording complete, blob size:', audioBlob.size);
+    
+    // Show accuracy warning for Lovable AI users (once per session)
+    if (userPreferences?.ai_provider === 'lovable' && !sessionStorage.getItem('lovable_ai_warning_shown')) {
+      toast.info('Using Lovable AI transcription', {
+        description: 'For best accuracy, switch to OpenAI Whisper in Profile > AI Assistant Settings',
+        duration: 6000,
+      });
+      sessionStorage.setItem('lovable_ai_warning_shown', 'true');
+    }
+    
     setAssistantStatus('thinking');
     setError(null);
 

@@ -816,29 +816,6 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
                 </Button>
                 <h3 className="text-lg font-semibold flex-1 text-center">AI Workspace</h3>
                 
-                {/* Recording controls in header when recording */}
-                {(isRecording || isPaused) && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleMicToggle}
-                      className={cn(
-                        "w-10 h-10 rounded-full shadow-lg flex items-center justify-center",
-                        isRecording 
-                          ? "bg-gradient-to-br from-purple-500 to-pink-500" 
-                          : "bg-gradient-to-br from-blue-500 to-cyan-500"
-                      )}
-                    >
-                      {isRecording ? <Pause className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-white" />}
-                    </button>
-                    <button
-                      onClick={handleStopRecording}
-                      className="w-10 h-10 rounded-full shadow-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center"
-                    >
-                      <X className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-                )}
-                
                 <Button
                   variant="ghost"
                   size="sm"
@@ -974,8 +951,8 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
           </div>
         )}
 
-        {/* Mic button container - ALWAYS at top-right */}
-        <div className={cn("absolute right-4 z-10", isExpanded ? "top-16" : "top-4")}>
+        {/* Mic button container - Fixed bottom-right position */}
+        <div className="fixed bottom-20 right-4 z-[100]">
           {/* Idle State: Single Mic Button */}
           {!isRecording && !isPaused && (
             <button

@@ -454,13 +454,22 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   if (!isMobile) {
     return (
       <>
-        {/* Subtle backdrop only when expanded */}
-        {isExpanded && (
-          <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]"
-            onClick={() => setIsExpanded(false)}
-          />
-        )}
+        {/* Backdrop for both compact and expanded states */}
+        <div 
+          className={cn(
+            "fixed inset-0 z-[60]",
+            isExpanded 
+              ? "bg-black/20 backdrop-blur-sm" 
+              : "bg-transparent"
+          )}
+          onClick={() => {
+            if (isExpanded) {
+              setIsExpanded(false);
+            } else {
+              onOpenChange(false);
+            }
+          }}
+        />
 
         {/* Floating Card */}
         <div
@@ -614,47 +623,50 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
             </div>
           )}
 
-          {/* Floating Mic Button - Always top-right, both idle and recording */}
-          {!isExpanded && (
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-              {(isRecording || isPaused) ? (
-                <>
-                  {/* Pause/Resume Button */}
-                  <button
-                    onClick={handleMicToggle}
-                    className={cn(
-                      "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
-                      isRecording 
-                        ? "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110" 
-                        : "bg-gradient-to-br from-blue-500 to-cyan-500 hover:scale-110"
-                    )}
-                  >
-                    {isRecording ? (
-                      <Pause className="w-5 h-5 text-white" />
-                    ) : (
-                      <Mic className="w-5 h-5 text-white" />
-                    )}
-                  </button>
-                  
-                  {/* Stop Button */}
-                  <button
-                    onClick={handleStopRecording}
-                    className="w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-red-500 to-pink-500 hover:scale-110"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                </>
-              ) : (
-                /* Start Recording Button */
+          {/* Floating Mic Button - Always visible, position changes based on state */}
+          <div className={cn(
+            "absolute flex gap-2 z-10",
+            isExpanded 
+              ? "bottom-20 right-4"
+              : "top-4 right-4"
+          )}>
+            {(isRecording || isPaused) ? (
+              <>
+                {/* Pause/Resume Button */}
                 <button
                   onClick={handleMicToggle}
-                  className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110"
+                  className={cn(
+                    "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all",
+                    isRecording 
+                      ? "bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110" 
+                      : "bg-gradient-to-br from-blue-500 to-cyan-500 hover:scale-110"
+                  )}
                 >
-                  <Mic className="w-5 h-5 text-white" />
+                  {isRecording ? (
+                    <Pause className="w-5 h-5 text-white" />
+                  ) : (
+                    <Mic className="w-5 h-5 text-white" />
+                  )}
                 </button>
-              )}
-            </div>
-          )}
+                
+                {/* Stop Button */}
+                <button
+                  onClick={handleStopRecording}
+                  className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-red-500 to-pink-500 hover:scale-110"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </>
+            ) : (
+              /* Start Recording Button */
+              <button
+                onClick={handleMicToggle}
+                className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all bg-gradient-to-br from-purple-500 to-pink-500 hover:scale-110"
+              >
+                <Mic className="w-5 h-5 text-white" />
+              </button>
+            )}
+          </div>
 
           {/* Error Display */}
           {error && (

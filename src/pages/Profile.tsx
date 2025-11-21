@@ -758,13 +758,28 @@ const Profile = () => {
                         : 'Not configured'}
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowAIProviderDialog(true)}
-                  >
-                    {userPreferences?.ai_provider_configured ? 'Change Provider' : 'Configure'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        toast({
+                          title: 'Test Transcription',
+                          description: 'Open the Voice Assistant (microphone icon in bottom right) and try recording "testing 123". Check the browser console for detailed logs.',
+                        });
+                      }}
+                      disabled={!userPreferences?.ai_provider_configured}
+                    >
+                      Test
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowAIProviderDialog(true)}
+                    >
+                      {userPreferences?.ai_provider_configured ? 'Change' : 'Configure'}
+                    </Button>
+                  </div>
                 </div>
                 
                 {userPreferences?.ai_provider === 'openai' && (

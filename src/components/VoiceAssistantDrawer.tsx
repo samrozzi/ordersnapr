@@ -14,7 +14,6 @@ import { transcribeAudio } from '@/lib/openai-service';
 import { cn } from '@/lib/utils';
 import { AIProviderSetupDialog } from './AIProviderSetupDialog';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { useDebouncedCallback } from 'use-debounce';
 import { useActiveOrg } from '@/hooks/use-active-org';
 
 type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'sleeping';
@@ -251,16 +250,9 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
     // Don't auto-reset mode - let user explicitly minimize
   }, []);
 
-  // Debounced text change to prevent excessive re-renders
-  const debouncedSetTextContent = useDebouncedCallback((value: string) => {
-    setTextContent(value);
-  }, 100);
-
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    e.target.value = value; // Keep input responsive
-    debouncedSetTextContent(value);
-  }, [debouncedSetTextContent]);
+    setTextContent(e.target.value);
+  }, []);
 
   const handleMinimize = useCallback(() => {
     setIsExpanded(false);

@@ -799,6 +799,59 @@ export const generateFormPDF = async (
       pdf.setTextColor(40, 40, 40);
       yPos += 15;
 
+      // Load all photos in parallel with retry logic
+      const loadPhoto = async (photo: { url: string; name: string; caption?: string }, retries = 2): Promise<string | null> => {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout per attempt
+            
+            const response = await fetch(photo.url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(new Error('FileReader error'));
+              reader.readAsDataURL(blob);
+            });
+          } catch (error: any) {
+            console.warn(`Photo load attempt ${attempt + 1}/${retries + 1} failed for ${photo.name || photo.url}:`, error.message);
+            if (attempt === retries) {
+              return null; // All retries exhausted
+            }
+            // Wait 1 second before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        return null;
+      };
+
+      // Load all photos in parallel
+      console.log(`Loading ${allPhotos.length} photos in parallel...`);
+      const loadedPhotos = await Promise.all(
+        allPhotos.map(async (photo) => ({
+          ...photo,
+          dataUrl: await loadPhoto(photo)
+        }))
+      );
+
+      // Filter out failed photos and log them
+      const successfulPhotos = loadedPhotos.filter(p => p.dataUrl !== null);
+      const failedPhotos = loadedPhotos.filter(p => p.dataUrl === null);
+      
+      if (failedPhotos.length > 0) {
+        console.warn(`Failed to load ${failedPhotos.length} photo(s):`, failedPhotos.map(p => p.name || p.url));
+      }
+      
+      console.log(`Successfully loaded ${successfulPhotos.length}/${allPhotos.length} photos`);
+
       // 2-column grid layout tracking
       let columnIndex = 0;
       let currentRowMaxHeight = 0;
@@ -807,125 +860,102 @@ export const generateFormPDF = async (
       const maxImgWidth = (pageWidth - 3 * margin) / 2;
       const maxImgHeight = 70;
 
-      for (const photo of allPhotos) {
+      // Process loaded photos
+      for (const photo of successfulPhotos) {
         try {
-          // Fetch and compress image with timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const img = new Image();
+          img.src = photo.dataUrl!;
           
-          const response = await fetch(photo.url, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            console.warn(`Failed to fetch photo: ${photo.url}`);
-            continue;
-          }
-          
-          const blob = await response.blob();
-          const reader = new FileReader();
-          
-          await new Promise((resolve, reject) => {
-            reader.onload = async () => {
-              try {
-                const img = new Image();
-                img.src = reader.result as string;
-                
-                await new Promise((imgResolve) => {
-                  img.onload = imgResolve;
-                });
-
-                // Calculate dimensions to fit in PDF
-                let imgWidth = img.width;
-                let imgHeight = img.height;
-                
-                const ratio = Math.min(maxImgWidth / imgWidth, maxImgHeight / imgHeight);
-                imgWidth *= ratio;
-                imgHeight *= ratio;
-
-                // Calculate caption height
-                let captionHeight = 0;
-                if (photo.caption) {
-                  pdf.setFontSize(9);
-                  const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
-                  captionHeight = captionLines.length * 5 + 5; // 5 per line + 5 spacing
-                }
-
-                // Calculate total space needed for this photo
-                const totalPhotoHeight = imgHeight + captionHeight + 8; // 8 for spacing
-
-                // Check if starting a new column (first photo) and need new page
-                if (columnIndex === 0) {
-                  if (checkPageBreak(totalPhotoHeight)) {
-                    // Page was added, reset row tracking
-                    currentRowMaxHeight = 0;
-                  }
-                } else {
-                  // Second column - check if we need to finish row and start new page
-                  const remainingSpace = pageHeight - margin - yPos;
-                  if (totalPhotoHeight > remainingSpace) {
-                    // Finish current row and start new page
-                    columnIndex = 0;
-                    yPos += currentRowMaxHeight + 8;
-                    pdf.addPage();
-                    yPos = margin;
-                    currentRowMaxHeight = 0;
-                  }
-                }
-
-                // Calculate x position based on column
-                const xPos = columnIndex === 0 
-                  ? margin 
-                  : margin + maxImgWidth + columnSpacing;
-
-                // Add image at calculated position
-                pdf.addImage(reader.result as string, "JPEG", xPos, yPos, imgWidth, imgHeight, undefined, "MEDIUM");
-
-                // Track the maximum height in this row
-                currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight);
-
-                // Handle caption if present
-                if (photo.caption) {
-                  pdf.setFont("helvetica", "italic");
-                  pdf.setTextColor(100, 100, 100);
-                  const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
-                  captionLines.forEach((line: string, idx: number) => {
-                    pdf.text(line, xPos, yPos + imgHeight + 5 + (idx * 5));
-                  });
-                  pdf.setTextColor(40, 40, 40);
-                  currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight + captionHeight);
-                }
-
-                // Move to next column or next row
-                columnIndex++;
-                if (columnIndex >= photosPerRow) {
-                  // Move to next row
-                  columnIndex = 0;
-                  yPos += currentRowMaxHeight + 8;
-                  currentRowMaxHeight = 0;
-                }
-
-                resolve(null);
-              } catch (error) {
-                console.error("Error processing image:", error);
-                resolve(null);
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve; // Don't block on image decode errors
           });
-        } catch (error: any) {
-          console.error("Error loading photo:", error);
-          // Add a placeholder text for failed photos
-          if (error.name === 'AbortError') {
-            console.warn(`Photo fetch timeout: ${photo.url}`);
+
+          // Calculate dimensions to fit in PDF
+          let imgWidth = img.width;
+          let imgHeight = img.height;
+          
+          const ratio = Math.min(maxImgWidth / imgWidth, maxImgHeight / imgHeight);
+          imgWidth *= ratio;
+          imgHeight *= ratio;
+
+          // Calculate caption height
+          let captionHeight = 0;
+          if (photo.caption) {
+            pdf.setFontSize(9);
+            const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
+            captionHeight = captionLines.length * 5 + 5;
           }
-          // Continue with next photo instead of failing entire PDF
+
+          // Calculate total space needed for this photo
+          const totalPhotoHeight = imgHeight + captionHeight + 8;
+
+          // Check if starting a new column and need new page
+          if (columnIndex === 0) {
+            if (checkPageBreak(totalPhotoHeight)) {
+              currentRowMaxHeight = 0;
+            }
+          } else {
+            // Second column - check if we need to finish row and start new page
+            const remainingSpace = pageHeight - margin - yPos;
+            if (totalPhotoHeight > remainingSpace) {
+              columnIndex = 0;
+              yPos += currentRowMaxHeight + 8;
+              pdf.addPage();
+              yPos = margin;
+              currentRowMaxHeight = 0;
+            }
+          }
+
+          // Calculate x position based on column
+          const xPos = columnIndex === 0 
+            ? margin 
+            : margin + maxImgWidth + columnSpacing;
+
+          // Add image at calculated position
+          pdf.addImage(photo.dataUrl!, "JPEG", xPos, yPos, imgWidth, imgHeight, undefined, "MEDIUM");
+
+          // Track the maximum height in this row
+          currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight);
+
+          // Handle caption if present
+          if (photo.caption) {
+            pdf.setFont("helvetica", "italic");
+            pdf.setTextColor(100, 100, 100);
+            const captionLines = pdf.splitTextToSize(photo.caption, maxImgWidth);
+            captionLines.forEach((line: string, idx: number) => {
+              pdf.text(line, xPos, yPos + imgHeight + 5 + (idx * 5));
+            });
+            pdf.setTextColor(40, 40, 40);
+            currentRowMaxHeight = Math.max(currentRowMaxHeight, imgHeight + captionHeight);
+          }
+
+          // Move to next column or next row
+          columnIndex++;
+          if (columnIndex >= photosPerRow) {
+            columnIndex = 0;
+            yPos += currentRowMaxHeight + 8;
+            currentRowMaxHeight = 0;
+          }
+        } catch (error) {
+          console.error("Error rendering photo in PDF:", error);
         }
       }
 
       // If we ended mid-row, increment yPos for the final row
       if (columnIndex > 0) {
         yPos += currentRowMaxHeight + 8;
+      }
+
+      // Add note about failed photos if any
+      if (failedPhotos.length > 0) {
+        checkPageBreak(15);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`Note: ${failedPhotos.length} photo(s) could not be loaded and were omitted from this PDF.`, margin, yPos);
+        pdf.setTextColor(40, 40, 40);
+        yPos += 10;
       }
     }
   }

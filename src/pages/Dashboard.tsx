@@ -10,6 +10,7 @@ import { SectionErrorBoundary } from "@/components/SectionErrorBoundary";
 import type { WidgetSize } from "@/lib/widget-presets";
 import { getPreset } from "@/lib/widget-presets";
 import { useActiveOrg } from "@/hooks/use-active-org";
+import { useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -17,13 +18,27 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { activeOrgId } = useActiveOrg();
+  const queryClient = useQueryClient();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Clear widgets immediately when workspace changes to prevent flicker
+    // Immediately clear widgets AND invalidate cache to prevent flicker
     setWidgets([]);
-    fetchDashboardData();
-  }, [activeOrgId]);
+    setLoading(true);
+    
+    // Invalidate cache for the OLD workspace before fetching new data
+    queryClient.invalidateQueries({ 
+      queryKey: ['dashboard-widgets'],
+      exact: false 
+    });
+    
+    // Small delay to ensure cache is cleared before fetching
+    const timer = setTimeout(() => {
+      fetchDashboardData();
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [activeOrgId, queryClient]);
 
   const fetchDashboardData = async () => {
     setLoading(true);

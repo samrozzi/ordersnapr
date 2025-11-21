@@ -32,7 +32,16 @@ serve(async (req) => {
 
     // Convert audio file to base64 for Lovable AI
     const audioBuffer = await audioFile.arrayBuffer();
-    const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    const uint8Array = new Uint8Array(audioBuffer);
+
+    // Process in chunks to prevent stack overflow
+    let binaryString = '';
+    const chunkSize = 8192; // Process 8KB at a time
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    const audioBase64 = btoa(binaryString);
 
     // Call Lovable AI for transcription using multimodal model
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

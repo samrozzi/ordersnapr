@@ -229,48 +229,16 @@ export function MigrationChecker() {
       }
 
       try {
-        // Check if organization_id is nullable in work_orders
-        const { data, error } = await supabase
+        // Check if we can query with null org_id filter (non-destructive test)
+        const { error: queryError } = await supabase
           .from("work_orders")
-          .select("organization_id")
+          .select("id")
+          .is("organization_id", null)
           .limit(1);
 
-        if (error) {
-          // If we get an error about policies, migration might be needed
-          console.log("Migration check error:", error);
-
-          // Check if it's an RLS error
-          if (error.message?.includes("policy") || error.code === "42501") {
-            setMigrationNeeded(true);
-            setShowModal(true);
-          }
-        } else {
-          // Try to create a test work order with null organization_id
-          const { error: testError } = await supabase
-            .from("work_orders")
-            .insert({
-              customer_name: "__test__",
-              user_id: user.id,
-              organization_id: null,
-              status: "pending",
-            })
-            .select()
-            .single();
-
-          if (testError) {
-            // If we can't insert with null org_id, migration is needed
-            if (testError.message?.includes("null") || testError.message?.includes("violates")) {
-              setMigrationNeeded(true);
-              setShowModal(true);
-            }
-          } else {
-            // Delete the test work order
-            await supabase
-              .from("work_orders")
-              .delete()
-              .eq("customer_name", "__test__")
-              .eq("user_id", user.id);
-          }
+        if (queryError && (queryError.code === "42501" || queryError.message?.includes("policy"))) {
+          setMigrationNeeded(true);
+          setShowModal(true);
         }
 
         sessionStorage.setItem(checkedKey, "true");

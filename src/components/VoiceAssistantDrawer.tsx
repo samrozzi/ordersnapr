@@ -32,6 +32,10 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showProviderSetup, setShowProviderSetup] = useState(false);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<number | null>(null);
+  const dragThreshold = 50; // pixels to drag before triggering action
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const keyboardHeight = useKeyboardHeight();
@@ -217,6 +221,7 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
   const handleMinimize = useCallback(() => {
     setIsExpanded(false);
     setMode('resting');
+    setAssistantStatus('sleeping');
     if (textareaRef.current) {
       textareaRef.current.blur();
     }
@@ -232,6 +237,35 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
     setTextContent('');
     setError(null);
   }, []);
+
+  const handleDragStart = useCallback((clientY: number) => {
+    setDragStart(clientY);
+    setDragCurrent(clientY);
+  }, []);
+
+  const handleDragMove = useCallback((clientY: number) => {
+    if (dragStart !== null) {
+      setDragCurrent(clientY);
+    }
+  }, [dragStart]);
+
+  const handleDragEnd = useCallback(() => {
+    if (dragStart !== null && dragCurrent !== null) {
+      const dragDistance = dragCurrent - dragStart;
+      
+      if (isExpanded && dragDistance > dragThreshold) {
+        // Dragged down while expanded - minimize
+        handleMinimize();
+      } else if (!isExpanded && dragDistance < -dragThreshold) {
+        // Dragged up while compact - expand
+        setIsExpanded(true);
+        setMode('typing');
+      }
+    }
+    
+    setDragStart(null);
+    setDragCurrent(null);
+  }, [dragStart, dragCurrent, isExpanded, dragThreshold, handleMinimize]);
 
   const extractTitle = (content: string): string => {
     // Check for explicit title patterns
@@ -625,6 +659,8 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
         style={{ 
           height: isExpanded ? '100dvh' : '45vh',
           maxHeight: '100vh',
+          transform: dragStart && dragCurrent && !isExpanded ? 
+            `translateY(${Math.max(dragCurrent - dragStart, -100)}px)` : 'none',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -632,8 +668,23 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
         {!isExpanded && (
           <div className="flex flex-col h-full p-6 pb-20">
             {/* Drag Handle */}
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-1 bg-muted-foreground/20 rounded-full" />
+            <div 
+              className="flex justify-center mb-4 cursor-grab active:cursor-grabbing py-2 -mt-2"
+              onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+              onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+              onTouchEnd={handleDragEnd}
+              onMouseDown={(e) => handleDragStart(e.clientY)}
+              onMouseMove={(e) => dragStart && handleDragMove(e.clientY)}
+              onMouseUp={handleDragEnd}
+              onMouseLeave={handleDragEnd}
+              onClick={() => !isExpanded && setIsExpanded(true)}
+            >
+              <div 
+                className="w-12 h-1 bg-muted-foreground/30 rounded-full transition-all"
+                style={{
+                  transform: dragStart && dragCurrent ? `translateY(${Math.min(Math.max(dragCurrent - dragStart, -20), 20)}px)` : 'none'
+                }}
+              />
             </div>
 
             {/* Avatar */}

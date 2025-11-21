@@ -16,21 +16,40 @@ export interface TranscriptionError {
 
 /**
  * Get user's AI provider preference
+ * Checks personal workspace first, then current org workspace
  */
-async function getAIProvider(): Promise<{ provider: 'lovable' | 'openai'; apiKey?: string }> {
+async function getAIProvider(workspaceId?: string | null): Promise<{ provider: 'lovable' | 'openai'; apiKey?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('User not authenticated');
   }
 
-  const { data: prefs } = await supabase
-    .from('user_preferences')
-    .select('ai_provider, ai_provider_configured, openai_api_key_encrypted')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  // First try the current workspace
+  let prefs = null;
+  if (workspaceId !== undefined) {
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('ai_provider, ai_provider_configured, openai_api_key_encrypted')
+      .eq('user_id', user.id)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+    prefs = data;
+  }
+
+  // If not found or workspace not specified, try personal workspace (null)
+  if (!prefs) {
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('ai_provider, ai_provider_configured, openai_api_key_encrypted')
+      .eq('user_id', user.id)
+      .eq('workspace_id', null)
+      .maybeSingle();
+    prefs = data;
+  }
 
   console.log('[AI Provider] User preferences:', {
+    workspaceId,
     provider: prefs?.ai_provider,
     configured: prefs?.ai_provider_configured,
     hasOpenAIKey: !!prefs?.openai_api_key_encrypted
@@ -148,12 +167,13 @@ async function transcribeWithOpenAI(
 /**
  * Main transcription function - Routes to appropriate AI provider
  */
-export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
+export async function transcribeAudio(audioBlob: Blob, workspaceId?: string | null): Promise<TranscriptionResult> {
   try {
     console.log('[Transcription] Starting transcription, blob:', {
       size: audioBlob.size,
       type: audioBlob.type,
-      sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2)
+      sizeInMB: (audioBlob.size / 1024 / 1024).toFixed(2),
+      workspaceId
     });
     
     // Validate audio blob
@@ -162,7 +182,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionRes
     }
     
     // Get user's AI provider preference
-    const { provider, apiKey } = await getAIProvider();
+    const { provider, apiKey } = await getAIProvider(workspaceId);
     console.log('[Transcription] Using provider:', provider);
 
     // Route to appropriate provider

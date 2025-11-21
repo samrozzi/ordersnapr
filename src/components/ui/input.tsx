@@ -23,7 +23,20 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
       // Restore cursor position after React updates
       if (cursorPositionRef.current && internalRef.current) {
         const { start, end } = cursorPositionRef.current;
-        internalRef.current.setSelectionRange(start, end);
+        
+        // setSelectionRange is not supported on these input types
+        const unsupportedTypes = ['date', 'datetime-local', 'time', 'month', 'week', 'color', 'file', 'checkbox', 'radio'];
+        const inputType = internalRef.current.type.toLowerCase();
+        
+        if (!unsupportedTypes.includes(inputType)) {
+          try {
+            internalRef.current.setSelectionRange(start, end);
+          } catch (error) {
+            // Silently catch any errors (some browsers may have additional restrictions)
+            console.debug('setSelectionRange not supported for this input type:', inputType);
+          }
+        }
+        
         cursorPositionRef.current = null;
       }
     });

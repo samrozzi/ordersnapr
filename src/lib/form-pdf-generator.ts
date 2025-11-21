@@ -191,7 +191,7 @@ export const generateFormPDF = async (
                 responseColor = [107, 114, 128];
               } else if (statusStr === 'DEV') {
                 responseText = 'DEV';
-                responseColor = [245, 158, 11]; // Amber/orange for attention needed
+                responseColor = [220, 38, 38]; // Red to match destructive badge
               }
 
               pdf.setFont("helvetica", "normal");
@@ -239,7 +239,7 @@ export const generateFormPDF = async (
                 responseColor = [107, 114, 128]; // Grey
               } else if (statusStr === 'DEV') {
                 responseText = 'DEV';
-                responseColor = [245, 158, 11]; // Amber/orange to indicate development needed
+                responseColor = [220, 38, 38]; // Red to match destructive badge
               }
               
               // Draw question label on the left

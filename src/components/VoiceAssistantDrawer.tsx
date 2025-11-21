@@ -975,7 +975,7 @@ export const VoiceAssistantDrawer = React.memo(({ open, onOpenChange }: VoiceAss
         )}
 
         {/* Mic button container - ALWAYS at top-right */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className={cn("absolute right-4 z-10", isExpanded ? "top-16" : "top-4")}>
           {/* Idle State: Single Mic Button */}
           {!isRecording && !isPaused && (
             <button

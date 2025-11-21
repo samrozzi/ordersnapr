@@ -73,8 +73,12 @@ export const useUpdateUserPreferences = () => {
       sidebarEnabledFeatures?: string[];
       workspaceId?: string | null;
     }) => {
-      // Upsert to handle both insert and update - build update object dynamically
-      const updateData: any = { user_id: userId };
+      // CRITICAL: workspace_id must ALWAYS be in the update data for composite unique constraint
+      const updateData: any = { 
+        user_id: userId,
+        workspace_id: workspaceId ?? null // Always include, default to null for personal workspace
+      };
+      
       if (quickAddEnabled !== undefined) updateData.quick_add_enabled = quickAddEnabled;
       if (quickAddItems !== undefined) updateData.quick_add_items = quickAddItems;
       if (navOrder !== undefined) updateData.nav_order = navOrder;
@@ -83,7 +87,6 @@ export const useUpdateUserPreferences = () => {
       if (aiProviderConfigured !== undefined) updateData.ai_provider_configured = aiProviderConfigured;
       if (openaiApiKey !== undefined) updateData.openai_api_key_encrypted = openaiApiKey;
       if (sidebarEnabledFeatures !== undefined) updateData.sidebar_enabled_features = sidebarEnabledFeatures;
-      if (workspaceId !== undefined) updateData.workspace_id = workspaceId;
 
       const { data, error } = await supabase
         .from("user_preferences")

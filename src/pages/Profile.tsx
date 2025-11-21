@@ -737,10 +737,22 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Current Provider</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Current Provider</Label>
+                      {userPreferences?.ai_provider === 'openai' && (
+                        <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full font-medium">
+                          ✓ High Accuracy
+                        </span>
+                      )}
+                      {userPreferences?.ai_provider === 'lovable' && userPreferences?.ai_provider_configured && (
+                        <span className="text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                          ⚠️ Basic Accuracy
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {userPreferences?.ai_provider === 'openai' 
-                        ? 'Your OpenAI API Key' 
+                        ? 'Your OpenAI API Key (Whisper)' 
                         : userPreferences?.ai_provider_configured 
                         ? 'Lovable AI (Built-in)' 
                         : 'Not configured'}
@@ -767,16 +779,34 @@ const Profile = () => {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Your API key is encrypted and stored securely
+                      Your API key is encrypted and stored securely. Cost: ~$0.36 per hour of audio.
                     </p>
                   </div>
                 )}
 
                 {userPreferences?.ai_provider === 'lovable' && userPreferences?.ai_provider_configured && (
-                  <div className="space-y-2 pt-2 border-t text-sm text-muted-foreground">
-                    <p>✓ Using built-in Lovable AI transcription</p>
-                    <p>✓ No API key required</p>
-                    <p>✓ Uses workspace AI credits</p>
+                  <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>✓ Using built-in Lovable AI transcription</p>
+                      <p>✓ No API key required</p>
+                      <p>✓ Uses workspace AI credits</p>
+                    </div>
+                    <div className="mt-3 p-3 bg-orange-500/5 border border-orange-500/20 rounded-lg">
+                      <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">
+                        Want better accuracy?
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Switch to OpenAI Whisper for 99%+ transcription accuracy
+                      </p>
+                      <a 
+                        href="https://platform.openai.com/api-keys" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Get OpenAI API Key →
+                      </a>
+                    </div>
                   </div>
                 )}
               </CardContent>

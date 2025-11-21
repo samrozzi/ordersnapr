@@ -118,7 +118,7 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
                 <Sparkles className="w-5 h-5 text-primary" />
                 <CardTitle className="text-lg">Lovable AI (Built-in)</CardTitle>
               </div>
-              <CardDescription>Recommended for most users</CardDescription>
+              <CardDescription>Quick setup, lower accuracy</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
@@ -136,11 +136,15 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
                 </div>
                 <div className="flex items-start gap-2">
                   <XCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
-                  <span>Uses workspace AI credits (request-based)</span>
+                  <span>Best-effort transcription (general AI model)</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <XCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
-                  <span>Subject to rate limits</span>
+                  <span>Lower accuracy for technical terms & short phrases</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                  <span>Uses workspace AI credits (request-based)</span>
                 </div>
               </div>
               {selectedProvider === 'lovable' && (
@@ -162,10 +166,18 @@ export function AIProviderSetupDialog({ open, onOpenChange, onComplete }: AIProv
                 <Key className="w-5 h-5 text-primary" />
                 <CardTitle className="text-lg">Your OpenAI API Key</CardTitle>
               </div>
-              <CardDescription>Full control over costs</CardDescription>
+              <CardDescription className="font-semibold">Recommended for accurate transcriptions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  <span className="font-medium">Industry-leading Whisper model</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  <span className="font-medium">99%+ accuracy for clear audio</span>
+                </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                   <span>Direct billing with OpenAI ($0.006/min)</span>

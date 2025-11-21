@@ -55,7 +55,7 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
         workspaceId: workspaceId,
       });
     }
-  }, [userId, userPreferences, workspaceId, updatePreferences]);
+  }, [userId, userPreferences, workspaceId]); // FIXED: Removed updatePreferences from deps
 
   // Listen for feature toggle updates
   useEffect(() => {
@@ -69,13 +69,24 @@ export function useSidebarState(userId: string | null): SidebarStateResult {
 
   const updateToggles = async (features: string[]) => {
     if (!userId) return;
+    
+    // Optimistically update UI
     setCachedToggles(features);
-    await updatePreferences.mutateAsync({
-      userId: userId,
-      sidebarEnabledFeatures: features,
-      workspaceId: workspaceId,
-    });
-    window.dispatchEvent(new Event('userFeaturesUpdated'));
+    
+    try {
+      // Save to database
+      await updatePreferences.mutateAsync({
+        userId: userId,
+        sidebarEnabledFeatures: features,
+        workspaceId: workspaceId,
+      });
+      
+      // Dispatch event for other components
+      window.dispatchEvent(new Event('userFeaturesUpdated'));
+    } catch (error) {
+      // Revert on error
+      console.error("Failed to save sidebar preferences:", error);
+    }
   };
 
   return {

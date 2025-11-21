@@ -99,16 +99,13 @@ export const useUpdateUserPreferences = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: (data, variables) => {
       const workspaceId = variables.workspaceId || null;
-      // CRITICAL: Force immediate refetch to prevent stale UI
-      await queryClient.cancelQueries({ queryKey: ["user-preferences", variables.userId, workspaceId] });
-      queryClient.setQueryData(["user-preferences", variables.userId, workspaceId], data);
-      await queryClient.invalidateQueries({ queryKey: ["user-preferences", variables.userId, workspaceId] });
-      await queryClient.refetchQueries({ 
-        queryKey: ["user-preferences", variables.userId, workspaceId],
-        exact: true 
-      });
+      // Simply update the cache with new data - setQueryData is immediate
+      queryClient.setQueryData(
+        ["user-preferences", variables.userId, workspaceId], 
+        data
+      );
     },
   });
 };

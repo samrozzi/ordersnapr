@@ -171,22 +171,19 @@ export function UnifiedPreferences() {
   // Load sidebar preferences from database (org-aware)
   useEffect(() => {
     if (user && preferences) {
-      // Check if preferences match current workspace
-      const isCorrectWorkspace = preferences.workspace_id === activeOrgId;
-      
-      if (isCorrectWorkspace && preferences.sidebar_enabled_features) {
+      if (preferences.sidebar_enabled_features) {
         setEnabledFeatures(preferences.sidebar_enabled_features);
       } else {
-        // No saved preferences for this workspace - initialize with all accessible features
+        // No saved preferences for this workspace - initialize with defaults
         const hasAccess = hasPremiumAccess();
-        const defaults = hasAccess || (features && features.length > 0)
+        const defaults = hasAccess || activeOrgId
           ? AVAILABLE_FEATURES.map((f) => f.id) // Enable all features by default
           : AVAILABLE_FEATURES.filter((f) => f.free).map((f) => f.id); // Free tier only
         setEnabledFeatures(defaults);
       }
       setFeaturesReady(true);
     }
-  }, [user, activeOrgId, features, preferences]); // Re-run when activeOrgId or features change
+  }, [user, activeOrgId, preferences]); // FIXED: Removed features from deps
 
   // Load branding preferences from database (for premium users)
   useEffect(() => {
@@ -258,31 +255,41 @@ export function UnifiedPreferences() {
   };
 
   const handleSaveSidebar = async () => {
-    if (user) {
-      try {
-        await updatePreferences.mutateAsync({
-          userId: user.id,
-          sidebarEnabledFeatures: enabledFeatures,
-          workspaceId: activeOrgId,
-        });
+    if (!user) return;
+    
+    // Show loading state
+    const loadingToast = toast({
+      title: "Saving...",
+      description: "Updating sidebar preferences",
+    });
+    
+    try {
+      await updatePreferences.mutateAsync({
+        userId: user.id,
+        sidebarEnabledFeatures: enabledFeatures,
+        workspaceId: activeOrgId,
+      });
 
-        // Dispatch custom event to update FeatureContext immediately
-        window.dispatchEvent(new Event('userFeaturesUpdated'));
+      // Dispatch custom event to update FeatureContext immediately
+      window.dispatchEvent(new Event('userFeaturesUpdated'));
 
-        const workspaceType = activeOrgId ? 'organization' : 'personal';
-        toast({
-          title: "Sidebar Updated",
-          description: `Navigation preferences saved for ${workspaceType} workspace.`,
-        });
-        setSidebarHasChanges(false);
-      } catch (error) {
-        console.error("Error saving sidebar preferences:", error);
-        toast({
-          title: "Error",
-          description: "Failed to save sidebar preferences. Please try again.",
-          variant: "destructive",
-        });
-      }
+      loadingToast.dismiss();
+      const workspaceType = activeOrgId ? 'organization' : 'personal';
+      toast({
+        title: "Sidebar Updated",
+        description: `Navigation preferences saved for ${workspaceType} workspace.`,
+      });
+      setSidebarHasChanges(false);
+    } catch (error: any) {
+      loadingToast.dismiss();
+      console.error("Error saving sidebar preferences:", error);
+      
+      // Show detailed error
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save sidebar preferences. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

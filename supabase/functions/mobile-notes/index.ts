@@ -1,5 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 
+// Hardcoded user and org for mobile notes API
+const MOBILE_NOTES_USER_ID = '<MY_USER_ID>';
+const MOBILE_NOTES_ORG_ID = '<MY_ORG_ID>';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -65,11 +69,13 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(p => p);
     const noteId = pathParts[pathParts.length - 1];
 
-    // GET - Return all notes
+    // GET - Return all notes for the hardcoded user/org
     if (req.method === 'GET') {
       const { data: notes, error } = await supabase
         .from('notes')
         .select('id, title, content, updated_at')
+        .eq('user_id', MOBILE_NOTES_USER_ID)
+        .eq('org_id', MOBILE_NOTES_ORG_ID)
         .is('archived_at', null)
         .order('updated_at', { ascending: false });
 
@@ -152,8 +158,8 @@ Deno.serve(async (req) => {
           .from('notes')
           .insert({
             id: mobileNote.id,
-            user_id: '00000000-0000-0000-0000-000000000000',
-            org_id: null,
+            user_id: MOBILE_NOTES_USER_ID,
+            org_id: MOBILE_NOTES_ORG_ID,
             ...noteData,
           })
           .select('id, title, content, updated_at')

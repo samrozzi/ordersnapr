@@ -852,7 +852,7 @@ export type Database = {
           template_id: string | null
           title: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           view_mode: string
         }
         Insert: {
@@ -874,7 +874,7 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           view_mode?: string
         }
         Update: {
@@ -896,7 +896,7 @@ export type Database = {
           template_id?: string | null
           title?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           view_mode?: string
         }
         Relationships: [

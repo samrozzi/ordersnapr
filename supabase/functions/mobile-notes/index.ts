@@ -40,6 +40,9 @@ function bodyToContent(body: string): any {
 }
 
 Deno.serve(async (req) => {
+  const url = new URL(req.url);
+  console.log("mobile-notes hit:", req.method, url.pathname);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

@@ -1,5 +1,8 @@
 project_id = "vqudyddedeacspujotsa"
 
+[functions.mobile-notes]
+verify_jwt = true
+
 [functions.extract-form-data]
 verify_jwt = true
 

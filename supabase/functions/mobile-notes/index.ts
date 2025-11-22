@@ -68,7 +68,6 @@ Deno.serve(async (req) => {
     const userId = "bd3a5b81-f3c3-4dee-b334-18130dcebe73";
     const orgId = "d7d395bf-651e-432a-8788-78d1fd90a258";
 
-    const url = new URL(req.url);
     const pathParts = url.pathname.split("/").filter((p) => p);
     const noteId = pathParts[pathParts.length - 1];
 

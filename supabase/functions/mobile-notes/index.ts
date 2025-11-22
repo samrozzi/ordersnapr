@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 
-// Hardcoded user and org for mobile notes API
-const MOBILE_NOTES_USER_ID = '<MY_USER_ID>';
-const MOBILE_NOTES_ORG_ID = '<MY_ORG_ID>';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -54,13 +50,19 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check API key
+    // Check API key and map to user identity
     const apiKey = req.headers.get('x-mobile-notes-key');
     const expectedKey = Deno.env.get('MOBILE_NOTES_API_KEY');
     
-    if (!apiKey || apiKey !== expectedKey) {
+    let userId: string | null = null;
+    let orgId: string | null = null;
+    
+    if (apiKey === expectedKey) {
+      userId = 'bd3a5b81-f3c3-4dee-b334-18130dcebe73';
+      orgId = 'd7d395bf-651e-432a-8788-78d1fd90a258';
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Invalid mobile notes API key' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,13 +71,13 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(p => p);
     const noteId = pathParts[pathParts.length - 1];
 
-    // GET - Return all notes for the hardcoded user/org
+    // GET - Return all notes for the authenticated user/org
     if (req.method === 'GET') {
       const { data: notes, error } = await supabase
         .from('notes')
         .select('id, title, content, updated_at')
-        .eq('user_id', MOBILE_NOTES_USER_ID)
-        .eq('org_id', MOBILE_NOTES_ORG_ID)
+        .eq('user_id', userId)
+        .eq('org_id', orgId)
         .is('archived_at', null)
         .order('updated_at', { ascending: false });
 
@@ -122,6 +124,8 @@ Deno.serve(async (req) => {
         title: mobileNote.title || 'Untitled Note',
         content: bodyToContent(mobileNote.body || ''),
         updated_at: new Date().toISOString(),
+        user_id: userId,
+        org_id: orgId,
       };
 
       if (existing) {
@@ -158,8 +162,6 @@ Deno.serve(async (req) => {
           .from('notes')
           .insert({
             id: mobileNote.id,
-            user_id: MOBILE_NOTES_USER_ID,
-            org_id: MOBILE_NOTES_ORG_ID,
             ...noteData,
           })
           .select('id, title, content, updated_at')
@@ -192,7 +194,9 @@ Deno.serve(async (req) => {
       const { error } = await supabase
         .from('notes')
         .delete()
-        .eq('id', noteId);
+        .eq('id', noteId)
+        .eq('user_id', userId)
+        .eq('org_id', orgId);
 
       if (error) {
         console.error('Error deleting note:', error);

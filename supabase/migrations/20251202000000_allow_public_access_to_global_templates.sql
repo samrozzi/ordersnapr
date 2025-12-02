@@ -25,8 +25,14 @@ CREATE POLICY "Users can view templates"
     )
   );
 
--- Ensure the overrun template exists and is marked as global
--- This allows the public overrun page to access it
+-- Ensure the overrun template is marked as global
+-- First, update it if it exists (by ID or slug)
+UPDATE form_templates
+SET is_global = true
+WHERE id = '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid
+   OR slug = 'overrun-report';
+
+-- Then insert it if it doesn't exist at all
 INSERT INTO form_templates (
   id,
   name,
@@ -36,7 +42,7 @@ INSERT INTO form_templates (
   is_global,
   schema
 )
-VALUES (
+SELECT
   '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid,
   'Overrun Report',
   'overrun-report',
@@ -116,6 +122,8 @@ VALUES (
       }
     ]
   }'::jsonb
-)
-ON CONFLICT (id) DO UPDATE
-SET is_global = true;
+WHERE NOT EXISTS (
+  SELECT 1 FROM form_templates
+  WHERE id = '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid
+     OR slug = 'overrun-report'
+);

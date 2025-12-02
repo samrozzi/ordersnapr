@@ -83,6 +83,25 @@ export default function PublicOverrunReport() {
   useEffect(() => {
     const fetchTemplate = async () => {
       try {
+        // First check if template exists at all (without single())
+        const { data: allData, error: listError } = await supabase
+          .from("form_templates")
+          .select("id, name, is_global, is_active, org_id")
+          .eq("id", OVERRUN_TEMPLATE_ID);
+
+        console.log("🔍 Template search results:", {
+          found: allData?.length || 0,
+          templates: allData,
+          listError: listError
+        });
+
+        if (allData && allData.length > 0) {
+          console.log("✅ Template EXISTS but RLS might be blocking .single():", allData[0]);
+        } else {
+          console.log("❌ Template does NOT exist in database or RLS blocks even listing");
+        }
+
+        // Now try to get the template with .single()
         const { data, error } = await supabase
           .from("form_templates")
           .select("id, name, schema, is_global, is_active")
@@ -90,7 +109,7 @@ export default function PublicOverrunReport() {
           .single();
 
         if (error) {
-          console.error("Supabase error details:", {
+          console.error("❌ Supabase .single() error:", {
             message: error.message,
             details: error.details,
             hint: error.hint,
@@ -98,7 +117,7 @@ export default function PublicOverrunReport() {
           });
           throw error;
         }
-        console.log("Template loaded successfully:", {
+        console.log("✅ Template loaded successfully:", {
           id: data.id,
           name: data.name,
           is_global: data.is_global,

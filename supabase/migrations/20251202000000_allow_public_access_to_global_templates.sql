@@ -1,8 +1,9 @@
 -- Fix RLS policy to allow unauthenticated access to global form templates
 -- This enables the public overrun report page to work without authentication
 
--- Drop the existing policy that requires authentication for all template reads
+-- Drop the existing policies that may require authentication
 DROP POLICY IF EXISTS "Org members can view active templates" ON form_templates;
+DROP POLICY IF EXISTS "Users can view templates" ON form_templates;
 
 -- Create separate policies for public and org-specific template access
 -- Policy 1: Allow anyone (including unauthenticated users) to view global templates
@@ -13,12 +14,15 @@ CREATE POLICY "Public can view global templates"
     AND is_active = true
   );
 
--- Policy 2: Allow authenticated org members to view their org's templates
-CREATE POLICY "Org members can view org templates"
+-- Policy 2: Allow authenticated users to view their org's templates and templates without org
+CREATE POLICY "Users can view templates"
   ON form_templates FOR SELECT
   USING (
-    org_id IN (SELECT organization_id FROM profiles WHERE id = auth.uid())
-    AND is_active = true
+    is_active = true
+    AND (
+      org_id IS NULL
+      OR org_id IN (SELECT organization_id FROM profiles WHERE id = auth.uid())
+    )
   );
 
 -- Ensure the overrun template exists and is marked as global

@@ -36,6 +36,7 @@ import Notes from "./pages/Notes";
 // Lazy load less frequently accessed pages
 const Admin = lazy(() => import("./pages/Admin"));
 const OrgAdmin = lazy(() => import("./pages/OrgAdmin"));
+const PublicOverrunReport = lazy(() => import("./pages/PublicOverrunReport"));
 const CustomFieldsAdmin = lazy(() => import("./pages/CustomFieldsAdmin"));
 const JobAudit = lazy(() => import("./pages/JobAudit"));
 const RideAlong = lazy(() => import("./pages/RideAlong"));
@@ -92,6 +93,9 @@ const AppContent = () => {
 
                 {/* Public Invoice - Shareable invoice links */}
                 <Route path="/invoice/:token" element={<PublicInvoice />} />
+
+                {/* Public Overrun Report - Standalone form */}
+                <Route path="/private/overrun" element={<PublicOverrunReport />} />
 
                 {/* Free Tier Routes - No approval required */}
                 <Route path="/onboarding" element={<FreeRoute><Onboarding /></FreeRoute>} />

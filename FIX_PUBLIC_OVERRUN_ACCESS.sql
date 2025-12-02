@@ -1,11 +1,14 @@
--- Fix RLS policy to allow unauthenticated access to global form templates
--- This enables the public overrun report page to work without authentication
+-- ============================================================================
+-- IMMEDIATE FIX: Allow public access to the Overrun Report form
+-- ============================================================================
+-- Run this in your Supabase SQL Editor to fix the public overrun page
+-- This will allow unauthenticated users to view the form at /private/overrun
+-- ============================================================================
 
--- Drop the existing policy that requires authentication for all template reads
+-- Step 1: Drop the existing restrictive policy
 DROP POLICY IF EXISTS "Org members can view active templates" ON form_templates;
 
--- Create separate policies for public and org-specific template access
--- Policy 1: Allow anyone (including unauthenticated users) to view global templates
+-- Step 2: Create policy to allow public access to global templates
 CREATE POLICY "Public can view global templates"
   ON form_templates FOR SELECT
   USING (
@@ -13,7 +16,7 @@ CREATE POLICY "Public can view global templates"
     AND is_active = true
   );
 
--- Policy 2: Allow authenticated org members to view their org's templates
+-- Step 3: Create policy to allow org members to view their org templates
 CREATE POLICY "Org members can view org templates"
   ON form_templates FOR SELECT
   USING (
@@ -21,8 +24,13 @@ CREATE POLICY "Org members can view org templates"
     AND is_active = true
   );
 
--- Ensure the overrun template exists and is marked as global
--- This allows the public overrun page to access it
+-- Step 4: Ensure the overrun template is marked as global
+UPDATE form_templates
+SET is_global = true
+WHERE id = '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid;
+
+-- Step 5: If the template doesn't exist, create it
+-- (This will do nothing if it already exists due to the ON CONFLICT clause)
 INSERT INTO form_templates (
   id,
   name,
@@ -113,5 +121,14 @@ VALUES (
     ]
   }'::jsonb
 )
-ON CONFLICT (id) DO UPDATE
-SET is_global = true;
+ON CONFLICT (id) DO NOTHING;
+
+-- Verify the changes
+SELECT
+  id,
+  name,
+  is_global,
+  is_active,
+  slug
+FROM form_templates
+WHERE id = '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid;

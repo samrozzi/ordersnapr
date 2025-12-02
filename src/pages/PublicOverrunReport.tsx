@@ -85,15 +85,29 @@ export default function PublicOverrunReport() {
       try {
         const { data, error } = await supabase
           .from("form_templates")
-          .select("id, name, schema")
+          .select("id, name, schema, is_global, is_active")
           .eq("id", OVERRUN_TEMPLATE_ID)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error details:", {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw error;
+        }
+        console.log("Template loaded successfully:", {
+          id: data.id,
+          name: data.name,
+          is_global: data.is_global,
+          is_active: data.is_active
+        });
         setTemplate(data as FormTemplate);
       } catch (err) {
         console.error("Failed to load template:", err);
-        toast.error("Failed to load form template");
+        toast.error("Failed to load form template. Check console for details.");
       } finally {
         setLoading(false);
       }

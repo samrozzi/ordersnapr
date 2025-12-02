@@ -55,6 +55,6 @@ BEGIN
       true,
       '{"title":"Overrun Report","description":"Track technician overrun incidents","sections":[{"title":"Overrun Details","hideTitle":true,"fields":[{"type":"date","key":"date","label":"Date","required":false,"hideLabel":false},{"type":"time","key":"time","label":"Time","required":false,"hideLabel":false},{"type":"repeating_group","key":"overrun_entries","label":"Technician Entry","required":false,"minInstances":1,"maxInstances":50,"fields":[{"type":"table_layout","key":"technician_info","label":"Technician Information","tableRows":2,"tableColumns":2,"tableCells":{"0-0":{"field":{"label":"Cell 0-0","placeholder":""}},"0-1":{"field":{"label":"Cell 0-1","placeholder":""}},"1-0":{"field":{"label":"Cell 1-0","placeholder":""}},"1-1":{"field":{"label":"Cell 1-1","placeholder":""}}}},{"type":"text","key":"ban_account","label":"BAN/Account Number","placeholder":"","required":false},{"type":"time","key":"rg_activate_time","label":"RG Activate Time","required":false},{"type":"time","key":"call_time","label":"Call time","required":false},{"type":"smart_import","key":"smart_import","label":"Smart Import"}]}]}]}'::jsonb
     ) ON CONFLICT (slug) DO UPDATE
-      SET is_global = true, is_active = true, id = '06ef6c3a-84ad-4b01-b18b-be8647e94b26'::uuid;
+      SET is_global = true, is_active = true;
   END IF;
 END $$;
